@@ -3948,7 +3948,7 @@ hideWindow (CompWindow *w)
 	    XUnmapWindow (w->screen->display->display, w->frame);
     }
 
-    if (w->attrib.map_state != IsViewable)
+    if (!w->pendingMaps && w->attrib.map_state != IsViewable)
 	return;
 
     if (w->minimized || w->inShowDesktopMode || w->hidden || w->shaded)
