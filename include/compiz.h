@@ -2045,6 +2045,7 @@ struct _CompWindow {
     Bool	      damaged;
     Bool	      redirected;
     Bool	      managed;
+    Bool	      bindFailed;
     int		      destroyRefCnt;
     int		      unmapRefCnt;
 
@@ -2255,7 +2256,7 @@ mapWindow (CompWindow *w);
 void
 unmapWindow (CompWindow *w);
 
-void
+Bool
 bindWindow (CompWindow *w);
 
 void
