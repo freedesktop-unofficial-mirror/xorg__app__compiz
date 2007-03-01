@@ -96,6 +96,7 @@ typedef struct _FadeWindow {
     int unmapCnt;
 
     Bool shaded;
+    Bool fadeOut;
 
     int steps;
 } FadeWindow;
@@ -282,7 +283,7 @@ fadePaintWindow (CompWindow		 *w,
     {
 	WindowPaintAttrib fAttrib = *attrib;
 
-	if (fw->destroyCnt || fw->unmapCnt)
+	if (fw->fadeOut)
 	    fAttrib.opacity = 0;
 
 	if (fw->steps)
@@ -477,6 +478,8 @@ fadeHandleEvent (CompDisplay *d,
 		fw->destroyCnt++;
 		w->destroyRefCnt++;
 
+		fw->fadeOut = TRUE;
+
 		addWindowDamage (w);
 	    }
 
@@ -499,6 +502,8 @@ fadeHandleEvent (CompDisplay *d,
 
 		fw->unmapCnt++;
 		w->unmapRefCnt++;
+
+		fw->fadeOut = TRUE;
 
 		addWindowDamage (w);
 	    }
@@ -609,6 +614,8 @@ fadeDamageWindowRect (CompWindow *w,
     if (initial)
     {
 	FADE_WINDOW (w);
+
+	fw->fadeOut = FALSE;
 
 	if (fw->shaded)
 	{
@@ -769,6 +776,7 @@ fadeInitWindow (CompPlugin *p,
     fw->destroyCnt = 0;
     fw->unmapCnt   = 0;
     fw->shaded     = w->shaded;
+    fw->fadeOut    = FALSE;
 
     w->privates[fs->windowPrivateIndex].ptr = fw;
 
