@@ -803,6 +803,8 @@ minDamageWindowRect (CompWindow *w,
     {
 	if (mw->state == IconicState)
 	{
+	    mw->state = NormalState;
+
 	    if (!w->invisible	      &&
 		(ms->wMask & w->type) &&
 		minGetWindowIconGeometry (w, &mw->icon))
