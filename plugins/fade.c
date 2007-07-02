@@ -44,8 +44,7 @@ typedef struct _FadeDisplay {
 #define FADE_SCREEN_OPTION_WINDOW_MATCH		  1
 #define FADE_SCREEN_OPTION_VISUAL_BELL		  2
 #define FADE_SCREEN_OPTION_FULLSCREEN_VISUAL_BELL 3
-#define FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE	  4
-#define FADE_SCREEN_OPTION_NUM			  5
+#define FADE_SCREEN_OPTION_NUM			  4
 
 typedef struct _FadeScreen {
     int			   windowPrivateIndex;
@@ -410,8 +409,7 @@ fadeHandleEvent (CompDisplay *d,
 	{
 	    FADE_SCREEN (w->screen);
 
-	    if (fd->suppressMinimizeOpenClose ||
-		!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
+	    if (fd->suppressMinimizeOpenClose)
 		break;
 
 	    if (w->texture->pixmap && matchEval (&fs->match, w))
@@ -441,8 +439,7 @@ fadeHandleEvent (CompDisplay *d,
 
 	    fw->shaded = w->shaded;
 
-	    if (fd->suppressMinimizeOpenClose ||
-		!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
+	    if (fd->suppressMinimizeOpenClose)
 		break;
 
 	    if (!fw->shaded && w->texture->pixmap && matchEval (&fs->match, w))
@@ -465,10 +462,7 @@ fadeHandleEvent (CompDisplay *d,
 	w = findWindowAtDisplay (d, event->xmap.window);
 	if (w)
 	{
-	    FADE_SCREEN(w->screen);
-
-	    if (fd->suppressMinimizeOpenClose ||
-		!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
+	    if (fd->suppressMinimizeOpenClose)
 		break;
 
 	    fadeWindowStop (w);
@@ -581,8 +575,7 @@ fadeDamageWindowRect (CompWindow *w,
 	{
 	    FADE_DISPLAY (w->screen->display);
 
-	    if (!fd->suppressMinimizeOpenClose &&
-		fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
+	    if (!fd->suppressMinimizeOpenClose)
 	    {
 		fw->opacity = 0;
 	    }
@@ -694,8 +687,7 @@ static const CompMetadataOptionInfo fadeScreenOptionInfo[] = {
     { "fade_speed", "float", "<min>0.1</min>", 0, 0 },
     { "window_match", "match", "<helper>true</helper>", 0, 0 },
     { "visual_bell", "bool", 0, 0, 0 },
-    { "fullscreen_visual_bell", "bool", 0, 0, 0 },
-    { "minimize_open_close", "bool", 0, 0, 0 }
+    { "fullscreen_visual_bell", "bool", 0, 0, 0 }
 };
 
 static Bool
