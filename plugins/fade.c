@@ -37,6 +37,7 @@ typedef struct _FadeDisplay {
     HandleEventProc	       handleEvent;
     MatchExpHandlerChangedProc matchExpHandlerChanged;
     int			       displayModals;
+    Bool		       suppressMinimizeOpenClose;
 } FadeDisplay;
 
 #define FADE_SCREEN_OPTION_FADE_SPEED		  0
@@ -409,7 +410,8 @@ fadeHandleEvent (CompDisplay *d,
 	{
 	    FADE_SCREEN (w->screen);
 
-	    if (!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
+	    if (fd->suppressMinimizeOpenClose ||
+		!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
 		break;
 
 	    if (w->texture->pixmap && matchEval (&fs->match, w))
@@ -439,7 +441,8 @@ fadeHandleEvent (CompDisplay *d,
 
 	    fw->shaded = w->shaded;
 
-	    if (!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
+	    if (fd->suppressMinimizeOpenClose ||
+		!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
 		break;
 
 	    if (!fw->shaded && w->texture->pixmap && matchEval (&fs->match, w))
@@ -464,7 +467,8 @@ fadeHandleEvent (CompDisplay *d,
 	{
 	    FADE_SCREEN(w->screen);
 
-	    if (!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
+	    if (fd->suppressMinimizeOpenClose ||
+		!fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
 		break;
 
 	    fadeWindowStop (w);
@@ -575,7 +579,10 @@ fadeDamageWindowRect (CompWindow *w,
 	}
 	else if (matchEval (&fs->match, w))
 	{
-	    if (fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
+	    FADE_DISPLAY (w->screen->display);
+
+	    if (!fd->suppressMinimizeOpenClose &&
+		fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b)
 	    {
 		fw->opacity = 0;
 	    }
@@ -657,6 +664,9 @@ fadeInitDisplay (CompPlugin  *p,
     }
 
     fd->displayModals = 0;
+
+    fd->suppressMinimizeOpenClose =
+	(findActivePlugin ("animation") != NULL);
 
     WRAP (fd, d, handleEvent, fadeHandleEvent);
     WRAP (fd, d, matchExpHandlerChanged, fadeMatchExpHandlerChanged);
