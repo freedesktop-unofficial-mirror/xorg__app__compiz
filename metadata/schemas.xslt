@@ -141,6 +141,10 @@
           <owner>compiz</owner>
           <type><xsl:call-template name="printType"/></type>
           <xsl:choose>
+            <xsl:when test="@name = 'active_plugins'">
+              <list_type>string</list_type>
+              <default>[<xsl:value-of select="$defaultPlugins"/>]</default>
+	    </xsl:when>
             <!-- for most option types we can use the default value directly -->
             <xsl:when test="contains('bool,int,float,string,match', @type)">
               <default>
