@@ -1431,11 +1431,6 @@ waitForVideoSync (CompScreen *s)
     if (!s->opt[COMP_SCREEN_OPTION_SYNC_TO_VBLANK].value.b)
 	return;
 
-    /* we currently can't handle sync to vblank when we have more than one
-       output device */
-    if (s->nOutputDev > 1)
-	return;
-
     if (s->getVideoSync)
     {
 	glFlush ();
