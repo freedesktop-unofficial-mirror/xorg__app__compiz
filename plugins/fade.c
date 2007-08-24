@@ -658,6 +658,11 @@ fadeInitDisplay (CompPlugin  *p,
 
     fd->displayModals = 0;
 
+    /* FIXME: workaround for conflict between fade and animation plugins.
+       If anybody has enabled the animation plugin, he most likely doesn't
+       want to have fade's map and unmap effects. A better solution for that
+       is having a generic animation framework, that's why this workaround
+       shouldn't be merged into the master branch. */
     fd->suppressMinimizeOpenClose =
 	(findActivePlugin ("animation") != NULL);
 
