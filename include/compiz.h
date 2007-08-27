@@ -26,7 +26,7 @@
 #ifndef _COMPIZ_H
 #define _COMPIZ_H
 
-#define ABIVERSION 20070708
+#define ABIVERSION 20070826
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -1710,7 +1710,8 @@ typedef void (*WindowGrabNotifyProc) (CompWindow   *window,
 
 typedef void (*WindowUngrabNotifyProc) (CompWindow *window);
 
-typedef void (*WindowStateChangeNotifyProc) (CompWindow *window);
+typedef void (*WindowStateChangeNotifyProc) (CompWindow   *window,
+					     unsigned int lastState);
 
 typedef void (*WindowAddNotifyProc) (CompWindow *window);
 
@@ -2356,7 +2357,6 @@ struct _CompWindow {
     unsigned int      wmType;
     unsigned int      type;
     unsigned int      state;
-    unsigned int      lastState;
     unsigned int      actions;
     unsigned int      protocols;
     unsigned int      mwmDecor;
@@ -2713,7 +2713,8 @@ void
 windowUngrabNotify (CompWindow *w);
 
 void
-windowStateChangeNotify (CompWindow *w);
+windowStateChangeNotify (CompWindow   *w,
+			 unsigned int lastState);
 
 void
 moveInputFocusToWindow (CompWindow *w);
