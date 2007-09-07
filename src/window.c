@@ -1165,6 +1165,8 @@ updateFrameWindow (CompWindow *w)
 	if (w->frame)
 	{
 	    XDestroyWindow (w->screen->display->display, w->frame);
+	    XDeleteProperty (w->screen->display->display, w->id,
+			     w->screen->display->frameWindowAtom);
 	    w->frame = None;
 	}
     }
