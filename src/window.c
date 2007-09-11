@@ -2176,6 +2176,21 @@ removeWindow (CompWindow *w)
 {
     unhookWindowFromScreen (w->screen, w);
 
+    if (!w->destroyed)
+    {
+	CompDisplay *d = w->screen->display;
+
+	if (w->damage)
+	    XDamageDestroy (d->display, w->damage);
+
+	if (d->shapeExtension)
+	    XShapeSelectInput (d->display, w->id, NoEventMask);
+
+	XSelectInput (d->display, w->id, NoEventMask);
+
+	XUngrabButton (d->display, AnyButton, AnyModifier, w->id);
+    }
+
     if (w->attrib.map_state == IsViewable && w->damaged)
     {
 	if (w->type == CompWindowTypeDesktopMask)
