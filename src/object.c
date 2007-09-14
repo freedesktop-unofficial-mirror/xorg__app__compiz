@@ -25,20 +25,6 @@
 
 #include <compiz-core.h>
 
-typedef CompBool (*AllocObjectPrivateIndexProc) (CompObject *parent);
-
-typedef void (*FreeObjectPrivateIndexProc) (CompObject *parent,
-					    int	       index);
-
-typedef CompBool (*ForEachObjectProc) (CompObject	  *parent,
-				       ObjectCallBackProc proc,
-				       void		  *closure);
-
-typedef char *(*NameObjectProc) (CompObject *object);
-
-typedef CompObject *(*FindObjectProc) (CompObject *parent,
-				       const char *name);
-
 struct _CompObjectInfo {
     const char			*name;
     AllocObjectPrivateIndexProc allocPrivateIndex;

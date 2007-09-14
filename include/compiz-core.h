@@ -276,14 +276,37 @@ typedef unsigned int CompObjectTypeID;
 #define COMP_OBJECT_TYPE_SCREEN  2
 #define COMP_OBJECT_TYPE_WINDOW  3
 
+typedef CompBool (*AllocObjectPrivateIndexProc) (CompObject *parent);
+
+typedef void (*FreeObjectPrivateIndexProc) (CompObject *parent,
+					    int	       index);
+
+typedef CompBool (*ObjectCallBackProc) (CompObject *object,
+					void       *closure);
+
+typedef CompBool (*ForEachObjectProc) (CompObject	  *parent,
+				       ObjectCallBackProc proc,
+				       void		  *closure);
+
+typedef char *(*NameObjectProc) (CompObject *object);
+
+typedef CompObject *(*FindObjectProc) (CompObject *parent,
+				       const char *name);
+
+typedef struct _CompObjectType {
+    const char			*name;
+    AllocObjectPrivateIndexProc allocPrivateIndex;
+    FreeObjectPrivateIndexProc  freePrivateIndex;
+    ForEachObjectProc		forEachObject;
+    NameObjectProc		nameObject;
+    FindObjectProc		findObject;
+} CompObjectType;
+
 struct _CompObject {
     CompObjectTypeID type;
     CompPrivate	     *privates;
     CompObject	     *parent;
 };
-
-typedef CompBool (*ObjectCallBackProc) (CompObject *object,
-					void       *closure);
 
 typedef CompBool (*ObjectTypeCallBackProc) (CompObjectTypeID type,
 					    CompObject     *parent,
