@@ -933,6 +933,11 @@ decorHandleEvent (CompDisplay *d,
 		decorCheckForDmOnScreen (w->screen, TRUE);
 	}
 	break;
+    case MapRequest:
+	w = findWindowAtDisplay (d, event->xmaprequest.window);
+	if (w)
+	    decorWindowUpdate (w, TRUE);
+	break;
     default:
 	if (event->type == d->damageEvent + XDamageNotify)
 	{
@@ -987,11 +992,6 @@ decorHandleEvent (CompDisplay *d,
     }
 
     switch (event->type) {
-    case MapRequest:
-	w = findWindowAtDisplay (d, event->xmaprequest.window);
-	if (w)
-	    decorWindowUpdate (w, TRUE);
-	break;
     case PropertyNotify:
 	if (event->xproperty.atom == dd->winDecorAtom)
 	{
