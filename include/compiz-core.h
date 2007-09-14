@@ -269,7 +269,7 @@ freePrivateIndex (int  len,
 
 /* object.c */
 
-typedef unsigned int CompObjectType;
+typedef unsigned int CompObjectTypeID;
 
 #define COMP_OBJECT_TYPE_CORE    0
 #define COMP_OBJECT_TYPE_DISPLAY 1
@@ -277,38 +277,38 @@ typedef unsigned int CompObjectType;
 #define COMP_OBJECT_TYPE_WINDOW  3
 
 struct _CompObject {
-    CompObjectType type;
-    CompPrivate	   *privates;
-    CompObject	   *parent;
+    CompObjectTypeID type;
+    CompPrivate	     *privates;
+    CompObject	     *parent;
 };
 
 typedef CompBool (*ObjectCallBackProc) (CompObject *object,
 					void       *closure);
 
-typedef CompBool (*ObjectTypeCallBackProc) (CompObjectType type,
+typedef CompBool (*ObjectTypeCallBackProc) (CompObjectTypeID type,
 					    CompObject     *parent,
 					    void	   *closure);
 
 void
 compObjectInit (CompObject     *object,
 		CompPrivate    *privates,
-		CompObjectType type);
+		CompObjectTypeID type);
 
 void
 compObjectFini (CompObject *object);
 
 int
 compObjectAllocatePrivateIndex (CompObject     *parent,
-				CompObjectType type);
+				CompObjectTypeID type);
 
 void
 compObjectFreePrivateIndex (CompObject     *parent,
-			    CompObjectType type,
+			    CompObjectTypeID type,
 			    int	           index);
 
 CompBool
 compObjectForEach (CompObject	      *parent,
-		   CompObjectType     type,
+		   CompObjectTypeID    type,
 		   ObjectCallBackProc proc,
 		   void		      *closure);
 
@@ -318,14 +318,14 @@ compObjectForEachType (CompObject	      *parent,
 		       void		      *closure);
 
 const char *
-compObjectTypeName (CompObjectType type);
+compObjectTypeName (CompObjectTypeID type);
 
 char *
 compObjectName (CompObject *object);
 
 CompObject *
 compObjectFind (CompObject     *parent,
-		CompObjectType type,
+		CompObjectTypeID type,
 		const char     *name);
 
 #define ARRAY_SIZE(array)		 \

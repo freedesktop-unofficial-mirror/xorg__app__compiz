@@ -480,7 +480,7 @@ kconfigReloadObjectTree (CompObject *object,
 			 void       *closure);
 
 static CompBool
-kconfigReloadObjectsWithType (CompObjectType type,
+kconfigReloadObjectsWithType (CompObjectTypeID type,
 			      CompObject     *parent,
 			      void	     *closure)
 {

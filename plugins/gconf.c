@@ -481,9 +481,9 @@ gconfReloadObjectTree (CompObject *object,
 			 void       *closure);
 
 static CompBool
-gconfReloadObjectsWithType (CompObjectType type,
-			      CompObject     *parent,
-			      void	     *closure)
+gconfReloadObjectsWithType (CompObjectTypeID type,
+			    CompObject       *parent,
+			    void	     *closure)
 {
     compObjectForEach (parent, type, gconfReloadObjectTree, closure);
 

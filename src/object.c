@@ -81,7 +81,7 @@ struct _CompObjectInfo {
 void
 compObjectInit (CompObject     *object,
 		CompPrivate    *privates,
-		CompObjectType type)
+		CompObjectTypeID type)
 {
     object->type     = type;
     object->privates = privates;
@@ -90,14 +90,14 @@ compObjectInit (CompObject     *object,
 
 int
 compObjectAllocatePrivateIndex (CompObject     *parent,
-				CompObjectType type)
+				CompObjectTypeID type)
 {
     return (*objectInfo[type].allocPrivateIndex) (parent);
 }
 
 void
 compObjectFreePrivateIndex (CompObject     *parent,
-			    CompObjectType type,
+			    CompObjectTypeID type,
 			    int	           index)
 {
     (*objectInfo[type].freePrivateIndex) (parent, index);
@@ -105,7 +105,7 @@ compObjectFreePrivateIndex (CompObject     *parent,
 
 CompBool
 compObjectForEach (CompObject	      *parent,
-		   CompObjectType     type,
+		   CompObjectTypeID     type,
 		   ObjectCallBackProc proc,
 		   void		      *closure)
 {
@@ -127,7 +127,7 @@ compObjectForEachType (CompObject	      *parent,
 }
 
 const char *
-compObjectTypeName (CompObjectType type)
+compObjectTypeName (CompObjectTypeID type)
 {
     return objectInfo[type].name;
 }
@@ -140,7 +140,7 @@ compObjectName (CompObject *object)
 
 CompObject *
 compObjectFind (CompObject     *parent,
-		CompObjectType type,
+		CompObjectTypeID type,
 		const char     *name)
 {
     return (*objectInfo[type].findObject) (parent, name);

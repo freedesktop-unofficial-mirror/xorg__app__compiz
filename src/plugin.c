@@ -300,7 +300,7 @@ typedef struct _InitObjectContext {
 
 typedef struct _InitObjectTypeContext {
     CompPlugin     *plugin;
-    CompObjectType type;
+    CompObjectTypeID type;
 } InitObjectTypeContext;
 
 static CompBool
@@ -312,7 +312,7 @@ finiObjectTree (CompObject *object,
 		void       *closure);
 
 static CompBool
-initObjectsWithType (CompObjectType type,
+initObjectsWithType (CompObjectTypeID type,
 		     CompObject	    *parent,
 		     void	    *closure)
 {
@@ -335,7 +335,7 @@ initObjectsWithType (CompObjectType type,
 }
 
 static CompBool
-finiObjectsWithType (CompObjectType type,
+finiObjectsWithType (CompObjectTypeID type,
 		     CompObject	    *parent,
 		     void	    *closure)
 {
