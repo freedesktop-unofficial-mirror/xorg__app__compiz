@@ -305,9 +305,8 @@ struct _CompObject {
     CompObjectType   *type;
 };
 
-void
+CompBool
 compObjectInit (CompObject     *object,
-		CompPrivate    *privates,
 		CompObjectType *type,
 		CompObjectTypeID id);
 

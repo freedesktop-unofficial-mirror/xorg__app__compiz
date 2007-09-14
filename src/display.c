@@ -1896,15 +1896,14 @@ addScreenToDisplay (CompDisplay *display,
 static void
 freeDisplay (CompDisplay *d)
 {
+    compObjectFini (&d->base);
+
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 
     compFiniOptionValue (&d->plugin, CompOptionTypeList);
 
     if (d->screenInfo)
 	XFree (d->screenInfo);
-
-    if (d->base.privates)
-	free (d->base.privates);
 
     free (d);
 }
@@ -1940,7 +1939,6 @@ Bool
 addDisplay (const char *name)
 {
     CompDisplay *d;
-    CompPrivate	*privates;
     Display     *dpy;
     Window	focus;
     int		revertTo, i;
@@ -1953,21 +1951,12 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (displayObjectType.privateLen)
+    if (!compObjectInit (&d->base, &displayObjectType,
+			 COMP_OBJECT_TYPE_DISPLAY))
     {
-	privates = malloc (displayObjectType.privateLen *
-			   sizeof (CompPrivate));
-	if (!privates)
-	{
-	    free (d);
-	    return FALSE;
-	}
+	free (d);
+	return FALSE;
     }
-    else
-	privates = 0;
-
-    compObjectInit (&d->base, privates, &displayObjectType,
-		    COMP_OBJECT_TYPE_DISPLAY);
 
     d->next    = NULL;
     d->screens = NULL;

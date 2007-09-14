@@ -1310,6 +1310,8 @@ freeWindow (CompWindow *w)
 {
     releaseWindow (w);
 
+    compObjectFini (&w->base);
+
     if (w->syncAlarm)
 	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
 
@@ -1326,9 +1328,6 @@ freeWindow (CompWindow *w)
 
     if (w->region)
 	XDestroyRegion (w->region);
-
-    if (w->base.privates)
-	free (w->base.privates);
 
     if (w->sizeDamage)
 	free (w->damageRects);
@@ -1835,8 +1834,7 @@ addWindow (CompScreen *screen,
 	   Window     id,
 	   Window     aboveId)
 {
-    CompWindow  *w;
-    CompPrivate	*privates;
+    CompWindow *w;
 
     w = (CompWindow *) malloc (sizeof (CompWindow));
     if (!w)
@@ -1947,21 +1945,11 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (windowObjectType.privateLen)
+    if (!compObjectInit (&w->base, &windowObjectType, COMP_OBJECT_TYPE_WINDOW))
     {
-	privates = malloc (windowObjectType.privateLen * sizeof (CompPrivate));
-	if (!privates)
-	{
-	    destroyTexture (screen, w->texture);
-	    free (w);
-	    return;
-	}
+	free (w);
+	return;
     }
-    else
-	privates = 0;
-
-    compObjectInit (&w->base, privates, &windowObjectType,
-		    COMP_OBJECT_TYPE_WINDOW);
 
     w->region = XCreateRegion ();
     if (!w->region)

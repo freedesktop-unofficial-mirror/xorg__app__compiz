@@ -25,16 +25,34 @@
 
 #include <compiz-core.h>
 
-void
+CompBool
 compObjectInit (CompObject     *object,
-		CompPrivate    *privates,
 		CompObjectType *type,
 		CompObjectTypeID id)
 {
-    object->id       = id;
-    object->privates = privates;
-    object->parent   = NULL;
-    object->type     = type;
+    if (type->privateLen)
+    {
+	object->privates = malloc (type->privateLen * sizeof (CompPrivate));
+	if (!object->privates)
+	    return FALSE;
+    }
+    else
+    {
+	object->privates = NULL;
+    }
+
+    object->id     = id;
+    object->parent = NULL;
+    object->type   = type;
+
+    return TRUE;
+}
+
+void
+compObjectFini (CompObject *object)
+{
+    if (object->privates)
+	free (object->privates);
 }
 
 typedef struct _ReallocObjectPrivatesContext {

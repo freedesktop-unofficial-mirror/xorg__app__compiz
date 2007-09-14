@@ -157,7 +157,8 @@ initCore (void)
 {
     CompPlugin *corePlugin;
 
-    compObjectInit (&core.base, 0, &coreObjectType, COMP_OBJECT_TYPE_CORE);
+    if (!compObjectInit (&core.base, &coreObjectType, COMP_OBJECT_TYPE_CORE))
+	return FALSE;
 
     core.displays = NULL;
 
@@ -230,6 +231,8 @@ finiCore (void)
 
     XDestroyRegion (core.outputRegion);
     XDestroyRegion (core.tmpRegion);
+
+    compObjectFini (&core.base);
 }
 
 void

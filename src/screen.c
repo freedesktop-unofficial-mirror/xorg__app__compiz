@@ -1429,6 +1429,8 @@ initWindowWalker (CompScreen *screen,
 static void
 freeScreen (CompScreen *s)
 {
+    compObjectFini (&s->base);
+
     if (s->outputDev)
     {
 	int i;
@@ -1459,9 +1461,6 @@ freeScreen (CompScreen *s)
 	XDestroyRegion (s->damage);
 
     compFiniScreenOptions (s, s->opt, COMP_SCREEN_OPTION_NUM);
-
-    if (s->base.privates)
-	free (s->base.privates);
 
     free (s);
 }
@@ -1502,7 +1501,6 @@ addScreen (CompDisplay *display,
 	   Time	       wmSnTimestamp)
 {
     CompScreen		 *s;
-    CompPrivate		 *privates;
     Display		 *dpy = display->display;
     static char		 data = 0;
     XColor		 black;
@@ -1526,20 +1524,11 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (screenObjectType.privateLen)
+    if (!compObjectInit (&s->base, &screenObjectType, COMP_OBJECT_TYPE_SCREEN))
     {
-	privates = malloc (screenObjectType.privateLen * sizeof (CompPrivate));
-	if (!privates)
-	{
-	    free (s);
-	    return FALSE;
-	}
+	free (s);
+	return FALSE;
     }
-    else
-	privates = 0;
-
-    compObjectInit (&s->base, privates, &screenObjectType,
-		    COMP_OBJECT_TYPE_SCREEN);
 
     s->display = display;
 
