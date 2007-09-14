@@ -25,38 +25,6 @@
 
 #include <compiz-core.h>
 
-CompObjectType objectInfo[] = {
-    {
-	"core",
-	allocCoreObjectPrivateIndex,
-	freeCoreObjectPrivateIndex,
-	forEachCoreObject,
-	nameCoreObject,
-	findCoreObject
-    }, {
-	"display",
-	allocDisplayObjectPrivateIndex,
-	freeDisplayObjectPrivateIndex,
-	forEachDisplayObject,
-	nameDisplayObject,
-	findDisplayObject
-    }, {
-	"screen",
-	allocScreenObjectPrivateIndex,
-	freeScreenObjectPrivateIndex,
-	forEachScreenObject,
-	nameScreenObject,
-	findScreenObject
-    }, {
-	"window",
-	allocWindowObjectPrivateIndex,
-	freeWindowObjectPrivateIndex,
-	forEachWindowObject,
-	nameWindowObject,
-	findWindowObject
-    }
-};
-
 void
 compObjectInit (CompObject     *object,
 		CompPrivate    *privates,
@@ -70,59 +38,14 @@ compObjectInit (CompObject     *object,
 }
 
 int
-compObjectAllocatePrivateIndex (CompObject     *parent,
-				CompObjectTypeID type)
+compObjectAllocatePrivateIndex (CompObjectType *type)
 {
-    return (*objectInfo[type].allocPrivateIndex) (parent);
+    return (*type->allocPrivateIndex) ();
 }
 
 void
-compObjectFreePrivateIndex (CompObject     *parent,
-			    CompObjectTypeID type,
+compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index)
 {
-    (*objectInfo[type].freePrivateIndex) (parent, index);
-}
-
-CompBool
-compObjectForEach (CompObject	      *parent,
-		   CompObjectTypeID     type,
-		   ObjectCallBackProc proc,
-		   void		      *closure)
-{
-    return (*objectInfo[type].forEachObject) (parent, proc, closure);
-}
-
-CompBool
-compObjectForEachType (CompObject	      *parent,
-		       ObjectTypeCallBackProc proc,
-		       void		      *closure)
-{
-    int i;
-
-    for (i = 0; i < sizeof (objectInfo) / sizeof (objectInfo[0]); i++)
-	if (!(*proc) (i, parent, closure))
-	    return FALSE;
-
-    return TRUE;
-}
-
-const char *
-compObjectTypeName (CompObjectTypeID type)
-{
-    return objectInfo[type].name;
-}
-
-char *
-compObjectName (CompObject *object)
-{
-    return (*objectInfo[object->id].nameObject) (object);
-}
-
-CompObject *
-compObjectFind (CompObject     *parent,
-		CompObjectTypeID type,
-		const char     *name)
-{
-    return (*objectInfo[type].findObject) (parent, name);
+    (*type->freePrivateIndex) (index);
 }

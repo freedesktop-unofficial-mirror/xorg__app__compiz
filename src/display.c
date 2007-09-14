@@ -92,8 +92,8 @@ reallocDisplayPrivate (int  size,
     return TRUE;
 }
 
-int
-allocDisplayObjectPrivateIndex (CompObject *parent)
+static int
+allocDisplayObjectPrivateIndex (void)
 {
     return allocatePrivateIndex (&displayPrivateLen,
 				 &displayPrivateIndices,
@@ -101,61 +101,54 @@ allocDisplayObjectPrivateIndex (CompObject *parent)
 				 0);
 }
 
-void
-freeDisplayObjectPrivateIndex (CompObject *parent,
-			       int	  index)
+static void
+freeDisplayObjectPrivateIndex (int index)
 {
     freePrivateIndex (displayPrivateLen, displayPrivateIndices, index);
 }
 
-CompBool
-forEachDisplayObject (CompObject         *parent,
+static CompBool
+displayForEachObject (CompObject         *object,
 		      ObjectCallBackProc proc,
 		      void	         *closure)
 {
-    if (parent->id == COMP_OBJECT_TYPE_CORE)
-    {
-	CompDisplay *d;
+    CompScreen *s;
 
-	for (d = core.displays; d; d = d->next)
-	{
-	    if (!(*proc) (&d->base, closure))
-		return FALSE;
-	}
+    CORE_DISPLAY (object);
+
+    for (s = d->screens; s; s = s->next)
+    {
+	if (!(*proc) (&s->base, closure))
+	    return FALSE;
     }
 
     return TRUE;
 }
 
-char *
-nameDisplayObject (CompObject *object)
+static char *
+displayNameObject (CompObject *object)
 {
     return NULL;
 }
 
-CompObject *
-findDisplayObject (CompObject *parent,
+static CompObject *
+displayFindObject (CompObject *parent,
+		   const char *type,
 		   const char *name)
 {
-    if (parent->id == COMP_OBJECT_TYPE_CORE)
+    if (strcmp (type, getScreenObjectType ()->name) == 0)
     {
-	if (!name || !name[0])
-	    return &core.displays->base;
+	CompScreen *s;
+	int	   screenNum = atoi (name);
+
+	CORE_DISPLAY (parent);
+
+	for (s = d->screens; s; s = s->next)
+	    if (s->screenNum == screenNum)
+		return &s->base;
     }
 
     return NULL;
-}
-
-int
-allocateDisplayPrivateIndex (void)
-{
-    return compObjectAllocatePrivateIndex (NULL, COMP_OBJECT_TYPE_DISPLAY);
-}
-
-void
-freeDisplayPrivateIndex (int index)
-{
-    compObjectFreePrivateIndex (NULL, COMP_OBJECT_TYPE_DISPLAY, index);
 }
 
 static Bool
@@ -1947,9 +1940,6 @@ freeDisplay (CompDisplay *d)
     if (d->screenInfo)
 	XFree (d->screenInfo);
 
-    if (d->screenPrivateIndices)
-	free (d->screenPrivateIndices);
-
     if (d->base.privates)
 	free (d->base.privates);
 
@@ -1960,10 +1950,28 @@ static CompObjectType displayObjectType = {
     "display",
     allocDisplayObjectPrivateIndex,
     freeDisplayObjectPrivateIndex,
-    forEachDisplayObject,
-    nameDisplayObject,
-    findDisplayObject
+    displayForEachObject,
+    displayNameObject,
+    displayFindObject
 };
+
+CompObjectType *
+getDisplayObjectType (void)
+{
+    return &displayObjectType;
+}
+
+int
+allocateDisplayPrivateIndex (void)
+{
+    return compObjectAllocatePrivateIndex (&displayObjectType);
+}
+
+void
+freeDisplayPrivateIndex (int index)
+{
+    compObjectFreePrivateIndex (&displayObjectType, index);
+}
 
 Bool
 addDisplay (const char *name)
@@ -2001,9 +2009,6 @@ addDisplay (const char *name)
     d->screens = NULL;
 
     d->watchFdHandle = 0;
-
-    d->screenPrivateIndices = 0;
-    d->screenPrivateLen     = 0;
 
     d->logMessage = logMessage;
 

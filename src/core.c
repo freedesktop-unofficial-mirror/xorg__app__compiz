@@ -47,8 +47,8 @@ reallocCorePrivate (int  size,
     return TRUE;
 }
 
-int
-allocCoreObjectPrivateIndex (CompObject *parent)
+static int
+allocCoreObjectPrivateIndex (void)
 {
     return allocatePrivateIndex (&corePrivateLen,
 				 &corePrivateIndices,
@@ -56,44 +56,42 @@ allocCoreObjectPrivateIndex (CompObject *parent)
 				 0);
 }
 
-void
-freeCoreObjectPrivateIndex (CompObject *parent,
-			    int	       index)
+static void
+freeCoreObjectPrivateIndex (int	index)
 {
     freePrivateIndex (corePrivateLen, corePrivateIndices, index);
 }
 
-CompBool
-forEachCoreObject (CompObject         *parent,
+static CompBool
+coreForEachObject (CompObject         *object,
 		   ObjectCallBackProc proc,
 		   void		      *closure)
 {
+    CompDisplay *d;
+
+    for (d = core.displays; d; d = d->next)
+	if (!(*proc) (&d->base, closure))
+	    return FALSE;
+
     return TRUE;
 }
 
-char *
-nameCoreObject (CompObject *object)
+static char *
+coreNameObject (CompObject *object)
 {
     return NULL;
 }
 
-CompObject *
-findCoreObject (CompObject *parent,
+static CompObject *
+coreFindObject (CompObject *object,
+		const char *type,
 		const char *name)
 {
+    if (strcmp (type, getDisplayObjectType ()->name) == 0)
+	if (core.displays && (!name || !name[0]))
+	    return &core.displays->base;
+
     return NULL;
-}
-
-int
-allocateCorePrivateIndex (void)
-{
-    return compObjectAllocatePrivateIndex (NULL, COMP_OBJECT_TYPE_CORE);
-}
-
-void
-freeCorePrivateIndex (int index)
-{
-    compObjectFreePrivateIndex (NULL, COMP_OBJECT_TYPE_CORE, index);
 }
 
 static CompBool
@@ -154,10 +152,38 @@ static CompObjectType coreObjectType = {
     "core",
     allocCoreObjectPrivateIndex,
     freeCoreObjectPrivateIndex,
-    forEachCoreObject,
-    nameCoreObject,
-    findCoreObject
+    coreForEachObject,
+    coreNameObject,
+    coreFindObject
 };
+
+static CompBool
+coreForEachObjectType (ObjectTypeCallBackProc proc,
+		       void		      *closure)
+{
+    if (!(*proc) (getDisplayObjectType (), closure))
+	return FALSE;
+
+    if (!(*proc) (getScreenObjectType (), closure))
+	return FALSE;
+
+    if (!(*proc) (getWindowObjectType (), closure))
+	return FALSE;
+
+    return (*proc) (&coreObjectType, closure);
+}
+
+int
+allocateCorePrivateIndex (void)
+{
+    return compObjectAllocatePrivateIndex (&coreObjectType);
+}
+
+void
+freeCorePrivateIndex (int index)
+{
+    compObjectFreePrivateIndex (&coreObjectType, index);
+}
 
 CompBool
 initCore (void)
@@ -191,6 +217,8 @@ initCore (void)
     core.nWatchFds	   = 0;
 
     gettimeofday (&core.lastTimeout, 0);
+
+    core.forEachObjectType = coreForEachObjectType;
 
     core.initPluginForObject = initCorePluginForObject;
     core.finiPluginForObject = finiCorePluginForObject;

@@ -93,14 +93,13 @@ dbusGetOptionsFromPath (char	     **path,
     CompPlugin *p;
     CompObject *object;
 
-    object = compObjectFind (&core.base, COMP_OBJECT_TYPE_DISPLAY, NULL);
+    object = (*core.base.type->findObject) (&core.base, "display", NULL);
     if (!object)
 	return NULL;
 
     if (strncmp (path[1], "screen", 6) == 0)
     {
-	object = compObjectFind (object, COMP_OBJECT_TYPE_SCREEN,
-				 path[1] + 6);
+	object = (*object->type->findObject) (object, "screen", path[1] + 6);
 	if (!object)
 	    return NULL;
     }
@@ -1847,17 +1846,17 @@ dbusSendChangeSignalForOption (CompObject *object,
     if (!o)
 	return;
 
-    name = compObjectName (object);
+    name = (*object->type->nameObject) (object);
     if (name)
     {
 	sprintf (path, "%s/%s/%s%s/%s", COMPIZ_DBUS_ROOT_PATH,
-		 plugin, compObjectTypeName (object->id), name, o->name);
+		 plugin, object->type->name, name, o->name);
 
 	free (name);
     }
     else
 	sprintf (path, "%s/%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
-		 plugin, compObjectTypeName (object->id), o->name);
+		 plugin, object->type->name, o->name);
 
     signal = dbus_message_new_signal (path,
 				      COMPIZ_DBUS_SERVICE_NAME,

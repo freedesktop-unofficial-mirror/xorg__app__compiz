@@ -276,10 +276,9 @@ typedef unsigned int CompObjectTypeID;
 #define COMP_OBJECT_TYPE_SCREEN  2
 #define COMP_OBJECT_TYPE_WINDOW  3
 
-typedef CompBool (*AllocObjectPrivateIndexProc) (CompObject *parent);
+typedef int (*AllocObjectPrivateIndexProc) (void);
 
-typedef void (*FreeObjectPrivateIndexProc) (CompObject *parent,
-					    int	       index);
+typedef void (*FreeObjectPrivateIndexProc) (int	index);
 
 typedef CompBool (*ObjectCallBackProc) (CompObject *object,
 					void       *closure);
@@ -291,6 +290,7 @@ typedef CompBool (*ForEachObjectProc) (CompObject	  *parent,
 typedef char *(*NameObjectProc) (CompObject *object);
 
 typedef CompObject *(*FindObjectProc) (CompObject *parent,
+				       const char *type,
 				       const char *name);
 
 typedef struct _CompObjectType {
@@ -309,10 +309,6 @@ struct _CompObject {
     CompObjectType   *type;
 };
 
-typedef CompBool (*ObjectTypeCallBackProc) (CompObjectTypeID type,
-					    CompObject     *parent,
-					    void	   *closure);
-
 void
 compObjectInit (CompObject     *object,
 		CompPrivate    *privates,
@@ -323,35 +319,11 @@ void
 compObjectFini (CompObject *object);
 
 int
-compObjectAllocatePrivateIndex (CompObject     *parent,
-				CompObjectTypeID type);
+compObjectAllocatePrivateIndex (CompObjectType *type);
 
 void
-compObjectFreePrivateIndex (CompObject     *parent,
-			    CompObjectTypeID type,
+compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index);
-
-CompBool
-compObjectForEach (CompObject	      *parent,
-		   CompObjectTypeID    type,
-		   ObjectCallBackProc proc,
-		   void		      *closure);
-
-CompBool
-compObjectForEachType (CompObject	      *parent,
-		       ObjectTypeCallBackProc proc,
-		       void		      *closure);
-
-const char *
-compObjectTypeName (CompObjectTypeID type);
-
-char *
-compObjectName (CompObject *object);
-
-CompObject *
-compObjectFind (CompObject     *parent,
-		CompObjectTypeID type,
-		const char     *name);
 
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))
@@ -639,6 +611,12 @@ typedef void (*ObjectAddProc) (CompObject *parent,
 typedef void (*ObjectRemoveProc) (CompObject *parent,
 				  CompObject *object);
 
+typedef CompBool (*ObjectTypeCallBackProc) (CompObjectType *type,
+					    void	   *closure);
+
+typedef CompBool (*ForEachObjectTypeProc) (ObjectTypeCallBackProc proc,
+					   void			  *closure);
+
 #define NOTIFY_CREATE_MASK (1 << 0)
 #define NOTIFY_DELETE_MASK (1 << 1)
 #define NOTIFY_MOVE_MASK   (1 << 2)
@@ -701,6 +679,8 @@ struct _CompCore {
     struct pollfd     *watchPollFds;
     int               nWatchFds;
 
+    ForEachObjectTypeProc forEachObjectType;
+
     InitPluginForObjectProc initPluginForObject;
     FiniPluginForObjectProc finiPluginForObject;
 
@@ -716,25 +696,6 @@ struct _CompCore {
     SessionFiniProc  sessionFini;
     SessionEventProc sessionEvent;
 };
-
-int
-allocCoreObjectPrivateIndex (CompObject *parent);
-
-void
-freeCoreObjectPrivateIndex (CompObject *parent,
-			    int	       index);
-
-CompBool
-forEachCoreObject (CompObject	     *parent,
-		   ObjectCallBackProc proc,
-		   void		     *closure);
-
-char *
-nameCoreObject (CompObject *object);
-
-CompObject *
-findCoreObject (CompObject *parent,
-		const char *name);
 
 CompBool
 initCore (void);
@@ -934,9 +895,6 @@ struct _CompDisplay {
 
     CompWatchFdHandle watchFdHandle;
 
-    char *screenPrivateIndices;
-    int  screenPrivateLen;
-
     int compositeEvent, compositeError, compositeOpcode;
     int damageEvent, damageError;
     int syncEvent, syncError;
@@ -1124,28 +1082,8 @@ struct _CompDisplay {
 #define GET_CORE_DISPLAY(object) ((CompDisplay *) (object))
 #define CORE_DISPLAY(object) CompDisplay *d = GET_CORE_DISPLAY (object)
 
-CompBool
-allocDisplayObjectPrivates (CompObject *object,
-			    CompObject *parent);
-
-int
-allocDisplayObjectPrivateIndex (CompObject *parent);
-
-void
-freeDisplayObjectPrivateIndex (CompObject *parent,
-			       int	  index);
-
-CompBool
-forEachDisplayObject (CompObject	 *parent,
-		      ObjectCallBackProc proc,
-		      void		 *closure);
-
-char *
-nameDisplayObject (CompObject *object);
-
-CompObject *
-findDisplayObject (CompObject *parent,
-		   const char *name);
+CompObjectType *
+getDisplayObjectType (void);
 
 int
 allocateDisplayPrivateIndex (void);
@@ -2036,9 +1974,6 @@ struct _CompScreen {
     CompWindow	*windows;
     CompWindow	*reverseWindows;
 
-    char *windowPrivateIndices;
-    int  windowPrivateLen;
-
     Colormap	      colormap;
     int		      screenNum;
     int		      width;
@@ -2236,28 +2171,8 @@ struct _CompScreen {
 #define GET_CORE_SCREEN(object) ((CompScreen *) (object))
 #define CORE_SCREEN(object) CompScreen *s = GET_CORE_SCREEN (object)
 
-CompBool
-allocScreenObjectPrivates (CompObject *object,
-			   CompObject *parent);
-
-int
-allocScreenObjectPrivateIndex (CompObject *parent);
-
-void
-freeScreenObjectPrivateIndex (CompObject *parent,
-			      int	 index);
-
-CompBool
-forEachScreenObject (CompObject	        *parent,
-		     ObjectCallBackProc proc,
-		     void	        *closure);
-
-char *
-nameScreenObject (CompObject *object);
-
-CompObject *
-findScreenObject (CompObject *parent,
-		  const char *name);
+CompObjectType *
+getScreenObjectType (void);
 
 int
 allocateScreenPrivateIndex (CompDisplay *display);
@@ -2695,28 +2610,8 @@ struct _CompWindow {
 #define GET_CORE_WINDOW(object) ((CompWindow *) (object))
 #define CORE_WINDOW(object) CompWindow *w = GET_CORE_WINDOW (object)
 
-CompBool
-allocWindowObjectPrivates (CompObject *object,
-			   CompObject *parent);
-
-int
-allocWindowObjectPrivateIndex (CompObject *parent);
-
-void
-freeWindowObjectPrivateIndex (CompObject *parent,
-			      int	 index);
-
-CompBool
-forEachWindowObject (CompObject	        *parent,
-		     ObjectCallBackProc proc,
-		     void	        *closure);
-
-char *
-nameWindowObject (CompObject *object);
-
-CompObject *
-findWindowObject (CompObject *parent,
-		  const char *name);
+CompObjectType *
+getWindowObjectType (void);
 
 int
 allocateWindowPrivateIndex (CompScreen *screen);

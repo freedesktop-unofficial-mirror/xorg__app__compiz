@@ -173,10 +173,10 @@ kconfigValueToString (CompObject      *object,
 static QString
 kconfigObjectString (CompObject *object)
 {
-    QString objectName (QString (compObjectTypeName (object->id)));
+    QString objectName (QString (object->type->name));
     char    *name;
 
-    name = compObjectName (object);
+    name = (*object->type->nameObject) (object);
     if (name)
     {
 	objectName += name;
@@ -477,20 +477,6 @@ kconfigGetOption (CompObject *object,
 
 static CompBool
 kconfigReloadObjectTree (CompObject *object,
-			 void       *closure);
-
-static CompBool
-kconfigReloadObjectsWithType (CompObjectTypeID type,
-			      CompObject     *parent,
-			      void	     *closure)
-{
-    compObjectForEach (parent, type, kconfigReloadObjectTree, closure);
-
-    return TRUE;
-}
-
-static CompBool
-kconfigReloadObjectTree (CompObject *object,
 			 void       *closure)
 {
     CompPlugin *p = (CompPlugin *) closure;
@@ -501,7 +487,7 @@ kconfigReloadObjectTree (CompObject *object,
     while (nOption--)
 	kconfigGetOption (object, option++, p->vTable->name);
 
-    compObjectForEachType (object, kconfigReloadObjectsWithType, closure);
+    (*object->type->forEachObject) (object, kconfigReloadObjectTree, closure);
 
     return TRUE;
 }

@@ -49,71 +49,64 @@ typedef struct {
     unsigned long decorations;
 } MwmHints;
 
+static char *windowPrivateIndices = 0;
+static int  windowPrivateLen = 0;
+
 static int
 reallocWindowPrivates (int  size,
 		       void *closure)
 {
-    CompScreen *s = (CompScreen *) closure;
-    CompWindow *w;
-    void       *privates;
+    CompDisplay *d;
+    CompScreen  *s;
+    CompWindow  *w;
+    void        *privates;
 
-    for (w = s->windows; w; w = w->next)
+    for (d = core.displays; d; d = d->next)
     {
-	privates = realloc (w->base.privates, size * sizeof (CompPrivate));
-	if (!privates)
-	    return FALSE;
-
-	w->base.privates = (CompPrivate *) privates;
-    }
-
-    return TRUE;
-}
-
-int
-allocWindowObjectPrivateIndex (CompObject *parent)
-{
-    CompScreen *screen = (CompScreen *) parent;
-
-    return allocatePrivateIndex (&screen->windowPrivateLen,
-				 &screen->windowPrivateIndices,
-				 reallocWindowPrivates,
-				 (void *) screen);
-}
-
-void
-freeWindowObjectPrivateIndex (CompObject *parent,
-			      int	 index)
-{
-    CompScreen *screen = (CompScreen *) parent;
-
-    freePrivateIndex (screen->windowPrivateLen,
-		      screen->windowPrivateIndices,
-		      index);
-}
-
-CompBool
-forEachWindowObject (CompObject	        *parent,
-		     ObjectCallBackProc proc,
-		     void	        *closure)
-{
-    if (parent->id == COMP_OBJECT_TYPE_SCREEN)
-    {
-	CompWindow *w;
-
-	CORE_SCREEN (parent);
-
-	for (w = s->windows; w; w = w->next)
+	for (s = d->screens; s; s = s->next)
 	{
-	    if (!(*proc) (&w->base, closure))
-		return FALSE;
+	    for (w = s->windows; w; w = w->next)
+	    {
+		privates = realloc (w->base.privates,
+				    size * sizeof (CompPrivate));
+		if (!privates)
+		    return FALSE;
+
+		w->base.privates = (CompPrivate *) privates;
+	    }
 	}
     }
 
     return TRUE;
 }
 
-char *
-nameWindowObject (CompObject *object)
+static int
+allocWindowObjectPrivateIndex (void)
+{
+    return allocatePrivateIndex (&windowPrivateLen,
+				 &windowPrivateIndices,
+				 reallocWindowPrivates,
+				 (void *) 0);
+}
+
+static void
+freeWindowObjectPrivateIndex (int index)
+{
+    freePrivateIndex (windowPrivateLen,
+		      windowPrivateIndices,
+		      index);
+}
+
+static CompBool
+windowForEachObject (CompObject	        *object,
+		     ObjectCallBackProc proc,
+		     void	        *closure)
+{
+    return TRUE;
+}
+
+static char *
+windowNameObject (CompObject *object)
 {
     char tmp[256];
 
@@ -124,39 +117,12 @@ nameWindowObject (CompObject *object)
     return strdup (tmp);
 }
 
-CompObject *
-findWindowObject (CompObject *parent,
+static CompObject *
+windowFindObject (CompObject *object,
+		  const char *type,
 		  const char *name)
 {
-    if (parent->id == COMP_OBJECT_TYPE_SCREEN)
-    {
-	CompWindow *w;
-	Window	   id = atoi (name);
-
-	CORE_SCREEN (parent);
-
-	for (w = s->windows; w; w = w->next)
-	    if (w->id == id)
-		return &w->base;
-    }
-
     return NULL;
-}
-
-int
-allocateWindowPrivateIndex (CompScreen *screen)
-{
-    return compObjectAllocatePrivateIndex (&screen->base,
-					   COMP_OBJECT_TYPE_WINDOW);
-}
-
-void
-freeWindowPrivateIndex (CompScreen *screen,
-			int	   index)
-{
-    compObjectFreePrivateIndex (&screen->base,
-				COMP_OBJECT_TYPE_WINDOW,
-				index);
 }
 
 static Bool
@@ -1888,10 +1854,29 @@ static CompObjectType windowObjectType = {
     "window",
     allocWindowObjectPrivateIndex,
     freeWindowObjectPrivateIndex,
-    forEachWindowObject,
-    nameWindowObject,
-    findWindowObject
+    windowForEachObject,
+    windowNameObject,
+    windowFindObject
 };
+
+CompObjectType *
+getWindowObjectType (void)
+{
+    return &windowObjectType;
+}
+
+int
+allocateWindowPrivateIndex (CompScreen *screen)
+{
+    return compObjectAllocatePrivateIndex (&windowObjectType);
+}
+
+void
+freeWindowPrivateIndex (CompScreen *screen,
+			int	   index)
+{
+    compObjectFreePrivateIndex (&windowObjectType, index);
+}
 
 void
 addWindow (CompScreen *screen,
@@ -2010,9 +1995,9 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (screen->windowPrivateLen)
+    if (windowPrivateLen)
     {
-	privates = malloc (screen->windowPrivateLen * sizeof (CompPrivate));
+	privates = malloc (windowPrivateLen * sizeof (CompPrivate));
 	if (!privates)
 	{
 	    destroyTexture (screen, w->texture);

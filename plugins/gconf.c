@@ -67,14 +67,13 @@ gconfGetKey (CompObject  *object,
 	     const gchar *plugin,
 	     const gchar *option)
 {
-    const gchar *type;
+    const gchar *type = object->type->name;
     gchar	*key, *name, *objectName;
 
-    type = compObjectTypeName (object->id);
     if (strcmp (type, "display") == 0)
 	type = "allscreens";
 
-    name = compObjectName (object);
+    name = (*object->type->nameObject) (object);
     if (name)
     {
 	objectName = g_strdup_printf ("%s%s", type, name);
@@ -478,20 +477,6 @@ gconfGetOption (CompObject *object,
 
 static CompBool
 gconfReloadObjectTree (CompObject *object,
-			 void       *closure);
-
-static CompBool
-gconfReloadObjectsWithType (CompObjectTypeID type,
-			    CompObject       *parent,
-			    void	     *closure)
-{
-    compObjectForEach (parent, type, gconfReloadObjectTree, closure);
-
-    return TRUE;
-}
-
-static CompBool
-gconfReloadObjectTree (CompObject *object,
 		       void       *closure)
 {
     CompPlugin *p = (CompPlugin *) closure;
@@ -502,7 +487,7 @@ gconfReloadObjectTree (CompObject *object,
     while (nOption--)
 	gconfGetOption (object, option++, p->vTable->name);
 
-    compObjectForEachType (object, gconfReloadObjectsWithType, closure);
+    (*object->type->forEachObject) (object, gconfReloadObjectTree, closure);
 
     return TRUE;
 }
@@ -638,7 +623,7 @@ gconfKeyChanged (GConfClient *client,
 	return;
     }
 
-    object = compObjectFind (&core.base, COMP_OBJECT_TYPE_DISPLAY, NULL);
+    object = (*core.base.type->findObject) (&core.base, "display", NULL);
     if (!object)
     {
 	g_strfreev (token);
@@ -647,8 +632,8 @@ gconfKeyChanged (GConfClient *client,
 
     if (strncmp (token[objectIndex], "screen", 6) == 0)
     {
-	object = compObjectFind (object, COMP_OBJECT_TYPE_SCREEN,
-				 token[objectIndex] + 6);
+	object = (*object->type->findObject) (object, "screen",
+					      token[objectIndex] + 6);
 	if (!object)
 	{
 	    g_strfreev (token);
