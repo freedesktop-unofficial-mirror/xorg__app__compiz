@@ -29,39 +29,6 @@
 
 CompCore core;
 
-static char *corePrivateIndices = 0;
-static int  corePrivateLen = 0;
-
-static int
-reallocCorePrivate (int  size,
-		    void *closure)
-{
-    void *privates;
-
-    privates = realloc (core.base.privates, size * sizeof (CompPrivate));
-    if (!privates)
-	return FALSE;
-
-    core.base.privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
-static int
-allocCoreObjectPrivateIndex (void)
-{
-    return allocatePrivateIndex (&corePrivateLen,
-				 &corePrivateIndices,
-				 reallocCorePrivate,
-				 0);
-}
-
-static void
-freeCoreObjectPrivateIndex (int	index)
-{
-    freePrivateIndex (corePrivateLen, corePrivateIndices, index);
-}
-
 static CompBool
 coreForEachObject (CompObject         *object,
 		   ObjectCallBackProc proc,
@@ -150,8 +117,8 @@ fileWatchRemoved (CompCore      *core,
 
 static CompObjectType coreObjectType = {
     "core",
-    allocCoreObjectPrivateIndex,
-    freeCoreObjectPrivateIndex,
+    NULL,
+    0,
     coreForEachObject,
     coreNameObject,
     coreFindObject

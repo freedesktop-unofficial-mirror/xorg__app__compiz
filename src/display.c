@@ -70,43 +70,6 @@ int pointerY     = 0;
 
 #define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
 
-static char *displayPrivateIndices = 0;
-static int  displayPrivateLen = 0;
-
-static int
-reallocDisplayPrivate (int  size,
-		       void *closure)
-{
-    CompDisplay *d;
-    void        *privates;
-
-    for (d = core.displays; d; d = d->next)
-    {
-	privates = realloc (d->base.privates, size * sizeof (CompPrivate));
-	if (!privates)
-	    return FALSE;
-
-	d->base.privates = (CompPrivate *) privates;
-    }
-
-    return TRUE;
-}
-
-static int
-allocDisplayObjectPrivateIndex (void)
-{
-    return allocatePrivateIndex (&displayPrivateLen,
-				 &displayPrivateIndices,
-				 reallocDisplayPrivate,
-				 0);
-}
-
-static void
-freeDisplayObjectPrivateIndex (int index)
-{
-    freePrivateIndex (displayPrivateLen, displayPrivateIndices, index);
-}
-
 static CompBool
 displayForEachObject (CompObject         *object,
 		      ObjectCallBackProc proc,
@@ -1948,8 +1911,8 @@ freeDisplay (CompDisplay *d)
 
 static CompObjectType displayObjectType = {
     "display",
-    allocDisplayObjectPrivateIndex,
-    freeDisplayObjectPrivateIndex,
+    NULL,
+    0,
     displayForEachObject,
     displayNameObject,
     displayFindObject
@@ -1990,9 +1953,10 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (displayPrivateLen)
+    if (displayObjectType.privateLen)
     {
-	privates = malloc (displayPrivateLen * sizeof (CompPrivate));
+	privates = malloc (displayObjectType.privateLen *
+			   sizeof (CompPrivate));
 	if (!privates)
 	{
 	    free (d);

@@ -49,49 +49,6 @@
 
 #define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
 
-static char *screenPrivateIndices = 0;
-static int  screenPrivateLen = 0;
-
-static int
-reallocScreenPrivate (int  size,
-		      void *closure)
-{
-    CompDisplay *d;
-    CompScreen  *s;
-    void        *privates;
-
-    for (d = core.displays; d; d = d->next)
-    {
-	for (s = d->screens; s; s = s->next)
-	{
-	    privates = realloc (s->base.privates, size * sizeof (CompPrivate));
-	    if (!privates)
-		return FALSE;
-
-	    s->base.privates = (CompPrivate *) privates;
-	}
-    }
-
-    return TRUE;
-}
-
-static int
-allocScreenObjectPrivateIndex (void)
-{
-    return allocatePrivateIndex (&screenPrivateLen,
-				 &screenPrivateIndices,
-				 reallocScreenPrivate,
-				 (void *) 0);
-}
-
-static void
-freeScreenObjectPrivateIndex (int index)
-{
-    freePrivateIndex (screenPrivateLen,
-		      screenPrivateIndices,
-		      index);
-}
-
 static CompBool
 screenForEachObject (CompObject	        *object,
 		     ObjectCallBackProc proc,
@@ -1511,8 +1468,8 @@ freeScreen (CompScreen *s)
 
 static CompObjectType screenObjectType = {
     "screen",
-    allocScreenObjectPrivateIndex,
-    freeScreenObjectPrivateIndex,
+    NULL,
+    0,
     screenForEachObject,
     screenNameObject,
     screenFindObject
@@ -1569,9 +1526,9 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (screenPrivateLen)
+    if (screenObjectType.privateLen)
     {
-	privates = malloc (screenPrivateLen * sizeof (CompPrivate));
+	privates = malloc (screenObjectType.privateLen * sizeof (CompPrivate));
 	if (!privates)
 	{
 	    free (s);

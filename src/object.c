@@ -37,15 +37,59 @@ compObjectInit (CompObject     *object,
     object->type     = type;
 }
 
+typedef struct _ReallocObjectPrivatesContext {
+    CompObjectType *type;
+    int		   size;
+} ReallocObjectPrivatesContext;
+
+static CompBool
+reallocObjectPrivatesTree (CompObject *object,
+			   void       *closure)
+{
+    ReallocObjectPrivatesContext *ctx =
+	(ReallocObjectPrivatesContext *) closure;
+
+    if (object->type == ctx->type)
+    {
+	void *privates;
+
+	privates = realloc (object->privates,
+			    ctx->size * sizeof (CompPrivate));
+	if (!privates)
+	    return FALSE;
+
+	object->privates = (CompPrivate *) privates;
+    }
+
+    return (*object->type->forEachObject) (object,
+					   reallocObjectPrivatesTree,
+					   closure);
+}
+
+static int
+reallocObjectPrivate (int  size,
+		      void *closure)
+{
+    ReallocObjectPrivatesContext ctx;
+
+    ctx.type = (CompObjectType *) closure;
+    ctx.size = size;
+
+    return reallocObjectPrivatesTree (&core.base, (void *) &ctx);
+}
+
 int
 compObjectAllocatePrivateIndex (CompObjectType *type)
 {
-    return (*type->allocPrivateIndex) ();
+    return allocatePrivateIndex (&type->privateLen,
+				 &type->privateIndices,
+				 reallocObjectPrivate,
+				 (void *) type);
 }
 
 void
 compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index)
 {
-    (*type->freePrivateIndex) (index);
+    freePrivateIndex (type->privateLen, type->privateIndices, index);
 }

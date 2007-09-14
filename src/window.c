@@ -49,54 +49,6 @@ typedef struct {
     unsigned long decorations;
 } MwmHints;
 
-static char *windowPrivateIndices = 0;
-static int  windowPrivateLen = 0;
-
-static int
-reallocWindowPrivates (int  size,
-		       void *closure)
-{
-    CompDisplay *d;
-    CompScreen  *s;
-    CompWindow  *w;
-    void        *privates;
-
-    for (d = core.displays; d; d = d->next)
-    {
-	for (s = d->screens; s; s = s->next)
-	{
-	    for (w = s->windows; w; w = w->next)
-	    {
-		privates = realloc (w->base.privates,
-				    size * sizeof (CompPrivate));
-		if (!privates)
-		    return FALSE;
-
-		w->base.privates = (CompPrivate *) privates;
-	    }
-	}
-    }
-
-    return TRUE;
-}
-
-static int
-allocWindowObjectPrivateIndex (void)
-{
-    return allocatePrivateIndex (&windowPrivateLen,
-				 &windowPrivateIndices,
-				 reallocWindowPrivates,
-				 (void *) 0);
-}
-
-static void
-freeWindowObjectPrivateIndex (int index)
-{
-    freePrivateIndex (windowPrivateLen,
-		      windowPrivateIndices,
-		      index);
-}
-
 static CompBool
 windowForEachObject (CompObject	        *object,
 		     ObjectCallBackProc proc,
@@ -1852,8 +1804,8 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
 
 static CompObjectType windowObjectType = {
     "window",
-    allocWindowObjectPrivateIndex,
-    freeWindowObjectPrivateIndex,
+    NULL,
+    0,
     windowForEachObject,
     windowNameObject,
     windowFindObject
@@ -1995,9 +1947,9 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (windowPrivateLen)
+    if (windowObjectType.privateLen)
     {
-	privates = malloc (windowPrivateLen * sizeof (CompPrivate));
+	privates = malloc (windowObjectType.privateLen * sizeof (CompPrivate));
 	if (!privates)
 	{
 	    destroyTexture (screen, w->texture);
