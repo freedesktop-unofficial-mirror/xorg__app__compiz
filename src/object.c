@@ -25,14 +25,7 @@
 
 #include <compiz-core.h>
 
-struct _CompObjectInfo {
-    const char			*name;
-    AllocObjectPrivateIndexProc allocPrivateIndex;
-    FreeObjectPrivateIndexProc  freePrivateIndex;
-    ForEachObjectProc		forEachObject;
-    NameObjectProc		nameObject;
-    FindObjectProc		findObject;
-} objectInfo[] = {
+CompObjectType objectInfo[] = {
     {
 	"core",
 	allocCoreObjectPrivateIndex,
