@@ -1956,6 +1956,15 @@ freeDisplay (CompDisplay *d)
     free (d);
 }
 
+static CompObjectType displayObjectType = {
+    "display",
+    allocDisplayObjectPrivateIndex,
+    freeDisplayObjectPrivateIndex,
+    forEachDisplayObject,
+    nameDisplayObject,
+    findDisplayObject
+};
+
 Bool
 addDisplay (const char *name)
 {
@@ -1985,7 +1994,8 @@ addDisplay (const char *name)
     else
 	privates = 0;
 
-    compObjectInit (&d->base, privates, COMP_OBJECT_TYPE_DISPLAY);
+    compObjectInit (&d->base, privates, &displayObjectType,
+		    COMP_OBJECT_TYPE_DISPLAY);
 
     d->next    = NULL;
     d->screens = NULL;

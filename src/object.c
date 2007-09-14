@@ -60,11 +60,13 @@ CompObjectType objectInfo[] = {
 void
 compObjectInit (CompObject     *object,
 		CompPrivate    *privates,
+		CompObjectType *type,
 		CompObjectTypeID id)
 {
     object->id       = id;
     object->privates = privates;
     object->parent   = NULL;
+    object->type     = type;
 }
 
 int

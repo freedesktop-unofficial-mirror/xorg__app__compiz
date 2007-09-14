@@ -150,12 +150,21 @@ fileWatchRemoved (CompCore      *core,
 {
 }
 
+static CompObjectType coreObjectType = {
+    "core",
+    allocCoreObjectPrivateIndex,
+    freeCoreObjectPrivateIndex,
+    forEachCoreObject,
+    nameCoreObject,
+    findCoreObject
+};
+
 CompBool
 initCore (void)
 {
     CompPlugin *corePlugin;
 
-    compObjectInit (&core.base, 0, COMP_OBJECT_TYPE_CORE);
+    compObjectInit (&core.base, 0, &coreObjectType, COMP_OBJECT_TYPE_CORE);
 
     core.displays = NULL;
 

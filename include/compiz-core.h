@@ -306,6 +306,7 @@ struct _CompObject {
     CompObjectTypeID id;
     CompPrivate	     *privates;
     CompObject	     *parent;
+    CompObjectType   *type;
 };
 
 typedef CompBool (*ObjectTypeCallBackProc) (CompObjectTypeID type,
@@ -315,7 +316,8 @@ typedef CompBool (*ObjectTypeCallBackProc) (CompObjectTypeID type,
 void
 compObjectInit (CompObject     *object,
 		CompPrivate    *privates,
-		CompObjectTypeID type);
+		CompObjectType *type,
+		CompObjectTypeID id);
 
 void
 compObjectFini (CompObject *object);

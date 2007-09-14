@@ -1884,6 +1884,15 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
     wa->screen		      = NULL;
 }
 
+static CompObjectType windowObjectType = {
+    "window",
+    allocWindowObjectPrivateIndex,
+    freeWindowObjectPrivateIndex,
+    forEachWindowObject,
+    nameWindowObject,
+    findWindowObject
+};
+
 void
 addWindow (CompScreen *screen,
 	   Window     id,
@@ -2014,7 +2023,8 @@ addWindow (CompScreen *screen,
     else
 	privates = 0;
 
-    compObjectInit (&w->base, privates, COMP_OBJECT_TYPE_WINDOW);
+    compObjectInit (&w->base, privates, &windowObjectType,
+		    COMP_OBJECT_TYPE_WINDOW);
 
     w->region = XCreateRegion ();
     if (!w->region)

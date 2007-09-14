@@ -1531,6 +1531,15 @@ freeScreen (CompScreen *s)
     free (s);
 }
 
+static CompObjectType screenObjectType = {
+    "screen",
+    allocScreenObjectPrivateIndex,
+    freeScreenObjectPrivateIndex,
+    forEachScreenObject,
+    nameScreenObject,
+    findScreenObject
+};
+
 Bool
 addScreen (CompDisplay *display,
 	   int	       screenNum,
@@ -1578,7 +1587,8 @@ addScreen (CompDisplay *display,
     else
 	privates = 0;
 
-    compObjectInit (&s->base, privates, COMP_OBJECT_TYPE_SCREEN);
+    compObjectInit (&s->base, privates, &screenObjectType,
+		    COMP_OBJECT_TYPE_SCREEN);
 
     s->display = display;
 
