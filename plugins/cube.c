@@ -1998,7 +1998,7 @@ cubeSetOptionForPlugin (CompObject      *o,
     status = (*core.setOptionForPlugin) (o, plugin, name, value);
     WRAP (cc, &core, setOptionForPlugin, cubeSetOptionForPlugin);
 
-    if (status && o->type == COMP_OBJECT_TYPE_SCREEN)
+    if (status && o->id == COMP_OBJECT_TYPE_SCREEN)
     {
 	if (strcmp (plugin, "core") == 0 && strcmp (name, "hsize") == 0)
 	{

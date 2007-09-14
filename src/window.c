@@ -96,7 +96,7 @@ forEachWindowObject (CompObject	        *parent,
 		     ObjectCallBackProc proc,
 		     void	        *closure)
 {
-    if (parent->type == COMP_OBJECT_TYPE_SCREEN)
+    if (parent->id == COMP_OBJECT_TYPE_SCREEN)
     {
 	CompWindow *w;
 
@@ -128,7 +128,7 @@ CompObject *
 findWindowObject (CompObject *parent,
 		  const char *name)
 {
-    if (parent->type == COMP_OBJECT_TYPE_SCREEN)
+    if (parent->id == COMP_OBJECT_TYPE_SCREEN)
     {
 	CompWindow *w;
 	Window	   id = atoi (name);

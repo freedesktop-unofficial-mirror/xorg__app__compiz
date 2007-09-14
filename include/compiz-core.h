@@ -303,7 +303,7 @@ typedef struct _CompObjectType {
 } CompObjectType;
 
 struct _CompObject {
-    CompObjectTypeID type;
+    CompObjectTypeID id;
     CompPrivate	     *privates;
     CompObject	     *parent;
 };
@@ -354,16 +354,16 @@ compObjectFind (CompObject     *parent,
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))
 
-#define DISPATCH_CHECK(object, dispTab, tabSize)	      \
-    ((object)->type < (tabSize) && (dispTab)[(object)->type])
+#define DISPATCH_CHECK(object, dispTab, tabSize)	  \
+    ((object)->id < (tabSize) && (dispTab)[(object)->id])
 
 #define DISPATCH(object, dispTab, tabSize, args)   \
     if (DISPATCH_CHECK (object, dispTab, tabSize)) \
-	(*(dispTab)[(object)->type]) args
+	(*(dispTab)[(object)->id]) args
 
 #define RETURN_DISPATCH(object, dispTab, tabSize, def, args) \
     if (DISPATCH_CHECK (object, dispTab, tabSize))	     \
-	return (*(dispTab)[(object)->type]) args;	     \
+	return (*(dispTab)[(object)->id]) args;		     \
     else						     \
 	return (def)
 

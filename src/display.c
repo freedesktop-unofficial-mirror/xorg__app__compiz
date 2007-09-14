@@ -113,7 +113,7 @@ forEachDisplayObject (CompObject         *parent,
 		      ObjectCallBackProc proc,
 		      void	         *closure)
 {
-    if (parent->type == COMP_OBJECT_TYPE_CORE)
+    if (parent->id == COMP_OBJECT_TYPE_CORE)
     {
 	CompDisplay *d;
 
@@ -137,7 +137,7 @@ CompObject *
 findDisplayObject (CompObject *parent,
 		   const char *name)
 {
-    if (parent->type == COMP_OBJECT_TYPE_CORE)
+    if (parent->id == COMP_OBJECT_TYPE_CORE)
     {
 	if (!name || !name[0])
 	    return &core.displays->base;

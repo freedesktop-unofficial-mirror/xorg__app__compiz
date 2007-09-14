@@ -60,9 +60,9 @@ CompObjectType objectInfo[] = {
 void
 compObjectInit (CompObject     *object,
 		CompPrivate    *privates,
-		CompObjectTypeID type)
+		CompObjectTypeID id)
 {
-    object->type     = type;
+    object->id       = id;
     object->privates = privates;
     object->parent   = NULL;
 }
@@ -114,7 +114,7 @@ compObjectTypeName (CompObjectTypeID type)
 char *
 compObjectName (CompObject *object)
 {
-    return (*objectInfo[object->type].nameObject) (object);
+    return (*objectInfo[object->id].nameObject) (object);
 }
 
 CompObject *

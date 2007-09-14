@@ -113,7 +113,7 @@ kconfigValueToString (CompObject      *object,
     case CompOptionTypeKey: {
 	char *action = NULL;
 
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 	    object = object->parent;
 
 	if (object)
@@ -128,7 +128,7 @@ kconfigValueToString (CompObject      *object,
     case CompOptionTypeButton: {
 	char *action = NULL;
 
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 	    object = object->parent;
 
 	if (object)
@@ -173,7 +173,7 @@ kconfigValueToString (CompObject      *object,
 static QString
 kconfigObjectString (CompObject *object)
 {
-    QString objectName (QString (compObjectTypeName (object->type)));
+    QString objectName (QString (compObjectTypeName (object->id)));
     char    *name;
 
     name = compObjectName (object);
@@ -285,7 +285,7 @@ kconfigStringToValue (CompObject      *object,
 	    return FALSE;
 	break;
     case CompOptionTypeKey:
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 	    object = object->parent;
 
 	if (!object)
@@ -295,7 +295,7 @@ kconfigStringToValue (CompObject      *object,
 			   &value->action);
 	break;
     case CompOptionTypeButton:
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 	    object = object->parent;
 
 	if (!object)

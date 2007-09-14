@@ -258,7 +258,7 @@ iniGetFilename (CompObject *object,
     if (!screenStr)
 	return FALSE;
 
-    if (object->type == COMP_OBJECT_TYPE_SCREEN)
+    if (object->id == COMP_OBJECT_TYPE_SCREEN)
     {
 	CORE_SCREEN (object);
 
@@ -795,7 +795,7 @@ iniLoadOptions (CompObject *object,
 
     if (!optionFile)
     {
-	if (!plugin && object->type == COMP_OBJECT_TYPE_DISPLAY)
+	if (!plugin && object->id == COMP_OBJECT_TYPE_DISPLAY)
 	{
 	    CompOptionValue value;
 	    value.list.value = malloc (NUM_DEFAULT_PLUGINS * sizeof (CompListValue));

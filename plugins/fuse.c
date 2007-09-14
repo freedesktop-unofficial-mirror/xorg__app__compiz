@@ -618,7 +618,7 @@ fuseInitValueFromString (CompObject	 *object,
 	    return FALSE;
 	break;
     case CompOptionTypeKey:
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 	    object = object->parent;
 
 	if (!object)
@@ -627,7 +627,7 @@ fuseInitValueFromString (CompObject	 *object,
 	stringToKeyAction (GET_CORE_DISPLAY (object), str, &value->action);
 	break;
     case CompOptionTypeButton:
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 	    object = object->parent;
 
 	if (!object)

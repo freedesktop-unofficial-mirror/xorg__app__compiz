@@ -96,7 +96,7 @@ forEachScreenObject (CompObject	        *parent,
 		     ObjectCallBackProc proc,
 		     void	        *closure)
 {
-    if (parent->type == COMP_OBJECT_TYPE_DISPLAY)
+    if (parent->id == COMP_OBJECT_TYPE_DISPLAY)
     {
 	CompScreen *s;
 
@@ -128,7 +128,7 @@ CompObject *
 findScreenObject (CompObject *parent,
 		  const char *name)
 {
-    if (parent->type == COMP_OBJECT_TYPE_DISPLAY)
+    if (parent->id == COMP_OBJECT_TYPE_DISPLAY)
     {
 	CompScreen *s;
 	int	   screenNum = atoi (name);

@@ -666,7 +666,7 @@ dbusHandleActionMessage (DBusConnection *connection,
 	    if (!isActionOption (option))
 		return FALSE;
 
-	    while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 		object = object->parent;
 
 	    if (!object)
@@ -888,7 +888,7 @@ dbusGetOptionValue (CompObject	    *object,
 				     DBUS_TYPE_STRING,
 				     &s))
 	{
-	    while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 		object = object->parent;
 
 	    if (!object)
@@ -903,7 +903,7 @@ dbusGetOptionValue (CompObject	    *object,
 				     DBUS_TYPE_STRING,
 				     &s))
 	{
-	    while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
 		object = object->parent;
 
 	    if (!object)
@@ -1418,7 +1418,7 @@ dbusHandleGetMetadataMessage (DBusConnection *connection,
 
 	    if (m)
 	    {
-		if (object->type == COMP_OBJECT_TYPE_SCREEN)
+		if (object->id == COMP_OBJECT_TYPE_SCREEN)
 		{
 		    shortDesc = compGetShortScreenOptionDescription (m, option);
 		    longDesc  = compGetLongScreenOptionDescription (m, option);
@@ -1851,13 +1851,13 @@ dbusSendChangeSignalForOption (CompObject *object,
     if (name)
     {
 	sprintf (path, "%s/%s/%s%s/%s", COMPIZ_DBUS_ROOT_PATH,
-		 plugin, compObjectTypeName (object->type), name, o->name);
+		 plugin, compObjectTypeName (object->id), name, o->name);
 
 	free (name);
     }
     else
 	sprintf (path, "%s/%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
-		 plugin, compObjectTypeName (object->type), o->name);
+		 plugin, compObjectTypeName (object->id), o->name);
 
     signal = dbus_message_new_signal (path,
 				      COMPIZ_DBUS_SERVICE_NAME,
@@ -2209,7 +2209,7 @@ dbusSetOptionForPlugin (CompObject      *object,
 							   name, 0),
 					   p->vTable->name);
 
-	    if (object->type == COMP_OBJECT_TYPE_DISPLAY &&
+	    if (object->id == COMP_OBJECT_TYPE_DISPLAY &&
 		strcmp (p->vTable->name, "core") == 0 &&
 		strcmp (name, "active_plugins") == 0)
 	    {
