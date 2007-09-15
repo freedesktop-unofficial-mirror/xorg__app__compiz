@@ -1676,7 +1676,9 @@ typedef Bool (*DamageCursorRectProc) (CompCursor *c,
 typedef void (*GetOutputExtentsForWindowProc) (CompWindow	 *w,
 					       CompWindowExtents *output);
 
-typedef unsigned int (*GetAllowedActionsForWindowProc) (CompWindow *w);
+typedef void (*GetAllowedActionsForWindowProc) (CompWindow   *w,
+						unsigned int *setActions,
+						unsigned int *clearActions);
 
 typedef Bool (*FocusWindowProc) (CompWindow *window);
 
@@ -2657,8 +2659,10 @@ void
 getOutputExtentsForWindow (CompWindow	     *w,
 			   CompWindowExtents *output);
 
-unsigned int
-getAllowedActionsForWindow (CompWindow *w);
+void
+getAllowedActionsForWindow (CompWindow   *w,
+			    unsigned int *setActions,
+			    unsigned int *clearActions);
 
 void
 addWindowDamage (CompWindow *w);
