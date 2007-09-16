@@ -89,9 +89,16 @@ reallocObjectPrivate (int  size,
 		      void *closure)
 {
     ReallocObjectPrivatesContext ctx;
+    void			 *privates;
 
     ctx.type = (CompObjectType *) closure;
     ctx.size = size;
+
+    privates = realloc (ctx.type->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    ctx.type->privates = privates;
 
     return reallocObjectPrivatesTree (&core.base, (void *) &ctx);
 }

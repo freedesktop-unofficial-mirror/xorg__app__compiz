@@ -1805,6 +1805,7 @@ static CompObjectType windowObjectType = {
     "window",
     NULL,
     0,
+    NULL,
     windowForEachObject,
     windowNameObject,
     windowFindObject

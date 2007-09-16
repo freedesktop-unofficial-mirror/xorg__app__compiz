@@ -119,6 +119,7 @@ static CompObjectType coreObjectType = {
     "core",
     NULL,
     0,
+    NULL,
     coreForEachObject,
     coreNameObject,
     coreFindObject

@@ -1912,6 +1912,7 @@ static CompObjectType displayObjectType = {
     "display",
     NULL,
     0,
+    NULL,
     displayForEachObject,
     displayNameObject,
     displayFindObject

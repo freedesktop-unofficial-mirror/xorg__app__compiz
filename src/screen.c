@@ -1469,6 +1469,7 @@ static CompObjectType screenObjectType = {
     "screen",
     NULL,
     0,
+    NULL,
     screenForEachObject,
     screenNameObject,
     screenFindObject

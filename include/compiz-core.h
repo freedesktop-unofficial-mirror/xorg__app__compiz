@@ -293,6 +293,7 @@ typedef struct _CompObjectType {
     const char			*name;
     char			*privateIndices;
     int				privateLen;
+    CompPrivate			*privates;
     ForEachObjectProc		forEachObject;
     NameObjectProc		nameObject;
     FindObjectProc		findObject;
