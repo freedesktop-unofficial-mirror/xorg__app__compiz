@@ -775,7 +775,7 @@ annoInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    ad->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    ad->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (ad->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
@@ -796,7 +796,7 @@ annoFiniDisplay (CompPlugin  *p,
 {
     ANNO_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, ad->screenPrivateIndex);
+    freeScreenPrivateIndex (ad->screenPrivateIndex);
 
     UNWRAP (ad, d, handleEvent);
 

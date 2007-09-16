@@ -2170,11 +2170,10 @@ CompObjectType *
 getScreenObjectType (void);
 
 int
-allocateScreenPrivateIndex (CompDisplay *display);
+allocateScreenPrivateIndex (void);
 
 void
-freeScreenPrivateIndex (CompDisplay *display,
-			int	    index);
+freeScreenPrivateIndex (int index);
 
 CompOption *
 getScreenOptions (CompPlugin *plugin,
@@ -2609,11 +2608,10 @@ CompObjectType *
 getWindowObjectType (void);
 
 int
-allocateWindowPrivateIndex (CompScreen *screen);
+allocateWindowPrivateIndex (void);
 
 void
-freeWindowPrivateIndex (CompScreen *screen,
-			int	   index);
+freeWindowPrivateIndex (int index);
 
 unsigned int
 windowStateMask (CompDisplay *display,

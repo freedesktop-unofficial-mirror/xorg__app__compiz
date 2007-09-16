@@ -1934,7 +1934,7 @@ switchInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    sd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (sd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, sd->opt, SWITCH_DISPLAY_OPTION_NUM);
@@ -1960,7 +1960,7 @@ switchFiniDisplay (CompPlugin  *p,
 {
     SWITCH_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, sd->screenPrivateIndex);
+    freeScreenPrivateIndex (sd->screenPrivateIndex);
 
     UNWRAP (sd, d, handleEvent);
 

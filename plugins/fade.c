@@ -652,7 +652,7 @@ fadeInitDisplay (CompPlugin  *p,
     if (!fd)
 	return FALSE;
 
-    fd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    fd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (fd->screenPrivateIndex < 0)
     {
 	free (fd);
@@ -675,7 +675,7 @@ fadeFiniDisplay (CompPlugin  *p,
 {
     FADE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, fd->screenPrivateIndex);
+    freeScreenPrivateIndex (fd->screenPrivateIndex);
 
     UNWRAP (fd, d, handleEvent);
     UNWRAP (fd, d, matchExpHandlerChanged);
@@ -713,7 +713,7 @@ fadeInitScreen (CompPlugin *p,
 	return FALSE;
     }
 
-    fs->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    fs->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (fs->windowPrivateIndex < 0)
     {
 	compFiniScreenOptions (s, fs->opt, FADE_SCREEN_OPTION_NUM);
@@ -748,7 +748,7 @@ fadeFiniScreen (CompPlugin *p,
 
     matchFini (&fs->match);
 
-    freeWindowPrivateIndex (s, fs->windowPrivateIndex);
+    freeWindowPrivateIndex (fs->windowPrivateIndex);
 
     UNWRAP (fs, s, preparePaintScreen);
     UNWRAP (fs, s, paintWindow);

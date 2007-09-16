@@ -2124,7 +2124,7 @@ cubeInitDisplay (CompPlugin  *p,
     cd->opt[CUBE_DISPLAY_OPTION_ABI].value.i   = CUBE_ABIVERSION;
     cd->opt[CUBE_DISPLAY_OPTION_INDEX].value.i = cubeDisplayPrivateIndex;
 
-    cd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    cd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (cd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, cd->opt, CUBE_DISPLAY_OPTION_NUM);
@@ -2143,7 +2143,7 @@ cubeFiniDisplay (CompPlugin  *p,
 {
     CUBE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, cd->screenPrivateIndex);
+    freeScreenPrivateIndex (cd->screenPrivateIndex);
 
     compFiniDisplayOptions (d, cd->opt, CUBE_DISPLAY_OPTION_NUM);
 

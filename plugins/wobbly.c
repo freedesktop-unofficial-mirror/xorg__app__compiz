@@ -2692,7 +2692,7 @@ wobblyInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    wd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    wd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (wd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, wd->opt, WOBBLY_DISPLAY_OPTION_NUM);
@@ -2715,7 +2715,7 @@ wobblyFiniDisplay (CompPlugin  *p,
 {
     WOBBLY_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, wd->screenPrivateIndex);
+    freeScreenPrivateIndex (wd->screenPrivateIndex);
 
     UNWRAP (wd, d, handleEvent);
 
@@ -2746,7 +2746,7 @@ wobblyInitScreen (CompPlugin *p,
 	return FALSE;
     }
 
-    ws->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    ws->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (ws->windowPrivateIndex < 0)
     {
 	compFiniScreenOptions (s, ws->opt, WOBBLY_SCREEN_OPTION_NUM);
@@ -2782,7 +2782,7 @@ wobblyFiniScreen (CompPlugin *p,
 {
     WOBBLY_SCREEN (s);
 
-    freeWindowPrivateIndex (s, ws->windowPrivateIndex);
+    freeWindowPrivateIndex (ws->windowPrivateIndex);
 
     UNWRAP (ws, s, preparePaintScreen);
     UNWRAP (ws, s, donePaintScreen);

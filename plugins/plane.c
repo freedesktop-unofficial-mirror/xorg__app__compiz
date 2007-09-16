@@ -586,7 +586,7 @@ planeInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    pd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    pd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (pd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, pd->opt, PLANE_N_DISPLAY_OPTIONS);
@@ -607,7 +607,7 @@ planeFiniDisplay (CompPlugin  *p,
 {
     PLANE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, pd->screenPrivateIndex);
+    freeScreenPrivateIndex (pd->screenPrivateIndex);
 
     UNWRAP (pd, d, handleEvent);
 

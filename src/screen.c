@@ -1481,14 +1481,13 @@ getScreenObjectType (void)
 }
 
 int
-allocateScreenPrivateIndex (CompDisplay *display)
+allocateScreenPrivateIndex (void)
 {
     return compObjectAllocatePrivateIndex (&screenObjectType);
 }
 
 void
-freeScreenPrivateIndex (CompDisplay *display,
-			int	    index)
+freeScreenPrivateIndex (int index)
 {
     compObjectFreePrivateIndex (&screenObjectType, index);
 }

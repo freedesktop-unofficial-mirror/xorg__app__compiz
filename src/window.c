@@ -1817,14 +1817,13 @@ getWindowObjectType (void)
 }
 
 int
-allocateWindowPrivateIndex (CompScreen *screen)
+allocateWindowPrivateIndex (void)
 {
     return compObjectAllocatePrivateIndex (&windowObjectType);
 }
 
 void
-freeWindowPrivateIndex (CompScreen *screen,
-			int	   index)
+freeWindowPrivateIndex (int index)
 {
     compObjectFreePrivateIndex (&windowObjectType, index);
 }

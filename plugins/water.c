@@ -1611,7 +1611,7 @@ waterInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    wd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    wd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (wd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, wd->opt, WATER_DISPLAY_OPTION_NUM);
@@ -1634,7 +1634,7 @@ waterFiniDisplay (CompPlugin  *p,
 {
     WATER_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, wd->screenPrivateIndex);
+    freeScreenPrivateIndex (wd->screenPrivateIndex);
 
     UNWRAP (wd, d, handleEvent);
 

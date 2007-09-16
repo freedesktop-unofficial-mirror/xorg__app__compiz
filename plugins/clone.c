@@ -740,7 +740,7 @@ cloneInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    cd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    cd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (cd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, cd->opt, CLONE_DISPLAY_OPTION_NUM);
@@ -761,7 +761,7 @@ cloneFiniDisplay (CompPlugin  *p,
 {
     CLONE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, cd->screenPrivateIndex);
+    freeScreenPrivateIndex (cd->screenPrivateIndex);
 
     UNWRAP (cd, d, handleEvent);
 

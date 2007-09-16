@@ -810,7 +810,7 @@ minInitDisplay (CompPlugin  *p,
     if (!md)
 	return FALSE;
 
-    md->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    md->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (md->screenPrivateIndex < 0)
     {
 	free (md);
@@ -834,7 +834,7 @@ minFiniDisplay (CompPlugin  *p,
 {
     MIN_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, md->screenPrivateIndex);
+    freeScreenPrivateIndex (md->screenPrivateIndex);
 
     UNWRAP (md, d, handleEvent);
 
@@ -870,7 +870,7 @@ minInitScreen (CompPlugin *p,
 	return FALSE;
     }
 
-    ms->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    ms->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (ms->windowPrivateIndex < 0)
     {
 	compFiniScreenOptions (s, ms->opt, MIN_SCREEN_OPTION_NUM);
@@ -900,7 +900,7 @@ minFiniScreen (CompPlugin *p,
 {
     MIN_SCREEN (s);
 
-    freeWindowPrivateIndex (s, ms->windowPrivateIndex);
+    freeWindowPrivateIndex (ms->windowPrivateIndex);
 
     UNWRAP (ms, s, preparePaintScreen);
     UNWRAP (ms, s, donePaintScreen);

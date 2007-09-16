@@ -453,7 +453,7 @@ shotInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    sd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (sd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, sd->opt, SHOT_DISPLAY_OPTION_NUM);
@@ -474,7 +474,7 @@ shotFiniDisplay (CompPlugin  *p,
 {
     SHOT_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, sd->screenPrivateIndex);
+    freeScreenPrivateIndex (sd->screenPrivateIndex);
 
     UNWRAP (sd, d, handleEvent);
 

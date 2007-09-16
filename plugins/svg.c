@@ -812,7 +812,7 @@ svgInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    sd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (sd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, sd->opt, SVG_DISPLAY_OPTION_NUM);
@@ -845,7 +845,7 @@ svgFiniDisplay (CompPlugin  *p,
     for (s = d->screens; s; s = s->next)
 	updateDefaultIcon (s);
 
-    freeScreenPrivateIndex (d, sd->screenPrivateIndex);
+    freeScreenPrivateIndex (sd->screenPrivateIndex);
 
     compFiniDisplayOptions (d, sd->opt, SVG_DISPLAY_OPTION_NUM);
 
@@ -864,7 +864,7 @@ svgInitScreen (CompPlugin *p,
     if (!ss)
 	return FALSE;
 
-    ss->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    ss->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (ss->windowPrivateIndex < 0)
     {
 	free (ss);
@@ -888,7 +888,7 @@ svgFiniScreen (CompPlugin *p,
 {
     SVG_SCREEN (s);
 
-    freeWindowPrivateIndex (s, ss->windowPrivateIndex);
+    freeWindowPrivateIndex (ss->windowPrivateIndex);
 
     UNWRAP (ss, s, drawWindow);
     UNWRAP (ss, s, windowMoveNotify);

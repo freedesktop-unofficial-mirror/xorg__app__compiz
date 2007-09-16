@@ -1776,7 +1776,7 @@ rotateInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    rd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    rd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (rd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, rd->opt, ROTATE_DISPLAY_OPTION_NUM);
@@ -1797,7 +1797,7 @@ rotateFiniDisplay (CompPlugin  *p,
 {
     ROTATE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, rd->screenPrivateIndex);
+    freeScreenPrivateIndex (rd->screenPrivateIndex);
 
     UNWRAP (rd, d, handleEvent);
 

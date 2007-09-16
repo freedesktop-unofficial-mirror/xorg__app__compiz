@@ -2505,7 +2505,7 @@ blurInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    bd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    bd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (bd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, bd->opt, BLUR_DISPLAY_OPTION_NUM);
@@ -2533,7 +2533,7 @@ blurFiniDisplay (CompPlugin  *p,
 {
     BLUR_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, bd->screenPrivateIndex);
+    freeScreenPrivateIndex (bd->screenPrivateIndex);
 
     UNWRAP (bd, d, handleEvent);
     UNWRAP (bd, d, matchExpHandlerChanged);
@@ -2632,7 +2632,7 @@ blurInitScreen (CompPlugin *p,
     }
 
 
-    bs->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    bs->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (bs->windowPrivateIndex < 0)
     {
 	compFiniScreenOptions (s, bs->opt, BLUR_SCREEN_OPTION_NUM);
@@ -2719,7 +2719,7 @@ blurFiniScreen (CompPlugin *p,
 	if (bs->texture[i])
 	    glDeleteTextures (1, &bs->texture[i]);
 
-    freeWindowPrivateIndex (s, bs->windowPrivateIndex);
+    freeWindowPrivateIndex (bs->windowPrivateIndex);
 
     UNWRAP (bs, s, preparePaintScreen);
     UNWRAP (bs, s, donePaintScreen);

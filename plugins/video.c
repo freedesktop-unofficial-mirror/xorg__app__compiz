@@ -1063,7 +1063,7 @@ videoInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    vd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    vd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (vd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, vd->opt, VIDEO_DISPLAY_OPTION_NUM);
@@ -1096,7 +1096,7 @@ videoFiniDisplay (CompPlugin  *p,
 {
     VIDEO_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, vd->screenPrivateIndex);
+    freeScreenPrivateIndex (vd->screenPrivateIndex);
 
     UNWRAP (vd, d, handleEvent);
 
@@ -1117,7 +1117,7 @@ videoInitScreen (CompPlugin *p,
     if (!vs)
 	return FALSE;
 
-    vs->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    vs->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (vs->windowPrivateIndex < 0)
     {
 	free (vs);
@@ -1163,7 +1163,7 @@ videoFiniScreen (CompPlugin *p,
     VIDEO_DISPLAY (s->display);
     VIDEO_SCREEN (s);
 
-    freeWindowPrivateIndex (s, vs->windowPrivateIndex);
+    freeWindowPrivateIndex (vs->windowPrivateIndex);
 
     XDeleteProperty (s->display->display, s->root, vd->videoSupportedAtom);
 

@@ -370,7 +370,7 @@ regexInitDisplay (CompPlugin  *p,
     if (!rd)
 	return FALSE;
 
-    rd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    rd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (rd->screenPrivateIndex < 0)
     {
 	free (rd);
@@ -398,7 +398,7 @@ regexFiniDisplay (CompPlugin  *p,
 {
     REGEX_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, rd->screenPrivateIndex);
+    freeScreenPrivateIndex (rd->screenPrivateIndex);
 
     UNWRAP (rd, d, handleEvent);
     UNWRAP (rd, d, matchInitExp);
@@ -421,7 +421,7 @@ regexInitScreen (CompPlugin *p,
     if (!rs)
 	return FALSE;
 
-    rs->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    rs->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (rs->windowPrivateIndex < 0)
     {
 	free (rs);
@@ -439,7 +439,7 @@ regexFiniScreen (CompPlugin *p,
 {
     REGEX_SCREEN (s);
 
-    freeWindowPrivateIndex (s, rs->windowPrivateIndex);
+    freeWindowPrivateIndex (rs->windowPrivateIndex);
 
     free (rs);
 }

@@ -1575,7 +1575,7 @@ placeInitDisplay (CompPlugin  *p,
     if (!pd)
 	return FALSE;
 
-    pd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    pd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (pd->screenPrivateIndex < 0)
     {
 	free (pd);
@@ -1593,7 +1593,7 @@ placeFiniDisplay (CompPlugin  *p,
 {
     PLACE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, pd->screenPrivateIndex);
+    freeScreenPrivateIndex (pd->screenPrivateIndex);
 
     free (pd);
 }

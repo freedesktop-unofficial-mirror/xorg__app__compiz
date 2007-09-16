@@ -1981,7 +1981,7 @@ scaleInitDisplay (CompPlugin  *p,
     sd->opt[SCALE_DISPLAY_OPTION_ABI].value.i   = SCALE_ABIVERSION;
     sd->opt[SCALE_DISPLAY_OPTION_INDEX].value.i = scaleDisplayPrivateIndex;
 
-    sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    sd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (sd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, sd->opt, SCALE_DISPLAY_OPTION_NUM);
@@ -2011,7 +2011,7 @@ scaleFiniDisplay (CompPlugin  *p,
 {
     SCALE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, sd->screenPrivateIndex);
+    freeScreenPrivateIndex (sd->screenPrivateIndex);
 
     UNWRAP (sd, d, handleEvent);
 
@@ -2054,7 +2054,7 @@ scaleInitScreen (CompPlugin *p,
 	return FALSE;
     }
 
-    ss->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    ss->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (ss->windowPrivateIndex < 0)
     {
 	compFiniScreenOptions (s, ss->opt, SCALE_SCREEN_OPTION_NUM);
@@ -2123,7 +2123,7 @@ scaleFiniScreen (CompPlugin *p,
     if (ss->windowsSize)
 	free (ss->windows);
 
-    freeWindowPrivateIndex (s, ss->windowPrivateIndex);
+    freeWindowPrivateIndex (ss->windowPrivateIndex);
 
     compFiniScreenOptions (s, ss->opt, SCALE_SCREEN_OPTION_NUM);
 

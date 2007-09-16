@@ -987,7 +987,7 @@ zoomInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    zd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    zd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (zd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, zd->opt, ZOOM_DISPLAY_OPTION_NUM);
@@ -1008,7 +1008,7 @@ zoomFiniDisplay (CompPlugin  *p,
 {
     ZOOM_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, zd->screenPrivateIndex);
+    freeScreenPrivateIndex (zd->screenPrivateIndex);
 
     UNWRAP (zd, d, handleEvent);
 

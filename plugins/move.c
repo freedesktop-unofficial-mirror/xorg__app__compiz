@@ -825,7 +825,7 @@ moveInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    md->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    md->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (md->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, md->opt, MOVE_DISPLAY_OPTION_NUM);
@@ -857,7 +857,7 @@ moveFiniDisplay (CompPlugin  *p,
 {
     MOVE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, md->screenPrivateIndex);
+    freeScreenPrivateIndex (md->screenPrivateIndex);
 
     UNWRAP (md, d, handleEvent);
 

@@ -1420,7 +1420,7 @@ decorInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    dd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    dd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (dd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, dd->opt, DECOR_DISPLAY_OPTION_NUM);
@@ -1455,7 +1455,7 @@ decorFiniDisplay (CompPlugin  *p,
 {
     DECOR_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, dd->screenPrivateIndex);
+    freeScreenPrivateIndex (dd->screenPrivateIndex);
 
     UNWRAP (dd, d, handleEvent);
     UNWRAP (dd, d, matchPropertyChanged);
@@ -1477,7 +1477,7 @@ decorInitScreen (CompPlugin *p,
     if (!ds)
 	return FALSE;
 
-    ds->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    ds->windowPrivateIndex = allocateWindowPrivateIndex ();
     if (ds->windowPrivateIndex < 0)
     {
 	free (ds);
@@ -1514,7 +1514,7 @@ decorFiniScreen (CompPlugin *p,
 	if (ds->decor[i])
 	    decorReleaseDecoration (s, ds->decor[i]);
 
-    freeWindowPrivateIndex (s, ds->windowPrivateIndex);
+    freeWindowPrivateIndex (ds->windowPrivateIndex);
 
     UNWRAP (ds, s, drawWindow);
     UNWRAP (ds, s, damageWindowRect);

@@ -1240,7 +1240,7 @@ resizeInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    rd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+    rd->screenPrivateIndex = allocateScreenPrivateIndex ();
     if (rd->screenPrivateIndex < 0)
     {
 	compFiniDisplayOptions (d, rd->opt, RESIZE_DISPLAY_OPTION_NUM);
@@ -1274,7 +1274,7 @@ resizeFiniDisplay (CompPlugin  *p,
 {
     RESIZE_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, rd->screenPrivateIndex);
+    freeScreenPrivateIndex (rd->screenPrivateIndex);
 
     UNWRAP (rd, d, handleEvent);
 
