@@ -434,7 +434,8 @@ finiPlugin (CompPlugin *p)
     ctx.plugin = p;
     ctx.object = NULL;
 
-    (*core.base.vTable->forEachChildObject) (&core.base, finiObjectTree,
+    (*core.base.vTable->forEachChildObject) (&core.base,
+					     finiObjectTree,
 					     (void *) &ctx);
 
     if (p->vTable->initObject && p->vTable->finiObject)
