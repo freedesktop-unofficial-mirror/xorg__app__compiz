@@ -73,7 +73,7 @@ screenForEachChildObject (CompObject		  *object,
     CORE_SCREEN (object);
 
     for (w = s->windows; w; w = w->next)
-	if (!(*proc) (&w->base.base, closure))
+	if (!(*proc) (&w->base, closure))
 	    return FALSE;
 
     UNWRAP (&s->object, object, vTable);
@@ -2180,7 +2180,7 @@ addScreen (CompDisplay *display,
     getDesktopHints (s);
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&s->base.base));
+    assert (objectInitPlugins (&s->base));
 
     (*core.objectAdd) (&display->base.base, &s->base);
 
@@ -2272,7 +2272,7 @@ removeScreen (CompScreen *s)
 
     (*core.objectRemove) (&d->base.base, &s->base);
 
-    objectFiniPlugins (&s->base.base);
+    objectFiniPlugins (&s->base);
 
     XUngrabKey (d->display, AnyKey, AnyModifier, s->root);
 

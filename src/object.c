@@ -89,27 +89,35 @@ typedef struct _ReallocObjectPrivatesContext {
 } ReallocObjectPrivatesContext;
 
 static CompBool
-reallocObjectPrivatesTree (CompObject *object,
-			   void       *closure)
+reallocObjectPrivates (CompObject *object,
+		       int	  size)
 {
+    void *privates;
+
+    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    object->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
+static CompBool
+reallocObjectPrivatesTree (CompChildObject *object,
+			   void		   *closure)
+{
+    CompObjectVTable		 *vTable = object->base.vTable;
     ReallocObjectPrivatesContext *ctx =
 	(ReallocObjectPrivatesContext *) closure;
 
-    if (object->type == ctx->type)
-    {
-	void *privates;
-
-	privates = realloc (object->privates,
-			    ctx->size * sizeof (CompPrivate));
-	if (!privates)
+    if (object->base.type == ctx->type)
+	if (!reallocObjectPrivates (&object->base, ctx->size))
 	    return FALSE;
 
-	object->privates = (CompPrivate *) privates;
-    }
-
-    return (*object->vTable->forEachChildObject) (object,
-						  reallocObjectPrivatesTree,
-						  closure);
+    return (*vTable->forEachChildObject) (&object->base,
+					  reallocObjectPrivatesTree,
+					  closure);
 }
 
 static int
@@ -128,7 +136,12 @@ reallocObjectPrivate (int  size,
 
     ctx.type->privates = privates;
 
-    return reallocObjectPrivatesTree (&core.base, (void *) &ctx);
+    if (!reallocObjectPrivates (&core.base, size))
+	return FALSE;
+
+    return (*core.base.vTable->forEachChildObject) (&core.base,
+						    reallocObjectPrivatesTree,
+						    closure);
 }
 
 int

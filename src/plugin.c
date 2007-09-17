@@ -294,21 +294,21 @@ UnloadPluginProc loaderUnloadPlugin = dlloaderUnloadPlugin;
 ListPluginsProc  loaderListPlugins  = dlloaderListPlugins;
 
 typedef struct _InitObjectContext {
-    CompPlugin *plugin;
-    CompObject *object;
+    CompPlugin      *plugin;
+    CompChildObject *object;
 } InitObjectContext;
 
 static CompBool
-initObjectTree (CompObject *object,
-		void       *closure);
+initObjectTree (CompChildObject *object,
+		void		*closure);
 
 static CompBool
-finiObjectTree (CompObject *object,
-		void       *closure);
+finiObjectTree (CompChildObject *object,
+		void		*closure);
 
 static CompBool
-initObjectTree (CompObject *o,
-		void       *closure)
+initObjectTree (CompChildObject *o,
+		void		*closure)
 {
     InitObjectContext ctx, *pCtx = (InitObjectContext *) closure;
     CompPlugin	      *p = pCtx->plugin;
@@ -317,7 +317,7 @@ initObjectTree (CompObject *o,
 
     if (p->vTable->initObject)
     {
-	if (!(*p->vTable->initObject) (p, o))
+	if (!(*p->vTable->initObject) (p, &o->base))
 	{
 	    compLogMessage (NULL, p->vTable->name, CompLogLevelError,
 			    "InitObject failed");
@@ -328,22 +328,28 @@ initObjectTree (CompObject *o,
     ctx.plugin = p;
     ctx.object = NULL;
 
-    if (!(*o->vTable->forEachChildObject) (o, initObjectTree, (void *) &ctx))
+    if (!(*o->base.vTable->forEachChildObject) (&o->base,
+						initObjectTree,
+						(void *) &ctx))
     {
-	(*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
+	(*o->base.vTable->forEachChildObject) (&o->base,
+					       finiObjectTree,
+					       (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, o);
+	    (*p->vTable->finiObject) (p, &o->base);
 
 	return FALSE;
     }
 
-    if (!(*core.initPluginForObject) (p, o))
+    if (!(*core.initPluginForObject) (p, &o->base))
     {
-	(*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
+	(*o->base.vTable->forEachChildObject) (&o->base,
+					       finiObjectTree,
+					       (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, o);
+	    (*p->vTable->finiObject) (p, &o->base);
 
 	return FALSE;
     }
@@ -352,8 +358,8 @@ initObjectTree (CompObject *o,
 }
 
 static CompBool
-finiObjectTree (CompObject *o,
-		void       *closure)
+finiObjectTree (CompChildObject *o,
+		void		*closure)
 {
     InitObjectContext ctx, *pCtx = (InitObjectContext *) closure;
     CompPlugin	      *p = pCtx->plugin;
@@ -365,12 +371,13 @@ finiObjectTree (CompObject *o,
     ctx.plugin = p;
     ctx.object = NULL;
 
-    (*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
+    (*o->base.vTable->forEachChildObject) (&o->base, finiObjectTree,
+					   (void *) &ctx);
 
     if (p->vTable->initObject && p->vTable->finiObject)
-	(*p->vTable->finiObject) (p, o);
+	(*p->vTable->finiObject) (p, &o->base);
 
-    (*core.finiPluginForObject) (p, o);
+    (*core.finiPluginForObject) (p, &o->base);
 
     return TRUE;
 }
@@ -390,9 +397,29 @@ initPlugin (CompPlugin *p)
     ctx.plugin = p;
     ctx.object = NULL;
 
-    if (!initObjectTree (&core.base, (void *) &ctx))
+    if (p->vTable->initObject)
     {
+	if (!(*p->vTable->initObject) (p, &core.base))
+	{
+	    compLogMessage (NULL, p->vTable->name, CompLogLevelError,
+			    "InitObject failed");
+	    return FALSE;
+	}
+    }
+
+    if (!(*core.base.vTable->forEachChildObject) (&core.base,
+						  initObjectTree,
+						  (void *) &ctx))
+    {
+	(*core.base.vTable->forEachChildObject) (&core.base,
+						 finiObjectTree,
+						 (void *) &ctx);
+
+	if (p->vTable->initObject && p->vTable->finiObject)
+	    (*p->vTable->finiObject) (p, &core.base);
+
 	(*p->vTable->fini) (p);
+
 	return FALSE;
     }
 
@@ -407,13 +434,17 @@ finiPlugin (CompPlugin *p)
     ctx.plugin = p;
     ctx.object = NULL;
 
-    finiObjectTree (&core.base, (void *) &ctx);
+    (*core.base.vTable->forEachChildObject) (&core.base, finiObjectTree,
+					     (void *) &ctx);
+
+    if (p->vTable->initObject && p->vTable->finiObject)
+	(*p->vTable->finiObject) (p, &core.base);
 
     (*p->vTable->fini) (p);
 }
 
 CompBool
-objectInitPlugins (CompObject *o)
+objectInitPlugins (CompChildObject *o)
 {
     InitObjectContext ctx;
     CompPlugin	      *p;
@@ -449,7 +480,7 @@ objectInitPlugins (CompObject *o)
 }
 
 void
-objectFiniPlugins (CompObject *o)
+objectFiniPlugins (CompChildObject *o)
 {
     InitObjectContext ctx;
     CompPlugin	      *p;

@@ -88,10 +88,8 @@ displayForEachChildObject (CompObject		   *object,
     CORE_DISPLAY (object);
 
     for (s = d->screens; s; s = s->next)
-    {
-	if (!(*proc) (&s->base.base, closure))
+	if (!(*proc) (&s->base, closure))
 	    return FALSE;
-    }
 
     UNWRAP (&d->object, object, vTable);
     status = (*object->vTable->forEachChildObject) (object, proc, closure);
@@ -2323,7 +2321,7 @@ addDisplay (const char *name)
     addDisplayToCore (d);
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&d->base.base));
+    assert (objectInitPlugins (&d->base));
 
     (*core.objectAdd) (&core.base, &d->base);
 
@@ -2585,7 +2583,7 @@ removeDisplay (CompDisplay *d)
 
     (*core.objectRemove) (&core.base, &d->base);
 
-    objectFiniPlugins (&d->base.base);
+    objectFiniPlugins (&d->base);
 
     compRemoveTimeout (d->pingHandle);
 

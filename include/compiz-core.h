@@ -283,16 +283,18 @@ typedef unsigned int CompObjectTypeID;
 #define COMP_OBJECT_TYPE_SCREEN  2
 #define COMP_OBJECT_TYPE_WINDOW  3
 
+typedef struct _CompChildObject CompChildObject;
+
 typedef char *(*NameObjectProc) (CompObject *object);
 
-typedef CompBool (*ChildObjectCallBackProc) (CompObject *object,
-					     void       *closure);
+typedef CompBool (*ChildObjectCallBackProc) (CompChildObject *object,
+					     void	     *closure);
 
-typedef CompBool (*ForEachChildObjectProc) (CompObject		    *parent,
+typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
 					    ChildObjectCallBackProc proc,
 					    void		    *closure);
 
-typedef CompObject *(*FindChildObjectProc) (CompObject *parent,
+typedef CompObject *(*FindChildObjectProc) (CompObject *object,
 					    const char *type,
 					    const char *name);
 
@@ -327,8 +329,6 @@ compObjectInit (CompObject       *object,
 
 void
 compObjectFini (CompObject *object);
-
-typedef struct _CompChildObject CompChildObject;
 
 struct _CompChildObject {
     CompObject base;
@@ -3042,10 +3042,10 @@ struct _CompPlugin {
 };
 
 CompBool
-objectInitPlugins (CompObject *o);
+objectInitPlugins (CompChildObject *o);
 
 void
-objectFiniPlugins (CompObject *o);
+objectFiniPlugins (CompChildObject *o);
 
 CompPlugin *
 findActivePlugin (const char *name);

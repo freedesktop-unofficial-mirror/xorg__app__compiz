@@ -45,7 +45,7 @@ coreForEachChildObject (CompObject		*object,
     CompBool		status;
 
     for (d = core.displays; d; d = d->next)
-	if (!(*proc) (&d->base.base, closure))
+	if (!(*proc) (&d->base, closure))
 	    return FALSE;
 
     UNWRAP (&core.object, object, vTable);

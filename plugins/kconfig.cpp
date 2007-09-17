@@ -476,20 +476,20 @@ kconfigGetOption (CompObject *object,
 }
 
 static CompBool
-kconfigReloadObjectTree (CompObject *object,
-			 void       *closure)
+kconfigReloadObjectTree (CompChildObject *object,
+			 void		 *closure)
 {
     CompPlugin *p = (CompPlugin *) closure;
     CompOption  *option;
     int		nOption;
 
-    option = (*p->vTable->getObjectOptions) (p, object, &nOption);
+    option = (*p->vTable->getObjectOptions) (p, &object->base, &nOption);
     while (nOption--)
-	kconfigGetOption (object, option++, p->vTable->name);
+	kconfigGetOption (&object->base, option++, p->vTable->name);
 
-    (*object->vTable->forEachChildObject) (object,
-					   kconfigReloadObjectTree,
-					   closure);
+    (*object->base.vTable->forEachChildObject) (&object->base,
+						kconfigReloadObjectTree,
+						closure);
 
     return TRUE;
 }
@@ -508,7 +508,9 @@ kconfigRcReload (void *closure)
 	if (!p->vTable->getObjectOptions)
 	    continue;
 
-	kconfigReloadObjectTree (&core.base, (void *) p);
+	(*core.base.vTable->forEachChildObject) (&core.base,
+						 kconfigReloadObjectTree,
+						 (void *) p);
     }
 
     kc->reloadHandle = 0;

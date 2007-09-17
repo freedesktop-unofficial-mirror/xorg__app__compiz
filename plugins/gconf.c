@@ -476,20 +476,20 @@ gconfGetOption (CompObject *object,
 }
 
 static CompBool
-gconfReloadObjectTree (CompObject *object,
-		       void       *closure)
+gconfReloadObjectTree (CompChildObject *object,
+		       void	       *closure)
 {
     CompPlugin *p = (CompPlugin *) closure;
     CompOption  *option;
     int		nOption;
 
-    option = (*p->vTable->getObjectOptions) (p, object, &nOption);
+    option = (*p->vTable->getObjectOptions) (p, &object->base, &nOption);
     while (nOption--)
-	gconfGetOption (object, option++, p->vTable->name);
+	gconfGetOption (&object->base, option++, p->vTable->name);
 
-    (*object->vTable->forEachChildObject) (object,
-					   gconfReloadObjectTree,
-					   closure);
+    (*object->base.vTable->forEachChildObject) (&object->base,
+						gconfReloadObjectTree,
+						closure);
 
     return TRUE;
 }
@@ -506,7 +506,9 @@ gconfReload (void *closure)
 	if (!p->vTable->getObjectOptions)
 	    continue;
 
-	gconfReloadObjectTree (&core.base, (void *) p);
+	(*core.base.vTable->forEachChildObject) (&core.base,
+						 gconfReloadObjectTree,
+						 (void *) p);
     }
 
     gc->reloadHandle = 0;
