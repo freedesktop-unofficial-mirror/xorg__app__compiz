@@ -310,6 +310,13 @@ struct _CompObject {
     CompObjectVTable *vTable;
 };
 
+int
+compObjectAllocatePrivateIndex (CompObjectType *type);
+
+void
+compObjectFreePrivateIndex (CompObjectType *type,
+			    int	           index);
+
 CompBool
 compObjectInit (CompObject       *object,
 		CompObjectType   *type,
@@ -319,12 +326,22 @@ compObjectInit (CompObject       *object,
 void
 compObjectFini (CompObject *object);
 
-int
-compObjectAllocatePrivateIndex (CompObjectType *type);
+typedef struct _CompChildObject CompChildObject;
+
+struct _CompChildObject {
+    CompObject base;
+
+    CompObject *parent;
+};
+
+CompBool
+compChildObjectInit (CompChildObject  *object,
+		     CompObjectType   *type,
+		     CompObjectVTable *vTable,
+		     CompObjectTypeID id);
 
 void
-compObjectFreePrivateIndex (CompObjectType *type,
-			    int	           index);
+compChildObjectFini (CompChildObject *object);
 
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))

@@ -120,3 +120,23 @@ compObjectFreePrivateIndex (CompObjectType *type,
 {
     freePrivateIndex (type->privateLen, type->privateIndices, index);
 }
+
+CompBool
+compChildObjectInit (CompChildObject  *object,
+		     CompObjectType   *type,
+		     CompObjectVTable *vTable,
+		     CompObjectTypeID id)
+{
+    if (!compObjectInit (&object->base, type, vTable, id))
+	return FALSE;
+
+    object->parent = NULL;
+
+    return TRUE;
+}
+
+void
+compChildObjectFini (CompChildObject *object)
+{
+    compObjectFini (&object->base);
+}
