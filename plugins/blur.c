@@ -191,7 +191,7 @@ typedef struct _BlurWindow {
     BlurScreen *bs = GET_BLUR_SCREEN (s, GET_BLUR_DISPLAY (s->display))
 
 #define GET_BLUR_WINDOW(w, bs)					      \
-    ((BlurWindow *) (w)->base.privates[(bs)->windowPrivateIndex].ptr)
+    ((BlurWindow *) (w)->base.base.privates[(bs)->windowPrivateIndex].ptr)
 
 #define BLUR_WINDOW(w)					     \
     BlurWindow *bw = GET_BLUR_WINDOW  (w,		     \
@@ -2773,9 +2773,9 @@ blurInitWindow (CompPlugin *p,
 	return FALSE;
     }
 
-    w->base.privates[bs->windowPrivateIndex].ptr = bw;
+    w->base.base.privates[bs->windowPrivateIndex].ptr = bw;
 
-    if (w->base.parent)
+    if (w->base.base.parent)
 	blurWindowAdd (w->screen, w);
 
     return TRUE;

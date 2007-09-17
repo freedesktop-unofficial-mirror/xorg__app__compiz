@@ -73,7 +73,7 @@ screenForEachChildObject (CompObject		  *object,
     CORE_SCREEN (object);
 
     for (w = s->windows; w; w = w->next)
-	if (!(*proc) (&w->base, closure))
+	if (!(*proc) (&w->base.base, closure))
 	    return FALSE;
 
     UNWRAP (&s->object, object, vTable);
@@ -100,7 +100,7 @@ screenFindChildObject (CompObject *object,
 
 	for (w = s->windows; w; w = w->next)
 	    if (w->id == id)
-		return &w->base;
+		return &w->base.base;
     }
 
     UNWRAP (&s->object, object, vTable);

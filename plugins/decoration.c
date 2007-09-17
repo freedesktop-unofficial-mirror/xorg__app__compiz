@@ -161,7 +161,7 @@ typedef struct _DecorWindow {
     DecorScreen *ds = GET_DECOR_SCREEN (s, GET_DECOR_DISPLAY (s->display))
 
 #define GET_DECOR_WINDOW(w, ds)					       \
-    ((DecorWindow *) (w)->base.privates[(ds)->windowPrivateIndex].ptr)
+    ((DecorWindow *) (w)->base.base.privates[(ds)->windowPrivateIndex].ptr)
 
 #define DECOR_WINDOW(w)					       \
     DecorWindow *dw = GET_DECOR_WINDOW  (w,		       \
@@ -1543,12 +1543,12 @@ decorInitWindow (CompPlugin *p,
 
     dw->resizeUpdateHandle = 0;
 
-    w->base.privates[ds->windowPrivateIndex].ptr = dw;
+    w->base.base.privates[ds->windowPrivateIndex].ptr = dw;
 
     if (!w->attrib.override_redirect)
 	decorWindowUpdateDecoration (w);
 
-    if (w->base.parent)
+    if (w->base.base.parent)
 	decorWindowAdd (w->screen, w);
 
     return TRUE;

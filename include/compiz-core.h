@@ -2503,7 +2503,7 @@ typedef struct _CompStruts {
 } CompStruts;
 
 struct _CompWindow {
-    CompObject base;
+    CompChildObject base;
 
     CompObjectVTableVec object;
 

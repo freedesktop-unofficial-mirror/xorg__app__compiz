@@ -163,7 +163,7 @@ typedef struct _VideoWindow {
     VideoScreen *vs = GET_VIDEO_SCREEN (s, GET_VIDEO_DISPLAY (s->display))
 
 #define GET_VIDEO_WINDOW(w, vs)					       \
-    ((VideoWindow *) (w)->base.privates[(vs)->windowPrivateIndex].ptr)
+    ((VideoWindow *) (w)->base.base.privates[(vs)->windowPrivateIndex].ptr)
 
 #define VIDEO_WINDOW(w)					       \
     VideoWindow *vw = GET_VIDEO_WINDOW  (w,		       \
@@ -1193,7 +1193,7 @@ videoInitWindow (CompPlugin *p,
     vw->source  = NULL;
     vw->context = NULL;
 
-    w->base.privates[vs->windowPrivateIndex].ptr = vw;
+    w->base.base.privates[vs->windowPrivateIndex].ptr = vw;
 
     if (w->shaded || w->attrib.map_state == IsViewable)
 	videoWindowUpdate (w);

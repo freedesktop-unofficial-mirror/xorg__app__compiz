@@ -188,7 +188,7 @@ typedef struct _WobblyWindow {
     WobblyScreen *ws = GET_WOBBLY_SCREEN (s, GET_WOBBLY_DISPLAY (s->display))
 
 #define GET_WOBBLY_WINDOW(w, ws)					\
-    ((WobblyWindow *) (w)->base.privates[(ws)->windowPrivateIndex].ptr)
+    ((WobblyWindow *) (w)->base.base.privates[(ws)->windowPrivateIndex].ptr)
 
 #define WOBBLY_WINDOW(w)				         \
     WobblyWindow *ww = GET_WOBBLY_WINDOW  (w,		         \
@@ -2817,7 +2817,7 @@ wobblyInitWindow (CompPlugin *p,
     ww->grabbed = FALSE;
     ww->state   = w->state;
 
-    w->base.privates[ws->windowPrivateIndex].ptr = ww;
+    w->base.base.privates[ws->windowPrivateIndex].ptr = ww;
 
     if (w->mapNum && ws->opt[WOBBLY_SCREEN_OPTION_MAXIMIZE_EFFECT].value.b)
     {

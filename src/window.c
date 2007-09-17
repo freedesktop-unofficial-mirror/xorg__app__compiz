@@ -1328,9 +1328,9 @@ freeWindow (CompWindow *w)
 {
     releaseWindow (w);
 
-    UNWRAP (&w->object, &w->base, vTable);
+    UNWRAP (&w->object, &w->base.base, vTable);
 
-    compObjectFini (&w->base);
+    compChildObjectFini (&w->base);
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
@@ -1965,13 +1965,14 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!compObjectInit (&w->base, &windowObjectType, COMP_OBJECT_TYPE_WINDOW))
+    if (!compChildObjectInit (&w->base, &windowObjectType,
+			      COMP_OBJECT_TYPE_WINDOW))
     {
 	free (w);
 	return;
     }
 
-    WRAP (&w->object, &w->base, vTable, &windowObjectVTable);
+    WRAP (&w->object, &w->base.base, vTable, &windowObjectVTable);
 
     w->region = XCreateRegion ();
     if (!w->region)
@@ -2210,9 +2211,9 @@ addWindow (CompScreen *screen,
     }
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&w->base));
+    assert (objectInitPlugins (&w->base.base));
 
-    (*core.objectAdd) (&screen->base.base, &w->base);
+    (*core.objectAdd) (&screen->base.base, &w->base.base);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
@@ -2277,9 +2278,9 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (w->screen);
     }
 
-    (*core.objectRemove) (&w->screen->base.base, &w->base);
+    (*core.objectRemove) (&w->screen->base.base, &w->base.base);
 
-    objectFiniPlugins (&w->base);
+    objectFiniPlugins (&w->base.base);
 
     freeWindow (w);
 }
