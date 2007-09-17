@@ -674,7 +674,7 @@ getPluginABI (const char *name)
 	return 0;
 
     /* MULTIDPYERROR: ABI options should be moved into core */
-    option = (*p->vTable->getObjectOptions) (p, &core.displays->base,
+    option = (*p->vTable->getObjectOptions) (p, &core.displays->base.base,
 					     &nOption);
 
     return getIntOptionNamed (option, nOption, "abi", 0);
@@ -707,7 +707,7 @@ getPluginDisplayIndex (CompDisplay *d,
     if (!p || !p->vTable->getObjectOptions)
 	return FALSE;
 
-    option = (*p->vTable->getObjectOptions) (p, &d->base, &nOption);
+    option = (*p->vTable->getObjectOptions) (p, &d->base.base, &nOption);
 
     value = getIntOptionNamed (option, nOption, "index", -1);
     if (value < 0)

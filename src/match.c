@@ -745,7 +745,8 @@ matchExpHandlerChanged (CompDisplay *display)
 	if (!p->vTable->getObjectOptions)
 	    continue;
 
-	option = (*p->vTable->getObjectOptions) (p, &display->base, &nOption);
+	option = (*p->vTable->getObjectOptions) (p, &display->base.base,
+						 &nOption);
 	matchUpdateMatchOptions (option, nOption);
     }
 

@@ -302,6 +302,10 @@ typedef struct _CompObjectVTable {
     FindChildObjectProc    findChildObject;
 } CompObjectVTable;
 
+typedef struct _CompObjectVTableVec {
+    CompObjectVTable *vTable;
+} CompObjectVTableVec;
+
 struct _CompObject {
     CompObjectTypeID id;
     CompPrivate	     *privates;
@@ -320,7 +324,6 @@ compObjectFreePrivateIndex (CompObjectType *type,
 CompBool
 compObjectInit (CompObject       *object,
 		CompObjectType   *type,
-		CompObjectVTable *vTable,
 		CompObjectTypeID id);
 
 void
@@ -337,7 +340,6 @@ struct _CompChildObject {
 CompBool
 compChildObjectInit (CompChildObject  *object,
 		     CompObjectType   *type,
-		     CompObjectVTable *vTable,
 		     CompObjectTypeID id);
 
 void
@@ -680,6 +682,8 @@ typedef struct _CompWatchFd {
 struct _CompCore {
     CompObject base;
 
+    CompObjectVTableVec object;
+
     CompDisplay *displays;
 
     Region tmpRegion;
@@ -903,6 +907,8 @@ typedef void (*LogMessageProc) (CompDisplay  *d,
 
 struct _CompDisplay {
     CompChildObject base;
+
+    CompObjectVTableVec object;
 
     CompDisplay *next;
 
@@ -1987,6 +1993,8 @@ typedef struct _CompActiveWindowHistory {
 struct _CompScreen {
     CompObject base;
 
+    CompObjectVTableVec object;
+
     CompScreen  *next;
     CompDisplay *display;
     CompWindow	*windows;
@@ -2496,6 +2504,8 @@ typedef struct _CompStruts {
 
 struct _CompWindow {
     CompObject base;
+
+    CompObjectVTableVec object;
 
     CompScreen *screen;
     CompWindow *next;

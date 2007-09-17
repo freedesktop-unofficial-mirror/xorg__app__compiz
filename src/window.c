@@ -66,7 +66,16 @@ windowForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
 			  void			  *closure)
 {
-    return TRUE;
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->forEachChildObject) (object, proc, closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompObject *
@@ -74,7 +83,16 @@ windowFindChildObject (CompObject *object,
 		       const char *type,
 		       const char *name)
 {
-    return NULL;
+    CompObjectVTableVec v = { object->vTable };
+    CompObject		*result;
+
+    CORE_WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    result = (*object->vTable->findChildObject) (object, type, name);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static Bool
@@ -1310,6 +1328,8 @@ freeWindow (CompWindow *w)
 {
     releaseWindow (w);
 
+    UNWRAP (&w->object, &w->base, vTable);
+
     compObjectFini (&w->base);
 
     if (w->syncAlarm)
@@ -1945,12 +1965,13 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!compObjectInit (&w->base, &windowObjectType, &windowObjectVTable,
-			 COMP_OBJECT_TYPE_WINDOW))
+    if (!compObjectInit (&w->base, &windowObjectType, COMP_OBJECT_TYPE_WINDOW))
     {
 	free (w);
 	return;
     }
+
+    WRAP (&w->object, &w->base, vTable, &windowObjectVTable);
 
     w->region = XCreateRegion ();
     if (!w->region)

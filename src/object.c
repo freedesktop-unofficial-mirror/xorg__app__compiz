@@ -25,10 +25,37 @@
 
 #include <compiz-core.h>
 
+static char *
+nameObject (CompObject *object)
+{
+    return NULL;
+}
+
+static CompBool
+forEachChildObject (CompObject		    *object,
+		    ChildObjectCallBackProc proc,
+		    void		    *closure)
+{
+    return TRUE;
+}
+
+static CompObject *
+findChildObject (CompObject *parent,
+		 const char *type,
+		 const char *name)
+{
+    return NULL;
+}
+
+static CompObjectVTable objectVTable = {
+    nameObject,
+    forEachChildObject,
+    findChildObject
+};
+
 CompBool
 compObjectInit (CompObject       *object,
 		CompObjectType   *type,
-		CompObjectVTable *vTable,
 		CompObjectTypeID id)
 {
     if (type->privateLen)
@@ -45,7 +72,7 @@ compObjectInit (CompObject       *object,
     object->id     = id;
     object->parent = NULL;
     object->type   = type;
-    object->vTable = vTable;
+    object->vTable = &objectVTable;
 
     return TRUE;
 }
@@ -124,10 +151,9 @@ compObjectFreePrivateIndex (CompObjectType *type,
 CompBool
 compChildObjectInit (CompChildObject  *object,
 		     CompObjectType   *type,
-		     CompObjectVTable *vTable,
 		     CompObjectTypeID id)
 {
-    if (!compObjectInit (&object->base, type, vTable, id))
+    if (!compObjectInit (&object->base, type, id))
 	return FALSE;
 
     object->parent = NULL;

@@ -81,7 +81,9 @@ displayForEachChildObject (CompObject		   *object,
 			   ChildObjectCallBackProc proc,
 			   void			   *closure)
 {
-    CompScreen *s;
+    CompObjectVTableVec v = { object->vTable };
+    CompScreen		*s;
+    CompBool		status;
 
     CORE_DISPLAY (object);
 
@@ -91,27 +93,38 @@ displayForEachChildObject (CompObject		   *object,
 	    return FALSE;
     }
 
-    return TRUE;
+    UNWRAP (&d->object, object, vTable);
+    status = (*object->vTable->forEachChildObject) (object, proc, closure);
+    WRAP (&d->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompObject *
-displayFindChildObject (CompObject *parent,
+displayFindChildObject (CompObject *object,
 			const char *type,
 			const char *name)
 {
+    CompObjectVTableVec v = { object->vTable };
+    CompObject		*result;
+
+    CORE_DISPLAY (object);
+
     if (strcmp (type, getScreenObjectType ()->name) == 0)
     {
 	CompScreen *s;
 	int	   screenNum = atoi (name);
-
-	CORE_DISPLAY (parent);
 
 	for (s = d->screens; s; s = s->next)
 	    if (s->screenNum == screenNum)
 		return &s->base;
     }
 
-    return NULL;
+    UNWRAP (&d->object, object, vTable);
+    result = (*object->vTable->findChildObject) (object, type, name);
+    WRAP (&d->object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static Bool
@@ -897,7 +910,8 @@ updatePlugins (CompDisplay *d)
 	pop = malloc (sizeof (CompPlugin *) * nPop);
 	if (!pop)
 	{
-	    (*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
+	    (*core.setOptionForPlugin) (&d->base.base, "core", o->name,
+					&d->plugin);
 	    return;
 	}
     }
@@ -969,7 +983,7 @@ updatePlugins (CompDisplay *d)
     if (nPop)
 	free (pop);
 
-    (*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
+    (*core.setOptionForPlugin) (&d->base.base, "core", o->name, &d->plugin);
 }
 
 static void
@@ -1953,11 +1967,13 @@ addDisplay (const char *name)
 	return FALSE;
 
     if (!compChildObjectInit (&d->base, &displayObjectType,
-			      &displayObjectVTable, COMP_OBJECT_TYPE_DISPLAY))
+			      COMP_OBJECT_TYPE_DISPLAY))
     {
 	free (d);
 	return FALSE;
     }
+
+    WRAP (&d->object, &d->base.base, vTable, &displayObjectVTable);
 
     d->next    = NULL;
     d->screens = NULL;
@@ -2307,9 +2323,9 @@ addDisplay (const char *name)
     addDisplayToCore (d);
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&d->base));
+    assert (objectInitPlugins (&d->base.base));
 
-    (*core.objectAdd) (&core.base, &d->base);
+    (*core.objectAdd) (&core.base, &d->base.base);
 
     if (onlyCurrentScreen)
     {
@@ -2567,9 +2583,9 @@ removeDisplay (CompDisplay *d)
     while (d->screens)
 	removeScreen (d->screens);
 
-    (*core.objectRemove) (&core.base, &d->base);
+    (*core.objectRemove) (&core.base, &d->base.base);
 
-    objectFiniPlugins (&d->base);
+    objectFiniPlugins (&d->base.base);
 
     compRemoveTimeout (d->pingHandle);
 

@@ -66,7 +66,9 @@ screenForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
 			  void			  *closure)
 {
-    CompWindow *w;
+    CompObjectVTableVec v = { object->vTable };
+    CompWindow		*w;
+    CompBool		status;
 
     CORE_SCREEN (object);
 
@@ -74,7 +76,11 @@ screenForEachChildObject (CompObject		  *object,
 	if (!(*proc) (&w->base, closure))
 	    return FALSE;
 
-    return TRUE;
+    UNWRAP (&s->object, object, vTable);
+    status = (*s->base.vTable->forEachChildObject) (object, proc, closure);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompObject *
@@ -82,19 +88,26 @@ screenFindChildObject (CompObject *object,
 		       const char *type,
 		       const char *name)
 {
+    CompObjectVTableVec v = { object->vTable };
+    CompObject		*result;
+
+    CORE_SCREEN (object);
+
     if (strcmp (type, getWindowObjectType ()->name) == 0)
     {
 	CompWindow *w;
 	Window     id = atoi (name);
-
-	CORE_SCREEN (object);
 
 	for (w = s->windows; w; w = w->next)
 	    if (w->id == id)
 		return &w->base;
     }
 
-    return NULL;
+    UNWRAP (&s->object, object, vTable);
+    result = (*object->vTable->findChildObject) (object, type, name);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static Bool
@@ -1429,6 +1442,8 @@ initWindowWalker (CompScreen *screen,
 static void
 freeScreen (CompScreen *s)
 {
+    UNWRAP (&s->object, &s->base, vTable);
+
     compObjectFini (&s->base);
 
     if (s->outputDev)
@@ -1524,12 +1539,13 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!compObjectInit (&s->base, &screenObjectType, &screenObjectVTable,
-			 COMP_OBJECT_TYPE_SCREEN))
+    if (!compObjectInit (&s->base, &screenObjectType, COMP_OBJECT_TYPE_SCREEN))
     {
 	free (s);
 	return FALSE;
     }
+
+    WRAP (&s->object, &s->base, vTable, &screenObjectVTable);
 
     s->display = display;
 
@@ -2165,7 +2181,7 @@ addScreen (CompDisplay *display,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&s->base));
 
-    (*core.objectAdd) (&display->base, &s->base);
+    (*core.objectAdd) (&display->base.base, &s->base);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2253,7 +2269,7 @@ removeScreen (CompScreen *s)
     while (s->windows)
 	removeWindow (s->windows);
 
-    (*core.objectRemove) (&d->base, &s->base);
+    (*core.objectRemove) (&d->base.base, &s->base);
 
     objectFiniPlugins (&s->base);
 

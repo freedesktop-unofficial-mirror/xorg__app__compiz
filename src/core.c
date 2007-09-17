@@ -40,13 +40,19 @@ coreForEachChildObject (CompObject		*object,
 			ChildObjectCallBackProc proc,
 			void			*closure)
 {
-    CompDisplay *d;
+    CompObjectVTableVec v = { object->vTable };
+    CompDisplay		*d;
+    CompBool		status;
 
     for (d = core.displays; d; d = d->next)
 	if (!(*proc) (&d->base.base, closure))
 	    return FALSE;
 
-    return TRUE;
+    UNWRAP (&core.object, object, vTable);
+    status = (*object->vTable->forEachChildObject) (object, proc, closure);
+    WRAP (&core.object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompObject *
@@ -54,11 +60,18 @@ coreFindChildObject (CompObject *object,
 		     const char *type,
 		     const char *name)
 {
+    CompObjectVTableVec v = { object->vTable };
+    CompObject		*result;
+
     if (strcmp (type, getDisplayObjectType ()->name) == 0)
 	if (core.displays && (!name || !name[0]))
 	    return &core.displays->base.base;
 
-    return NULL;
+    UNWRAP (&core.object, object, vTable);
+    result = (*object->vTable->findChildObject) (object, type, name);
+    WRAP (&core.object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static CompBool
@@ -158,9 +171,10 @@ initCore (void)
 {
     CompPlugin *corePlugin;
 
-    if (!compObjectInit (&core.base, &coreObjectType, &coreObjectVTable,
-			 COMP_OBJECT_TYPE_CORE))
+    if (!compObjectInit (&core.base, &coreObjectType, COMP_OBJECT_TYPE_CORE))
 	return FALSE;
+
+    WRAP (&core.object, &core.base, vTable, &coreObjectVTable);
 
     core.displays = NULL;
 
@@ -233,6 +247,8 @@ finiCore (void)
 
     XDestroyRegion (core.outputRegion);
     XDestroyRegion (core.tmpRegion);
+
+    UNWRAP (&core.object, &core.base, vTable);
 
     compObjectFini (&core.base);
 }

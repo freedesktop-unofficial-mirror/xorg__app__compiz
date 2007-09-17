@@ -430,7 +430,7 @@ fuseUpdateInode (CompDisplay *d,
     {
 	int n;
 
-	if (fuseGetOptionsFromInode (&d->base, inode, &n))
+	if (fuseGetOptionsFromInode (&d->base.base, inode, &n))
 	    fuseAddInode (inode, FUSE_INODE_TYPE_DISPLAY, "allscreens");
 
 	for (s = d->screens; s; s = s->next)
