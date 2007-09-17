@@ -2095,7 +2095,7 @@ scaleInitScreen (CompPlugin *p,
 
     ss->cursor = XCreateFontCursor (s->display->display, XC_left_ptr);
 
-    s->base.privates[sd->screenPrivateIndex].ptr = ss;
+    s->base.base.privates[sd->screenPrivateIndex].ptr = ss;
 
     return TRUE;
 }

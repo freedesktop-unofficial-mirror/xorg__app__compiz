@@ -1991,7 +1991,7 @@ typedef struct _CompActiveWindowHistory {
 } CompActiveWindowHistory;
 
 struct _CompScreen {
-    CompObject base;
+    CompChildObject base;
 
     CompObjectVTableVec object;
 

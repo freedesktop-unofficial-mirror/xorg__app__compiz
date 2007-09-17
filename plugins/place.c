@@ -72,7 +72,7 @@ typedef struct _PlaceScreen {
     PlaceDisplay *pd = GET_PLACE_DISPLAY (d)
 
 #define GET_PLACE_SCREEN(s, pd)					       \
-    ((PlaceScreen *) (s)->base.privates[(pd)->screenPrivateIndex].ptr)
+    ((PlaceScreen *) (s)->base.base.privates[(pd)->screenPrivateIndex].ptr)
 
 #define PLACE_SCREEN(s)							   \
     PlaceScreen *ps = GET_PLACE_SCREEN (s, GET_PLACE_DISPLAY (s->display))
@@ -1635,7 +1635,7 @@ placeInitScreen (CompPlugin *p,
     WRAP (ps, s, validateWindowResizeRequest,
 	  placeValidateWindowResizeRequest);
 
-    s->base.privates[pd->screenPrivateIndex].ptr = ps;
+    s->base.base.privates[pd->screenPrivateIndex].ptr = ps;
 
     return TRUE;
 }

@@ -99,7 +99,7 @@ typedef struct _MoveScreen {
     MoveDisplay *md = GET_MOVE_DISPLAY (d)
 
 #define GET_MOVE_SCREEN(s, md)					      \
-    ((MoveScreen *) (s)->base.privates[(md)->screenPrivateIndex].ptr)
+    ((MoveScreen *) (s)->base.base.privates[(md)->screenPrivateIndex].ptr)
 
 #define MOVE_SCREEN(s)						        \
     MoveScreen *ms = GET_MOVE_SCREEN (s, GET_MOVE_DISPLAY (s->display))
@@ -884,7 +884,7 @@ moveInitScreen (CompPlugin *p,
 
     WRAP (ms, s, paintWindow, movePaintWindow);
 
-    s->base.privates[md->screenPrivateIndex].ptr = ms;
+    s->base.base.privates[md->screenPrivateIndex].ptr = ms;
 
     return TRUE;
 }

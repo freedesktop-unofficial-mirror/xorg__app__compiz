@@ -155,7 +155,7 @@ typedef struct _DecorWindow {
     DecorDisplay *dd = GET_DECOR_DISPLAY (d)
 
 #define GET_DECOR_SCREEN(s, dd)					       \
-    ((DecorScreen *) (s)->base.privates[(dd)->screenPrivateIndex].ptr)
+    ((DecorScreen *) (s)->base.base.privates[(dd)->screenPrivateIndex].ptr)
 
 #define DECOR_SCREEN(s)							   \
     DecorScreen *ds = GET_DECOR_SCREEN (s, GET_DECOR_DISPLAY (s->display))
@@ -1495,7 +1495,7 @@ decorInitScreen (CompPlugin *p,
     WRAP (ds, s, windowResizeNotify, decorWindowResizeNotify);
     WRAP (ds, s, windowStateChangeNotify, decorWindowStateChangeNotify);
 
-    s->base.privates[dd->screenPrivateIndex].ptr = ds;
+    s->base.base.privates[dd->screenPrivateIndex].ptr = ds;
 
     decorCheckForDmOnScreen (s, FALSE);
 

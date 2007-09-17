@@ -127,7 +127,7 @@ typedef struct _WaterScreen {
     WaterDisplay *wd = GET_WATER_DISPLAY (d)
 
 #define GET_WATER_SCREEN(s, wd)					       \
-    ((WaterScreen *) (s)->base.privates[(wd)->screenPrivateIndex].ptr)
+    ((WaterScreen *) (s)->base.base.privates[(wd)->screenPrivateIndex].ptr)
 
 #define WATER_SCREEN(s)							   \
     WaterScreen *ws = GET_WATER_SCREEN (s, GET_WATER_DISPLAY (s->display))
@@ -1661,7 +1661,7 @@ waterInitScreen (CompPlugin *p,
     WRAP (ws, s, donePaintScreen, waterDonePaintScreen);
     WRAP (ws, s, drawWindowTexture, waterDrawWindowTexture);
 
-    s->base.privates[wd->screenPrivateIndex].ptr = ws;
+    s->base.base.privates[wd->screenPrivateIndex].ptr = ws;
 
     waterReset (s);
 

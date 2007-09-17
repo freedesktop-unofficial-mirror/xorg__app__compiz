@@ -157,7 +157,7 @@ typedef struct _VideoWindow {
     VideoDisplay *vd = GET_VIDEO_DISPLAY (d)
 
 #define GET_VIDEO_SCREEN(s, vd)					       \
-    ((VideoScreen *) (s)->base.privates[(vd)->screenPrivateIndex].ptr)
+    ((VideoScreen *) (s)->base.base.privates[(vd)->screenPrivateIndex].ptr)
 
 #define VIDEO_SCREEN(s)							   \
     VideoScreen *vs = GET_VIDEO_SCREEN (s, GET_VIDEO_DISPLAY (s->display))
@@ -1149,7 +1149,7 @@ videoInitScreen (CompPlugin *p,
     WRAP (vs, s, windowMoveNotify, videoWindowMoveNotify);
     WRAP (vs, s, windowResizeNotify, videoWindowResizeNotify);
 
-    s->base.privates[vd->screenPrivateIndex].ptr = vs;
+    s->base.base.privates[vd->screenPrivateIndex].ptr = vs;
 
     videoSetSupportedHint (s);
 

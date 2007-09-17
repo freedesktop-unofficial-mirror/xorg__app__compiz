@@ -2223,7 +2223,7 @@ cubeInitScreen (CompPlugin *p,
     cs->checkOrientation  = cubeCheckOrientation;
     cs->postPaintViewport = cubePostPaintViewport;
 
-    s->base.privates[cd->screenPrivateIndex].ptr = cs;
+    s->base.base.privates[cd->screenPrivateIndex].ptr = cs;
 
     initTexture (s, &cs->texture);
     initTexture (s, &cs->sky);

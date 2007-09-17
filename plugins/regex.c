@@ -61,7 +61,7 @@ typedef struct _RegexWindow {
     RegexDisplay *rd = GET_REGEX_DISPLAY (d)
 
 #define GET_REGEX_SCREEN(s, rd)					       \
-    ((RegexScreen *) (s)->base.privates[(rd)->screenPrivateIndex].ptr)
+    ((RegexScreen *) (s)->base.base.privates[(rd)->screenPrivateIndex].ptr)
 
 #define REGEX_SCREEN(s)							   \
     RegexScreen *rs = GET_REGEX_SCREEN (s, GET_REGEX_DISPLAY (s->display))
@@ -428,7 +428,7 @@ regexInitScreen (CompPlugin *p,
 	return FALSE;
     }
 
-    s->base.privates[rd->screenPrivateIndex].ptr = rs;
+    s->base.base.privates[rd->screenPrivateIndex].ptr = rs;
 
     return TRUE;
 }

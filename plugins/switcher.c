@@ -177,7 +177,7 @@ static float _boxVertices[] =
     SwitchDisplay *sd = GET_SWITCH_DISPLAY (d)
 
 #define GET_SWITCH_SCREEN(s, sd)					\
-    ((SwitchScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
+    ((SwitchScreen *) (s)->base.base.privates[(sd)->screenPrivateIndex].ptr)
 
 #define SWITCH_SCREEN(s)						      \
     SwitchScreen *ss = GET_SWITCH_SCREEN (s, GET_SWITCH_DISPLAY (s->display))
@@ -2052,7 +2052,7 @@ switchInitScreen (CompPlugin *p,
     WRAP (ss, s, paintBackground, switchPaintBackground);
     WRAP (ss, s, damageWindowRect, switchDamageWindowRect);
 
-    s->base.privates[sd->screenPrivateIndex].ptr = ss;
+    s->base.base.privates[sd->screenPrivateIndex].ptr = ss;
 
     return TRUE;
 }

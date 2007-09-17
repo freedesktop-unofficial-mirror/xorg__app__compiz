@@ -185,7 +185,7 @@ typedef struct _BlurWindow {
     BlurDisplay *bd = GET_BLUR_DISPLAY (d)
 
 #define GET_BLUR_SCREEN(s, bd)					      \
-    ((BlurScreen *) (s)->base.privates[(bd)->screenPrivateIndex].ptr)
+    ((BlurScreen *) (s)->base.base.privates[(bd)->screenPrivateIndex].ptr)
 
 #define BLUR_SCREEN(s)							\
     BlurScreen *bs = GET_BLUR_SCREEN (s, GET_BLUR_DISPLAY (s->display))
@@ -2686,7 +2686,7 @@ blurInitScreen (CompPlugin *p,
     WRAP (bs, s, windowResizeNotify, blurWindowResizeNotify);
     WRAP (bs, s, windowMoveNotify, blurWindowMoveNotify);
 
-    s->base.privates[bd->screenPrivateIndex].ptr = bs;
+    s->base.base.privates[bd->screenPrivateIndex].ptr = bs;
 
     blurUpdateFilterRadius (s);
 

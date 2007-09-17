@@ -89,7 +89,7 @@ displayForEachChildObject (CompObject		   *object,
 
     for (s = d->screens; s; s = s->next)
     {
-	if (!(*proc) (&s->base, closure))
+	if (!(*proc) (&s->base.base, closure))
 	    return FALSE;
     }
 
@@ -117,7 +117,7 @@ displayFindChildObject (CompObject *object,
 
 	for (s = d->screens; s; s = s->next)
 	    if (s->screenNum == screenNum)
-		return &s->base;
+		return &s->base.base;
     }
 
     UNWRAP (&d->object, object, vTable);

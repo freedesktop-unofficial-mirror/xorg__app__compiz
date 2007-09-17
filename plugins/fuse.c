@@ -435,7 +435,7 @@ fuseUpdateInode (CompDisplay *d,
 
 	for (s = d->screens; s; s = s->next)
 	{
-	    if (fuseGetOptionsFromInode (&s->base, inode, &n))
+	    if (fuseGetOptionsFromInode (&s->base.base, inode, &n))
 	    {
 		sprintf (str, "screen%d", s->screenNum);
 		fuseAddInode (inode, FUSE_INODE_TYPE_SCREEN, str);

@@ -182,7 +182,7 @@ typedef struct _WobblyWindow {
     WobblyDisplay *wd = GET_WOBBLY_DISPLAY (d)
 
 #define GET_WOBBLY_SCREEN(s, wd)					\
-    ((WobblyScreen *) (s)->base.privates[(wd)->screenPrivateIndex].ptr)
+    ((WobblyScreen *) (s)->base.base.privates[(wd)->screenPrivateIndex].ptr)
 
 #define WOBBLY_SCREEN(s)						      \
     WobblyScreen *ws = GET_WOBBLY_SCREEN (s, GET_WOBBLY_DISPLAY (s->display))
@@ -2771,7 +2771,7 @@ wobblyInitScreen (CompPlugin *p,
     WRAP (ws, s, windowGrabNotify, wobblyWindowGrabNotify);
     WRAP (ws, s, windowUngrabNotify, wobblyWindowUngrabNotify);
 
-    s->base.privates[wd->screenPrivateIndex].ptr = ws;
+    s->base.base.privates[wd->screenPrivateIndex].ptr = ws;
 
     return TRUE;
 }

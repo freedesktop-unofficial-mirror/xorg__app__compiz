@@ -101,7 +101,7 @@ typedef struct _SvgWindow {
     SvgDisplay *sd = GET_SVG_DISPLAY (d)
 
 #define GET_SVG_SCREEN(s, sd)					     \
-    ((SvgScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
+    ((SvgScreen *) (s)->base.base.privates[(sd)->screenPrivateIndex].ptr)
 
 #define SVG_SCREEN(s)						     \
     SvgScreen *ss = GET_SVG_SCREEN (s, GET_SVG_DISPLAY (s->display))
@@ -877,7 +877,7 @@ svgInitScreen (CompPlugin *p,
     WRAP (ss, s, windowMoveNotify, svgWindowMoveNotify);
     WRAP (ss, s, windowResizeNotify, svgWindowResizeNotify);
 
-    s->base.privates[sd->screenPrivateIndex].ptr = ss;
+    s->base.base.privates[sd->screenPrivateIndex].ptr = ss;
 
     return TRUE;
 }

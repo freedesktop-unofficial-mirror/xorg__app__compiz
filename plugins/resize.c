@@ -128,7 +128,7 @@ typedef struct _ResizeScreen {
     ResizeDisplay *rd = GET_RESIZE_DISPLAY (d)
 
 #define GET_RESIZE_SCREEN(s, rd)					\
-    ((ResizeScreen *) (s)->base.privates[(rd)->screenPrivateIndex].ptr)
+    ((ResizeScreen *) (s)->base.base.privates[(rd)->screenPrivateIndex].ptr)
 
 #define RESIZE_SCREEN(s)						      \
     ResizeScreen *rs = GET_RESIZE_SCREEN (s, GET_RESIZE_DISPLAY (s->display))
@@ -1323,7 +1323,7 @@ resizeInitScreen (CompPlugin *p,
     WRAP (rs, s, paintWindow, resizePaintWindow);
     WRAP (rs, s, damageWindowRect, resizeDamageWindowRect);
 
-    s->base.privates[rd->screenPrivateIndex].ptr = rs;
+    s->base.base.privates[rd->screenPrivateIndex].ptr = rs;
 
     return TRUE;
 }

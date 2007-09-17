@@ -77,7 +77,7 @@ screenForEachChildObject (CompObject		  *object,
 	    return FALSE;
 
     UNWRAP (&s->object, object, vTable);
-    status = (*s->base.vTable->forEachChildObject) (object, proc, closure);
+    status = (*object->vTable->forEachChildObject) (object, proc, closure);
     WRAP (&s->object, object, vTable, v.vTable);
 
     return status;
@@ -417,7 +417,7 @@ detectOutputDevices (CompScreen *s)
 	name = s->opt[COMP_SCREEN_OPTION_OUTPUTS].name;
 
 	s->opt[COMP_SCREEN_OPTION_DETECT_OUTPUTS].value.b = FALSE;
-	(*core.setOptionForPlugin) (&s->base, "core", name, &value);
+	(*core.setOptionForPlugin) (&s->base.base, "core", name, &value);
 	s->opt[COMP_SCREEN_OPTION_DETECT_OUTPUTS].value.b = TRUE;
 
 	for (i = 0; i < value.list.nValue; i++)
@@ -1023,7 +1023,7 @@ detectRefreshRateOfScreen (CompScreen *s)
 	name = s->opt[COMP_SCREEN_OPTION_REFRESH_RATE].name;
 
 	s->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b = FALSE;
-	(*core.setOptionForPlugin) (&s->base, "core", name, &value);
+	(*core.setOptionForPlugin) (&s->base.base, "core", name, &value);
 	s->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b = TRUE;
     }
     else
@@ -1442,9 +1442,9 @@ initWindowWalker (CompScreen *screen,
 static void
 freeScreen (CompScreen *s)
 {
-    UNWRAP (&s->object, &s->base, vTable);
+    UNWRAP (&s->object, &s->base.base, vTable);
 
-    compObjectFini (&s->base);
+    compChildObjectFini (&s->base);
 
     if (s->outputDev)
     {
@@ -1539,13 +1539,14 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!compObjectInit (&s->base, &screenObjectType, COMP_OBJECT_TYPE_SCREEN))
+    if (!compChildObjectInit (&s->base, &screenObjectType,
+			      COMP_OBJECT_TYPE_SCREEN))
     {
 	free (s);
 	return FALSE;
     }
 
-    WRAP (&s->object, &s->base, vTable, &screenObjectVTable);
+    WRAP (&s->object, &s->base.base, vTable, &screenObjectVTable);
 
     s->display = display;
 
@@ -2179,9 +2180,9 @@ addScreen (CompDisplay *display,
     getDesktopHints (s);
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&s->base));
+    assert (objectInitPlugins (&s->base.base));
 
-    (*core.objectAdd) (&display->base.base, &s->base);
+    (*core.objectAdd) (&display->base.base, &s->base.base);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2269,9 +2270,9 @@ removeScreen (CompScreen *s)
     while (s->windows)
 	removeWindow (s->windows);
 
-    (*core.objectRemove) (&d->base.base, &s->base);
+    (*core.objectRemove) (&d->base.base, &s->base.base);
 
-    objectFiniPlugins (&s->base);
+    objectFiniPlugins (&s->base.base);
 
     XUngrabKey (d->display, AnyKey, AnyModifier, s->root);
 
