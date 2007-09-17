@@ -55,7 +55,7 @@ typedef struct _ShotScreen {
 } ShotScreen;
 
 #define GET_SHOT_DISPLAY(d)					  \
-    ((ShotDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((ShotDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define SHOT_DISPLAY(d)			   \
     ShotDisplay *sd = GET_SHOT_DISPLAY (d)
@@ -463,7 +463,7 @@ shotInitDisplay (CompPlugin  *p,
 
     WRAP (sd, d, handleEvent, shotHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = sd;
+    d->base.base.privates[displayPrivateIndex].ptr = sd;
 
     return TRUE;
 }

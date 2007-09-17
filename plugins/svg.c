@@ -95,7 +95,7 @@ typedef struct _SvgWindow {
 } SvgWindow;
 
 #define GET_SVG_DISPLAY(d)					 \
-    ((SvgDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((SvgDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define SVG_DISPLAY(d)			 \
     SvgDisplay *sd = GET_SVG_DISPLAY (d)
@@ -823,7 +823,7 @@ svgInitDisplay (CompPlugin  *p,
     WRAP (sd, d, handleCompizEvent, svgHandleCompizEvent);
     WRAP (sd, d, fileToImage, svgFileToImage);
 
-    d->base.privates[displayPrivateIndex].ptr = sd;
+    d->base.base.privates[displayPrivateIndex].ptr = sd;
 
     for (s = d->screens; s; s = s->next)
 	updateDefaultIcon (s);

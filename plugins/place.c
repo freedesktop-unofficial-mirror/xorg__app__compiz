@@ -66,7 +66,7 @@ typedef struct _PlaceScreen {
 } PlaceScreen;
 
 #define GET_PLACE_DISPLAY(d)					   \
-    ((PlaceDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((PlaceDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define PLACE_DISPLAY(d)		     \
     PlaceDisplay *pd = GET_PLACE_DISPLAY (d)
@@ -1582,7 +1582,7 @@ placeInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    d->base.privates[displayPrivateIndex].ptr = pd;
+    d->base.base.privates[displayPrivateIndex].ptr = pd;
 
     return TRUE;
 }

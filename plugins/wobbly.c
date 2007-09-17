@@ -175,8 +175,8 @@ typedef struct _WobblyWindow {
     unsigned int state;
 } WobblyWindow;
 
-#define GET_WOBBLY_DISPLAY(d)					    \
-    ((WobblyDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+#define GET_WOBBLY_DISPLAY(d)						 \
+    ((WobblyDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define WOBBLY_DISPLAY(d)		       \
     WobblyDisplay *wd = GET_WOBBLY_DISPLAY (d)
@@ -2704,7 +2704,7 @@ wobblyInitDisplay (CompPlugin  *p,
 
     wd->snapping = FALSE;
 
-    d->base.privates[displayPrivateIndex].ptr = wd;
+    d->base.base.privates[displayPrivateIndex].ptr = wd;
 
     return TRUE;
 }

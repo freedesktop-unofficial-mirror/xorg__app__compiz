@@ -209,7 +209,7 @@ typedef struct _CubeScreen {
     CubeCore *cc = GET_CUBE_CORE (c)
 
 #define GET_CUBE_DISPLAY(d)					      \
-    ((CubeDisplay *) (d)->base.privates[cubeDisplayPrivateIndex].ptr)
+    ((CubeDisplay *) (d)->base.base.privates[cubeDisplayPrivateIndex].ptr)
 
 #define CUBE_DISPLAY(d)			   \
     CubeDisplay *cd = GET_CUBE_DISPLAY (d)

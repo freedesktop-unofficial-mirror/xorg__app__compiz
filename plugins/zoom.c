@@ -94,7 +94,7 @@ typedef struct _ZoomScreen {
 } ZoomScreen;
 
 #define GET_ZOOM_DISPLAY(d)					  \
-    ((ZoomDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((ZoomDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define ZOOM_DISPLAY(d)		           \
     ZoomDisplay *zd = GET_ZOOM_DISPLAY (d)
@@ -997,7 +997,7 @@ zoomInitDisplay (CompPlugin  *p,
 
     WRAP (zd, d, handleEvent, zoomHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = zd;
+    d->base.base.privates[displayPrivateIndex].ptr = zd;
 
     return TRUE;
 }

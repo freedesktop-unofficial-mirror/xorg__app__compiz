@@ -101,7 +101,7 @@ typedef struct _FuseDisplay {
 } FuseDisplay;
 
 #define GET_FUSE_DISPLAY(d)					  \
-    ((FuseDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((FuseDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define FUSE_DISPLAY(d)			   \
     FuseDisplay *fd = GET_FUSE_DISPLAY (d)
@@ -1306,7 +1306,7 @@ fuseInitDisplay (CompPlugin  *p,
     fd->buffer	      = NULL;
     fd->mountPoint    = NULL;
 
-    d->base.privates[displayPrivateIndex].ptr = fd;
+    d->base.base.privates[displayPrivateIndex].ptr = fd;
 
     fuseMount (d);
 

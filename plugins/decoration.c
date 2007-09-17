@@ -148,8 +148,8 @@ typedef struct _DecorWindow {
 #define DECOR_CORE(c)		       \
     DecorCore *dc = GET_DECOR_CORE (c)
 
-#define GET_DECOR_DISPLAY(d)					   \
-    ((DecorDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+#define GET_DECOR_DISPLAY(d)						\
+    ((DecorDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define DECOR_DISPLAY(d)		     \
     DecorDisplay *dd = GET_DECOR_DISPLAY (d)
@@ -1444,7 +1444,7 @@ decorInitDisplay (CompPlugin  *p,
     WRAP (dd, d, handleEvent, decorHandleEvent);
     WRAP (dd, d, matchPropertyChanged, decorMatchPropertyChanged);
 
-    d->base.privates[displayPrivateIndex].ptr = dd;
+    d->base.base.privates[displayPrivateIndex].ptr = dd;
 
     return TRUE;
 }

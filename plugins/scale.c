@@ -2000,7 +2000,7 @@ scaleInitDisplay (CompPlugin  *p,
 
     WRAP (sd, d, handleEvent, scaleHandleEvent);
 
-    d->base.privates[scaleDisplayPrivateIndex].ptr = sd;
+    d->base.base.privates[scaleDisplayPrivateIndex].ptr = sd;
 
     return TRUE;
 }

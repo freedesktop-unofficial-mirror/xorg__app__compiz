@@ -179,7 +179,7 @@ typedef struct _BlurWindow {
     BlurCore *bc = GET_BLUR_CORE (c)
 
 #define GET_BLUR_DISPLAY(d)					  \
-    ((BlurDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((BlurDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define BLUR_DISPLAY(d)			   \
     BlurDisplay *bd = GET_BLUR_DISPLAY (d)
@@ -2522,7 +2522,7 @@ blurInitDisplay (CompPlugin  *p,
     WRAP (bd, d, matchExpHandlerChanged, blurMatchExpHandlerChanged);
     WRAP (bd, d, matchPropertyChanged, blurMatchPropertyChanged);
 
-    d->base.privates[displayPrivateIndex].ptr = bd;
+    d->base.base.privates[displayPrivateIndex].ptr = bd;
 
     return TRUE;
 }

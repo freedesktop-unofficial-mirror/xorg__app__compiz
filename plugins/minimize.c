@@ -82,7 +82,7 @@ typedef struct _MinWindow {
 } MinWindow;
 
 #define GET_MIN_DISPLAY(d)					 \
-    ((MinDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((MinDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define MIN_DISPLAY(d)			 \
     MinDisplay *md = GET_MIN_DISPLAY (d)
@@ -823,7 +823,7 @@ minInitDisplay (CompPlugin  *p,
 
     WRAP (md, d, handleEvent, minHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = md;
+    d->base.base.privates[displayPrivateIndex].ptr = md;
 
     return TRUE;
 }

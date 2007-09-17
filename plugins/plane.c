@@ -82,7 +82,7 @@ typedef struct _PlaneScreen {
 } PlaneScreen;
 
 #define GET_PLANE_DISPLAY(d)					   \
-    ((PlaneDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((PlaneDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define PLANE_DISPLAY(d)		       \
     PlaneDisplay *pd = GET_PLANE_DISPLAY (d)
@@ -596,7 +596,7 @@ planeInitDisplay (CompPlugin  *p,
 
     WRAP (pd, d, handleEvent, planeHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = pd;
+    d->base.base.privates[displayPrivateIndex].ptr = pd;
 
     return TRUE;
 }

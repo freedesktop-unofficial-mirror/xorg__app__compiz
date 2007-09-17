@@ -171,7 +171,7 @@ static float _boxVertices[] =
 #define WINDOW_HEIGHT (HEIGHT + (SPACE << 1))
 
 #define GET_SWITCH_DISPLAY(d)					    \
-    ((SwitchDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((SwitchDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define SWITCH_DISPLAY(d)		       \
     SwitchDisplay *sd = GET_SWITCH_DISPLAY (d)
@@ -1949,7 +1949,7 @@ switchInitDisplay (CompPlugin  *p,
 
     WRAP (sd, d, handleEvent, switchHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = sd;
+    d->base.base.privates[displayPrivateIndex].ptr = sd;
 
     return TRUE;
 }

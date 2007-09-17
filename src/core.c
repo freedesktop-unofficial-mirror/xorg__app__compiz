@@ -43,7 +43,7 @@ coreForEachChildObject (CompObject		*object,
     CompDisplay *d;
 
     for (d = core.displays; d; d = d->next)
-	if (!(*proc) (&d->base, closure))
+	if (!(*proc) (&d->base.base, closure))
 	    return FALSE;
 
     return TRUE;
@@ -56,7 +56,7 @@ coreFindChildObject (CompObject *object,
 {
     if (strcmp (type, getDisplayObjectType ()->name) == 0)
 	if (core.displays && (!name || !name[0]))
-	    return &core.displays->base;
+	    return &core.displays->base.base;
 
     return NULL;
 }

@@ -121,7 +121,7 @@ typedef struct _WaterScreen {
 } WaterScreen;
 
 #define GET_WATER_DISPLAY(d)					   \
-    ((WaterDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((WaterDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define WATER_DISPLAY(d)		     \
     WaterDisplay *wd = GET_WATER_DISPLAY (d)
@@ -1623,7 +1623,7 @@ waterInitDisplay (CompPlugin  *p,
 
     WRAP (wd, d, handleEvent, waterHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = wd;
+    d->base.base.privates[displayPrivateIndex].ptr = wd;
 
     return TRUE;
 }

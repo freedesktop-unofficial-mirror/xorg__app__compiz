@@ -122,7 +122,7 @@ typedef struct _ResizeScreen {
 } ResizeScreen;
 
 #define GET_RESIZE_DISPLAY(d)					    \
-    ((ResizeDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((ResizeDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define RESIZE_DISPLAY(d)		       \
     ResizeDisplay *rd = GET_RESIZE_DISPLAY (d)
@@ -1263,7 +1263,7 @@ resizeInitDisplay (CompPlugin  *p,
 
     WRAP (rd, d, handleEvent, resizeHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = rd;
+    d->base.base.privates[displayPrivateIndex].ptr = rd;
 
     return TRUE;
 }

@@ -902,7 +902,7 @@ typedef void (*LogMessageProc) (CompDisplay  *d,
 				const char   *message);
 
 struct _CompDisplay {
-    CompObject base;
+    CompChildObject base;
 
     CompDisplay *next;
 

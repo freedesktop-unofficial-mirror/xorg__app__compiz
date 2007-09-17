@@ -55,7 +55,7 @@ typedef struct _RegexWindow {
 } RegexWindow;
 
 #define GET_REGEX_DISPLAY(d)					   \
-    ((RegexDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((RegexDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define REGEX_DISPLAY(d)		     \
     RegexDisplay *rd = GET_REGEX_DISPLAY (d)
@@ -383,7 +383,7 @@ regexInitDisplay (CompPlugin  *p,
     WRAP (rd, d, handleEvent, regexHandleEvent);
     WRAP (rd, d, matchInitExp, regexMatchInitExp);
 
-    d->base.privates[displayPrivateIndex].ptr = rd;
+    d->base.base.privates[displayPrivateIndex].ptr = rd;
 
     /* one shot timeout to which will register the expression handler
        after all screens and windows have been initialized */

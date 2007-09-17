@@ -2132,7 +2132,7 @@ cubeInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    d->base.privates[cubeDisplayPrivateIndex].ptr = cd;
+    d->base.base.privates[cubeDisplayPrivateIndex].ptr = cd;
 
     return TRUE;
 }

@@ -75,7 +75,7 @@ typedef struct _CloneScreen {
 } CloneScreen;
 
 #define GET_CLONE_DISPLAY(d)					   \
-    ((CloneDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((CloneDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define CLONE_DISPLAY(d)		     \
     CloneDisplay *cd = GET_CLONE_DISPLAY (d)
@@ -750,7 +750,7 @@ cloneInitDisplay (CompPlugin  *p,
 
     WRAP (cd, d, handleEvent, cloneHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = cd;
+    d->base.base.privates[displayPrivateIndex].ptr = cd;
 
     return TRUE;
 }

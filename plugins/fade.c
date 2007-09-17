@@ -77,8 +77,8 @@ typedef struct _FadeWindow {
     int steps;
 } FadeWindow;
 
-#define GET_FADE_DISPLAY(d)					  \
-    ((FadeDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+#define GET_FADE_DISPLAY(d)					       \
+    ((FadeDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define FADE_DISPLAY(d)			   \
     FadeDisplay *fd = GET_FADE_DISPLAY (d)
@@ -664,7 +664,7 @@ fadeInitDisplay (CompPlugin  *p,
     WRAP (fd, d, handleEvent, fadeHandleEvent);
     WRAP (fd, d, matchExpHandlerChanged, fadeMatchExpHandlerChanged);
 
-    d->base.privates[displayPrivateIndex].ptr = fd;
+    d->base.base.privates[displayPrivateIndex].ptr = fd;
 
     return TRUE;
 }

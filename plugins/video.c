@@ -151,7 +151,7 @@ typedef struct _VideoWindow {
 } VideoWindow;
 
 #define GET_VIDEO_DISPLAY(d)					   \
-    ((VideoDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((VideoDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define VIDEO_DISPLAY(d)		     \
     VideoDisplay *vd = GET_VIDEO_DISPLAY (d)
@@ -1085,7 +1085,7 @@ videoInitDisplay (CompPlugin  *p,
 
     WRAP (vd, d, handleEvent, videoHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = vd;
+    d->base.base.privates[displayPrivateIndex].ptr = vd;
 
     return TRUE;
 }

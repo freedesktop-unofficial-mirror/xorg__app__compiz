@@ -1896,7 +1896,7 @@ addScreenToDisplay (CompDisplay *display,
 static void
 freeDisplay (CompDisplay *d)
 {
-    compObjectFini (&d->base);
+    compChildObjectFini (&d->base);
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 
@@ -1952,8 +1952,8 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (!compObjectInit (&d->base, &displayObjectType, &displayObjectVTable,
-			 COMP_OBJECT_TYPE_DISPLAY))
+    if (!compChildObjectInit (&d->base, &displayObjectType,
+			      &displayObjectVTable, COMP_OBJECT_TYPE_DISPLAY))
     {
 	free (d);
 	return FALSE;

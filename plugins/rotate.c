@@ -146,7 +146,7 @@ typedef struct _RotateScreen {
 } RotateScreen;
 
 #define GET_ROTATE_DISPLAY(d)					    \
-    ((RotateDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((RotateDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define ROTATE_DISPLAY(d)		       \
     RotateDisplay *rd = GET_ROTATE_DISPLAY (d)
@@ -1786,7 +1786,7 @@ rotateInitDisplay (CompPlugin  *p,
 
     WRAP (rd, d, handleEvent, rotateHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = rd;
+    d->base.base.privates[displayPrivateIndex].ptr = rd;
 
     return TRUE;
 }

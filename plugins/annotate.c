@@ -69,7 +69,7 @@ typedef struct _AnnoScreen {
 } AnnoScreen;
 
 #define GET_ANNO_DISPLAY(d)					  \
-    ((AnnoDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+    ((AnnoDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define ANNO_DISPLAY(d)			   \
     AnnoDisplay *ad = GET_ANNO_DISPLAY (d)
@@ -785,7 +785,7 @@ annoInitDisplay (CompPlugin  *p,
 
     WRAP (ad, d, handleEvent, annoHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = ad;
+    d->base.base.privates[displayPrivateIndex].ptr = ad;
 
     return TRUE;
 }
