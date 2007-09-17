@@ -136,12 +136,13 @@ reallocObjectPrivate (int  size,
 
     ctx.type->privates = privates;
 
-    if (!reallocObjectPrivates (&core.base, size))
-	return FALSE;
+    if (core.base.type == ctx.type)
+	if (!reallocObjectPrivates (&core.base, size))
+	    return FALSE;
 
     return (*core.base.vTable->forEachChildObject) (&core.base,
 						    reallocObjectPrivatesTree,
-						    closure);
+						    (void *) &ctx);
 }
 
 int
