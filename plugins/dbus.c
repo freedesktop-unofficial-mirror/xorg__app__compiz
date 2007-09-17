@@ -93,13 +93,15 @@ dbusGetOptionsFromPath (char	     **path,
     CompPlugin *p;
     CompObject *object;
 
-    object = (*core.base.vTable->findObject) (&core.base, "display", NULL);
+    object = (*core.base.vTable->findChildObject) (&core.base, "display",
+						   NULL);
     if (!object)
 	return NULL;
 
     if (strncmp (path[1], "screen", 6) == 0)
     {
-	object = (*object->vTable->findObject) (object, "screen", path[1] + 6);
+	object = (*object->vTable->findChildObject) (object, "screen",
+						     path[1] + 6);
 	if (!object)
 	    return NULL;
     }

@@ -487,7 +487,9 @@ gconfReloadObjectTree (CompObject *object,
     while (nOption--)
 	gconfGetOption (object, option++, p->vTable->name);
 
-    (*object->vTable->forEachObject) (object, gconfReloadObjectTree, closure);
+    (*object->vTable->forEachChildObject) (object,
+					   gconfReloadObjectTree,
+					   closure);
 
     return TRUE;
 }
@@ -623,7 +625,8 @@ gconfKeyChanged (GConfClient *client,
 	return;
     }
 
-    object = (*core.base.vTable->findObject) (&core.base, "display", NULL);
+    object = (*core.base.vTable->findChildObject) (&core.base, "display",
+						   NULL);
     if (!object)
     {
 	g_strfreev (token);
@@ -632,8 +635,8 @@ gconfKeyChanged (GConfClient *client,
 
     if (strncmp (token[objectIndex], "screen", 6) == 0)
     {
-	object = (*object->vTable->findObject) (object, "screen",
-						token[objectIndex] + 6);
+	object = (*object->vTable->findChildObject) (object, "screen",
+						     token[objectIndex] + 6);
 	if (!object)
 	{
 	    g_strfreev (token);

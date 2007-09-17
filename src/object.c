@@ -81,9 +81,9 @@ reallocObjectPrivatesTree (CompObject *object,
 	object->privates = (CompPrivate *) privates;
     }
 
-    return (*object->vTable->forEachObject) (object,
-					     reallocObjectPrivatesTree,
-					     closure);
+    return (*object->vTable->forEachChildObject) (object,
+						  reallocObjectPrivatesTree,
+						  closure);
 }
 
 static int

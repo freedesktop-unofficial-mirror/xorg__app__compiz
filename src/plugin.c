@@ -328,9 +328,9 @@ initObjectTree (CompObject *o,
     ctx.plugin = p;
     ctx.object = NULL;
 
-    if (!(*o->vTable->forEachObject) (o, initObjectTree, (void *) &ctx))
+    if (!(*o->vTable->forEachChildObject) (o, initObjectTree, (void *) &ctx))
     {
-	(*o->vTable->forEachObject) (o, finiObjectTree, (void *) &ctx);
+	(*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
 	    (*p->vTable->finiObject) (p, o);
@@ -340,7 +340,7 @@ initObjectTree (CompObject *o,
 
     if (!(*core.initPluginForObject) (p, o))
     {
-	(*o->vTable->forEachObject) (o, finiObjectTree, (void *) &ctx);
+	(*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
 	    (*p->vTable->finiObject) (p, o);
@@ -365,7 +365,7 @@ finiObjectTree (CompObject *o,
     ctx.plugin = p;
     ctx.object = NULL;
 
-    (*o->vTable->forEachObject) (o, finiObjectTree, (void *) &ctx);
+    (*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
     if (p->vTable->initObject && p->vTable->finiObject)
 	(*p->vTable->finiObject) (p, o);

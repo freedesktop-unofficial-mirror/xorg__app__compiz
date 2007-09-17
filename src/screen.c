@@ -49,22 +49,6 @@
 
 #define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
 
-static CompBool
-screenForEachObject (CompObject	        *object,
-		     ObjectCallBackProc proc,
-		     void	        *closure)
-{
-    CompWindow *w;
-
-    CORE_SCREEN (object);
-
-    for (w = s->windows; w; w = w->next)
-	if (!(*proc) (&w->base, closure))
-	    return FALSE;
-
-    return TRUE;
-}
-
 static char *
 screenNameObject (CompObject *object)
 {
@@ -77,10 +61,26 @@ screenNameObject (CompObject *object)
     return strdup (tmp);
 }
 
+static CompBool
+screenForEachChildObject (CompObject		  *object,
+			  ChildObjectCallBackProc proc,
+			  void			  *closure)
+{
+    CompWindow *w;
+
+    CORE_SCREEN (object);
+
+    for (w = s->windows; w; w = w->next)
+	if (!(*proc) (&w->base, closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
 static CompObject *
-screenFindObject (CompObject *object,
-		  const char *type,
-		  const char *name)
+screenFindChildObject (CompObject *object,
+		       const char *type,
+		       const char *name)
 {
     if (strcmp (type, getWindowObjectType ()->name) == 0)
     {
@@ -1470,9 +1470,9 @@ static CompObjectType screenObjectType = {
 };
 
 static CompObjectVTable screenObjectVTable = {
-    screenForEachObject,
     screenNameObject,
-    screenFindObject
+    screenForEachChildObject,
+    screenFindChildObject
 };
 
 CompObjectType *

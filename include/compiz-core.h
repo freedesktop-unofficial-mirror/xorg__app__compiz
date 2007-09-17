@@ -283,23 +283,23 @@ typedef unsigned int CompObjectTypeID;
 #define COMP_OBJECT_TYPE_SCREEN  2
 #define COMP_OBJECT_TYPE_WINDOW  3
 
-typedef CompBool (*ObjectCallBackProc) (CompObject *object,
-					void       *closure);
-
-typedef CompBool (*ForEachObjectProc) (CompObject	  *parent,
-				       ObjectCallBackProc proc,
-				       void		  *closure);
-
 typedef char *(*NameObjectProc) (CompObject *object);
 
-typedef CompObject *(*FindObjectProc) (CompObject *parent,
-				       const char *type,
-				       const char *name);
+typedef CompBool (*ChildObjectCallBackProc) (CompObject *object,
+					     void       *closure);
+
+typedef CompBool (*ForEachChildObjectProc) (CompObject		    *parent,
+					    ChildObjectCallBackProc proc,
+					    void		    *closure);
+
+typedef CompObject *(*FindChildObjectProc) (CompObject *parent,
+					    const char *type,
+					    const char *name);
 
 typedef struct _CompObjectVTable {
-    ForEachObjectProc forEachObject;
-    NameObjectProc    nameObject;
-    FindObjectProc    findObject;
+    NameObjectProc	   nameObject;
+    ForEachChildObjectProc forEachChildObject;
+    FindChildObjectProc    findChildObject;
 } CompObjectVTable;
 
 struct _CompObject {

@@ -487,9 +487,9 @@ kconfigReloadObjectTree (CompObject *object,
     while (nOption--)
 	kconfigGetOption (object, option++, p->vTable->name);
 
-    (*object->vTable->forEachObject) (object,
-				      kconfigReloadObjectTree,
-				      closure);
+    (*object->vTable->forEachChildObject) (object,
+					   kconfigReloadObjectTree,
+					   closure);
 
     return TRUE;
 }

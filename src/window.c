@@ -49,14 +49,6 @@ typedef struct {
     unsigned long decorations;
 } MwmHints;
 
-static CompBool
-windowForEachObject (CompObject	        *object,
-		     ObjectCallBackProc proc,
-		     void	        *closure)
-{
-    return TRUE;
-}
-
 static char *
 windowNameObject (CompObject *object)
 {
@@ -69,10 +61,18 @@ windowNameObject (CompObject *object)
     return strdup (tmp);
 }
 
+static CompBool
+windowForEachChildObject (CompObject		  *object,
+			  ChildObjectCallBackProc proc,
+			  void			  *closure)
+{
+    return TRUE;
+}
+
 static CompObject *
-windowFindObject (CompObject *object,
-		  const char *type,
-		  const char *name)
+windowFindChildObject (CompObject *object,
+		       const char *type,
+		       const char *name)
 {
     return NULL;
 }
@@ -1806,9 +1806,9 @@ static CompObjectType windowObjectType = {
 };
 
 static CompObjectVTable windowObjectVTable = {
-    windowForEachObject,
     windowNameObject,
-    windowFindObject
+    windowForEachChildObject,
+    windowFindChildObject
 };
 
 CompObjectType *

@@ -70,10 +70,16 @@ int pointerY     = 0;
 
 #define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
 
+static char *
+displayNameObject (CompObject *object)
+{
+    return NULL;
+}
+
 static CompBool
-displayForEachObject (CompObject         *object,
-		      ObjectCallBackProc proc,
-		      void	         *closure)
+displayForEachChildObject (CompObject		   *object,
+			   ChildObjectCallBackProc proc,
+			   void			   *closure)
 {
     CompScreen *s;
 
@@ -88,16 +94,10 @@ displayForEachObject (CompObject         *object,
     return TRUE;
 }
 
-static char *
-displayNameObject (CompObject *object)
-{
-    return NULL;
-}
-
 static CompObject *
-displayFindObject (CompObject *parent,
-		   const char *type,
-		   const char *name)
+displayFindChildObject (CompObject *parent,
+			const char *type,
+			const char *name)
 {
     if (strcmp (type, getScreenObjectType ()->name) == 0)
     {
@@ -1913,9 +1913,9 @@ static CompObjectType displayObjectType = {
 };
 
 static CompObjectVTable displayObjectVTable = {
-    displayForEachObject,
     displayNameObject,
-    displayFindObject
+    displayForEachChildObject,
+    displayFindChildObject
 };
 
 CompObjectType *

@@ -29,10 +29,16 @@
 
 CompCore core;
 
+static char *
+coreNameObject (CompObject *object)
+{
+    return NULL;
+}
+
 static CompBool
-coreForEachObject (CompObject         *object,
-		   ObjectCallBackProc proc,
-		   void		      *closure)
+coreForEachChildObject (CompObject		*object,
+			ChildObjectCallBackProc proc,
+			void			*closure)
 {
     CompDisplay *d;
 
@@ -43,16 +49,10 @@ coreForEachObject (CompObject         *object,
     return TRUE;
 }
 
-static char *
-coreNameObject (CompObject *object)
-{
-    return NULL;
-}
-
 static CompObject *
-coreFindObject (CompObject *object,
-		const char *type,
-		const char *name)
+coreFindChildObject (CompObject *object,
+		     const char *type,
+		     const char *name)
 {
     if (strcmp (type, getDisplayObjectType ()->name) == 0)
 	if (core.displays && (!name || !name[0]))
@@ -120,9 +120,9 @@ static CompObjectType coreObjectType = {
 };
 
 static CompObjectVTable coreObjectVTable = {
-    coreForEachObject,
     coreNameObject,
-    coreFindObject
+    coreForEachChildObject,
+    coreFindChildObject
 };
 
 static CompBool
