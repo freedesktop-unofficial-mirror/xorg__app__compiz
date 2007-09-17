@@ -128,8 +128,28 @@ fileWatchRemoved (CompCore      *core,
 {
 }
 
+static CompBool
+coreInitObject (CompObject *object)
+{
+    return TRUE;
+}
+
+static void
+coreFiniObject (CompObject *object)
+{
+}
+
+static CompObjectFuncs coreObjectFuncs = {
+    coreInitObject,
+    coreFiniObject
+};
+
 static CompObjectType coreObjectType = {
-    "core", NULL, 0, NULL
+    "core",
+    NULL,
+    0,
+    NULL,
+    &coreObjectFuncs
 };
 
 static CompObjectVTable coreObjectVTable = {

@@ -1920,8 +1920,28 @@ freeDisplay (CompDisplay *d)
     free (d);
 }
 
+static CompBool
+displayInitObject (CompObject *object)
+{
+    return TRUE;
+}
+
+static void
+displayFiniObject (CompObject *object)
+{
+}
+
+static CompObjectFuncs displayObjectFuncs = {
+    displayInitObject,
+    displayFiniObject
+};
+
 static CompObjectType displayObjectType = {
-    "display", NULL, 0, NULL
+    "display",
+    NULL,
+    0,
+    NULL,
+    &displayObjectFuncs
 };
 
 static CompObjectVTable displayObjectVTable = {

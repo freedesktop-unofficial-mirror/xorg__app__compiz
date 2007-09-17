@@ -1480,8 +1480,28 @@ freeScreen (CompScreen *s)
     free (s);
 }
 
+static CompBool
+screenInitObject (CompObject *object)
+{
+    return TRUE;
+}
+
+static void
+screenFiniObject (CompObject *object)
+{
+}
+
+static CompObjectFuncs screenObjectFuncs = {
+    screenInitObject,
+    screenFiniObject
+};
+
 static CompObjectType screenObjectType = {
-    "screen", NULL, 0, NULL
+    "screen",
+    NULL,
+    0,
+    NULL,
+    &screenObjectFuncs
 };
 
 static CompObjectVTable screenObjectVTable = {

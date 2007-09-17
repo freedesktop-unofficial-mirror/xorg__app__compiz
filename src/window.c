@@ -1821,8 +1821,28 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
     wa->screen		      = NULL;
 }
 
+static CompBool
+windowInitObject (CompObject *object)
+{
+    return TRUE;
+}
+
+static void
+windowFiniObject (CompObject *object)
+{
+}
+
+static CompObjectFuncs windowObjectFuncs = {
+    windowInitObject,
+    windowFiniObject
+};
+
 static CompObjectType windowObjectType = {
-    "window", NULL, 0, NULL
+    "window",
+    NULL,
+    0,
+    NULL,
+    &windowObjectFuncs
 };
 
 static CompObjectVTable windowObjectVTable = {

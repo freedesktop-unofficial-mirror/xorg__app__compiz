@@ -269,11 +269,20 @@ freePrivateIndex (int  len,
 
 /* object.c */
 
+typedef CompBool (*InitObjectProc) (CompObject *object);
+typedef void     (*FiniObjectProc) (CompObject *object);
+
+typedef struct _CompObjectFuncs {
+    InitObjectProc init;
+    FiniObjectProc fini;
+} CompObjectFuncs;
+
 typedef struct _CompObjectType {
-    const char	*name;
-    char	*privateIndices;
-    int		privateLen;
-    CompPrivate *privates;
+    const char	    *name;
+    char	    *privateIndices;
+    int		    privateLen;
+    CompPrivate	    *privates;
+    CompObjectFuncs *funcs;
 } CompObjectType;
 
 typedef unsigned int CompObjectTypeID;
