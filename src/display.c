@@ -2325,7 +2325,7 @@ addDisplay (const char *name)
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->base.base));
 
-    (*core.objectAdd) (&core.base, &d->base.base);
+    (*core.objectAdd) (&core.base, &d->base);
 
     if (onlyCurrentScreen)
     {
@@ -2583,7 +2583,7 @@ removeDisplay (CompDisplay *d)
     while (d->screens)
 	removeScreen (d->screens);
 
-    (*core.objectRemove) (&core.base, &d->base.base);
+    (*core.objectRemove) (&core.base, &d->base);
 
     objectFiniPlugins (&d->base.base);
 

@@ -2213,7 +2213,7 @@ addWindow (CompScreen *screen,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&w->base.base));
 
-    (*core.objectAdd) (&screen->base.base, &w->base.base);
+    (*core.objectAdd) (&screen->base.base, &w->base);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
@@ -2278,7 +2278,7 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (w->screen);
     }
 
-    (*core.objectRemove) (&w->screen->base.base, &w->base.base);
+    (*core.objectRemove) (&w->screen->base.base, &w->base);
 
     objectFiniPlugins (&w->base.base);
 

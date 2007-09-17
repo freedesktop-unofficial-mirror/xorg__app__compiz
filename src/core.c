@@ -103,17 +103,17 @@ setOptionForPlugin (CompObject      *object,
 }
 
 static void
-coreObjectAdd (CompObject *parent,
-	       CompObject *object)
+coreObjectAdd (CompObject      *parent,
+	       CompChildObject *object)
 {
-    object->parent = parent;
+    object->base.parent = parent;
 }
 
 static void
-coreObjectRemove (CompObject *parent,
-		  CompObject *object)
+coreObjectRemove (CompObject	  *parent,
+		  CompChildObject *object)
 {
-    object->parent = NULL;
+    object->base.parent = NULL;
 }
 
 static void

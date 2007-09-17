@@ -1307,8 +1307,8 @@ decorWindowRemove (CompScreen *s,
 }
 
 static void
-decorObjectAdd (CompObject *parent,
-		CompObject *object)
+decorObjectAdd (CompObject	*parent,
+		CompChildObject *object)
 {
     static ObjectAddProc dispTab[] = {
 	(ObjectAddProc) 0, /* CoreAdd */
@@ -1323,12 +1323,12 @@ decorObjectAdd (CompObject *parent,
     (*core.objectAdd) (parent, object);
     WRAP (dc, &core, objectAdd, decorObjectAdd);
 
-    DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), (parent, object));
+    DISPATCH (&object->base, dispTab, ARRAY_SIZE (dispTab), (parent, object));
 }
 
 static void
-decorObjectRemove (CompObject *parent,
-		   CompObject *object)
+decorObjectRemove (CompObject	   *parent,
+		   CompChildObject *object)
 {
     static ObjectRemoveProc dispTab[] = {
 	(ObjectRemoveProc) 0, /* CoreRemove */
@@ -1339,7 +1339,7 @@ decorObjectRemove (CompObject *parent,
 
     DECOR_CORE (&core);
 
-    DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), (parent, object));
+    DISPATCH (&object->base, dispTab, ARRAY_SIZE (dispTab), (parent, object));
 
     UNWRAP (dc, &core, objectRemove);
     (*core.objectRemove) (parent, object);

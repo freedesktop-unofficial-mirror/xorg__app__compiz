@@ -2182,7 +2182,7 @@ addScreen (CompDisplay *display,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&s->base.base));
 
-    (*core.objectAdd) (&display->base.base, &s->base.base);
+    (*core.objectAdd) (&display->base.base, &s->base);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2270,7 +2270,7 @@ removeScreen (CompScreen *s)
     while (s->windows)
 	removeWindow (s->windows);
 
-    (*core.objectRemove) (&d->base.base, &s->base.base);
+    (*core.objectRemove) (&d->base.base, &s->base);
 
     objectFiniPlugins (&s->base.base);
 

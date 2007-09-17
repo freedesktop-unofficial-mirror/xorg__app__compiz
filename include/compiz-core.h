@@ -626,10 +626,10 @@ typedef CompBool (*SetOptionForPluginProc) (CompObject      *object,
 					    const char	    *name,
 					    CompOptionValue *value);
 
-typedef void (*ObjectAddProc) (CompObject *parent,
-			       CompObject *object);
-typedef void (*ObjectRemoveProc) (CompObject *parent,
-				  CompObject *object);
+typedef void (*ObjectAddProc) (CompObject      *parent,
+			       CompChildObject *object);
+typedef void (*ObjectRemoveProc) (CompObject	  *parent,
+				  CompChildObject *object);
 
 typedef CompBool (*ObjectTypeCallBackProc) (CompObjectType *type,
 					    void	   *closure);

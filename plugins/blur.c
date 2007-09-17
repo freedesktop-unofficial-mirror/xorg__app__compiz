@@ -2422,8 +2422,8 @@ blurWindowAdd (CompScreen *s,
 }
 
 static void
-blurObjectAdd (CompObject *parent,
-	       CompObject *object)
+blurObjectAdd (CompObject      *parent,
+	       CompChildObject *object)
 {
     static ObjectAddProc dispTab[] = {
 	(ObjectAddProc) 0, /* CoreAdd */
@@ -2438,7 +2438,7 @@ blurObjectAdd (CompObject *parent,
     (*core.objectAdd) (parent, object);
     WRAP (bc, &core, objectAdd, blurObjectAdd);
 
-    DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), (parent, object));
+    DISPATCH (&object->base, dispTab, ARRAY_SIZE (dispTab), (parent, object));
 }
 
 static Bool
