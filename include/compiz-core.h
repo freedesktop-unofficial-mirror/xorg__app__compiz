@@ -269,6 +269,13 @@ freePrivateIndex (int  len,
 
 /* object.c */
 
+typedef struct _CompObjectType {
+    const char	*name;
+    char	*privateIndices;
+    int		privateLen;
+    CompPrivate *privates;
+} CompObjectType;
+
 typedef unsigned int CompObjectTypeID;
 
 #define COMP_OBJECT_TYPE_CORE    0
@@ -289,26 +296,24 @@ typedef CompObject *(*FindObjectProc) (CompObject *parent,
 				       const char *type,
 				       const char *name);
 
-typedef struct _CompObjectType {
-    const char			*name;
-    char			*privateIndices;
-    int				privateLen;
-    CompPrivate			*privates;
-    ForEachObjectProc		forEachObject;
-    NameObjectProc		nameObject;
-    FindObjectProc		findObject;
-} CompObjectType;
+typedef struct _CompObjectVTable {
+    ForEachObjectProc forEachObject;
+    NameObjectProc    nameObject;
+    FindObjectProc    findObject;
+} CompObjectVTable;
 
 struct _CompObject {
     CompObjectTypeID id;
     CompPrivate	     *privates;
     CompObject	     *parent;
     CompObjectType   *type;
+    CompObjectVTable *vTable;
 };
 
 CompBool
-compObjectInit (CompObject     *object,
-		CompObjectType *type,
+compObjectInit (CompObject       *object,
+		CompObjectType   *type,
+		CompObjectVTable *vTable,
 		CompObjectTypeID id);
 
 void

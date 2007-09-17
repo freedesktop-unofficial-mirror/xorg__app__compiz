@@ -307,18 +307,17 @@ finiObjectTree (CompObject *object,
 		void       *closure);
 
 static CompBool
-initObjectTree (CompObject *object,
+initObjectTree (CompObject *o,
 		void       *closure)
 {
     InitObjectContext ctx, *pCtx = (InitObjectContext *) closure;
-    CompObjectType    *type = object->type;
     CompPlugin	      *p = pCtx->plugin;
 
-    pCtx->object = object;
+    pCtx->object = o;
 
     if (p->vTable->initObject)
     {
-	if (!(*p->vTable->initObject) (p, object))
+	if (!(*p->vTable->initObject) (p, o))
 	{
 	    compLogMessage (NULL, p->vTable->name, CompLogLevelError,
 			    "InitObject failed");
@@ -329,22 +328,22 @@ initObjectTree (CompObject *object,
     ctx.plugin = p;
     ctx.object = NULL;
 
-    if (!(*type->forEachObject) (object, initObjectTree, (void *) &ctx))
+    if (!(*o->vTable->forEachObject) (o, initObjectTree, (void *) &ctx))
     {
-	(*type->forEachObject) (object, finiObjectTree, (void *) &ctx);
+	(*o->vTable->forEachObject) (o, finiObjectTree, (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, object);
+	    (*p->vTable->finiObject) (p, o);
 
 	return FALSE;
     }
 
-    if (!(*core.initPluginForObject) (p, object))
+    if (!(*core.initPluginForObject) (p, o))
     {
-	(*type->forEachObject) (object, finiObjectTree, (void *) &ctx);
+	(*o->vTable->forEachObject) (o, finiObjectTree, (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, object);
+	    (*p->vTable->finiObject) (p, o);
 
 	return FALSE;
     }
@@ -353,26 +352,25 @@ initObjectTree (CompObject *object,
 }
 
 static CompBool
-finiObjectTree (CompObject *object,
+finiObjectTree (CompObject *o,
 		void       *closure)
 {
     InitObjectContext ctx, *pCtx = (InitObjectContext *) closure;
-    CompObjectType    *type = object->type;
     CompPlugin	      *p = pCtx->plugin;
 
     /* pCtx->object is set to the object that failed to be initialized */
-    if (pCtx->object == object)
+    if (pCtx->object == o)
 	return FALSE;
 
     ctx.plugin = p;
     ctx.object = NULL;
 
-    (*type->forEachObject) (object, finiObjectTree, (void *) &ctx);
+    (*o->vTable->forEachObject) (o, finiObjectTree, (void *) &ctx);
 
     if (p->vTable->initObject && p->vTable->finiObject)
-	(*p->vTable->finiObject) (p, object);
+	(*p->vTable->finiObject) (p, o);
 
-    (*core.finiPluginForObject) (p, object);
+    (*core.finiPluginForObject) (p, o);
 
     return TRUE;
 }

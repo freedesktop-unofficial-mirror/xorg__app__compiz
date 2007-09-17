@@ -1909,10 +1909,10 @@ freeDisplay (CompDisplay *d)
 }
 
 static CompObjectType displayObjectType = {
-    "display",
-    NULL,
-    0,
-    NULL,
+    "display", NULL, 0, NULL
+};
+
+static CompObjectVTable displayObjectVTable = {
     displayForEachObject,
     displayNameObject,
     displayFindObject
@@ -1952,7 +1952,7 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (!compObjectInit (&d->base, &displayObjectType,
+    if (!compObjectInit (&d->base, &displayObjectType, &displayObjectVTable,
 			 COMP_OBJECT_TYPE_DISPLAY))
     {
 	free (d);

@@ -93,13 +93,13 @@ dbusGetOptionsFromPath (char	     **path,
     CompPlugin *p;
     CompObject *object;
 
-    object = (*core.base.type->findObject) (&core.base, "display", NULL);
+    object = (*core.base.vTable->findObject) (&core.base, "display", NULL);
     if (!object)
 	return NULL;
 
     if (strncmp (path[1], "screen", 6) == 0)
     {
-	object = (*object->type->findObject) (object, "screen", path[1] + 6);
+	object = (*object->vTable->findObject) (object, "screen", path[1] + 6);
 	if (!object)
 	    return NULL;
     }
@@ -1846,7 +1846,7 @@ dbusSendChangeSignalForOption (CompObject *object,
     if (!o)
 	return;
 
-    name = (*object->type->nameObject) (object);
+    name = (*object->vTable->nameObject) (object);
     if (name)
     {
 	sprintf (path, "%s/%s/%s%s/%s", COMPIZ_DBUS_ROOT_PATH,

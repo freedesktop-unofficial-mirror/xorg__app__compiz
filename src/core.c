@@ -116,10 +116,10 @@ fileWatchRemoved (CompCore      *core,
 }
 
 static CompObjectType coreObjectType = {
-    "core",
-    NULL,
-    0,
-    NULL,
+    "core", NULL, 0, NULL
+};
+
+static CompObjectVTable coreObjectVTable = {
     coreForEachObject,
     coreNameObject,
     coreFindObject
@@ -158,7 +158,8 @@ initCore (void)
 {
     CompPlugin *corePlugin;
 
-    if (!compObjectInit (&core.base, &coreObjectType, COMP_OBJECT_TYPE_CORE))
+    if (!compObjectInit (&core.base, &coreObjectType, &coreObjectVTable,
+			 COMP_OBJECT_TYPE_CORE))
 	return FALSE;
 
     core.displays = NULL;

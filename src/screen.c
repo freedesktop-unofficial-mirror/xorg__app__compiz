@@ -1466,10 +1466,10 @@ freeScreen (CompScreen *s)
 }
 
 static CompObjectType screenObjectType = {
-    "screen",
-    NULL,
-    0,
-    NULL,
+    "screen", NULL, 0, NULL
+};
+
+static CompObjectVTable screenObjectVTable = {
     screenForEachObject,
     screenNameObject,
     screenFindObject
@@ -1524,7 +1524,8 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!compObjectInit (&s->base, &screenObjectType, COMP_OBJECT_TYPE_SCREEN))
+    if (!compObjectInit (&s->base, &screenObjectType, &screenObjectVTable,
+			 COMP_OBJECT_TYPE_SCREEN))
     {
 	free (s);
 	return FALSE;

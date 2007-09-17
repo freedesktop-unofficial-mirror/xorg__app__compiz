@@ -176,7 +176,7 @@ kconfigObjectString (CompObject *object)
     QString objectName (QString (object->type->name));
     char    *name;
 
-    name = (*object->type->nameObject) (object);
+    name = (*object->vTable->nameObject) (object);
     if (name)
     {
 	objectName += name;
@@ -487,7 +487,9 @@ kconfigReloadObjectTree (CompObject *object,
     while (nOption--)
 	kconfigGetOption (object, option++, p->vTable->name);
 
-    (*object->type->forEachObject) (object, kconfigReloadObjectTree, closure);
+    (*object->vTable->forEachObject) (object,
+				      kconfigReloadObjectTree,
+				      closure);
 
     return TRUE;
 }

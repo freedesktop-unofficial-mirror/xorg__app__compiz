@@ -1802,10 +1802,10 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
 }
 
 static CompObjectType windowObjectType = {
-    "window",
-    NULL,
-    0,
-    NULL,
+    "window", NULL, 0, NULL
+};
+
+static CompObjectVTable windowObjectVTable = {
     windowForEachObject,
     windowNameObject,
     windowFindObject
@@ -1945,7 +1945,8 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!compObjectInit (&w->base, &windowObjectType, COMP_OBJECT_TYPE_WINDOW))
+    if (!compObjectInit (&w->base, &windowObjectType, &windowObjectVTable,
+			 COMP_OBJECT_TYPE_WINDOW))
     {
 	free (w);
 	return;

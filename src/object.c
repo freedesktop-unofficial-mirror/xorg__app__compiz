@@ -26,8 +26,9 @@
 #include <compiz-core.h>
 
 CompBool
-compObjectInit (CompObject     *object,
-		CompObjectType *type,
+compObjectInit (CompObject       *object,
+		CompObjectType   *type,
+		CompObjectVTable *vTable,
 		CompObjectTypeID id)
 {
     if (type->privateLen)
@@ -44,6 +45,7 @@ compObjectInit (CompObject     *object,
     object->id     = id;
     object->parent = NULL;
     object->type   = type;
+    object->vTable = vTable;
 
     return TRUE;
 }
@@ -79,9 +81,9 @@ reallocObjectPrivatesTree (CompObject *object,
 	object->privates = (CompPrivate *) privates;
     }
 
-    return (*object->type->forEachObject) (object,
-					   reallocObjectPrivatesTree,
-					   closure);
+    return (*object->vTable->forEachObject) (object,
+					     reallocObjectPrivatesTree,
+					     closure);
 }
 
 static int

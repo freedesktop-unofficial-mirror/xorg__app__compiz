@@ -218,13 +218,14 @@ fuseGetObjectFromInode (FuseInode *inode)
 {
     CompObject *object;
 
-    object = (*core.base.type->findObject) (&core.base, "display", NULL);
+    object = (*core.base.vTable->findObject) (&core.base, "display", NULL);
     if (!object)
 	return NULL;
 
     if (inode->type & FUSE_INODE_TYPE_SCREEN)
     {
-	return (*object->type->findObject) (object, "screen", inode->name + 6);
+	return (*object->vTable->findObject) (object, "screen",
+					      inode->name + 6);
     }
     else if (inode->type & FUSE_INODE_TYPE_DISPLAY)
     {

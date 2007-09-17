@@ -73,7 +73,7 @@ gconfGetKey (CompObject  *object,
     if (strcmp (type, "display") == 0)
 	type = "allscreens";
 
-    name = (*object->type->nameObject) (object);
+    name = (*object->vTable->nameObject) (object);
     if (name)
     {
 	objectName = g_strdup_printf ("%s%s", type, name);
@@ -487,7 +487,7 @@ gconfReloadObjectTree (CompObject *object,
     while (nOption--)
 	gconfGetOption (object, option++, p->vTable->name);
 
-    (*object->type->forEachObject) (object, gconfReloadObjectTree, closure);
+    (*object->vTable->forEachObject) (object, gconfReloadObjectTree, closure);
 
     return TRUE;
 }
@@ -623,7 +623,7 @@ gconfKeyChanged (GConfClient *client,
 	return;
     }
 
-    object = (*core.base.type->findObject) (&core.base, "display", NULL);
+    object = (*core.base.vTable->findObject) (&core.base, "display", NULL);
     if (!object)
     {
 	g_strfreev (token);
@@ -632,8 +632,8 @@ gconfKeyChanged (GConfClient *client,
 
     if (strncmp (token[objectIndex], "screen", 6) == 0)
     {
-	object = (*object->type->findObject) (object, "screen",
-					      token[objectIndex] + 6);
+	object = (*object->vTable->findObject) (object, "screen",
+						token[objectIndex] + 6);
 	if (!object)
 	{
 	    g_strfreev (token);
