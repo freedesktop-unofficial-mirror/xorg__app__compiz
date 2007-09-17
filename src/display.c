@@ -1908,7 +1908,7 @@ addScreenToDisplay (CompDisplay *display,
 static void
 freeDisplay (CompDisplay *d)
 {
-    compChildObjectFini (&d->base);
+    (*d->base.base.type->funcs->fini) (&d->base.base);
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 
@@ -1921,15 +1921,10 @@ freeDisplay (CompDisplay *d)
 }
 
 static CompBool
-displayInitObject (CompObject *object)
-{
-    return TRUE;
-}
+displayInitObject (CompObject *object);
 
 static void
-displayFiniObject (CompObject *object)
-{
-}
+displayFiniObject (CompObject *object);
 
 static CompObjectFuncs displayObjectFuncs = {
     displayInitObject,
@@ -1949,6 +1944,30 @@ static CompObjectVTable displayObjectVTable = {
     displayForEachChildObject,
     displayFindChildObject
 };
+
+static CompBool
+displayInitObject (CompObject *object)
+{
+    CORE_DISPLAY (object);
+
+    if (!compChildObjectInit (&d->base, &displayObjectType,
+			      COMP_OBJECT_TYPE_DISPLAY))
+	return FALSE;
+
+    WRAP (&d->object, &d->base.base, vTable, &displayObjectVTable);
+
+    return TRUE;
+}
+
+static void
+displayFiniObject (CompObject *object)
+{
+    CORE_DISPLAY (object);
+
+    UNWRAP (&d->object, &d->base.base, vTable);
+
+    compChildObjectFini (&d->base);
+}
 
 CompObjectType *
 getDisplayObjectType (void)
@@ -1984,14 +2003,11 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (!compChildObjectInit (&d->base, &displayObjectType,
-			      COMP_OBJECT_TYPE_DISPLAY))
+    if (!(*displayObjectType.funcs->init) (&d->base.base))
     {
 	free (d);
 	return FALSE;
     }
-
-    WRAP (&d->object, &d->base.base, vTable, &displayObjectVTable);
 
     d->next    = NULL;
     d->screens = NULL;

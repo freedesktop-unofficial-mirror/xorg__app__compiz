@@ -1442,9 +1442,7 @@ initWindowWalker (CompScreen *screen,
 static void
 freeScreen (CompScreen *s)
 {
-    UNWRAP (&s->object, &s->base.base, vTable);
-
-    compChildObjectFini (&s->base);
+    (*s->base.base.type->funcs->fini) (&s->base.base);
 
     if (s->outputDev)
     {
@@ -1481,15 +1479,10 @@ freeScreen (CompScreen *s)
 }
 
 static CompBool
-screenInitObject (CompObject *object)
-{
-    return TRUE;
-}
+screenInitObject (CompObject *object);
 
 static void
-screenFiniObject (CompObject *object)
-{
-}
+screenFiniObject (CompObject *object);
 
 static CompObjectFuncs screenObjectFuncs = {
     screenInitObject,
@@ -1509,6 +1502,30 @@ static CompObjectVTable screenObjectVTable = {
     screenForEachChildObject,
     screenFindChildObject
 };
+
+static CompBool
+screenInitObject (CompObject *object)
+{
+    CORE_SCREEN (object);
+
+    if (!compChildObjectInit (&s->base, &screenObjectType,
+			      COMP_OBJECT_TYPE_SCREEN))
+	return FALSE;
+
+    WRAP (&s->object, &s->base.base, vTable, &screenObjectVTable);
+
+    return TRUE;
+}
+
+static void
+screenFiniObject (CompObject *object)
+{
+    CORE_SCREEN (object);
+
+    UNWRAP (&s->object, &s->base.base, vTable);
+
+    compChildObjectFini (&s->base);
+}
 
 CompObjectType *
 getScreenObjectType (void)
@@ -1559,14 +1576,11 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!compChildObjectInit (&s->base, &screenObjectType,
-			      COMP_OBJECT_TYPE_SCREEN))
+    if (!(*screenObjectType.funcs->init) (&s->base.base))
     {
 	free (s);
 	return FALSE;
     }
-
-    WRAP (&s->object, &s->base.base, vTable, &screenObjectVTable);
 
     s->display = display;
 

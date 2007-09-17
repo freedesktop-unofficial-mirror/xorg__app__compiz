@@ -129,15 +129,10 @@ fileWatchRemoved (CompCore      *core,
 }
 
 static CompBool
-coreInitObject (CompObject *object)
-{
-    return TRUE;
-}
+coreInitObject (CompObject *object);
 
 static void
-coreFiniObject (CompObject *object)
-{
-}
+coreFiniObject (CompObject *object);
 
 static CompObjectFuncs coreObjectFuncs = {
     coreInitObject,
@@ -157,6 +152,25 @@ static CompObjectVTable coreObjectVTable = {
     coreForEachChildObject,
     coreFindChildObject
 };
+
+static CompBool
+coreInitObject (CompObject *object)
+{
+    if (!compObjectInit (object, &coreObjectType, COMP_OBJECT_TYPE_CORE))
+	return FALSE;
+
+    WRAP (&core.object, &core.base, vTable, &coreObjectVTable);
+
+    return TRUE;
+}
+
+static void
+coreFiniObject (CompObject *object)
+{
+    UNWRAP (&core.object, &core.base, vTable);
+
+    compObjectFini (&core.base);
+}
 
 static CompBool
 coreForEachObjectType (ObjectTypeCallBackProc proc,
@@ -191,10 +205,8 @@ initCore (void)
 {
     CompPlugin *corePlugin;
 
-    if (!compObjectInit (&core.base, &coreObjectType, COMP_OBJECT_TYPE_CORE))
+    if (!(*coreObjectType.funcs->init) (&core.base))
 	return FALSE;
-
-    WRAP (&core.object, &core.base, vTable, &coreObjectVTable);
 
     core.displays = NULL;
 
@@ -268,9 +280,7 @@ finiCore (void)
     XDestroyRegion (core.outputRegion);
     XDestroyRegion (core.tmpRegion);
 
-    UNWRAP (&core.object, &core.base, vTable);
-
-    compObjectFini (&core.base);
+    (*coreObjectType.funcs->fini) (&core.base);
 }
 
 void

@@ -1328,9 +1328,7 @@ freeWindow (CompWindow *w)
 {
     releaseWindow (w);
 
-    UNWRAP (&w->object, &w->base.base, vTable);
-
-    compChildObjectFini (&w->base);
+    (*w->base.base.type->funcs->fini) (&w->base.base);
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
@@ -1822,15 +1820,10 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
 }
 
 static CompBool
-windowInitObject (CompObject *object)
-{
-    return TRUE;
-}
+windowInitObject (CompObject *object);
 
 static void
-windowFiniObject (CompObject *object)
-{
-}
+windowFiniObject (CompObject *object);
 
 static CompObjectFuncs windowObjectFuncs = {
     windowInitObject,
@@ -1850,6 +1843,30 @@ static CompObjectVTable windowObjectVTable = {
     windowForEachChildObject,
     windowFindChildObject
 };
+
+static CompBool
+windowInitObject (CompObject *object)
+{
+    CORE_WINDOW (object);
+
+    if (!compChildObjectInit (&w->base, &windowObjectType,
+			      COMP_OBJECT_TYPE_WINDOW))
+	return FALSE;
+
+    WRAP (&w->object, &w->base.base, vTable, &windowObjectVTable);
+
+    return TRUE;
+}
+
+static void
+windowFiniObject (CompObject *object)
+{
+    CORE_WINDOW (object);
+
+    UNWRAP (&w->object, &w->base.base, vTable);
+
+    compChildObjectFini (&w->base);
+}
 
 CompObjectType *
 getWindowObjectType (void)
@@ -1985,14 +2002,11 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!compChildObjectInit (&w->base, &windowObjectType,
-			      COMP_OBJECT_TYPE_WINDOW))
+    if (!(*windowObjectType.funcs->init) (&w->base.base))
     {
 	free (w);
 	return;
     }
-
-    WRAP (&w->object, &w->base.base, vTable, &windowObjectVTable);
 
     w->region = XCreateRegion ();
     if (!w->region)
