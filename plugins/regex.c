@@ -403,7 +403,7 @@ regexFiniDisplay (CompPlugin  *p,
     UNWRAP (rd, d, handleEvent);
     UNWRAP (rd, d, matchInitExp);
 
-    if (d->base.base.parent)
+    if (d->base.parent)
 	(*d->matchExpHandlerChanged) (d);
 
     free (rd);

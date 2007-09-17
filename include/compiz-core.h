@@ -309,7 +309,6 @@ typedef struct _CompObjectVTableVec {
 struct _CompObject {
     CompObjectTypeID id;
     CompPrivate	     *privates;
-    CompObject	     *parent;
     CompObjectType   *type;
     CompObjectVTable *vTable;
 };

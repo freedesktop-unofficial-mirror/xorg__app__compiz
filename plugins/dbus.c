@@ -668,7 +668,7 @@ dbusHandleActionMessage (DBusConnection *connection,
 		return FALSE;
 
 	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-		object = object->parent;
+		object = ((CompChildObject *) object)->parent;
 
 	    if (!object)
 		return FALSE;
@@ -890,7 +890,7 @@ dbusGetOptionValue (CompObject	    *object,
 				     &s))
 	{
 	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-		object = object->parent;
+		object = ((CompChildObject *) object)->parent;
 
 	    if (!object)
 		return FALSE;
@@ -905,7 +905,7 @@ dbusGetOptionValue (CompObject	    *object,
 				     &s))
 	{
 	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-		object = object->parent;
+		object = ((CompChildObject *) object)->parent;
 
 	    if (!object)
 		return FALSE;

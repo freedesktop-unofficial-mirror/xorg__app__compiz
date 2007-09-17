@@ -70,7 +70,6 @@ compObjectInit (CompObject       *object,
     }
 
     object->id     = id;
-    object->parent = NULL;
     object->type   = type;
     object->vTable = &objectVTable;
 

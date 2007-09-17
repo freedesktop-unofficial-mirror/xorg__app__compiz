@@ -106,14 +106,14 @@ static void
 coreObjectAdd (CompObject      *parent,
 	       CompChildObject *object)
 {
-    object->base.parent = parent;
+    object->parent = parent;
 }
 
 static void
 coreObjectRemove (CompObject	  *parent,
 		  CompChildObject *object)
 {
-    object->base.parent = NULL;
+    object->parent = NULL;
 }
 
 static void

@@ -152,7 +152,7 @@ gconfSetValue (CompObject      *object,
 	gchar *action;
 
 	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-	    object = object->parent;
+	    object = ((CompChildObject *) object)->parent;
 
 	if (!object)
 	    return;
@@ -166,7 +166,7 @@ gconfSetValue (CompObject      *object,
 	gchar *action;
 
 	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-	    object = object->parent;
+	    object = ((CompChildObject *) object)->parent;
 
 	if (!object)
 	    return;
@@ -319,7 +319,7 @@ gconfGetValue (CompObject      *object,
 	action = gconf_value_get_string (gvalue);
 
 	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-	    object = object->parent;
+	    object = ((CompChildObject *) object)->parent;
 
 	if (!object)
 	    return FALSE;
@@ -335,7 +335,7 @@ gconfGetValue (CompObject      *object,
 	action = gconf_value_get_string (gvalue);
 
 	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-	    object = object->parent;
+	    object = ((CompChildObject *) object)->parent;
 
 	if (!object)
 	    return FALSE;

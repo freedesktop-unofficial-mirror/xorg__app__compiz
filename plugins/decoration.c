@@ -1548,7 +1548,7 @@ decorInitWindow (CompPlugin *p,
     if (!w->attrib.override_redirect)
 	decorWindowUpdateDecoration (w);
 
-    if (w->base.base.parent)
+    if (w->base.parent)
 	decorWindowAdd (w->screen, w);
 
     return TRUE;
