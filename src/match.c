@@ -101,9 +101,9 @@ matchFini (CompMatch *match)
 }
 
 static Bool
-matchOpsEqual (CompMatchOp *op1,
-	       CompMatchOp *op2,
-	       int	   nOp)
+matchOpsEqual (const CompMatchOp *op1,
+	       const CompMatchOp *op2,
+	       int		 nOp)
 {
     while (nOp--)
     {
@@ -137,8 +137,8 @@ matchOpsEqual (CompMatchOp *op1,
 }
 
 Bool
-matchEqual (CompMatch *m1,
-	    CompMatch *m2)
+matchEqual (const CompMatch *m1,
+	    const CompMatch *m2)
 {
     if (m1->nOp != m2->nOp)
 	return FALSE;
@@ -225,8 +225,8 @@ matchCopyOps (CompMatchOp *opDst,
 }
 
 Bool
-matchCopy (CompMatch *dst,
-	   CompMatch *src)
+matchCopy (CompMatch	   *dst,
+	   const CompMatch *src)
 {
     CompMatchOp *opDst;
 

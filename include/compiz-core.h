@@ -1179,10 +1179,10 @@ getDisplayOptions (CompPlugin  *plugin,
 		   int	       *count);
 
 Bool
-setDisplayOption (CompPlugin	  *plugin,
-		  CompDisplay     *display,
-		  const char      *name,
-		  CompOptionValue *value);
+setDisplayOption (CompPlugin		*plugin,
+		  CompDisplay		*display,
+		  const char		*name,
+		  const CompOptionValue *value);
 
 void
 compLogMessage (CompDisplay  *d,
@@ -1261,9 +1261,9 @@ warpPointer (CompScreen *screen,
 	     int	 dy);
 
 Bool
-setDisplayAction (CompDisplay     *display,
-		  CompOption      *o,
-		  CompOptionValue *value);
+setDisplayAction (CompDisplay		*display,
+		  CompOption		*o,
+		  const CompOptionValue *value);
 
 Bool
 readImageFromFile (CompDisplay *display,
@@ -2270,10 +2270,10 @@ getScreenOptions (CompPlugin *plugin,
 		  int	     *count);
 
 Bool
-setScreenOption (CompPlugin	 *plugin,
-		 CompScreen      *screen,
-		 const char      *name,
-		 CompOptionValue *value);
+setScreenOption (CompPlugin	       *plugin,
+		 CompScreen	       *screen,
+		 const char	       *name,
+		 const CompOptionValue *value);
 
 void
 configureScreen (CompScreen	 *s,
@@ -2360,12 +2360,12 @@ Bool
 otherScreenGrabExist (CompScreen *s, ...);
 
 Bool
-addScreenAction (CompScreen *s,
-		 CompAction *action);
+addScreenAction (CompScreen	  *s,
+		 const CompAction *action);
 
 void
-removeScreenAction (CompScreen *s,
-		    CompAction *action);
+removeScreenAction (CompScreen	     *s,
+		    const CompAction *action);
 
 void
 updatePassiveGrabs (CompScreen *s);
@@ -3307,12 +3307,12 @@ void
 matchFini (CompMatch *match);
 
 Bool
-matchEqual (CompMatch *m1,
-	    CompMatch *m2);
+matchEqual (const CompMatch *m1,
+	    const CompMatch *m2);
 
 Bool
-matchCopy (CompMatch *dst,
-	   CompMatch *src);
+matchCopy (CompMatch	   *dst,
+	   const CompMatch *src);
 
 Bool
 matchAddGroup (CompMatch *match,
@@ -3410,9 +3410,9 @@ compFiniScreenOptions (CompScreen *screen,
 		       int	  n);
 
 Bool
-compSetScreenOption (CompScreen      *screen,
-		     CompOption      *option,
-		     CompOptionValue *value);
+compSetScreenOption (CompScreen		   *screen,
+		     CompOption		   *option,
+		     const CompOptionValue *value);
 
 Bool
 compInitDisplayOptionFromMetadata (CompDisplay  *display,
@@ -3437,9 +3437,9 @@ compFiniDisplayOptions (CompDisplay *display,
 			int	    n);
 
 Bool
-compSetDisplayOption (CompDisplay     *display,
-		      CompOption      *option,
-		      CompOptionValue *value);
+compSetDisplayOption (CompDisplay	    *display,
+		      CompOption	    *option,
+		      const CompOptionValue *value);
 
 char *
 compGetShortPluginDescription (CompMetadata *metadata);

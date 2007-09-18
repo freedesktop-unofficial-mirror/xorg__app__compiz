@@ -484,10 +484,10 @@ getScreenOptions (CompPlugin *plugin,
 }
 
 Bool
-setScreenOption (CompPlugin	 *plugin,
-		 CompScreen      *screen,
-		 const char	 *name,
-		 CompOptionValue *value)
+setScreenOption (CompPlugin	       *plugin,
+		 CompScreen	       *screen,
+		 const char	       *name,
+		 const CompOptionValue *value)
 {
     CompOption *o;
     int	       index;
@@ -2891,8 +2891,8 @@ grabUngrabKeys (CompScreen   *s,
 }
 
 static Bool
-addPassiveKeyGrab (CompScreen	  *s,
-		   CompKeyBinding *key)
+addPassiveKeyGrab (CompScreen		*s,
+		   const CompKeyBinding *key)
 {
     CompKeyGrab  *keyGrab;
     unsigned int mask;
@@ -2932,8 +2932,8 @@ addPassiveKeyGrab (CompScreen	  *s,
 }
 
 static void
-removePassiveKeyGrab (CompScreen     *s,
-		      CompKeyBinding *key)
+removePassiveKeyGrab (CompScreen	   *s,
+		      const CompKeyBinding *key)
 {
     unsigned int mask;
     int          i;
@@ -2979,8 +2979,8 @@ updatePassiveKeyGrabs (CompScreen *s)
 }
 
 static Bool
-addPassiveButtonGrab (CompScreen        *s,
-		      CompButtonBinding *button)
+addPassiveButtonGrab (CompScreen	      *s,
+		      const CompButtonBinding *button)
 {
     CompButtonGrab *buttonGrab;
     int            i;
@@ -3012,8 +3012,8 @@ addPassiveButtonGrab (CompScreen        *s,
 }
 
 static void
-removePassiveButtonGrab (CompScreen        *s,
-			 CompButtonBinding *button)
+removePassiveButtonGrab (CompScreen		 *s,
+			 const CompButtonBinding *button)
 {
     int          i;
 
@@ -3037,8 +3037,8 @@ removePassiveButtonGrab (CompScreen        *s,
 }
 
 Bool
-addScreenAction (CompScreen *s,
-		 CompAction *action)
+addScreenAction (CompScreen	  *s,
+		 const CompAction *action)
 {
     if (action->type & CompBindingTypeKey)
     {
@@ -3070,8 +3070,8 @@ addScreenAction (CompScreen *s,
 }
 
 void
-removeScreenAction (CompScreen *s,
-		    CompAction *action)
+removeScreenAction (CompScreen	     *s,
+		    const CompAction *action)
 {
     if (action->type & CompBindingTypeKey)
 	removePassiveKeyGrab (s, &action->key);

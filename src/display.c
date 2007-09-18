@@ -858,10 +858,10 @@ pingTimeout (void *closure)
 }
 
 Bool
-setDisplayOption (CompPlugin	  *plugin,
-		  CompDisplay     *display,
-		  const char      *name,
-		  CompOptionValue *value)
+setDisplayOption (CompPlugin		*plugin,
+		  CompDisplay		*display,
+		  const char		*name,
+		  const CompOptionValue *value)
 {
     CompOption *o;
     int	       index;
@@ -2942,9 +2942,9 @@ warpPointer (CompScreen *s,
 }
 
 Bool
-setDisplayAction (CompDisplay     *display,
-		  CompOption      *o,
-		  CompOptionValue *value)
+setDisplayAction (CompDisplay		*display,
+		  CompOption		*o,
+		  const CompOptionValue *value)
 {
     CompScreen *s;
 

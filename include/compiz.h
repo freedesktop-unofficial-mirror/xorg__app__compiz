@@ -84,40 +84,40 @@ compFindOption (CompOption *option,
 		int	    *index);
 
 CompBool
-compSetBoolOption (CompOption      *option,
-		   CompOptionValue *value);
+compSetBoolOption (CompOption            *option,
+		   const CompOptionValue *value);
 
 CompBool
-compSetIntOption (CompOption	  *option,
-		  CompOptionValue *value);
+compSetIntOption (CompOption            *option,
+		  const CompOptionValue *value);
 
 CompBool
-compSetFloatOption (CompOption	    *option,
-		    CompOptionValue *value);
+compSetFloatOption (CompOption            *option,
+		    const CompOptionValue *value);
 
 CompBool
-compSetStringOption (CompOption	     *option,
-		     CompOptionValue *value);
+compSetStringOption (CompOption            *option,
+		     const CompOptionValue *value);
 
 CompBool
-compSetColorOption (CompOption	    *option,
-		    CompOptionValue *value);
+compSetColorOption (CompOption            *option,
+		    const CompOptionValue *value);
 
 CompBool
-compSetActionOption (CompOption      *option,
-		     CompOptionValue *value);
+compSetActionOption (CompOption            *option,
+		     const CompOptionValue *value);
 
 CompBool
-compSetMatchOption (CompOption      *option,
-		    CompOptionValue *value);
+compSetMatchOption (CompOption            *option,
+		    const CompOptionValue *value);
 
 CompBool
-compSetOptionList (CompOption      *option,
-		   CompOptionValue *value);
+compSetOptionList (CompOption            *option,
+		   const CompOptionValue *value);
 
 CompBool
-compSetOption (CompOption      *option,
-	       CompOptionValue *value);
+compSetOption (CompOption            *option,
+	       const CompOptionValue *value);
 
 CompTimeoutHandle
 compAddTimeout (int	     time,

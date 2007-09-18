@@ -1161,9 +1161,9 @@ compFiniScreenOptions (CompScreen *s,
 }
 
 Bool
-compSetScreenOption (CompScreen      *s,
-		     CompOption      *o,
-		     CompOptionValue *value)
+compSetScreenOption (CompScreen		   *s,
+		     CompOption		   *o,
+		     const CompOptionValue *value)
 {
     if (compSetOption (o, value))
 	return TRUE;
@@ -1258,9 +1258,9 @@ compFiniDisplayOptions (CompDisplay *d,
 }
 
 Bool
-compSetDisplayOption (CompDisplay     *d,
-		      CompOption      *o,
-		      CompOptionValue *value)
+compSetDisplayOption (CompDisplay	    *d,
+		      CompOption	    *o,
+		      const CompOptionValue *value)
 {
     if (isActionOption (o))
     {

@@ -133,8 +133,8 @@ compFindOption (CompOption *option,
 }
 
 Bool
-compSetBoolOption (CompOption	   *option,
-		   CompOptionValue *value)
+compSetBoolOption (CompOption		 *option,
+		   const CompOptionValue *value)
 {
     int b;
 
@@ -149,8 +149,8 @@ compSetBoolOption (CompOption	   *option,
 }
 
 Bool
-compSetIntOption (CompOption	  *option,
-		  CompOptionValue *value)
+compSetIntOption (CompOption		*option,
+		  const CompOptionValue *value)
 {
     if (value->i < option->rest.i.min ||
 	value->i > option->rest.i.max ||
@@ -163,8 +163,8 @@ compSetIntOption (CompOption	  *option,
 }
 
 Bool
-compSetFloatOption (CompOption	    *option,
-		    CompOptionValue *value)
+compSetFloatOption (CompOption		  *option,
+		    const CompOptionValue *value)
 {
     float v, p;
 
@@ -190,8 +190,8 @@ compSetFloatOption (CompOption	    *option,
 }
 
 Bool
-compSetStringOption (CompOption	     *option,
-		     CompOptionValue *value)
+compSetStringOption (CompOption            *option,
+		     const CompOptionValue *value)
 {
     char *s;
 
@@ -217,8 +217,8 @@ compSetStringOption (CompOption	     *option,
 }
 
 Bool
-compSetColorOption (CompOption	    *option,
-		    CompOptionValue *value)
+compSetColorOption (CompOption            *option,
+		    const CompOptionValue *value)
 {
     if (memcmp (value->c, option->value.c, sizeof (value->c)) == 0)
 	return FALSE;
@@ -229,8 +229,8 @@ compSetColorOption (CompOption	    *option,
 }
 
 Bool
-compSetActionOption (CompOption      *option,
-		     CompOptionValue *value)
+compSetActionOption (CompOption            *option,
+		     const CompOptionValue *value)
 {
     CompAction	    *action = &option->value.action;
     CompOptionValue v = *value;
@@ -289,8 +289,8 @@ compSetActionOption (CompOption      *option,
 }
 
 Bool
-compSetMatchOption (CompOption      *option,
-		    CompOptionValue *value)
+compSetMatchOption (CompOption            *option,
+		    const CompOptionValue *value)
 {
     CompDisplay *display = option->value.match.display;
     CompMatch	match;
@@ -313,8 +313,8 @@ compSetMatchOption (CompOption      *option,
 }
 
 Bool
-compSetOptionList (CompOption      *option,
-		   CompOptionValue *value)
+compSetOptionList (CompOption            *option,
+		   const CompOptionValue *value)
 {
     CompOption o;
     Bool       status = FALSE;
@@ -395,8 +395,8 @@ compSetOptionList (CompOption      *option,
 }
 
 Bool
-compSetOption (CompOption      *option,
-	       CompOptionValue *value)
+compSetOption (CompOption            *option,
+	       const CompOptionValue *value)
 {
     switch (option->type) {
     case CompOptionTypeBool:
