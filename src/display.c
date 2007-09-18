@@ -1912,8 +1912,6 @@ freeDisplay (CompDisplay *d)
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 
-    compFiniOptionValue (&d->plugin, CompOptionTypeList);
-
     if (d->screenInfo)
 	XFree (d->screenInfo);
 
@@ -1930,12 +1928,48 @@ static CompBool
 displayInitObject (CompObject     *object,
 		   CompObjectType *type)
 {
+    int i;
+
     CORE_DISPLAY (object);
 
     if (!compChildObjectInit (&d->base, type, COMP_OBJECT_TYPE_DISPLAY))
 	return FALSE;
 
     WRAP (&d->object, &d->base.base, vTable, &displayObjectVTable);
+
+    d->next    = NULL;
+    d->screens = NULL;
+
+    d->watchFdHandle = 0;
+
+    d->logMessage = logMessage;
+
+    d->modMap = 0;
+
+    for (i = 0; i < CompModNum; i++)
+	d->modMask[i] = CompNoMask;
+
+    d->ignoredModMask = LockMask;
+
+    compInitOptionValue (&d->plugin);
+
+    d->textureFilter = GL_LINEAR;
+    d->below	     = None;
+
+    d->activeWindow = 0;
+
+    d->autoRaiseHandle = 0;
+    d->autoRaiseWindow = None;
+
+    d->handleEvent	 = handleEvent;
+    d->handleCompizEvent = handleCompizEvent;
+
+    d->fileToImage = fileToImage;
+    d->imageToFile = imageToFile;
+
+    d->matchInitExp	      = matchInitExp;
+    d->matchExpHandlerChanged = matchExpHandlerChanged;
+    d->matchPropertyChanged   = matchPropertyChanged;
 
     return TRUE;
 }
@@ -1944,6 +1978,8 @@ static void
 displayFiniObject (CompObject *object)
 {
     CORE_DISPLAY (object);
+
+    compFiniOptionValue (&d->plugin, CompOptionTypeList);
 
     UNWRAP (&d->object, &d->base.base, vTable);
 
@@ -2003,22 +2039,6 @@ addDisplay (const char *name)
 	return FALSE;
     }
 
-    d->next    = NULL;
-    d->screens = NULL;
-
-    d->watchFdHandle = 0;
-
-    d->logMessage = logMessage;
-
-    d->modMap = 0;
-
-    for (i = 0; i < CompModNum; i++)
-	d->modMask[i] = CompNoMask;
-
-    d->ignoredModMask = LockMask;
-
-    compInitOptionValue (&d->plugin);
-
     d->plugin.list.type   = CompOptionTypeString;
     d->plugin.list.nValue = 1;
     d->plugin.list.value  = malloc (sizeof (CompOptionValue));
@@ -2036,14 +2056,6 @@ addDisplay (const char *name)
     }
 
     d->dirtyPluginList = TRUE;
-
-    d->textureFilter = GL_LINEAR;
-    d->below	     = None;
-
-    d->activeWindow = 0;
-
-    d->autoRaiseHandle = 0;
-    d->autoRaiseWindow = None;
 
     d->display = dpy = XOpenDisplay (name);
     if (!d->display)
@@ -2073,16 +2085,6 @@ addDisplay (const char *name)
     XSetErrorHandler (errorHandler);
 
     updateModifierMappings (d);
-
-    d->handleEvent	 = handleEvent;
-    d->handleCompizEvent = handleCompizEvent;
-
-    d->fileToImage = fileToImage;
-    d->imageToFile = imageToFile;
-
-    d->matchInitExp	      = matchInitExp;
-    d->matchExpHandlerChanged = matchExpHandlerChanged;
-    d->matchPropertyChanged   = matchPropertyChanged;
 
     d->supportedAtom	     = XInternAtom (dpy, "_NET_SUPPORTED", 0);
     d->supportingWmCheckAtom = XInternAtom (dpy, "_NET_SUPPORTING_WM_CHECK", 0);
