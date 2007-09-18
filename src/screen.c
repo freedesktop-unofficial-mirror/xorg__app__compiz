@@ -113,7 +113,6 @@ screenFindChildObject (CompObject *object,
 static CompOption *
 screenGetObjectProps (CompObject *object,
 		      const char *interface,
-		      const char *name,
 		      int	 *n)
 {
     CompObjectVTableVec v = { object->vTable };
@@ -125,7 +124,7 @@ screenGetObjectProps (CompObject *object,
 	return getScreenOptions (NULL, s, n);
 
     UNWRAP (&s->object, object, vTable);
-    result = (*object->vTable->getProps) (object, interface, name, n);
+    result = (*object->vTable->getProps) (object, interface, n);
     WRAP (&s->object, object, vTable, v.vTable);
 
     return result;

@@ -314,7 +314,6 @@ typedef CompObject *(*FindChildObjectProc) (CompObject *object,
 
 typedef CompOption *(*GetObjectPropsProc) (CompObject *object,
 					   const char *interface,
-					   const char *name,
 					   int	      *n);
 
 typedef CompBool (*SetObjectPropProc) (CompObject	     *object,

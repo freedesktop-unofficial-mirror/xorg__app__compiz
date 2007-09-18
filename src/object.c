@@ -52,7 +52,6 @@ findChildObject (CompObject *parent,
 static CompOption *
 getObjectProps (CompObject *object,
 		const char *interface,
-		const char *name,
 		int	   *n)
 {
     *n = 0;

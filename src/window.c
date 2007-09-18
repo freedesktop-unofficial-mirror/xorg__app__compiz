@@ -98,7 +98,6 @@ windowFindChildObject (CompObject *object,
 static CompOption *
 windowGetObjectProps (CompObject *object,
 		      const char *interface,
-		      const char *name,
 		      int	 *n)
 {
     CompObjectVTableVec v = { object->vTable };
@@ -113,7 +112,7 @@ windowGetObjectProps (CompObject *object,
     }
 
     UNWRAP (&w->object, object, vTable);
-    result = (*object->vTable->getProps) (object, interface, name, n);
+    result = (*object->vTable->getProps) (object, interface, n);
     WRAP (&w->object, object, vTable, v.vTable);
 
     return result;

@@ -81,7 +81,6 @@ coreFindChildObject (CompObject *object,
 static CompOption *
 coreGetObjectProps (CompObject *object,
 		    const char *interface,
-		    const char *name,
 		    int	       *n)
 {
     *n = 0;

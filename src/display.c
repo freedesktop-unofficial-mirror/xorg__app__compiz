@@ -128,7 +128,6 @@ displayFindChildObject (CompObject *object,
 static CompOption *
 displayGetObjectProps (CompObject *object,
 		       const char *interface,
-		       const char *name,
 		       int	  *n)
 {
     CompObjectVTableVec v = { object->vTable };
@@ -140,7 +139,7 @@ displayGetObjectProps (CompObject *object,
 	return getDisplayOptions (NULL, d, n);
 
     UNWRAP (&d->object, object, vTable);
-    result = (*object->vTable->getProps) (object, interface, name, n);
+    result = (*object->vTable->getProps) (object, interface, n);
     WRAP (&d->object, object, vTable, v.vTable);
 
     return result;
