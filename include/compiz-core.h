@@ -759,6 +759,9 @@ struct _CompCore {
     SessionEventProc sessionEvent;
 };
 
+#define GET_CORE_CORE(object) ((CompCore *) (object))
+#define CORE_CORE(object) CompCore *c = GET_CORE_CORE (object)
+
 CompObjectType *
 getCoreObjectType (void);
 
