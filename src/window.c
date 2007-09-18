@@ -101,8 +101,22 @@ windowGetObjectProps (CompObject *object,
 		      const char *name,
 		      int	 *n)
 {
-    *n = 0;
-    return NULL;
+    CompObjectVTableVec v = { object->vTable };
+    CompOption		*result;
+
+    CORE_WINDOW (object);
+
+    if (strcmp (interface, "core") == 0)
+    {
+	*n = 0;
+	return NULL;
+    }
+
+    UNWRAP (&w->object, object, vTable);
+    result = (*object->vTable->getProps) (object, interface, name, n);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static CompBool
@@ -111,7 +125,19 @@ windowSetObjectProp (CompObject		   *object,
 		     const char		   *name,
 		     const CompOptionValue *value)
 {
-    return FALSE;
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_WINDOW (object);
+
+    if (strcmp (interface, "core") == 0)
+	return FALSE;
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->setProp) (object, interface, name, value);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static Bool

@@ -131,8 +131,19 @@ displayGetObjectProps (CompObject *object,
 		       const char *name,
 		       int	  *n)
 {
-    *n = 0;
-    return NULL;
+    CompObjectVTableVec v = { object->vTable };
+    CompOption		*result;
+
+    CORE_DISPLAY (object);
+
+    if (strcmp (interface, "core") == 0)
+	return getDisplayOptions (NULL, d, n);
+
+    UNWRAP (&d->object, object, vTable);
+    result = (*object->vTable->getProps) (object, interface, name, n);
+    WRAP (&d->object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static CompBool
@@ -141,7 +152,19 @@ displaySetObjectProp (CompObject	    *object,
 		      const char	    *name,
 		      const CompOptionValue *value)
 {
-    return FALSE;
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_DISPLAY (object);
+
+    if (strcmp (interface, "core") == 0)
+	return setDisplayOption (NULL, d, name, value);
+
+    UNWRAP (&d->object, object, vTable);
+    status = (*object->vTable->setProp) (object, interface, name, value);
+    WRAP (&d->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static Bool

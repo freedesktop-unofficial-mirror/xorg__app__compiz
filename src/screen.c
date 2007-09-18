@@ -116,8 +116,19 @@ screenGetObjectProps (CompObject *object,
 		      const char *name,
 		      int	 *n)
 {
-    *n = 0;
-    return NULL;
+    CompObjectVTableVec v = { object->vTable };
+    CompOption		*result;
+
+    CORE_SCREEN (object);
+
+    if (strcmp (interface, "core") == 0)
+	return getScreenOptions (NULL, s, n);
+
+    UNWRAP (&s->object, object, vTable);
+    result = (*object->vTable->getProps) (object, interface, name, n);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static CompBool
@@ -126,7 +137,19 @@ screenSetObjectProp (CompObject		   *object,
 		     const char		   *name,
 		     const CompOptionValue *value)
 {
-    return FALSE;
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_SCREEN (object);
+
+    if (strcmp (interface, "core") == 0)
+	return setScreenOption (NULL, s, name, value);
+
+    UNWRAP (&s->object, object, vTable);
+    status = (*object->vTable->setProp) (object, interface, name, value);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static Bool
