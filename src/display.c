@@ -1920,25 +1920,6 @@ freeDisplay (CompDisplay *d)
     free (d);
 }
 
-static CompBool
-displayInitObject (CompObject *object);
-
-static void
-displayFiniObject (CompObject *object);
-
-static CompObjectFuncs displayObjectFuncs = {
-    displayInitObject,
-    displayFiniObject
-};
-
-static CompObjectType displayObjectType = {
-    "display",
-    NULL,
-    0,
-    NULL,
-    &displayObjectFuncs
-};
-
 static CompObjectVTable displayObjectVTable = {
     displayNameObject,
     displayForEachChildObject,
@@ -1946,12 +1927,12 @@ static CompObjectVTable displayObjectVTable = {
 };
 
 static CompBool
-displayInitObject (CompObject *object)
+displayInitObject (CompObject     *object,
+		   CompObjectType *type)
 {
     CORE_DISPLAY (object);
 
-    if (!compChildObjectInit (&d->base, &displayObjectType,
-			      COMP_OBJECT_TYPE_DISPLAY))
+    if (!compChildObjectInit (&d->base, type, COMP_OBJECT_TYPE_DISPLAY))
 	return FALSE;
 
     WRAP (&d->object, &d->base.base, vTable, &displayObjectVTable);
@@ -1968,6 +1949,19 @@ displayFiniObject (CompObject *object)
 
     compChildObjectFini (&d->base);
 }
+
+static CompObjectFuncs displayObjectFuncs = {
+    displayInitObject,
+    displayFiniObject
+};
+
+static CompObjectType displayObjectType = {
+    "display",
+    NULL,
+    0,
+    NULL,
+    &displayObjectFuncs
+};
 
 CompObjectType *
 getDisplayObjectType (void)
@@ -2003,7 +1997,7 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (!(*displayObjectType.funcs->init) (&d->base.base))
+    if (!(*displayObjectType.funcs->init) (&d->base.base, &displayObjectType))
     {
 	free (d);
 	return FALSE;

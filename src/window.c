@@ -1819,25 +1819,6 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
     wa->screen		      = NULL;
 }
 
-static CompBool
-windowInitObject (CompObject *object);
-
-static void
-windowFiniObject (CompObject *object);
-
-static CompObjectFuncs windowObjectFuncs = {
-    windowInitObject,
-    windowFiniObject
-};
-
-static CompObjectType windowObjectType = {
-    "window",
-    NULL,
-    0,
-    NULL,
-    &windowObjectFuncs
-};
-
 static CompObjectVTable windowObjectVTable = {
     windowNameObject,
     windowForEachChildObject,
@@ -1845,12 +1826,12 @@ static CompObjectVTable windowObjectVTable = {
 };
 
 static CompBool
-windowInitObject (CompObject *object)
+windowInitObject (CompObject     *object,
+		  CompObjectType *type)
 {
     CORE_WINDOW (object);
 
-    if (!compChildObjectInit (&w->base, &windowObjectType,
-			      COMP_OBJECT_TYPE_WINDOW))
+    if (!compChildObjectInit (&w->base, type, COMP_OBJECT_TYPE_WINDOW))
 	return FALSE;
 
     WRAP (&w->object, &w->base.base, vTable, &windowObjectVTable);
@@ -1867,6 +1848,19 @@ windowFiniObject (CompObject *object)
 
     compChildObjectFini (&w->base);
 }
+
+static CompObjectFuncs windowObjectFuncs = {
+    windowInitObject,
+    windowFiniObject
+};
+
+static CompObjectType windowObjectType = {
+    "window",
+    NULL,
+    0,
+    NULL,
+    &windowObjectFuncs
+};
 
 CompObjectType *
 getWindowObjectType (void)
@@ -2002,7 +1996,7 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!(*windowObjectType.funcs->init) (&w->base.base))
+    if (!(*windowObjectType.funcs->init) (&w->base.base, &windowObjectType))
     {
 	free (w);
 	return;

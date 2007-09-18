@@ -1478,25 +1478,6 @@ freeScreen (CompScreen *s)
     free (s);
 }
 
-static CompBool
-screenInitObject (CompObject *object);
-
-static void
-screenFiniObject (CompObject *object);
-
-static CompObjectFuncs screenObjectFuncs = {
-    screenInitObject,
-    screenFiniObject
-};
-
-static CompObjectType screenObjectType = {
-    "screen",
-    NULL,
-    0,
-    NULL,
-    &screenObjectFuncs
-};
-
 static CompObjectVTable screenObjectVTable = {
     screenNameObject,
     screenForEachChildObject,
@@ -1504,12 +1485,12 @@ static CompObjectVTable screenObjectVTable = {
 };
 
 static CompBool
-screenInitObject (CompObject *object)
+screenInitObject (CompObject     *object,
+		  CompObjectType *type)
 {
     CORE_SCREEN (object);
 
-    if (!compChildObjectInit (&s->base, &screenObjectType,
-			      COMP_OBJECT_TYPE_SCREEN))
+    if (!compChildObjectInit (&s->base, type, COMP_OBJECT_TYPE_SCREEN))
 	return FALSE;
 
     WRAP (&s->object, &s->base.base, vTable, &screenObjectVTable);
@@ -1526,6 +1507,19 @@ screenFiniObject (CompObject *object)
 
     compChildObjectFini (&s->base);
 }
+
+static CompObjectFuncs screenObjectFuncs = {
+    screenInitObject,
+    screenFiniObject
+};
+
+static CompObjectType screenObjectType = {
+    "screen",
+    NULL,
+    0,
+    NULL,
+    &screenObjectFuncs
+};
 
 CompObjectType *
 getScreenObjectType (void)
@@ -1576,7 +1570,7 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!(*screenObjectType.funcs->init) (&s->base.base))
+    if (!(*screenObjectType.funcs->init) (&s->base.base, &screenObjectType))
     {
 	free (s);
 	return FALSE;

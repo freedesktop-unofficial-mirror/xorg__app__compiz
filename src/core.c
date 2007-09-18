@@ -128,25 +128,6 @@ fileWatchRemoved (CompCore      *core,
 {
 }
 
-static CompBool
-coreInitObject (CompObject *object);
-
-static void
-coreFiniObject (CompObject *object);
-
-static CompObjectFuncs coreObjectFuncs = {
-    coreInitObject,
-    coreFiniObject
-};
-
-static CompObjectType coreObjectType = {
-    "core",
-    NULL,
-    0,
-    NULL,
-    &coreObjectFuncs
-};
-
 static CompObjectVTable coreObjectVTable = {
     coreNameObject,
     coreForEachChildObject,
@@ -154,9 +135,10 @@ static CompObjectVTable coreObjectVTable = {
 };
 
 static CompBool
-coreInitObject (CompObject *object)
+coreInitObject (CompObject     *object,
+		CompObjectType *type)
 {
-    if (!compObjectInit (object, &coreObjectType, COMP_OBJECT_TYPE_CORE))
+    if (!compObjectInit (object, type, COMP_OBJECT_TYPE_CORE))
 	return FALSE;
 
     WRAP (&core.object, &core.base, vTable, &coreObjectVTable);
@@ -171,6 +153,19 @@ coreFiniObject (CompObject *object)
 
     compObjectFini (&core.base);
 }
+
+static CompObjectFuncs coreObjectFuncs = {
+    coreInitObject,
+    coreFiniObject
+};
+
+static CompObjectType coreObjectType = {
+    "core",
+    NULL,
+    0,
+    NULL,
+    &coreObjectFuncs
+};
 
 static CompBool
 coreForEachObjectType (ObjectTypeCallBackProc proc,
@@ -205,7 +200,7 @@ initCore (void)
 {
     CompPlugin *corePlugin;
 
-    if (!(*coreObjectType.funcs->init) (&core.base))
+    if (!(*coreObjectType.funcs->init) (&core.base, &coreObjectType))
 	return FALSE;
 
     core.displays = NULL;
