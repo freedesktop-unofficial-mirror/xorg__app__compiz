@@ -23,6 +23,8 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <string.h>
+
 #include <compiz-core.h>
 
 static char *
@@ -211,4 +213,191 @@ compObjectFindType (const char *name)
     (*core.forEachObjectType) (checkType, (void *) &ctx);
 
     return ctx.type;
+}
+
+typedef struct _InitObjectContext {
+    CompObjectType  *type;
+    CompChildObject *object;
+} InitObjectContext;
+
+static CompBool
+initTypedObjects (CompObject	 *o,
+		  CompObjectType *type);
+
+static CompBool
+finiTypedObjects (CompObject	 *o,
+		  CompObjectType *type);
+
+static CompBool
+initObjectTree (CompChildObject *o,
+		void		*closure)
+{
+    InitObjectContext *pCtx = (InitObjectContext *) closure;
+
+    pCtx->object = o;
+
+    return initTypedObjects (&o->base, pCtx->type);
+}
+
+static CompBool
+finiObjectTree (CompChildObject *o,
+		void		*closure)
+{
+    InitObjectContext *pCtx = (InitObjectContext *) closure;
+
+    /* pCtx->object is set to the object that failed to be initialized */
+    if (pCtx->object == o)
+	return FALSE;
+
+    return finiTypedObjects (&o->base, pCtx->type);
+}
+
+static CompBool
+initTypedObjects (CompObject	 *o,
+		  CompObjectType *type)
+{
+    InitObjectContext ctx;
+
+    ctx.type   = type;
+    ctx.object = NULL;
+
+    if (o->type == type)
+	(*ctx.type->funcs->init) (o, ctx.type);
+
+    if (!(*o->vTable->forEachChildObject) (o, initObjectTree, (void *) &ctx))
+    {
+	(*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
+
+	if (o->type == type)
+	    (*ctx.type->funcs->fini) (o);
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+static CompBool
+finiTypedObjects (CompObject	 *o,
+		  CompObjectType *type)
+{
+    InitObjectContext ctx;
+
+    ctx.type   = type;
+    ctx.object = NULL;
+
+    (*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
+
+    if (o->type == type)
+	(*ctx.type->funcs->fini) (o);
+
+    return TRUE;
+}
+
+CompBool
+compObjectInitPrivates (CompObjectPrivate *private,
+			int		  nPrivate)
+{
+    int	i;
+
+    for (i = 0; i < nPrivate; i++)
+    {
+	CompObjectType  *type;
+	CompObjectFuncs *funcs;
+	int	        index;
+
+	type = compObjectFindType (private[i].name);
+	if (!type)
+	    break;
+
+	index = compObjectAllocatePrivateIndex (type);
+	if (index < 0)
+	    break;
+
+	*(private[i].pIndex) = index;
+
+	/* wrap initialization functions */
+	funcs	    = type->funcs;
+	type->funcs = private[i].funcs;
+
+	/* disable propagation of calls to init/fini */
+	type->privates[index].ptr = NULL;
+
+	/* initialize all objects of this type */
+	if (!initTypedObjects (&core.base, type))
+	{
+	    compObjectFreePrivateIndex (type, index);
+	    type->funcs = funcs;
+	    break;
+	}
+
+	/* enable propagation of calls to init */
+	type->privates[index].ptr = funcs;
+    }
+
+    if (i < nPrivate)
+    {
+	if (i)
+	    compObjectFiniPrivates (private, i - 1);
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+void
+compObjectFiniPrivates (CompObjectPrivate *private,
+			int		  nPrivate)
+{
+    int	i;
+
+    for (i = 0; i < nPrivate; i++)
+    {
+	CompObjectType  *type;
+	CompObjectFuncs *funcs;
+	int	        index;
+
+	type = compObjectFindType (private[i].name);
+	if (!type)
+	    break;
+
+	index = *(private[i].pIndex);
+
+	funcs = type->privates[index].ptr;
+
+	/* disable propagation of calls to fini */
+	type->privates[index].ptr = NULL;
+
+	/* finish all objects of this type */
+	finiTypedObjects (&core.base, type);
+
+	/* unwrap initialization functions */
+	type->funcs = funcs;
+
+	compObjectFreePrivateIndex (type, index);
+    }
+}
+
+CompBool
+compObjectInitOther (CompObject	    *o,
+		     CompObjectType *type,
+		     int	    index)
+{
+    CompObjectFuncs *funcs = (CompObjectFuncs *) type->privates[index].ptr;
+
+    if (funcs && !(*funcs->init) (o, type))
+	return FALSE;
+
+    return TRUE;
+}
+
+void
+compObjectFiniOther (CompObject *o,
+		     int	index)
+{
+    CompObjectFuncs *funcs = (CompObjectFuncs *) o->type->privates[index].ptr;
+
+    if (funcs)
+	(*funcs->fini) (o);
 }

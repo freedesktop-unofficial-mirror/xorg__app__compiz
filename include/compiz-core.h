@@ -361,6 +361,30 @@ compChildObjectFini (CompChildObject *object);
 CompObjectType *
 compObjectFindType (const char *name);
 
+typedef struct _CompObjectPrivate {
+    const char	    *name;
+    int		    *pIndex;
+    CompObjectFuncs *funcs;
+} CompObjectPrivate;
+
+CompBool
+compObjectInitPrivates (CompObjectPrivate *privates,
+			int		  nPrivates);
+
+void
+compObjectFiniPrivates (CompObjectPrivate *privates,
+			int		  nPrivates);
+
+CompBool
+compObjectInitOther (CompObject	    *object,
+		     CompObjectType *type,
+		     int	    index);
+
+void
+compObjectFiniOther (CompObject *object,
+		     int	index);
+
+
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))
 
