@@ -69,6 +69,8 @@ COMPIZ_BEGIN_DECLS
 #  define BITMAP_BIT_ORDER LSBFirst
 #endif
 
+#define CORE_INTERFACE_NAME "core"
+
 typedef struct _CompTexture	  CompTexture;
 typedef struct _CompIcon	  CompIcon;
 typedef struct _CompWindowExtents CompWindowExtents;

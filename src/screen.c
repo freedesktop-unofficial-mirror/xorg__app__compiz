@@ -120,7 +120,7 @@ screenGetObjectProps (CompObject *object,
 
     CORE_SCREEN (object);
 
-    if (strcmp (interface, "core") == 0)
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
 	return getScreenOptions (NULL, s, n);
 
     UNWRAP (&s->object, object, vTable);
@@ -141,7 +141,7 @@ screenSetObjectProp (CompObject		   *object,
 
     CORE_SCREEN (object);
 
-    if (strcmp (interface, "core") == 0)
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
 	return setScreenOption (NULL, s, name, value);
 
     UNWRAP (&s->object, object, vTable);

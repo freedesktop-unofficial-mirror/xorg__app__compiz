@@ -135,7 +135,7 @@ displayGetObjectProps (CompObject *object,
 
     CORE_DISPLAY (object);
 
-    if (strcmp (interface, "core") == 0)
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
 	return getDisplayOptions (NULL, d, n);
 
     UNWRAP (&d->object, object, vTable);
@@ -156,7 +156,7 @@ displaySetObjectProp (CompObject	    *object,
 
     CORE_DISPLAY (object);
 
-    if (strcmp (interface, "core") == 0)
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
 	return setDisplayOption (NULL, d, name, value);
 
     UNWRAP (&d->object, object, vTable);

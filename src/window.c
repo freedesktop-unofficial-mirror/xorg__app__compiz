@@ -105,7 +105,7 @@ windowGetObjectProps (CompObject *object,
 
     CORE_WINDOW (object);
 
-    if (strcmp (interface, "core") == 0)
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
     {
 	*n = 0;
 	return NULL;
@@ -129,7 +129,7 @@ windowSetObjectProp (CompObject		   *object,
 
     CORE_WINDOW (object);
 
-    if (strcmp (interface, "core") == 0)
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
 	return FALSE;
 
     UNWRAP (&w->object, object, vTable);
