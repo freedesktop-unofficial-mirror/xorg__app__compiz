@@ -1488,12 +1488,217 @@ static CompBool
 screenInitObject (CompObject     *object,
 		  CompObjectType *type)
 {
+    int i;
+
     CORE_SCREEN (object);
 
     if (!compChildObjectInit (&s->base, type, COMP_OBJECT_TYPE_SCREEN))
 	return FALSE;
 
     WRAP (&s->object, &s->base.base, vTable, &screenObjectVTable);
+
+    s->display = NULL;
+
+    s->damage = NULL;
+
+    s->x     = 0;
+    s->y     = 0;
+    s->hsize = 1;
+    s->vsize = 1;
+
+    s->windowOffsetX = 0;
+    s->windowOffsetY = 0;
+
+    s->nDesktop	      = 1;
+    s->currentDesktop = 0;
+
+    for (i = 0; i < SCREEN_EDGE_NUM; i++)
+    {
+	s->screenEdge[i].id    = None;
+	s->screenEdge[i].count = 0;
+    }
+
+    s->buttonGrab  = 0;
+    s->nButtonGrab = 0;
+    s->keyGrab     = 0;
+    s->nKeyGrab    = 0;
+
+    s->grabs    = 0;
+    s->grabSize = 0;
+    s->maxGrab  = 0;
+
+    s->pendingDestroys = 0;
+
+    s->clientList  = 0;
+    s->nClientList = 0;
+
+    s->screenNum = 0;
+    s->colormap  = None;
+    s->root	 = None;
+
+    s->mapNum    = 1;
+    s->activeNum = 1;
+
+    s->groups = NULL;
+
+    s->snContext = NULL;
+
+    s->startupSequences		    = NULL;
+    s->startupSequenceTimeoutHandle = 0;
+
+    s->wmSnSelectionWindow = None;
+    s->wmSnAtom		   = None;
+    s->wmSnTimestamp	   = None;
+
+    s->damageMask  = COMP_SCREEN_DAMAGE_ALL_MASK;
+    s->next	   = 0;
+    s->exposeRects = 0;
+    s->sizeExpose  = 0;
+    s->nExpose     = 0;
+
+    s->rasterX = 0;
+    s->rasterY = 0;
+
+    s->outputDev	= NULL;
+    s->nOutputDev	= 0;
+    s->currentOutputDev = 0;
+
+    s->windows = 0;
+    s->reverseWindows = 0;
+
+    s->nextRedraw  = 0;
+    s->frameStatus = 0;
+    s->timeMult    = 1;
+    s->idle	   = TRUE;
+    s->timeLeft    = 0;
+
+    s->pendingCommands = TRUE;
+
+    s->lastFunctionId = 0;
+
+    s->fragmentFunctions = NULL;
+    s->fragmentPrograms = NULL;
+
+    memset (s->saturateFunction, 0, sizeof (s->saturateFunction));
+
+    s->showingDesktopMask = 0;
+
+    memset (s->history, 0, sizeof (s->history));
+    s->currentHistory = 0;
+
+    s->overlayWindowCount = 0;
+
+    s->desktopHintData = NULL;
+    s->desktopHintSize = 0;
+
+    s->cursors = NULL;
+
+    s->clearBuffers = TRUE;
+
+    gettimeofday (&s->lastRedraw, 0);
+
+    s->preparePaintScreen	   = preparePaintScreen;
+    s->donePaintScreen		   = donePaintScreen;
+    s->paintScreen		   = paintScreen;
+    s->paintOutput		   = paintOutput;
+    s->paintTransformedOutput	   = paintTransformedOutput;
+    s->enableOutputClipping	   = enableOutputClipping;
+    s->disableOutputClipping	   = disableOutputClipping;
+    s->applyScreenTransform	   = applyScreenTransform;
+    s->paintBackground		   = paintBackground;
+    s->paintWindow		   = paintWindow;
+    s->drawWindow		   = drawWindow;
+    s->addWindowGeometry	   = addWindowGeometry;
+    s->drawWindowTexture	   = drawWindowTexture;
+    s->damageWindowRect		   = damageWindowRect;
+    s->getOutputExtentsForWindow   = getOutputExtentsForWindow;
+    s->getAllowedActionsForWindow  = getAllowedActionsForWindow;
+    s->focusWindow		   = focusWindow;
+    s->placeWindow                 = placeWindow;
+    s->validateWindowResizeRequest = validateWindowResizeRequest;
+
+    s->paintCursor      = paintCursor;
+    s->damageCursorRect	= damageCursorRect;
+
+    s->windowResizeNotify = windowResizeNotify;
+    s->windowMoveNotify	  = windowMoveNotify;
+    s->windowGrabNotify   = windowGrabNotify;
+    s->windowUngrabNotify = windowUngrabNotify;
+
+    s->enterShowDesktopMode = enterShowDesktopMode;
+    s->leaveShowDesktopMode = leaveShowDesktopMode;
+
+    s->windowStateChangeNotify = windowStateChangeNotify;
+
+    s->outputChangeNotify = outputChangeNotify;
+
+    s->initWindowWalker = initWindowWalker;
+
+    s->getProcAddress = 0;
+
+    s->workArea.x      = 0;
+    s->workArea.y      = 0;
+    s->workArea.width  = 0;
+    s->workArea.height = 0;
+
+    s->grabWindow = None;
+
+    s->invisibleCursor = None;
+
+    s->ctx = None;
+
+    s->getProcAddress    = NULL;
+    s->bindTexImage      = NULL;
+    s->releaseTexImage   = NULL;
+    s->queryDrawable     = NULL;
+    s->getFBConfigs      = NULL;
+    s->getFBConfigAttrib = NULL;
+    s->createPixmap      = NULL;
+    s->copySubBuffer     = NULL;
+    s->getVideoSync      = NULL;
+    s->waitVideoSync     = NULL;
+
+    s->textureNonPowerOfTwo = 0;
+    s->maxTextureSize = 0;
+    s->textureRectangle = 0;
+    s->textureEnvCombine = s->textureEnvCrossbar = 0;
+    s->textureBorderClamp = 0;
+    s->maxTextureUnits = 1;
+    s->fragmentProgram = 0;
+    s->fbo = 0;
+
+    for (i = 0; i <= MAX_DEPTH; i++)
+    {
+	s->glxPixmapFBConfigs[i].fbConfig       = NULL;
+	s->glxPixmapFBConfigs[i].mipmap         = 0;
+	s->glxPixmapFBConfigs[i].yInverted      = 0;
+	s->glxPixmapFBConfigs[i].textureFormat  = 0;
+	s->glxPixmapFBConfigs[i].textureTargets = 0;
+    }
+
+    initTexture (s, &s->backgroundTexture);
+    s->backgroundLoaded = FALSE;
+
+    s->defaultIcon = NULL;
+
+    s->desktopWindowCount = 0;
+
+    s->canDoSaturated = s->canDoSlightlySaturated = FALSE;
+
+    s->redrawTime = 1000 / defaultRefreshRate;
+    s->optimalRedrawTime = s->redrawTime;
+
+    s->lighting	      = FALSE;
+    s->slowAnimations = FALSE;
+
+    s->grabWindow = None;
+
+    s->normalCursor = None;
+    s->busyCursor   = None;
+
+    s->filter[NOTHING_TRANS_FILTER] = COMP_TEXTURE_FILTER_FAST;
+    s->filter[SCREEN_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
+    s->filter[WINDOW_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
 
     return TRUE;
 }
@@ -1585,8 +1790,6 @@ addScreen (CompDisplay *display,
 					    COMP_SCREEN_OPTION_NUM))
 	return FALSE;
 
-    s->snContext = NULL;
-
     s->damage = XCreateRegion ();
     if (!s->damage)
 	return FALSE;
@@ -1596,138 +1799,18 @@ addScreen (CompDisplay *display,
     s->hsize = s->opt[COMP_SCREEN_OPTION_HSIZE].value.i;
     s->vsize = s->opt[COMP_SCREEN_OPTION_VSIZE].value.i;
 
-    s->windowOffsetX = 0;
-    s->windowOffsetY = 0;
-
-    s->nDesktop	      = 1;
-    s->currentDesktop = 0;
-
-    for (i = 0; i < SCREEN_EDGE_NUM; i++)
-    {
-	s->screenEdge[i].id    = None;
-	s->screenEdge[i].count = 0;
-    }
-
-    s->buttonGrab  = 0;
-    s->nButtonGrab = 0;
-    s->keyGrab     = 0;
-    s->nKeyGrab    = 0;
-
-    s->grabs    = 0;
-    s->grabSize = 0;
-    s->maxGrab  = 0;
-
-    s->pendingDestroys = 0;
-
-    s->clientList  = 0;
-    s->nClientList = 0;
-
     s->screenNum = screenNum;
     s->colormap  = DefaultColormap (dpy, screenNum);
     s->root	 = XRootWindow (dpy, screenNum);
-
-    s->mapNum    = 1;
-    s->activeNum = 1;
-
-    s->groups = NULL;
-
-    s->snContext = sn_monitor_context_new (display->snDisplay,
-					   screenNum,
-					   compScreenSnEvent, s,
-					   NULL);
-
-    s->startupSequences		    = NULL;
-    s->startupSequenceTimeoutHandle = 0;
 
     s->wmSnSelectionWindow = wmSnSelectionWindow;
     s->wmSnAtom		   = wmSnAtom;
     s->wmSnTimestamp	   = wmSnTimestamp;
 
-    s->damageMask  = COMP_SCREEN_DAMAGE_ALL_MASK;
-    s->next	   = 0;
-    s->exposeRects = 0;
-    s->sizeExpose  = 0;
-    s->nExpose     = 0;
-
-    s->rasterX = 0;
-    s->rasterY = 0;
-
-    s->outputDev	= NULL;
-    s->nOutputDev	= 0;
-    s->currentOutputDev = 0;
-
-    s->windows = 0;
-    s->reverseWindows = 0;
-
-    s->nextRedraw  = 0;
-    s->frameStatus = 0;
-    s->timeMult    = 1;
-    s->idle	   = TRUE;
-    s->timeLeft    = 0;
-
-    s->pendingCommands = TRUE;
-
-    s->lastFunctionId = 0;
-
-    s->fragmentFunctions = NULL;
-    s->fragmentPrograms = NULL;
-
-    memset (s->saturateFunction, 0, sizeof (s->saturateFunction));
-
-    s->showingDesktopMask = 0;
-
-    memset (s->history, 0, sizeof (s->history));
-    s->currentHistory = 0;
-
-    s->overlayWindowCount = 0;
-
-    s->desktopHintData = NULL;
-    s->desktopHintSize = 0;
-
-    s->cursors = NULL;
-
-    s->clearBuffers = TRUE;
-
-    gettimeofday (&s->lastRedraw, 0);
-
-    s->preparePaintScreen	   = preparePaintScreen;
-    s->donePaintScreen		   = donePaintScreen;
-    s->paintScreen		   = paintScreen;
-    s->paintOutput		   = paintOutput;
-    s->paintTransformedOutput	   = paintTransformedOutput;
-    s->enableOutputClipping	   = enableOutputClipping;
-    s->disableOutputClipping	   = disableOutputClipping;
-    s->applyScreenTransform	   = applyScreenTransform;
-    s->paintBackground		   = paintBackground;
-    s->paintWindow		   = paintWindow;
-    s->drawWindow		   = drawWindow;
-    s->addWindowGeometry	   = addWindowGeometry;
-    s->drawWindowTexture	   = drawWindowTexture;
-    s->damageWindowRect		   = damageWindowRect;
-    s->getOutputExtentsForWindow   = getOutputExtentsForWindow;
-    s->getAllowedActionsForWindow  = getAllowedActionsForWindow;
-    s->focusWindow		   = focusWindow;
-    s->placeWindow                 = placeWindow;
-    s->validateWindowResizeRequest = validateWindowResizeRequest;
-
-    s->paintCursor      = paintCursor;
-    s->damageCursorRect	= damageCursorRect;
-
-    s->windowResizeNotify = windowResizeNotify;
-    s->windowMoveNotify	  = windowMoveNotify;
-    s->windowGrabNotify   = windowGrabNotify;
-    s->windowUngrabNotify = windowUngrabNotify;
-
-    s->enterShowDesktopMode = enterShowDesktopMode;
-    s->leaveShowDesktopMode = leaveShowDesktopMode;
-
-    s->windowStateChangeNotify = windowStateChangeNotify;
-
-    s->outputChangeNotify = outputChangeNotify;
-
-    s->initWindowWalker = initWindowWalker;
-
-    s->getProcAddress = 0;
+    s->snContext = sn_monitor_context_new (display->snDisplay,
+					   screenNum,
+					   compScreenSnEvent, s,
+					   NULL);
 
     if (!XGetWindowAttributes (dpy, s->root, &s->attrib))
 	return FALSE;
@@ -1736,8 +1819,6 @@ addScreen (CompDisplay *display,
     s->workArea.y      = 0;
     s->workArea.width  = s->attrib.width;
     s->workArea.height = s->attrib.height;
-
-    s->grabWindow = None;
 
     makeOutputWindow (s);
 
@@ -1871,13 +1952,10 @@ addScreen (CompDisplay *display,
 	return FALSE;
     }
 
-    s->copySubBuffer = NULL;
     if (strstr (glxExtensions, "GLX_MESA_copy_sub_buffer"))
 	s->copySubBuffer = (GLXCopySubBufferProc)
 	    getProcAddress (s, "glXCopySubBufferMESA");
 
-    s->getVideoSync = NULL;
-    s->waitVideoSync = NULL;
     if (strstr (glxExtensions, "GLX_SGI_video_sync"))
     {
 	s->getVideoSync = (GLXGetVideoSyncProc)
@@ -1898,13 +1976,11 @@ addScreen (CompDisplay *display,
 	return FALSE;
     }
 
-    s->textureNonPowerOfTwo = 0;
     if (strstr (glExtensions, "GL_ARB_texture_non_power_of_two"))
 	s->textureNonPowerOfTwo = 1;
 
     glGetIntegerv (GL_MAX_TEXTURE_SIZE, &s->maxTextureSize);
 
-    s->textureRectangle = 0;
     if (strstr (glExtensions, "GL_NV_texture_rectangle")  ||
 	strstr (glExtensions, "GL_EXT_texture_rectangle") ||
 	strstr (glExtensions, "GL_ARB_texture_rectangle"))
@@ -1928,7 +2004,6 @@ addScreen (CompDisplay *display,
 	return FALSE;
     }
 
-    s->textureEnvCombine = s->textureEnvCrossbar = 0;
     if (strstr (glExtensions, "GL_ARB_texture_env_combine"))
     {
 	s->textureEnvCombine = 1;
@@ -1940,12 +2015,10 @@ addScreen (CompDisplay *display,
 	    s->textureEnvCrossbar = 1;
     }
 
-    s->textureBorderClamp = 0;
     if (strstr (glExtensions, "GL_ARB_texture_border_clamp") ||
 	strstr (glExtensions, "GL_SGIS_texture_border_clamp"))
 	s->textureBorderClamp = 1;
 
-    s->maxTextureUnits = 1;
     if (strstr (glExtensions, "GL_ARB_multitexture"))
     {
 	s->activeTexture = (GLActiveTextureProc)
@@ -1957,7 +2030,6 @@ addScreen (CompDisplay *display,
 	    glGetIntegerv (GL_MAX_TEXTURE_UNITS_ARB, &s->maxTextureUnits);
     }
 
-    s->fragmentProgram = 0;
     if (strstr (glExtensions, "GL_ARB_fragment_program"))
     {
 	s->genPrograms = (GLGenProgramsProc)
@@ -1982,7 +2054,6 @@ addScreen (CompDisplay *display,
 	    s->fragmentProgram = 1;
     }
 
-    s->fbo = 0;
     if (strstr (glExtensions, "GL_EXT_framebuffer_object"))
     {
 	s->genFramebuffers = (GLGenFramebuffersProc)
@@ -2014,12 +2085,6 @@ addScreen (CompDisplay *display,
     for (i = 0; i <= MAX_DEPTH; i++)
     {
 	int j, db, stencil, depth, alpha, mipmap, rgba;
-
-	s->glxPixmapFBConfigs[i].fbConfig       = NULL;
-	s->glxPixmapFBConfigs[i].mipmap         = 0;
-	s->glxPixmapFBConfigs[i].yInverted      = 0;
-	s->glxPixmapFBConfigs[i].textureFormat  = 0;
-	s->glxPixmapFBConfigs[i].textureTargets = 0;
 
 	db      = MAXSHORT;
 	stencil = MAXSHORT;
@@ -2156,13 +2221,6 @@ addScreen (CompDisplay *display,
 	return FALSE;
     }
 
-    initTexture (s, &s->backgroundTexture);
-    s->backgroundLoaded = FALSE;
-
-    s->defaultIcon = NULL;
-
-    s->desktopWindowCount = 0;
-
     glClearColor (0.0, 0.0, 0.0, 1.0);
     glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glEnable (GL_CULL_FACE);
@@ -2172,16 +2230,12 @@ addScreen (CompDisplay *display,
     glEnableClientState (GL_VERTEX_ARRAY);
     glEnableClientState (GL_TEXTURE_COORD_ARRAY);
 
-    s->canDoSaturated = s->canDoSlightlySaturated = FALSE;
     if (s->textureEnvCombine && s->maxTextureUnits >= 2)
     {
 	s->canDoSaturated = TRUE;
 	if (s->textureEnvCrossbar && s->maxTextureUnits >= 4)
 	    s->canDoSlightlySaturated = TRUE;
     }
-
-    s->redrawTime = 1000 / defaultRefreshRate;
-    s->optimalRedrawTime = s->redrawTime;
 
     reshape (s, s->attrib.width, s->attrib.height);
 
@@ -2199,9 +2253,6 @@ addScreen (CompDisplay *display,
     glColorMaterial (GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
     glNormal3f (0.0f, 0.0f, -1.0f);
-
-    s->lighting	      = FALSE;
-    s->slowAnimations = FALSE;
 
     addScreenToDisplay (display, s);
 
@@ -2271,10 +2322,6 @@ addScreen (CompDisplay *display,
     s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
 
     XDefineCursor (dpy, s->root, s->normalCursor);
-
-    s->filter[NOTHING_TRANS_FILTER] = COMP_TEXTURE_FILTER_FAST;
-    s->filter[SCREEN_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
-    s->filter[WINDOW_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
 
     return TRUE;
 }
