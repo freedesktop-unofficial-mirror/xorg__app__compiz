@@ -78,6 +78,25 @@ coreFindChildObject (CompObject *object,
     return result;
 }
 
+static CompOption *
+coreGetObjectProps (CompObject *object,
+		    const char *interface,
+		    const char *name,
+		    int	       *n)
+{
+    *n = 0;
+    return NULL;
+}
+
+static CompBool
+coreSetObjectProp (CompObject		 *object,
+		   const char		 *interface,
+		   const char		 *name,
+		   const CompOptionValue *value)
+{
+    return FALSE;
+}
+
 static CompBool
 initCorePluginForObject (CompPlugin *p,
 			 CompObject *o)
@@ -151,7 +170,9 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 static CompObjectVTable coreObjectVTable = {
     coreNameObject,
     coreForEachChildObject,
-    coreFindChildObject
+    coreFindChildObject,
+    coreGetObjectProps,
+    coreSetObjectProp
 };
 
 static CompBool

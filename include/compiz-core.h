@@ -312,10 +312,22 @@ typedef CompObject *(*FindChildObjectProc) (CompObject *object,
 					    const char *type,
 					    const char *name);
 
+typedef CompOption *(*GetObjectPropsProc) (CompObject *object,
+					   const char *interface,
+					   const char *name,
+					   int	      *n);
+
+typedef CompBool (*SetObjectPropProc) (CompObject	     *object,
+				       const char	     *interface,
+				       const char	     *name,
+				       const CompOptionValue *value);
+
 typedef struct _CompObjectVTable {
     NameObjectProc	   nameObject;
     ForEachChildObjectProc forEachChildObject;
     FindChildObjectProc    findChildObject;
+    GetObjectPropsProc	   getProps;
+    SetObjectPropProc	   setProp;
 } CompObjectVTable;
 
 typedef struct _CompObjectVTableVec {

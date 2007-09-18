@@ -110,6 +110,25 @@ screenFindChildObject (CompObject *object,
     return result;
 }
 
+static CompOption *
+screenGetObjectProps (CompObject *object,
+		      const char *interface,
+		      const char *name,
+		      int	 *n)
+{
+    *n = 0;
+    return NULL;
+}
+
+static CompBool
+screenSetObjectProp (CompObject		   *object,
+		     const char		   *interface,
+		     const char		   *name,
+		     const CompOptionValue *value)
+{
+    return FALSE;
+}
+
 static Bool
 desktopHintEqual (CompScreen	*s,
 		  unsigned long *data,
@@ -1481,7 +1500,9 @@ freeScreen (CompScreen *s)
 static CompObjectVTable screenObjectVTable = {
     screenNameObject,
     screenForEachChildObject,
-    screenFindChildObject
+    screenFindChildObject,
+    screenGetObjectProps,
+    screenSetObjectProp
 };
 
 static CompBool

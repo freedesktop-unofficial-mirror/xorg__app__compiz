@@ -95,6 +95,25 @@ windowFindChildObject (CompObject *object,
     return result;
 }
 
+static CompOption *
+windowGetObjectProps (CompObject *object,
+		      const char *interface,
+		      const char *name,
+		      int	 *n)
+{
+    *n = 0;
+    return NULL;
+}
+
+static CompBool
+windowSetObjectProp (CompObject		   *object,
+		     const char		   *interface,
+		     const char		   *name,
+		     const CompOptionValue *value)
+{
+    return FALSE;
+}
+
 static Bool
 isAncestorTo (CompWindow *transient,
 	      CompWindow *ancestor)
@@ -1822,7 +1841,9 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
 static CompObjectVTable windowObjectVTable = {
     windowNameObject,
     windowForEachChildObject,
-    windowFindChildObject
+    windowFindChildObject,
+    windowGetObjectProps,
+    windowSetObjectProp
 };
 
 static CompBool

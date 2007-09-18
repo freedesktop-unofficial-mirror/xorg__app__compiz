@@ -49,10 +49,31 @@ findChildObject (CompObject *parent,
     return NULL;
 }
 
+static CompOption *
+getObjectProps (CompObject *object,
+		const char *interface,
+		const char *name,
+		int	   *n)
+{
+    *n = 0;
+    return NULL;
+}
+
+static CompBool
+setObjectProp (CompObject	     *object,
+	       const char	     *interface,
+	       const char	     *name,
+	       const CompOptionValue *value)
+{
+    return FALSE;
+}
+
 static CompObjectVTable objectVTable = {
     nameObject,
     forEachChildObject,
-    findChildObject
+    findChildObject,
+    getObjectProps,
+    setObjectProp
 };
 
 CompBool

@@ -125,6 +125,25 @@ displayFindChildObject (CompObject *object,
     return result;
 }
 
+static CompOption *
+displayGetObjectProps (CompObject *object,
+		       const char *interface,
+		       const char *name,
+		       int	  *n)
+{
+    *n = 0;
+    return NULL;
+}
+
+static CompBool
+displaySetObjectProp (CompObject	    *object,
+		      const char	    *interface,
+		      const char	    *name,
+		      const CompOptionValue *value)
+{
+    return FALSE;
+}
+
 static Bool
 closeWin (CompDisplay     *d,
 	  CompAction      *action,
@@ -1921,7 +1940,9 @@ freeDisplay (CompDisplay *d)
 static CompObjectVTable displayObjectVTable = {
     displayNameObject,
     displayForEachChildObject,
-    displayFindChildObject
+    displayFindChildObject,
+    displayGetObjectProps,
+    displaySetObjectProp
 };
 
 static CompBool
