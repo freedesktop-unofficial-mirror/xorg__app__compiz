@@ -49,11 +49,12 @@ static int annoLastPointerY = 0;
 #define ANNO_DISPLAY_OPTION_NUM	            9
 
 typedef struct _AnnoDisplay {
-    int		    screenPrivateIndex;
     HandleEventProc handleEvent;
 
     CompOption opt[ANNO_DISPLAY_OPTION_NUM];
 } AnnoDisplay;
+
+static int screenPrivateIndex;
 
 typedef struct _AnnoScreen {
     PaintOutputProc paintOutput;
@@ -68,14 +69,14 @@ typedef struct _AnnoScreen {
     Bool eraseMode;
 } AnnoScreen;
 
-#define GET_ANNO_DISPLAY(d)					  \
+#define GET_ANNO_DISPLAY(d)					       \
     ((AnnoDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
 
 #define ANNO_DISPLAY(d)			   \
     AnnoDisplay *ad = GET_ANNO_DISPLAY (d)
 
-#define GET_ANNO_SCREEN(s, ad)					      \
-    ((AnnoScreen *) (s)->base.base.privates[(ad)->screenPrivateIndex].ptr)
+#define GET_ANNO_SCREEN(s, ad)					     \
+    ((AnnoScreen *) (s)->base.base.privates[screenPrivateIndex].ptr)
 
 #define ANNO_SCREEN(s)							\
     AnnoScreen *as = GET_ANNO_SCREEN (s, GET_ANNO_DISPLAY (s->display))
@@ -775,14 +776,6 @@ annoInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    ad->screenPrivateIndex = allocateScreenPrivateIndex ();
-    if (ad->screenPrivateIndex < 0)
-    {
-	compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
-	free (ad);
-	return FALSE;
-    }
-
     WRAP (ad, d, handleEvent, annoHandleEvent);
 
     d->base.base.privates[displayPrivateIndex].ptr = ad;
@@ -796,8 +789,6 @@ annoFiniDisplay (CompPlugin  *p,
 {
     ANNO_DISPLAY (d);
 
-    freeScreenPrivateIndex (ad->screenPrivateIndex);
-
     UNWRAP (ad, d, handleEvent);
 
     compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
@@ -810,8 +801,6 @@ annoInitScreen (CompPlugin *p,
 		CompScreen *s)
 {
     AnnoScreen *as;
-
-    ANNO_DISPLAY (s->display);
 
     as = malloc (sizeof (AnnoScreen));
     if (!as)
@@ -827,7 +816,7 @@ annoInitScreen (CompPlugin *p,
 
     WRAP (as, s, paintOutput, annoPaintOutput);
 
-    s->base.base.privates[ad->screenPrivateIndex].ptr = as;
+    s->base.base.privates[screenPrivateIndex].ptr = as;
 
     return TRUE;
 }
@@ -926,6 +915,14 @@ annoInit (CompPlugin *p)
 	return FALSE;
     }
 
+    screenPrivateIndex = allocateScreenPrivateIndex ();
+    if (screenPrivateIndex < 0)
+    {
+	freeDisplayPrivateIndex (displayPrivateIndex);
+	compFiniMetadata (&annoMetadata);
+	return FALSE;
+    }
+
     compAddMetadataFromFile (&annoMetadata, p->vTable->name);
 
     return TRUE;
@@ -934,6 +931,7 @@ annoInit (CompPlugin *p)
 static void
 annoFini (CompPlugin *p)
 {
+    freeScreenPrivateIndex (screenPrivateIndex);
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&annoMetadata);
 }
