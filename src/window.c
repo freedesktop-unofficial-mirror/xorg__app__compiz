@@ -95,6 +95,25 @@ windowFindChildObject (CompObject *object,
     return result;
 }
 
+static CompMetadata *
+windowGetObjectMetadata (CompObject *object,
+			 const char *interface)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompMetadata	*result;
+
+    CORE_WINDOW (object);
+
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+	return &coreMetadata;
+
+    UNWRAP (&w->object, object, vTable);
+    result = (*object->vTable->getMetadata) (object, interface);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return result;
+}
+
 static CompOption *
 windowGetObjectProps (CompObject *object,
 		      const char *interface,
@@ -1867,6 +1886,7 @@ static CompObjectVTable windowObjectVTable = {
     windowNameObject,
     windowForEachChildObject,
     windowFindChildObject,
+    windowGetObjectMetadata,
     windowGetObjectProps,
     windowSetObjectProp
 };

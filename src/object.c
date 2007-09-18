@@ -49,6 +49,13 @@ findChildObject (CompObject *parent,
     return NULL;
 }
 
+static CompMetadata *
+getObjectMetadata (CompObject *object,
+		   const char *interface)
+{
+    return NULL;
+}
+
 static CompOption *
 getObjectProps (CompObject *object,
 		const char *interface,
@@ -71,6 +78,7 @@ static CompObjectVTable objectVTable = {
     nameObject,
     forEachChildObject,
     findChildObject,
+    getObjectMetadata,
     getObjectProps,
     setObjectProp
 };

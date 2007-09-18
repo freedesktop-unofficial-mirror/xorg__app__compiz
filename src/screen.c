@@ -110,6 +110,25 @@ screenFindChildObject (CompObject *object,
     return result;
 }
 
+static CompMetadata *
+screenGetObjectMetadata (CompObject *object,
+			 const char *interface)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompMetadata	*result;
+
+    CORE_SCREEN (object);
+
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+	return &coreMetadata;
+
+    UNWRAP (&s->object, object, vTable);
+    result = (*object->vTable->getMetadata) (object, interface);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return result;
+}
+
 static CompOption *
 screenGetObjectProps (CompObject *object,
 		      const char *interface,
@@ -1523,6 +1542,7 @@ static CompObjectVTable screenObjectVTable = {
     screenNameObject,
     screenForEachChildObject,
     screenFindChildObject,
+    screenGetObjectMetadata,
     screenGetObjectProps,
     screenSetObjectProp
 };

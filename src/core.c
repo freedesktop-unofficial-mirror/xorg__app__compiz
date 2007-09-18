@@ -78,6 +78,25 @@ coreFindChildObject (CompObject *object,
     return result;
 }
 
+static CompMetadata *
+coreGetObjectMetadata (CompObject *object,
+		       const char *interface)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompMetadata	*result;
+
+    CORE_CORE (object);
+
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+	return &coreMetadata;
+
+    UNWRAP (&c->object, object, vTable);
+    result = (*object->vTable->getMetadata) (object, interface);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return result;
+}
+
 static CompOption *
 coreGetObjectProps (CompObject *object,
 		    const char *interface,
@@ -170,6 +189,7 @@ static CompObjectVTable coreObjectVTable = {
     coreNameObject,
     coreForEachChildObject,
     coreFindChildObject,
+    coreGetObjectMetadata,
     coreGetObjectProps,
     coreSetObjectProp
 };
