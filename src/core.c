@@ -44,13 +44,15 @@ coreForEachChildObject (CompObject		*object,
     CompDisplay		*d;
     CompBool		status;
 
-    for (d = core.displays; d; d = d->next)
+    CORE_CORE (object);
+
+    for (d = c->displays; d; d = d->next)
 	if (!(*proc) (&d->base, closure))
 	    return FALSE;
 
-    UNWRAP (&core.object, object, vTable);
+    UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachChildObject) (object, proc, closure);
-    WRAP (&core.object, object, vTable, v.vTable);
+    WRAP (&c->object, object, vTable, v.vTable);
 
     return status;
 }
@@ -63,13 +65,15 @@ coreFindChildObject (CompObject *object,
     CompObjectVTableVec v = { object->vTable };
     CompObject		*result;
 
-    if (strcmp (type, getDisplayObjectType ()->name) == 0)
-	if (core.displays && (!name || !name[0]))
-	    return &core.displays->base.base;
+    CORE_CORE (object);
 
-    UNWRAP (&core.object, object, vTable);
+    if (strcmp (type, getDisplayObjectType ()->name) == 0)
+	if (c->displays && (!name || !name[0]))
+	    return &c->displays->base.base;
+
+    UNWRAP (&c->object, object, vTable);
     result = (*object->vTable->findChildObject) (object, type, name);
-    WRAP (&core.object, object, vTable, v.vTable);
+    WRAP (&c->object, object, vTable, v.vTable);
 
     return result;
 }
@@ -154,49 +158,51 @@ static CompBool
 coreInitObject (CompObject     *object,
 		CompObjectType *type)
 {
+    CORE_CORE (object);
+
     if (!compObjectInit (object, type, COMP_OBJECT_TYPE_CORE))
 	return FALSE;
 
-    WRAP (&core.object, &core.base, vTable, &coreObjectVTable);
+    WRAP (&c->object, &c->base, vTable, &coreObjectVTable);
 
-    core.displays = NULL;
+    c->displays = NULL;
 
-    core.tmpRegion = XCreateRegion ();
-    if (!core.tmpRegion)
+    c->tmpRegion = XCreateRegion ();
+    if (!c->tmpRegion)
 	return FALSE;
 
-    core.outputRegion = XCreateRegion ();
-    if (!core.outputRegion)
+    c->outputRegion = XCreateRegion ();
+    if (!c->outputRegion)
     {
-	XDestroyRegion (core.tmpRegion);
+	XDestroyRegion (c->tmpRegion);
 	return FALSE;
     }
 
-    core.fileWatch	     = NULL;
-    core.lastFileWatchHandle = 1;
+    c->fileWatch	   = NULL;
+    c->lastFileWatchHandle = 1;
 
-    core.timeouts	   = NULL;
-    core.lastTimeoutHandle = 1;
+    c->timeouts		 = NULL;
+    c->lastTimeoutHandle = 1;
 
-    core.watchFds	   = NULL;
-    core.lastWatchFdHandle = 1;
-    core.watchPollFds	   = NULL;
-    core.nWatchFds	   = 0;
+    c->watchFds	         = NULL;
+    c->lastWatchFdHandle = 1;
+    c->watchPollFds	 = NULL;
+    c->nWatchFds	 = 0;
 
-    gettimeofday (&core.lastTimeout, 0);
+    gettimeofday (&c->lastTimeout, 0);
 
-    core.forEachObjectType = coreForEachObjectType;
+    c->forEachObjectType = coreForEachObjectType;
 
-    core.initPluginForObject = initCorePluginForObject;
-    core.finiPluginForObject = finiCorePluginForObject;
+    c->initPluginForObject = initCorePluginForObject;
+    c->finiPluginForObject = finiCorePluginForObject;
 
-    core.setOptionForPlugin = setOptionForPlugin;
+    c->setOptionForPlugin = setOptionForPlugin;
 
-    core.objectAdd    = coreObjectAdd;
-    core.objectRemove = coreObjectRemove;
+    c->objectAdd    = coreObjectAdd;
+    c->objectRemove = coreObjectRemove;
 
-    core.fileWatchAdded   = fileWatchAdded;
-    core.fileWatchRemoved = fileWatchRemoved;
+    c->fileWatchAdded   = fileWatchAdded;
+    c->fileWatchRemoved = fileWatchRemoved;
 
     core.sessionInit  = sessionInit;
     core.sessionFini  = sessionFini;
@@ -208,12 +214,14 @@ coreInitObject (CompObject     *object,
 static void
 coreFiniObject (CompObject *object)
 {
-    XDestroyRegion (core.outputRegion);
-    XDestroyRegion (core.tmpRegion);
+    CORE_CORE (object);
 
-    UNWRAP (&core.object, &core.base, vTable);
+    XDestroyRegion (c->outputRegion);
+    XDestroyRegion (c->tmpRegion);
 
-    compObjectFini (&core.base);
+    UNWRAP (&c->object, &c->base, vTable);
+
+    compObjectFini (&c->base);
 }
 
 static CompObjectFuncs coreObjectFuncs = {
