@@ -236,6 +236,8 @@ extern CompMetadata coreMetadata;
 
 #define MOD(a,b) ((a) < 0 ? ((b) - ((-(a) - 1) % (b))) - 1 : (a) % (b))
 
+#define N_ELEMENTS(array) (sizeof (array) / sizeof ((array)[0]))
+
 
 /* privates.c */
 
