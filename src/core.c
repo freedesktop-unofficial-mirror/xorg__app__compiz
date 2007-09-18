@@ -128,6 +128,22 @@ fileWatchRemoved (CompCore      *core,
 {
 }
 
+static CompBool
+coreForEachObjectType (ObjectTypeCallBackProc proc,
+		       void		      *closure)
+{
+    if (!(*proc) (getDisplayObjectType (), closure))
+	return FALSE;
+
+    if (!(*proc) (getScreenObjectType (), closure))
+	return FALSE;
+
+    if (!(*proc) (getWindowObjectType (), closure))
+	return FALSE;
+
+    return (*proc) (getCoreObjectType (), closure);
+}
+
 static CompObjectVTable coreObjectVTable = {
     coreNameObject,
     coreForEachChildObject,
@@ -142,66 +158,6 @@ coreInitObject (CompObject     *object,
 	return FALSE;
 
     WRAP (&core.object, &core.base, vTable, &coreObjectVTable);
-
-    return TRUE;
-}
-
-static void
-coreFiniObject (CompObject *object)
-{
-    UNWRAP (&core.object, &core.base, vTable);
-
-    compObjectFini (&core.base);
-}
-
-static CompObjectFuncs coreObjectFuncs = {
-    coreInitObject,
-    coreFiniObject
-};
-
-static CompObjectType coreObjectType = {
-    "core",
-    NULL,
-    0,
-    NULL,
-    &coreObjectFuncs
-};
-
-static CompBool
-coreForEachObjectType (ObjectTypeCallBackProc proc,
-		       void		      *closure)
-{
-    if (!(*proc) (getDisplayObjectType (), closure))
-	return FALSE;
-
-    if (!(*proc) (getScreenObjectType (), closure))
-	return FALSE;
-
-    if (!(*proc) (getWindowObjectType (), closure))
-	return FALSE;
-
-    return (*proc) (&coreObjectType, closure);
-}
-
-int
-allocateCorePrivateIndex (void)
-{
-    return compObjectAllocatePrivateIndex (&coreObjectType);
-}
-
-void
-freeCorePrivateIndex (int index)
-{
-    compObjectFreePrivateIndex (&coreObjectType, index);
-}
-
-CompBool
-initCore (void)
-{
-    CompPlugin *corePlugin;
-
-    if (!(*coreObjectType.funcs->init) (&core.base, &coreObjectType))
-	return FALSE;
 
     core.displays = NULL;
 
@@ -246,11 +202,65 @@ initCore (void)
     core.sessionFini  = sessionFini;
     core.sessionEvent = sessionEvent;
 
+    return TRUE;
+}
+
+static void
+coreFiniObject (CompObject *object)
+{
+    XDestroyRegion (core.outputRegion);
+    XDestroyRegion (core.tmpRegion);
+
+    UNWRAP (&core.object, &core.base, vTable);
+
+    compObjectFini (&core.base);
+}
+
+static CompObjectFuncs coreObjectFuncs = {
+    coreInitObject,
+    coreFiniObject
+};
+
+static CompObjectType coreObjectType = {
+    "core",
+    NULL,
+    0,
+    NULL,
+    &coreObjectFuncs
+};
+
+CompObjectType *
+getCoreObjectType (void)
+{
+    return &coreObjectType;
+}
+
+int
+allocateCorePrivateIndex (void)
+{
+    return compObjectAllocatePrivateIndex (&coreObjectType);
+}
+
+void
+freeCorePrivateIndex (int index)
+{
+    compObjectFreePrivateIndex (&coreObjectType, index);
+}
+
+CompBool
+initCore (void)
+{
+    CompPlugin *corePlugin;
+
+    if (!(*coreObjectType.funcs->init) (&core.base, &coreObjectType))
+	return FALSE;
+
     corePlugin = loadPlugin ("core");
     if (!corePlugin)
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't load core plugin");
+	(*core.base.type->funcs->fini) (&core.base);
 	return FALSE;
     }
 
@@ -258,6 +268,8 @@ initCore (void)
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
+	unloadPlugin (corePlugin);
+	(*core.base.type->funcs->fini) (&core.base);
 	return FALSE;
     }
 
@@ -271,9 +283,6 @@ finiCore (void)
 	removeDisplay (core.displays);
 
     while (popPlugin ());
-
-    XDestroyRegion (core.outputRegion);
-    XDestroyRegion (core.tmpRegion);
 
     (*coreObjectType.funcs->fini) (&core.base);
 }

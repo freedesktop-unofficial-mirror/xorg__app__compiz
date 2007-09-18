@@ -730,6 +730,9 @@ struct _CompCore {
     SessionEventProc sessionEvent;
 };
 
+CompObjectType *
+getCoreObjectType (void);
+
 CompBool
 initCore (void);
 
