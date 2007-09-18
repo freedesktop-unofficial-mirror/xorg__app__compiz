@@ -179,3 +179,36 @@ compChildObjectFini (CompChildObject *object)
 {
     compObjectFini (&object->base);
 }
+
+typedef struct _FindTypeContext {
+    const char	   *name;
+    CompObjectType *type;
+} FindTypeContext;
+
+static CompBool
+checkType (CompObjectType *type,
+	   void		  *closure)
+{
+    FindTypeContext *ctx = (FindTypeContext *) closure;
+
+    if (strcmp (ctx->name, type->name) == 0)
+    {
+	ctx->type = type;
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+CompObjectType *
+compObjectFindType (const char *name)
+{
+    FindTypeContext ctx;
+
+    ctx.name = name;
+    ctx.type = NULL;
+
+    (*core.forEachObjectType) (checkType, (void *) &ctx);
+
+    return ctx.type;
+}

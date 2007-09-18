@@ -356,6 +356,9 @@ compChildObjectInit (CompChildObject  *object,
 void
 compChildObjectFini (CompChildObject *object);
 
+CompObjectType *
+compObjectFindType (const char *name);
+
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))
 
