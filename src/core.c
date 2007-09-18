@@ -102,8 +102,22 @@ coreGetObjectProps (CompObject *object,
 		    const char *interface,
 		    int	       *n)
 {
-    *n = 0;
-    return NULL;
+    CompObjectVTableVec v = { object->vTable };
+    CompOption		*result;
+
+    CORE_CORE (object);
+
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+    {
+	*n = 0;
+	return NULL;
+    }
+
+    UNWRAP (&c->object, object, vTable);
+    result = (*object->vTable->getProps) (object, interface, n);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static CompBool
@@ -112,7 +126,19 @@ coreSetObjectProp (CompObject		 *object,
 		   const char		 *name,
 		   const CompOptionValue *value)
 {
-    return FALSE;
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_CORE (object);
+
+    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+	return FALSE;
+
+    UNWRAP (&c->object, object, vTable);
+    status = (*object->vTable->setProp) (object, interface, name, value);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompBool
