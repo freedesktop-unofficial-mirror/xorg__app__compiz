@@ -121,9 +121,6 @@ windowGetObjectMetadata (CompObject *object,
 
     CORE_WINDOW (object);
 
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
-	return &coreMetadata;
-
     UNWRAP (&w->object, object, vTable);
     result = (*object->vTable->getMetadata) (object, interface);
     WRAP (&w->object, object, vTable, v.vTable);
@@ -140,12 +137,6 @@ windowGetObjectProps (CompObject *object,
     CompOption		*result;
 
     CORE_WINDOW (object);
-
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
-    {
-	*n = 0;
-	return NULL;
-    }
 
     UNWRAP (&w->object, object, vTable);
     result = (*object->vTable->getProps) (object, interface, n);
@@ -164,9 +155,6 @@ windowSetObjectProp (CompObject		   *object,
     CompBool		status;
 
     CORE_WINDOW (object);
-
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
-	return FALSE;
 
     UNWRAP (&w->object, object, vTable);
     status = (*object->vTable->setProp) (object, interface, name, value);
