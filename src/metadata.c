@@ -1123,23 +1123,30 @@ initOptionFromMetadataPath (CompDisplay   *d,
     return TRUE;
 }
 
-Bool
-compInitScreenOptionFromMetadata (CompScreen   *s,
-				  CompMetadata *m,
-				  CompOption   *o,
-				  const char   *name)
+static CompBool
+compInitObjectPropFromMetadata (CompObject   *o,
+				CompMetadata *m,
+				CompOption   *prop,
+				const char   *name)
 {
-    char str[1024];
+    CompDisplay *display = NULL;
+    char	str[1024];
 
-    sprintf (str, "/compiz/%s/screen//option[@name=\"%s\"]", m->path, name);
+    sprintf (str, "/compiz/%s/%s//option[@name=\"%s\"]",
+	     m->path, o->type->name, name);
 
-    return initOptionFromMetadataPath (s->display, m, o, BAD_CAST str);
+    if (o->type == getDisplayObjectType ())
+	display = GET_CORE_DISPLAY (o);
+    else if (o->type == getScreenObjectType ())
+	display = GET_CORE_SCREEN (o)->display;
+
+    return initOptionFromMetadataPath (display, m, prop, BAD_CAST str);
 }
 
 static void
-finiScreenOptionValue (CompScreen      *s,
-		       CompOptionValue *v,
-		       CompOptionType  type)
+finiObjectPropValue (CompObject      *o,
+		     CompOptionValue *v,
+		     CompOptionType  type)
 {
     int	i;
 
@@ -1150,23 +1157,100 @@ finiScreenOptionValue (CompScreen      *s,
     case CompOptionTypeEdge:
     case CompOptionTypeBell:
 	if (v->action.state & CompActionStateAutoGrab)
-	    removeScreenAction (s, &v->action);
+	{
+	    if (o->type == getDisplayObjectType ())
+	    {
+		CompScreen *s;
+
+		for (s = GET_CORE_DISPLAY (o)->screens; s; s = s->next)
+		    removeScreenAction (s, &v->action);
+	    }
+	    else if (o->type == getScreenObjectType ())
+	    {
+		removeScreenAction (GET_CORE_SCREEN (o), &v->action);
+	    }
+	}
 	break;
     case CompOptionTypeList:
 	for (i = 0; i < v->list.nValue; i++)
-	    finiScreenOptionValue (s, &v->list.value[i], v->list.type);
+	    finiObjectPropValue (o, &v->list.value[i], v->list.type);
     default:
 	break;
     }
 }
 
-void
-compFiniScreenOption (CompScreen *s,
-		      CompOption *o)
+static void
+compFiniObjectProp (CompObject *o,
+		    CompOption *prop)
 {
-    finiScreenOptionValue (s, &o->value, o->type);
-    compFiniOption (o);
-    free (o->name);
+    finiObjectPropValue (o, &prop->value, prop->type);
+    compFiniOption (prop);
+    free (prop->name);
+}
+
+static void
+compFiniObjectProps (CompObject *object,
+		     CompOption *prop,
+		     int	n)
+{
+    int i;
+
+    for (i = 0; i < n; i++)
+	compFiniObjectProp (object, &prop[i]);
+}
+
+static CompBool
+compInitObjectPropsFromMetadata (CompObject		      *o,
+				 CompMetadata		      *m,
+				 const CompMetadataOptionInfo *info,
+				 CompOption		      *prop,
+				 int			      n)
+{
+    int i;
+
+    for (i = 0; i < n; i++)
+    {
+	if (!compInitObjectPropFromMetadata (o, m, &prop[i], info[i].name))
+	{
+	    compFiniObjectProps (o, prop, i);
+	    return FALSE;
+	}
+
+	if (info[i].initiate)
+	    prop[i].value.action.initiate = info[i].initiate;
+
+	if (info[i].terminate)
+	    prop[i].value.action.terminate = info[i].terminate;
+    }
+
+    return TRUE;
+}
+
+static CompBool
+compSetObjectProp (CompObject		 *object,
+		   CompOption		 *prop,
+		   const CompOptionValue *value)
+{
+    if (object->type == getDisplayObjectType () && isActionOption (prop))
+    {
+	if (prop->value.action.state & CompActionStateAutoGrab)
+	{
+	    if (setDisplayAction (GET_CORE_DISPLAY (object), prop, value))
+		return TRUE;
+	}
+	else
+	{
+	    if (compSetActionOption (prop, value))
+		return TRUE;
+	}
+    }
+    else
+    {
+	if (compSetOption (prop, value))
+	    return TRUE;
+    }
+
+    return FALSE;
 }
 
 Bool
@@ -1176,24 +1260,7 @@ compInitScreenOptionsFromMetadata (CompScreen			*s,
 				   CompOption			*opt,
 				   int				n)
 {
-    int i;
-
-    for (i = 0; i < n; i++)
-    {
-	if (!compInitScreenOptionFromMetadata (s, m, &opt[i], info[i].name))
-	{
-	    compFiniScreenOptions (s, opt, i);
-	    return FALSE;
-	}
-
-	if (info[i].initiate)
-	    opt[i].value.action.initiate = info[i].initiate;
-
-	if (info[i].terminate)
-	    opt[i].value.action.terminate = info[i].terminate;
-    }
-
-    return TRUE;
+    return compInitObjectPropsFromMetadata (&s->base.base, m, info, opt, n);
 }
 
 void
@@ -1201,10 +1268,7 @@ compFiniScreenOptions (CompScreen *s,
 		       CompOption *opt,
 		       int	  n)
 {
-    int i;
-
-    for (i = 0; i < n; i++)
-	compFiniScreenOption (s, &opt[i]);
+    compFiniObjectProps (&s->base.base, opt, n);
 }
 
 Bool
@@ -1212,58 +1276,7 @@ compSetScreenOption (CompScreen		   *s,
 		     CompOption		   *o,
 		     const CompOptionValue *value)
 {
-    if (compSetOption (o, value))
-	return TRUE;
-
-    return FALSE;
-}
-
-Bool
-compInitDisplayOptionFromMetadata (CompDisplay  *d,
-				   CompMetadata *m,
-				   CompOption	*o,
-				   const char	*name)
-{
-    char str[1024];
-
-    sprintf (str, "/compiz/%s/display//option[@name=\"%s\"]", m->path, name);
-
-    return initOptionFromMetadataPath (d, m, o, BAD_CAST str);
-}
-
-static void
-finiDisplayOptionValue (CompDisplay	*d,
-			CompOptionValue *v,
-			CompOptionType  type)
-{
-    CompScreen *s;
-    int	       i;
-
-    switch (type) {
-    case CompOptionTypeAction:
-    case CompOptionTypeKey:
-    case CompOptionTypeButton:
-    case CompOptionTypeEdge:
-    case CompOptionTypeBell:
-	if (v->action.state & CompActionStateAutoGrab)
-	    for (s = d->screens; s; s = s->next)
-		removeScreenAction (s, &v->action);
-	break;
-    case CompOptionTypeList:
-	for (i = 0; i < v->list.nValue; i++)
-	    finiDisplayOptionValue (d, &v->list.value[i], v->list.type);
-    default:
-	break;
-    }
-}
-
-void
-compFiniDisplayOption (CompDisplay *d,
-		       CompOption  *o)
-{
-    finiDisplayOptionValue (d, &o->value, o->type);
-    compFiniOption (o);
-    free (o->name);
+    return compSetObjectProp (&s->base.base, o, value);
 }
 
 Bool
@@ -1273,24 +1286,7 @@ compInitDisplayOptionsFromMetadata (CompDisplay			 *d,
 				    CompOption			 *opt,
 				    int				 n)
 {
-    int i;
-
-    for (i = 0; i < n; i++)
-    {
-	if (!compInitDisplayOptionFromMetadata (d, m, &opt[i], info[i].name))
-	{
-	    compFiniDisplayOptions (d, opt, i);
-	    return FALSE;
-	}
-
-	if (info[i].initiate)
-	    opt[i].value.action.initiate = info[i].initiate;
-
-	if (info[i].terminate)
-	    opt[i].value.action.terminate = info[i].terminate;
-    }
-
-    return TRUE;
+    return compInitObjectPropsFromMetadata (&d->base.base, m, info, opt, n);
 }
 
 void
@@ -1298,10 +1294,7 @@ compFiniDisplayOptions (CompDisplay *d,
 			CompOption  *opt,
 			int	    n)
 {
-    int i;
-
-    for (i = 0; i < n; i++)
-	compFiniDisplayOption (d, &opt[i]);
+    compFiniObjectProps (&d->base.base, opt, n);
 }
 
 Bool
@@ -1309,26 +1302,7 @@ compSetDisplayOption (CompDisplay	    *d,
 		      CompOption	    *o,
 		      const CompOptionValue *value)
 {
-    if (isActionOption (o))
-    {
-	if (o->value.action.state & CompActionStateAutoGrab)
-	{
-	    if (setDisplayAction (d, o, value))
-		return TRUE;
-	}
-	else
-	{
-	    if (compSetActionOption (o, value))
-		return TRUE;
-	}
-    }
-    else
-    {
-	if (compSetOption (o, value))
-	    return TRUE;
-    }
-
-    return FALSE;
+   return compSetObjectProp (&d->base.base, o, value);
 }
 
 char *
