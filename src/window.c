@@ -95,6 +95,23 @@ windowFindChildObject (CompObject *object,
     return result;
 }
 
+static CompBool
+windowForEachInterface (CompObject	      *object,
+			InterfaceCallBackProc proc,
+			void		      *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->forEachInterface) (object, proc, closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
+}
+
 static CompMetadata *
 windowGetObjectMetadata (CompObject *object,
 			 const char *interface)
@@ -1886,6 +1903,7 @@ static CompObjectVTable windowObjectVTable = {
     windowNameObject,
     windowForEachChildObject,
     windowFindChildObject,
+    windowForEachInterface,
     windowGetObjectMetadata,
     windowGetObjectProps,
     windowSetObjectProp

@@ -125,6 +125,26 @@ displayFindChildObject (CompObject *object,
     return result;
 }
 
+static CompBool
+displayForEachInterface (CompObject	       *object,
+			 InterfaceCallBackProc proc,
+			 void		       *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_DISPLAY (object);
+
+    if (!(*proc) (CORE_INTERFACE_NAME, closure))
+	return FALSE;
+
+    UNWRAP (&d->object, object, vTable);
+    status = (*object->vTable->forEachInterface) (object, proc, closure);
+    WRAP (&d->object, object, vTable, v.vTable);
+
+    return status;
+}
+
 static CompMetadata *
 displayGetObjectMetadata (CompObject *object,
 			  const char *interface)
@@ -1982,6 +2002,7 @@ static CompObjectVTable displayObjectVTable = {
     displayNameObject,
     displayForEachChildObject,
     displayFindChildObject,
+    displayForEachInterface,
     displayGetObjectMetadata,
     displayGetObjectProps,
     displaySetObjectProp

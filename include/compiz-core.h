@@ -314,6 +314,13 @@ typedef CompObject *(*FindChildObjectProc) (CompObject *object,
 					    const char *type,
 					    const char *name);
 
+typedef CompBool (*InterfaceCallBackProc) (const char *interface,
+					   void	      *closure);
+
+typedef CompBool (*ForEachInterfaceProc) (CompObject		*object,
+					  InterfaceCallBackProc proc,
+					  void		        *closure);
+
 typedef CompMetadata *(*GetObjectMetadataProc) (CompObject *object,
 						const char *interface);
 
@@ -330,6 +337,7 @@ typedef struct _CompObjectVTable {
     NameObjectProc	   nameObject;
     ForEachChildObjectProc forEachChildObject;
     FindChildObjectProc    findChildObject;
+    ForEachInterfaceProc   forEachInterface;
     GetObjectMetadataProc  getMetadata;
     GetObjectPropsProc	   getProps;
     SetObjectPropProc	   setProp;

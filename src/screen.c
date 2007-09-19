@@ -110,6 +110,26 @@ screenFindChildObject (CompObject *object,
     return result;
 }
 
+static CompBool
+screenForEachInterface (CompObject	      *object,
+			InterfaceCallBackProc proc,
+			void		      *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_SCREEN (object);
+
+    if (!(*proc) (CORE_INTERFACE_NAME, closure))
+	return FALSE;
+
+    UNWRAP (&s->object, object, vTable);
+    status = (*object->vTable->forEachInterface) (object, proc, closure);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return status;
+}
+
 static CompMetadata *
 screenGetObjectMetadata (CompObject *object,
 			 const char *interface)
@@ -1542,6 +1562,7 @@ static CompObjectVTable screenObjectVTable = {
     screenNameObject,
     screenForEachChildObject,
     screenFindChildObject,
+    screenForEachInterface,
     screenGetObjectMetadata,
     screenGetObjectProps,
     screenSetObjectProp

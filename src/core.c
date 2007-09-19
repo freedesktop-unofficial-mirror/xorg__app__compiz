@@ -78,6 +78,23 @@ coreFindChildObject (CompObject *object,
     return result;
 }
 
+static CompBool
+coreForEachInterface (CompObject	    *object,
+		      InterfaceCallBackProc proc,
+		      void		    *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_CORE (object);
+
+    UNWRAP (&c->object, object, vTable);
+    status = (*object->vTable->forEachInterface) (object, proc, closure);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return status;
+}
+
 static CompMetadata *
 coreGetObjectMetadata (CompObject *object,
 		       const char *interface)
@@ -215,6 +232,7 @@ static CompObjectVTable coreObjectVTable = {
     coreNameObject,
     coreForEachChildObject,
     coreFindChildObject,
+    coreForEachInterface,
     coreGetObjectMetadata,
     coreGetObjectProps,
     coreSetObjectProp
