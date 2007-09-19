@@ -3379,6 +3379,12 @@ typedef struct _CompMetadataOptionInfo {
     CompActionCallBackProc terminate;
 } CompMetadataOptionInfo;
 
+typedef struct _CompMetadataObjectInfo {
+    char			 *name;
+    const CompMetadataOptionInfo *optionInfo;
+    int				 nOptionInfo;
+} CompMetadataObjectInfo;
+
 extern const CompMetadataOptionInfo
 coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM];
 extern const CompMetadataOptionInfo
@@ -3397,6 +3403,12 @@ compInitPluginMetadataFromInfo (CompMetadata		     *metadata,
 				int			     nDisplayOptionInfo,
 				const CompMetadataOptionInfo *screenOptionInfo,
 				int			     nScreenOptionInfo);
+
+Bool
+compInitObjectMetadataFromInfo (CompMetadata		     *metadata,
+				const char		     *plugin,
+				const CompMetadataObjectInfo *objectInfo,
+				int			     nObjectInfo);
 
 Bool
 compInitScreenOptionFromMetadata (CompScreen   *screen,

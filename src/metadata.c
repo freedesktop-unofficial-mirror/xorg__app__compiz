@@ -233,17 +233,11 @@ compAddMetadataFromIO (CompMetadata	     *metadata,
     return TRUE;
 }
 
-typedef struct _CompIOObjectInfo {
-    const char			 *name;
-    const CompMetadataOptionInfo *info;
-    int				 nInfo;
-} CompIOObjectInfo;
-
 typedef struct _CompIOCtx {
-    int		     offset;
-    const char	     *name;
-    CompIOObjectInfo *info;
-    int		     nInfo;
+    int				 offset;
+    const char			 *name;
+    const CompMetadataObjectInfo *info;
+    int				 nInfo;
 } CompIOCtx;
 
 static int
@@ -251,11 +245,11 @@ readPluginXmlCallback (void *context,
 		       char *buffer,
 		       int  length)
 {
-    CompIOCtx	     *ctx = (CompIOCtx *) context;
-    CompIOObjectInfo *info = ctx->info;
-    int		     nInfo = ctx->nInfo;
-    int		     offset = ctx->offset;
-    int		     i, j;
+    CompIOCtx			 *ctx = (CompIOCtx *) context;
+    const CompMetadataObjectInfo *info = ctx->info;
+    int				 nInfo = ctx->nInfo;
+    int				 offset = ctx->offset;
+    int				 i, j;
 
     i = compReadXmlChunk ("<compiz><plugin name=\"", &offset, buffer, length);
     i += compReadXmlChunk (ctx->name, &offset, buffer + i, length - i);
@@ -267,8 +261,8 @@ readPluginXmlCallback (void *context,
 	i += compReadXmlChunk (info->name, &offset, buffer + i, length - i);
 	i += compReadXmlChunk (">", &offset, buffer + i, length - i);
 
-	for (j = 0; j < info->nInfo; j++)
-	    i += compReadXmlChunkFromMetadataOptionInfo (&info->info[j],
+	for (j = 0; j < info->nOptionInfo; j++)
+	    i += compReadXmlChunkFromMetadataOptionInfo (&info->optionInfo[j],
 							 &offset,
 							 buffer + i,
 							 length - i);
@@ -304,9 +298,9 @@ compInitPluginMetadataFromInfo (CompMetadata		     *metadata,
 
     if (nDisplayOptionInfo || nScreenOptionInfo)
     {
-	CompIOCtx	 ctx;
-	CompIOObjectInfo info[2];
-	int		 i = 0;
+	CompIOCtx	       ctx;
+	CompMetadataObjectInfo info[2];
+	int		       i = 0;
 
 	ctx.offset = 0;
 	ctx.name   = plugin;
@@ -315,18 +309,18 @@ compInitPluginMetadataFromInfo (CompMetadata		     *metadata,
 
 	if (nDisplayOptionInfo)
 	{
-	    info[i].name  = "display";
-	    info[i].info  = displayOptionInfo;
-	    info[i].nInfo = nDisplayOptionInfo;
+	    info[i].name	= "display";
+	    info[i].optionInfo	= displayOptionInfo;
+	    info[i].nOptionInfo	= nDisplayOptionInfo;
 
 	    i++;
 	}
 
 	if (nScreenOptionInfo)
 	{
-	    info[i].name  = "screen";
-	    info[i].info  = screenOptionInfo;
-	    info[i].nInfo = nScreenOptionInfo;
+	    info[i].name	= "screen";
+	    info[i].optionInfo	= screenOptionInfo;
+	    info[i].nOptionInfo	= nScreenOptionInfo;
 
 	    i++;
 	}
@@ -336,6 +330,36 @@ compInitPluginMetadataFromInfo (CompMetadata		     *metadata,
 	    ctx.info  = info;
 	    ctx.nInfo = i;
 	}
+
+	if (!compAddMetadataFromIO (metadata,
+				    readPluginXmlCallback, NULL,
+				    (void *) &ctx))
+	{
+	    compFiniMetadata (metadata);
+	    return FALSE;
+	}
+    }
+
+    return TRUE;
+}
+
+Bool
+compInitObjectMetadataFromInfo (CompMetadata		     *metadata,
+				const char		     *plugin,
+				const CompMetadataObjectInfo *objectInfo,
+				int			     nObjectInfo)
+{
+    if (!compInitPluginMetadata (metadata, plugin))
+	return FALSE;
+
+    if (nObjectInfo)
+    {
+	CompIOCtx ctx;
+
+	ctx.offset = 0;
+	ctx.name   = plugin;
+	ctx.info   = objectInfo;
+	ctx.nInfo  = nObjectInfo;
 
 	if (!compAddMetadataFromIO (metadata,
 				    readPluginXmlCallback, NULL,
