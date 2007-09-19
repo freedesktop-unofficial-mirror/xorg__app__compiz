@@ -29,6 +29,8 @@
 
 CompCore core;
 
+#define CORE_CORE_INTERFACE_NAME "core"
+
 static char *
 coreNameObject (CompObject *object)
 {
@@ -88,6 +90,9 @@ coreForEachInterface (CompObject	    *object,
 
     CORE_CORE (object);
 
+    if (!(*proc) (CORE_CORE_INTERFACE_NAME, closure))
+	return FALSE;
+
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachInterface) (object, proc, closure);
     WRAP (&c->object, object, vTable, v.vTable);
@@ -103,6 +108,9 @@ coreGetObjectMetadata (CompObject *object,
     CompMetadata	*result;
 
     CORE_CORE (object);
+
+    if (strcmp (interface, CORE_CORE_INTERFACE_NAME) == 0)
+	return &coreMetadata;
 
     UNWRAP (&c->object, object, vTable);
     result = (*object->vTable->getMetadata) (object, interface);
@@ -120,6 +128,12 @@ coreGetObjectProps (CompObject *object,
     CompOption		*result;
 
     CORE_CORE (object);
+
+    if (strcmp (interface, CORE_CORE_INTERFACE_NAME) == 0)
+    {
+	*n = N_ELEMENTS (c->prop);
+	return c->prop;
+    }
 
     UNWRAP (&c->object, object, vTable);
     result = (*object->vTable->getProps) (object, interface, n);
@@ -139,12 +153,19 @@ coreSetObjectProp (CompObject		 *object,
 
     CORE_CORE (object);
 
+    if (strcmp (interface, CORE_CORE_INTERFACE_NAME) == 0)
+	return FALSE;
+
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->setProp) (object, interface, name, value);
     WRAP (&c->object, object, vTable, v.vTable);
 
     return status;
 }
+
+const CompMetadataOptionInfo coreCoreOptionInfo[COMP_CORE_PROP_NUM] = {
+    { "abi", "int", 0, 0, 0 }
+};
 
 static CompBool
 initCorePluginForObject (CompPlugin *p,
@@ -235,20 +256,38 @@ coreInitObject (CompObject     *object,
     if (!compObjectInit (object, type, COMP_OBJECT_TYPE_CORE))
 	return FALSE;
 
-    WRAP (&c->object, &c->base, vTable, &coreObjectVTable);
+    if (!compInitObjectPropsFromMetadata (&c->base,
+					  &coreMetadata,
+					  coreCoreOptionInfo,
+					  c->prop,
+					  COMP_CORE_PROP_NUM))
+    {
+	compObjectFini (object);
+	return FALSE;
+    }
 
-    c->displays = NULL;
+    c->prop[COMP_CORE_PROP_ABI].value.i = CORE_ABIVERSION;
 
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
+    {
+	compFiniObjectProps (&c->base, c->prop, COMP_CORE_PROP_NUM);
+	compObjectFini (object);
 	return FALSE;
+    }
 
     c->outputRegion = XCreateRegion ();
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
+	compFiniObjectProps (&c->base, c->prop, COMP_CORE_PROP_NUM);
+	compObjectFini (object);
 	return FALSE;
     }
+
+    WRAP (&c->object, &c->base, vTable, &coreObjectVTable);
+
+    c->displays = NULL;
 
     c->fileWatch	   = NULL;
     c->lastFileWatchHandle = 1;
@@ -292,6 +331,8 @@ coreFiniObject (CompObject *object)
     XDestroyRegion (c->tmpRegion);
 
     UNWRAP (&c->object, &c->base, vTable);
+
+    compFiniObjectProps (&c->base, c->prop, COMP_CORE_PROP_NUM);
 
     compObjectFini (&c->base);
 }

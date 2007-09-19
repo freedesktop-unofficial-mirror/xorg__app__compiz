@@ -679,6 +679,9 @@ isActionOption (CompOption *option);
 
 /* core.c */
 
+#define COMP_CORE_PROP_ABI 0
+#define COMP_CORE_PROP_NUM 1
+
 typedef CompBool (*InitPluginForObjectProc) (CompPlugin *plugin,
 					     CompObject *object);
 typedef void (*FiniPluginForObjectProc) (CompPlugin *plugin,
@@ -746,6 +749,8 @@ struct _CompCore {
     CompObject base;
 
     CompObjectVTableVec object;
+
+    CompOption prop[COMP_CORE_PROP_NUM];
 
     CompDisplay *displays;
 
@@ -3386,6 +3391,8 @@ typedef struct _CompMetadataObjectInfo {
 } CompMetadataObjectInfo;
 
 extern const CompMetadataOptionInfo
+coreCoreOptionInfo[COMP_CORE_PROP_NUM];
+extern const CompMetadataOptionInfo
 coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM];
 extern const CompMetadataOptionInfo
 coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM];
@@ -3409,6 +3416,33 @@ compInitObjectMetadataFromInfo (CompMetadata		     *metadata,
 				const char		     *plugin,
 				const CompMetadataObjectInfo *objectInfo,
 				int			     nObjectInfo);
+
+CompBool
+compInitObjectPropFromMetadata (CompObject   *object,
+				CompMetadata *metadata,
+				CompOption   *prop,
+				const char   *name);
+
+void
+compFiniObjectProp (CompObject *object,
+		    CompOption *prop);
+
+CompBool
+compInitObjectPropsFromMetadata (CompObject		      *object,
+				 CompMetadata		      *metadata,
+				 const CompMetadataOptionInfo *info,
+				 CompOption		      *prop,
+				 int			      n);
+
+void
+compFiniObjectProps (CompObject *object,
+		     CompOption *prop,
+		     int	n);
+
+CompBool
+compSetObjectProp (CompObject		 *object,
+		   CompOption		 *prop,
+		   const CompOptionValue *value);
 
 Bool
 compInitScreenOptionFromMetadata (CompScreen   *screen,

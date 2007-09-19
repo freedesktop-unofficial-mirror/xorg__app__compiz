@@ -1123,7 +1123,7 @@ initOptionFromMetadataPath (CompDisplay   *d,
     return TRUE;
 }
 
-static CompBool
+CompBool
 compInitObjectPropFromMetadata (CompObject   *o,
 				CompMetadata *m,
 				CompOption   *prop,
@@ -1179,27 +1179,16 @@ finiObjectPropValue (CompObject      *o,
     }
 }
 
-static void
-compFiniObjectProp (CompObject *o,
+void
+compFiniObjectProp (CompObject *object,
 		    CompOption *prop)
 {
-    finiObjectPropValue (o, &prop->value, prop->type);
+    finiObjectPropValue (object, &prop->value, prop->type);
     compFiniOption (prop);
     free (prop->name);
 }
 
-static void
-compFiniObjectProps (CompObject *object,
-		     CompOption *prop,
-		     int	n)
-{
-    int i;
-
-    for (i = 0; i < n; i++)
-	compFiniObjectProp (object, &prop[i]);
-}
-
-static CompBool
+CompBool
 compInitObjectPropsFromMetadata (CompObject		      *o,
 				 CompMetadata		      *m,
 				 const CompMetadataOptionInfo *info,
@@ -1226,7 +1215,18 @@ compInitObjectPropsFromMetadata (CompObject		      *o,
     return TRUE;
 }
 
-static CompBool
+void
+compFiniObjectProps (CompObject *object,
+		     CompOption *prop,
+		     int	n)
+{
+    int i;
+
+    for (i = 0; i < n; i++)
+	compFiniObjectProp (object, &prop[i]);
+}
+
+CompBool
 compSetObjectProp (CompObject		 *object,
 		   CompOption		 *prop,
 		   const CompOptionValue *value)
