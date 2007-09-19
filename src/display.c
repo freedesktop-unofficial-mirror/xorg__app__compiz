@@ -68,8 +68,6 @@ int lastPointerY = 0;
 int pointerX     = 0;
 int pointerY     = 0;
 
-#define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
-
 #define CORE_DISPLAY_INTERFACE_NAME "display"
 
 static char *
@@ -810,7 +808,7 @@ getDisplayOptions (CompPlugin  *plugin,
 		   CompDisplay *display,
 		   int	       *count)
 {
-    *count = NUM_OPTIONS (display);
+    *count = N_ELEMENTS (display->opt);
     return display->opt;
 }
 
@@ -906,7 +904,7 @@ setDisplayOption (CompPlugin		*plugin,
     CompOption *o;
     int	       index;
 
-    o = compFindOption (display->opt, NUM_OPTIONS (display), name, &index);
+    o = compFindOption (display->opt, N_ELEMENTS (display->opt), name, &index);
     if (!o)
 	return FALSE;
 

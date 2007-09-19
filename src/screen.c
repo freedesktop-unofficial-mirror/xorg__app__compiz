@@ -47,8 +47,6 @@
 
 #include <compiz-core.h>
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
 #define CORE_SCREEN_INTERFACE_NAME "screen"
 
 static char *
@@ -519,7 +517,7 @@ getScreenOptions (CompPlugin *plugin,
 		  CompScreen *screen,
 		  int	     *count)
 {
-    *count = NUM_OPTIONS (screen);
+    *count = N_ELEMENTS (screen->opt);
     return screen->opt;
 }
 
@@ -532,7 +530,7 @@ setScreenOption (CompPlugin	       *plugin,
     CompOption *o;
     int	       index;
 
-    o = compFindOption (screen->opt, NUM_OPTIONS (screen), name, &index);
+    o = compFindOption (screen->opt, N_ELEMENTS (screen->opt), name, &index);
     if (!o)
 	return FALSE;
 
@@ -571,7 +569,7 @@ setScreenOption (CompPlugin	       *plugin,
 	{
 	    CompOption *vsize;
 
-	    vsize = compFindOption (screen->opt, NUM_OPTIONS (screen),
+	    vsize = compFindOption (screen->opt, N_ELEMENTS (screen->opt),
 				    "vsize", NULL);
 
 	    if (!vsize)
@@ -589,7 +587,7 @@ setScreenOption (CompPlugin	       *plugin,
 	{
 	    CompOption *hsize;
 
-	    hsize = compFindOption (screen->opt, NUM_OPTIONS (screen),
+	    hsize = compFindOption (screen->opt, N_ELEMENTS (screen->opt),
 				    "hsize", NULL);
 
 	    if (!hsize)
