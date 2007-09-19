@@ -233,13 +233,17 @@ compAddMetadataFromIO (CompMetadata	     *metadata,
     return TRUE;
 }
 
-typedef struct _CompIOCtx {
-    int				 offset;
+typedef struct _CompIOObjectInfo {
     const char			 *name;
-    const CompMetadataOptionInfo *displayOInfo;
-    int				 nDisplayOInfo;
-    const CompMetadataOptionInfo *screenOInfo;
-    int				 nScreenOInfo;
+    const CompMetadataOptionInfo *info;
+    int				 nInfo;
+} CompIOObjectInfo;
+
+typedef struct _CompIOCtx {
+    int		     offset;
+    const char	     *name;
+    CompIOObjectInfo *info;
+    int		     nInfo;
 } CompIOCtx;
 
 static int
@@ -247,38 +251,33 @@ readPluginXmlCallback (void *context,
 		       char *buffer,
 		       int  length)
 {
-    CompIOCtx *ctx = (CompIOCtx *) context;
-    int	      offset = ctx->offset;
-    int	      i, j;
+    CompIOCtx	     *ctx = (CompIOCtx *) context;
+    CompIOObjectInfo *info = ctx->info;
+    int		     nInfo = ctx->nInfo;
+    int		     offset = ctx->offset;
+    int		     i, j;
 
     i = compReadXmlChunk ("<compiz><plugin name=\"", &offset, buffer, length);
     i += compReadXmlChunk (ctx->name, &offset, buffer + i, length - i);
     i += compReadXmlChunk ("\">", &offset, buffer + i, length - i);
 
-    if (ctx->nDisplayOInfo)
+    while (nInfo--)
     {
-	i += compReadXmlChunk ("<display>", &offset, buffer + i, length - i);
+	i += compReadXmlChunk ("<", &offset, buffer + i, length - i);
+	i += compReadXmlChunk (info->name, &offset, buffer + i, length - i);
+	i += compReadXmlChunk (">", &offset, buffer + i, length - i);
 
-	for (j = 0; j < ctx->nDisplayOInfo; j++)
-	    i += compReadXmlChunkFromMetadataOptionInfo (&ctx->displayOInfo[j],
+	for (j = 0; j < info->nInfo; j++)
+	    i += compReadXmlChunkFromMetadataOptionInfo (&info->info[j],
 							 &offset,
 							 buffer + i,
 							 length - i);
 
-	i += compReadXmlChunk ("</display>", &offset, buffer + i, length - i);
-    }
+	i += compReadXmlChunk ("</", &offset, buffer + i, length - i);
+	i += compReadXmlChunk (info->name, &offset, buffer + i, length - i);
+	i += compReadXmlChunk (">", &offset, buffer + i, length - i);
 
-    if (ctx->nScreenOInfo)
-    {
-	i += compReadXmlChunk ("<screen>", &offset, buffer + i, length - i);
-
-	for (j = 0; j < ctx->nScreenOInfo; j++)
-	    i += compReadXmlChunkFromMetadataOptionInfo (&ctx->screenOInfo[j],
-							 &offset,
-							 buffer + i,
-							 length - i);
-
-	i += compReadXmlChunk ("</screen>", &offset, buffer + i, length - i);
+	info++;
     }
 
     i += compReadXmlChunk ("</plugin></compiz>", &offset, buffer + i,
@@ -305,14 +304,38 @@ compInitPluginMetadataFromInfo (CompMetadata		     *metadata,
 
     if (nDisplayOptionInfo || nScreenOptionInfo)
     {
-	CompIOCtx ctx;
+	CompIOCtx	 ctx;
+	CompIOObjectInfo info[2];
+	int		 i = 0;
 
-	ctx.offset	  = 0;
-	ctx.name	  = plugin;
-	ctx.displayOInfo  = displayOptionInfo;
-	ctx.nDisplayOInfo = nDisplayOptionInfo;
-	ctx.screenOInfo   = screenOptionInfo;
-	ctx.nScreenOInfo  = nScreenOptionInfo;
+	ctx.offset = 0;
+	ctx.name   = plugin;
+	ctx.info   = NULL;
+	ctx.nInfo  = 0;
+
+	if (nDisplayOptionInfo)
+	{
+	    info[i].name  = "display";
+	    info[i].info  = displayOptionInfo;
+	    info[i].nInfo = nDisplayOptionInfo;
+
+	    i++;
+	}
+
+	if (nScreenOptionInfo)
+	{
+	    info[i].name  = "screen";
+	    info[i].info  = screenOptionInfo;
+	    info[i].nInfo = nScreenOptionInfo;
+
+	    i++;
+	}
+
+	if (i)
+	{
+	    ctx.info  = info;
+	    ctx.nInfo = i;
+	}
 
 	if (!compAddMetadataFromIO (metadata,
 				    readPluginXmlCallback, NULL,
