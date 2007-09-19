@@ -104,9 +104,6 @@ coreGetObjectMetadata (CompObject *object,
 
     CORE_CORE (object);
 
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
-	return &coreMetadata;
-
     UNWRAP (&c->object, object, vTable);
     result = (*object->vTable->getMetadata) (object, interface);
     WRAP (&c->object, object, vTable, v.vTable);
@@ -123,12 +120,6 @@ coreGetObjectProps (CompObject *object,
     CompOption		*result;
 
     CORE_CORE (object);
-
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
-    {
-	*n = 0;
-	return NULL;
-    }
 
     UNWRAP (&c->object, object, vTable);
     result = (*object->vTable->getProps) (object, interface, n);
@@ -147,9 +138,6 @@ coreSetObjectProp (CompObject		 *object,
     CompBool		status;
 
     CORE_CORE (object);
-
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
-	return FALSE;
 
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->setProp) (object, interface, name, value);
