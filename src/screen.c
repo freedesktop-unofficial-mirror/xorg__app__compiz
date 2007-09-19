@@ -49,6 +49,8 @@
 
 #define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
 
+#define CORE_SCREEN_INTERFACE_NAME "screen"
+
 static char *
 screenNameObject (CompObject *object)
 {
@@ -120,7 +122,7 @@ screenForEachInterface (CompObject	      *object,
 
     CORE_SCREEN (object);
 
-    if (!(*proc) (CORE_INTERFACE_NAME, closure))
+    if (!(*proc) (CORE_SCREEN_INTERFACE_NAME, closure))
 	return FALSE;
 
     UNWRAP (&s->object, object, vTable);
@@ -139,7 +141,7 @@ screenGetObjectMetadata (CompObject *object,
 
     CORE_SCREEN (object);
 
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+    if (strcmp (interface, CORE_SCREEN_INTERFACE_NAME) == 0)
 	return &coreMetadata;
 
     UNWRAP (&s->object, object, vTable);
@@ -159,7 +161,7 @@ screenGetObjectProps (CompObject *object,
 
     CORE_SCREEN (object);
 
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+    if (strcmp (interface, CORE_SCREEN_INTERFACE_NAME) == 0)
 	return getScreenOptions (NULL, s, n);
 
     UNWRAP (&s->object, object, vTable);
@@ -180,7 +182,7 @@ screenSetObjectProp (CompObject		   *object,
 
     CORE_SCREEN (object);
 
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+    if (strcmp (interface, CORE_SCREEN_INTERFACE_NAME) == 0)
 	return setScreenOption (NULL, s, name, value);
 
     UNWRAP (&s->object, object, vTable);

@@ -70,6 +70,8 @@ int pointerY     = 0;
 
 #define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
 
+#define CORE_DISPLAY_INTERFACE_NAME "display"
+
 static char *
 displayNameObject (CompObject *object)
 {
@@ -135,7 +137,7 @@ displayForEachInterface (CompObject	       *object,
 
     CORE_DISPLAY (object);
 
-    if (!(*proc) (CORE_INTERFACE_NAME, closure))
+    if (!(*proc) (CORE_DISPLAY_INTERFACE_NAME, closure))
 	return FALSE;
 
     UNWRAP (&d->object, object, vTable);
@@ -154,7 +156,7 @@ displayGetObjectMetadata (CompObject *object,
 
     CORE_DISPLAY (object);
 
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+    if (strcmp (interface, CORE_DISPLAY_INTERFACE_NAME) == 0)
 	return &coreMetadata;
 
     UNWRAP (&d->object, object, vTable);
@@ -174,7 +176,7 @@ displayGetObjectProps (CompObject *object,
 
     CORE_DISPLAY (object);
 
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+    if (strcmp (interface, CORE_DISPLAY_INTERFACE_NAME) == 0)
 	return getDisplayOptions (NULL, d, n);
 
     UNWRAP (&d->object, object, vTable);
@@ -195,7 +197,7 @@ displaySetObjectProp (CompObject	    *object,
 
     CORE_DISPLAY (object);
 
-    if (strcmp (interface, CORE_INTERFACE_NAME) == 0)
+    if (strcmp (interface, CORE_DISPLAY_INTERFACE_NAME) == 0)
 	return setDisplayOption (NULL, d, name, value);
 
     UNWRAP (&d->object, object, vTable);
