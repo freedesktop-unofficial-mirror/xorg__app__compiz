@@ -93,9 +93,9 @@ displayForEachChildObject (CompObject		   *object,
 }
 
 static CompObject *
-displayFindChildObject (CompObject *object,
-			const char *type,
-			const char *name)
+displayLookupChildObject (CompObject *object,
+			  const char *type,
+			  const char *name)
 {
     CompObjectVTableVec v = { object->vTable };
     CompObject		*result;
@@ -113,7 +113,7 @@ displayFindChildObject (CompObject *object,
     }
 
     UNWRAP (&d->object, object, vTable);
-    result = (*object->vTable->findChildObject) (object, type, name);
+    result = (*object->vTable->lookupChildObject) (object, type, name);
     WRAP (&d->object, object, vTable, v.vTable);
 
     return result;
@@ -158,24 +158,32 @@ displayGetObjectMetadata (CompObject *object,
     return result;
 }
 
-static CompOption *
-displayGetObjectProps (CompObject *object,
-		       const char *interface,
-		       int	  *n)
+static CompBool
+displayForEachMember (CompObject	 *object,
+		      const char	 *interface,
+		      MemberCallBackProc proc,
+		      void		 *closure)
 {
     CompObjectVTableVec v = { object->vTable };
-    CompOption		*result;
+    CompBool		status;
 
     CORE_DISPLAY (object);
 
     if (strcmp (interface, CORE_DISPLAY_INTERFACE_NAME) == 0)
-	return getDisplayOptions (NULL, d, n);
+    {
+	int i;
+
+	for (i = 0; i < N_ELEMENTS (d->opt); i++)
+	    if (!(*proc) (&d->opt[i], closure))
+		return FALSE;
+    }
 
     UNWRAP (&d->object, object, vTable);
-    result = (*object->vTable->getProps) (object, interface, n);
+    status = (*object->vTable->forEachMember) (object, interface, proc,
+					       closure);
     WRAP (&d->object, object, vTable, v.vTable);
 
-    return result;
+    return status;
 }
 
 static CompBool
@@ -1994,10 +2002,10 @@ freeDisplay (CompDisplay *d)
 
 static CompObjectVTable displayObjectVTable = {
     displayForEachChildObject,
-    displayFindChildObject,
+    displayLookupChildObject,
     displayForEachInterface,
     displayGetObjectMetadata,
-    displayGetObjectProps,
+    displayForEachMember,
     displaySetObjectProp
 };
 

@@ -309,9 +309,9 @@ typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
 					    ChildObjectCallBackProc proc,
 					    void		    *closure);
 
-typedef CompObject *(*FindChildObjectProc) (CompObject *object,
-					    const char *type,
-					    const char *name);
+typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
+					      const char *type,
+					      const char *name);
 
 typedef CompBool (*InterfaceCallBackProc) (const char *interface,
 					   void	      *closure);
@@ -323,9 +323,13 @@ typedef CompBool (*ForEachInterfaceProc) (CompObject		*object,
 typedef CompMetadata *(*GetObjectMetadataProc) (CompObject *object,
 						const char *interface);
 
-typedef CompOption *(*GetObjectPropsProc) (CompObject *object,
-					   const char *interface,
-					   int	      *n);
+typedef CompBool (*MemberCallBackProc) (const CompOption *member,
+					void		 *closure);
+
+typedef CompBool (*ForEachMemberProc) (CompObject	  *object,
+				       const char	  *interface,
+				       MemberCallBackProc proc,
+				       void		  *closure);
 
 typedef CompBool (*SetObjectPropProc) (CompObject	     *object,
 				       const char	     *interface,
@@ -334,10 +338,10 @@ typedef CompBool (*SetObjectPropProc) (CompObject	     *object,
 
 typedef struct _CompObjectVTable {
     ForEachChildObjectProc forEachChildObject;
-    FindChildObjectProc    findChildObject;
+    LookupChildObjectProc  lookupChildObject;
     ForEachInterfaceProc   forEachInterface;
     GetObjectMetadataProc  getMetadata;
-    GetObjectPropsProc	   getProps;
+    ForEachMemberProc      forEachMember;
     SetObjectPropProc	   setProp;
 } CompObjectVTable;
 

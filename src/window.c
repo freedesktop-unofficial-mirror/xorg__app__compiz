@@ -67,9 +67,9 @@ windowForEachChildObject (CompObject		  *object,
 }
 
 static CompObject *
-windowFindChildObject (CompObject *object,
-		       const char *type,
-		       const char *name)
+windowLookupChildObject (CompObject *object,
+			 const char *type,
+			 const char *name)
 {
     CompObjectVTableVec v = { object->vTable };
     CompObject		*result;
@@ -77,7 +77,7 @@ windowFindChildObject (CompObject *object,
     CORE_WINDOW (object);
 
     UNWRAP (&w->object, object, vTable);
-    result = (*object->vTable->findChildObject) (object, type, name);
+    result = (*object->vTable->lookupChildObject) (object, type, name);
     WRAP (&w->object, object, vTable, v.vTable);
 
     return result;
@@ -116,21 +116,23 @@ windowGetObjectMetadata (CompObject *object,
     return result;
 }
 
-static CompOption *
-windowGetObjectProps (CompObject *object,
-		      const char *interface,
-		      int	 *n)
+static CompBool
+windowForEachMember (CompObject		*object,
+		     const char	        *interface,
+		     MemberCallBackProc proc,
+		     void		*closure)
 {
     CompObjectVTableVec v = { object->vTable };
-    CompOption		*result;
+    CompBool		status;
 
     CORE_WINDOW (object);
 
     UNWRAP (&w->object, object, vTable);
-    result = (*object->vTable->getProps) (object, interface, n);
+    status = (*object->vTable->forEachMember) (object, interface, proc,
+					       closure);
     WRAP (&w->object, object, vTable, v.vTable);
 
-    return result;
+    return status;
 }
 
 static CompBool
@@ -1877,10 +1879,10 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
 
 static CompObjectVTable windowObjectVTable = {
     windowForEachChildObject,
-    windowFindChildObject,
+    windowLookupChildObject,
     windowForEachInterface,
     windowGetObjectMetadata,
-    windowGetObjectProps,
+    windowForEachMember,
     windowSetObjectProp
 };
 

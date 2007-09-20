@@ -72,9 +72,9 @@ screenForEachChildObject (CompObject		  *object,
 }
 
 static CompObject *
-screenFindChildObject (CompObject *object,
-		       const char *type,
-		       const char *name)
+screenLookupChildObject (CompObject *object,
+			 const char *type,
+			 const char *name)
 {
     CompObjectVTableVec v = { object->vTable };
     CompObject		*result;
@@ -92,7 +92,7 @@ screenFindChildObject (CompObject *object,
     }
 
     UNWRAP (&s->object, object, vTable);
-    result = (*object->vTable->findChildObject) (object, type, name);
+    result = (*object->vTable->lookupChildObject) (object, type, name);
     WRAP (&s->object, object, vTable, v.vTable);
 
     return result;
@@ -137,24 +137,32 @@ screenGetObjectMetadata (CompObject *object,
     return result;
 }
 
-static CompOption *
-screenGetObjectProps (CompObject *object,
-		      const char *interface,
-		      int	 *n)
+static CompBool
+screenForEachMember (CompObject		*object,
+		     const char	        *interface,
+		     MemberCallBackProc proc,
+		     void		*closure)
 {
     CompObjectVTableVec v = { object->vTable };
-    CompOption		*result;
+    CompBool		status;
 
     CORE_SCREEN (object);
 
     if (strcmp (interface, CORE_SCREEN_INTERFACE_NAME) == 0)
-	return getScreenOptions (NULL, s, n);
+    {
+	int i;
+
+	for (i = 0; i < N_ELEMENTS (s->opt); i++)
+	    if (!(*proc) (&s->opt[i], closure))
+		return FALSE;
+    }
 
     UNWRAP (&s->object, object, vTable);
-    result = (*object->vTable->getProps) (object, interface, n);
+    status = (*object->vTable->forEachMember) (object, interface, proc,
+					       closure);
     WRAP (&s->object, object, vTable, v.vTable);
 
-    return result;
+    return status;
 }
 
 static CompBool
@@ -1548,10 +1556,10 @@ freeScreen (CompScreen *s)
 
 static CompObjectVTable screenObjectVTable = {
     screenForEachChildObject,
-    screenFindChildObject,
+    screenLookupChildObject,
     screenForEachInterface,
     screenGetObjectMetadata,
-    screenGetObjectProps,
+    screenForEachMember,
     screenSetObjectProp
 };
 

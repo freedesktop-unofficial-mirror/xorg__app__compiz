@@ -58,13 +58,13 @@ getObjectMetadata (CompObject *object,
     return NULL;
 }
 
-static CompOption *
-getObjectProps (CompObject *object,
-		const char *interface,
-		int	   *n)
+static CompBool
+forEachMember (CompObject	  *object,
+	       const char	  *interface,
+	       MemberCallBackProc proc,
+	       void		  *closure)
 {
-    *n = 0;
-    return NULL;
+    return TRUE;
 }
 
 static CompBool
@@ -81,7 +81,7 @@ static CompObjectVTable objectVTable = {
     findChildObject,
     forEachInterface,
     getObjectMetadata,
-    getObjectProps,
+    forEachMember,
     setObjectProp
 };
 

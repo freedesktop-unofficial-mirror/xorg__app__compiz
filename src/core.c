@@ -54,9 +54,9 @@ coreForEachChildObject (CompObject		*object,
 }
 
 static CompObject *
-coreFindChildObject (CompObject *object,
-		     const char *type,
-		     const char *name)
+coreLookupChildObject (CompObject *object,
+		       const char *type,
+		       const char *name)
 {
     CompObjectVTableVec v = { object->vTable };
     CompObject		*result;
@@ -68,7 +68,7 @@ coreFindChildObject (CompObject *object,
 	    return &c->displays->base.base;
 
     UNWRAP (&c->object, object, vTable);
-    result = (*object->vTable->findChildObject) (object, type, name);
+    result = (*object->vTable->lookupChildObject) (object, type, name);
     WRAP (&c->object, object, vTable, v.vTable);
 
     return result;
@@ -113,27 +113,32 @@ coreGetObjectMetadata (CompObject *object,
     return result;
 }
 
-static CompOption *
-coreGetObjectProps (CompObject *object,
-		    const char *interface,
-		    int	       *n)
+static CompBool
+coreForEachMember (CompObject	      *object,
+		   const char	      *interface,
+		   MemberCallBackProc proc,
+		   void		      *closure)
 {
     CompObjectVTableVec v = { object->vTable };
-    CompOption		*result;
+    CompBool		status;
 
     CORE_CORE (object);
 
     if (strcmp (interface, CORE_CORE_INTERFACE_NAME) == 0)
     {
-	*n = N_ELEMENTS (c->prop);
-	return c->prop;
+	int i;
+
+	for (i = 0; i < N_ELEMENTS (c->prop); i++)
+	    if (!(*proc) (&c->prop[i], closure))
+		return FALSE;
     }
 
     UNWRAP (&c->object, object, vTable);
-    result = (*object->vTable->getProps) (object, interface, n);
+    status = (*object->vTable->forEachMember) (object, interface, proc,
+					       closure);
     WRAP (&c->object, object, vTable, v.vTable);
 
-    return result;
+    return status;
 }
 
 static CompBool
@@ -233,10 +238,10 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 
 static CompObjectVTable coreObjectVTable = {
     coreForEachChildObject,
-    coreFindChildObject,
+    coreLookupChildObject,
     coreForEachInterface,
     coreGetObjectMetadata,
-    coreGetObjectProps,
+    coreForEachMember,
     coreSetObjectProp
 };
 
