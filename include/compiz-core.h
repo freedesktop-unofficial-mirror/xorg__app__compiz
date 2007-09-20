@@ -2583,8 +2583,6 @@ typedef struct _CompStruts {
 struct _CompWindow {
     CompChildObject base;
 
-    CompObjectVTableVec object;
-
     CompScreen *screen;
     CompWindow *next;
     CompWindow *prev;

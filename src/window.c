@@ -49,110 +49,6 @@ typedef struct {
     unsigned long decorations;
 } MwmHints;
 
-static CompBool
-windowForEachChildObject (CompObject		  *object,
-			  ChildObjectCallBackProc proc,
-			  void			  *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE_WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachChildObject) (object, proc, closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObject *
-windowLookupChildObject (CompObject *object,
-			 const char *type,
-			 const char *name)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompObject		*result;
-
-    CORE_WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    result = (*object->vTable->lookupChildObject) (object, type, name);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return result;
-}
-
-static CompBool
-windowForEachInterface (CompObject	      *object,
-			InterfaceCallBackProc proc,
-			void		      *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE_WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachInterface) (object, proc, closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompMetadata *
-windowGetObjectMetadata (CompObject *object,
-			 const char *interface)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompMetadata	*result;
-
-    CORE_WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    result = (*object->vTable->getMetadata) (object, interface);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return result;
-}
-
-static CompBool
-windowForEachMember (CompObject		*object,
-		     const char	        *interface,
-		     MemberCallBackProc proc,
-		     void		*closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE_WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachMember) (object, interface, proc,
-					       closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-windowSetObjectProp (CompObject		   *object,
-		     const char		   *interface,
-		     const char		   *name,
-		     const CompOptionValue *value)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE_WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->setProp) (object, interface, name, value);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
 static Bool
 isAncestorTo (CompWindow *transient,
 	      CompWindow *ancestor)
@@ -1877,15 +1773,6 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
     wa->screen		      = NULL;
 }
 
-static CompObjectVTable windowObjectVTable = {
-    windowForEachChildObject,
-    windowLookupChildObject,
-    windowForEachInterface,
-    windowGetObjectMetadata,
-    windowForEachMember,
-    windowSetObjectProp
-};
-
 static CompBool
 windowInitObject (CompObject     *object,
 		  CompObjectType *type)
@@ -1895,8 +1782,6 @@ windowInitObject (CompObject     *object,
     if (!compChildObjectInit (&w->base, type, COMP_OBJECT_TYPE_WINDOW))
 	return FALSE;
 
-    WRAP (&w->object, &w->base.base, vTable, &windowObjectVTable);
-
     return TRUE;
 }
 
@@ -1904,8 +1789,6 @@ static void
 windowFiniObject (CompObject *object)
 {
     CORE_WINDOW (object);
-
-    UNWRAP (&w->object, &w->base.base, vTable);
 
     compChildObjectFini (&w->base);
 }
