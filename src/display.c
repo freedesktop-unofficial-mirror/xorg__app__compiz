@@ -70,12 +70,6 @@ int pointerY     = 0;
 
 #define CORE_DISPLAY_INTERFACE_NAME "display"
 
-static char *
-displayNameObject (CompObject *object)
-{
-    return NULL;
-}
-
 static CompBool
 displayForEachChildObject (CompObject		   *object,
 			   ChildObjectCallBackProc proc,
@@ -1999,7 +1993,6 @@ freeDisplay (CompDisplay *d)
 }
 
 static CompObjectVTable displayObjectVTable = {
-    displayNameObject,
     displayForEachChildObject,
     displayFindChildObject,
     displayForEachInterface,
@@ -2075,8 +2068,15 @@ static CompObjectFuncs displayObjectFuncs = {
     displayFiniObject
 };
 
+static char *
+displayQueryObjectName (CompObject *object)
+{
+    return NULL;
+}
+
 static CompObjectType displayObjectType = {
     "display",
+    displayQueryObjectName,
     NULL,
     0,
     NULL,

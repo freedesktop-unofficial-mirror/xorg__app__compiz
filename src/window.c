@@ -49,18 +49,6 @@ typedef struct {
     unsigned long decorations;
 } MwmHints;
 
-static char *
-windowNameObject (CompObject *object)
-{
-    char tmp[256];
-
-    CORE_WINDOW (object);
-
-    snprintf (tmp, 256, "0x%lu", w->id);
-
-    return strdup (tmp);
-}
-
 static CompBool
 windowForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
@@ -1888,7 +1876,6 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
 }
 
 static CompObjectVTable windowObjectVTable = {
-    windowNameObject,
     windowForEachChildObject,
     windowFindChildObject,
     windowForEachInterface,
@@ -1926,8 +1913,21 @@ static CompObjectFuncs windowObjectFuncs = {
     windowFiniObject
 };
 
+static char *
+windowQueryObjectName (CompObject *object)
+{
+    char tmp[256];
+
+    CORE_WINDOW (object);
+
+    snprintf (tmp, 256, "0x%lu", w->id);
+
+    return strdup (tmp);
+}
+
 static CompObjectType windowObjectType = {
     "window",
+    windowQueryObjectName,
     NULL,
     0,
     NULL,

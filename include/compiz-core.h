@@ -273,6 +273,8 @@ freePrivateIndex (int  len,
 
 typedef struct _CompObjectType CompObjectType;
 
+typedef char *(*QueryObjectNameProc) (CompObject *object);
+
 typedef CompBool (*InitObjectProc) (CompObject     *object,
 				    CompObjectType *type);
 typedef void     (*FiniObjectProc) (CompObject *object);
@@ -283,11 +285,12 @@ typedef struct _CompObjectFuncs {
 } CompObjectFuncs;
 
 struct _CompObjectType {
-    const char	    *name;
-    char	    *privateIndices;
-    int		    privateLen;
-    CompPrivate	    *privates;
-    CompObjectFuncs *funcs;
+    const char		*name;
+    QueryObjectNameProc queryObjectName;
+    char		*privateIndices;
+    int			privateLen;
+    CompPrivate		*privates;
+    CompObjectFuncs	*funcs;
 };
 
 typedef unsigned int CompObjectTypeID;
@@ -298,8 +301,6 @@ typedef unsigned int CompObjectTypeID;
 #define COMP_OBJECT_TYPE_WINDOW  3
 
 typedef struct _CompChildObject CompChildObject;
-
-typedef char *(*NameObjectProc) (CompObject *object);
 
 typedef CompBool (*ChildObjectCallBackProc) (CompChildObject *object,
 					     void	     *closure);
@@ -332,7 +333,6 @@ typedef CompBool (*SetObjectPropProc) (CompObject	     *object,
 				       const CompOptionValue *value);
 
 typedef struct _CompObjectVTable {
-    NameObjectProc	   nameObject;
     ForEachChildObjectProc forEachChildObject;
     FindChildObjectProc    findChildObject;
     ForEachInterfaceProc   forEachInterface;

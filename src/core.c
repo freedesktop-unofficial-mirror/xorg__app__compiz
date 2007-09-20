@@ -31,12 +31,6 @@ CompCore core;
 
 #define CORE_CORE_INTERFACE_NAME "core"
 
-static char *
-coreNameObject (CompObject *object)
-{
-    return NULL;
-}
-
 static CompBool
 coreForEachChildObject (CompObject		*object,
 			ChildObjectCallBackProc proc,
@@ -238,7 +232,6 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 }
 
 static CompObjectVTable coreObjectVTable = {
-    coreNameObject,
     coreForEachChildObject,
     coreFindChildObject,
     coreForEachInterface,
@@ -342,8 +335,15 @@ static CompObjectFuncs coreObjectFuncs = {
     coreFiniObject
 };
 
+static char *
+coreQueryObjectName (CompObject *object)
+{
+    return NULL;
+}
+
 static CompObjectType coreObjectType = {
     "core",
+    coreQueryObjectName,
     NULL,
     0,
     NULL,

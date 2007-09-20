@@ -27,12 +27,6 @@
 
 #include <compiz-core.h>
 
-static char *
-nameObject (CompObject *object)
-{
-    return NULL;
-}
-
 static CompBool
 forEachChildObject (CompObject		    *object,
 		    ChildObjectCallBackProc proc,
@@ -83,7 +77,6 @@ setObjectProp (CompObject	     *object,
 }
 
 static CompObjectVTable objectVTable = {
-    nameObject,
     forEachChildObject,
     findChildObject,
     forEachInterface,

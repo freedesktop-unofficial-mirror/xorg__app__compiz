@@ -49,18 +49,6 @@
 
 #define CORE_SCREEN_INTERFACE_NAME "screen"
 
-static char *
-screenNameObject (CompObject *object)
-{
-    char tmp[256];
-
-    CORE_SCREEN (object);
-
-    snprintf (tmp, 256, "%d", s->screenNum);
-
-    return strdup (tmp);
-}
-
 static CompBool
 screenForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
@@ -1559,7 +1547,6 @@ freeScreen (CompScreen *s)
 }
 
 static CompObjectVTable screenObjectVTable = {
-    screenNameObject,
     screenForEachChildObject,
     screenFindChildObject,
     screenForEachInterface,
@@ -1802,8 +1789,21 @@ static CompObjectFuncs screenObjectFuncs = {
     screenFiniObject
 };
 
+static char *
+screenQueryObjectName (CompObject *object)
+{
+    char tmp[256];
+
+    CORE_SCREEN (object);
+
+    snprintf (tmp, 256, "%d", s->screenNum);
+
+    return strdup (tmp);
+}
+
 static CompObjectType screenObjectType = {
     "screen",
+    screenQueryObjectName,
     NULL,
     0,
     NULL,
