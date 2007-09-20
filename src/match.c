@@ -540,7 +540,7 @@ matchOpsToString (CompMatchOp *op,
 }
 
 char *
-matchToString (CompMatch *match)
+matchToString (const CompMatch *match)
 {
     char *str;
 

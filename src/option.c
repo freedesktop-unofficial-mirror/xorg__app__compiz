@@ -594,8 +594,8 @@ edgeMaskToBindingString (CompDisplay  *d,
 }
 
 char *
-keyBindingToString (CompDisplay    *d,
-		    CompKeyBinding *key)
+keyBindingToString (CompDisplay		 *d,
+		    const CompKeyBinding *key)
 {
     char *binding;
 
@@ -641,8 +641,8 @@ buttonBindingToString (CompDisplay       *d,
 }
 
 char *
-keyActionToString (CompDisplay *d,
-		   CompAction  *action)
+keyActionToString (CompDisplay	    *d,
+		   const CompAction *action)
 {
     char *binding;
 
@@ -654,8 +654,8 @@ keyActionToString (CompDisplay *d,
 }
 
 char *
-buttonActionToString (CompDisplay *d,
-		      CompAction  *action)
+buttonActionToString (CompDisplay      *d,
+		      const CompAction *action)
 {
     char *binding, *edge;
     char buttonStr[256];
@@ -904,7 +904,7 @@ stringToColor (const char     *color,
 }
 
 char *
-colorToString (unsigned short *rgba)
+colorToString (const unsigned short *rgba)
 {
     char tmp[256];
 
@@ -948,7 +948,7 @@ optionTypeToString (CompOptionType type)
 }
 
 Bool
-isActionOption (CompOption *option)
+isActionOption (const CompOption *option)
 {
     switch (option->type) {
     case CompOptionTypeAction:

@@ -623,20 +623,20 @@ getMatchOptionNamed (CompOption	*option,
 		     CompMatch  *defaultValue);
 
 char *
-keyBindingToString (CompDisplay    *d,
-		    CompKeyBinding *key);
+keyBindingToString (CompDisplay		 *d,
+		    const CompKeyBinding *key);
 
 char *
 buttonBindingToString (CompDisplay       *d,
 		       CompButtonBinding *button);
 
 char *
-keyActionToString (CompDisplay *d,
-		   CompAction  *action);
+keyActionToString (CompDisplay	    *d,
+		   const CompAction *action);
 
 char *
-buttonActionToString (CompDisplay *d,
-		      CompAction  *action);
+buttonActionToString (CompDisplay      *d,
+		      const CompAction *action);
 
 Bool
 stringToKeyBinding (CompDisplay    *d,
@@ -672,13 +672,13 @@ stringToColor (const char     *color,
 	       unsigned short *rgba);
 
 char *
-colorToString (unsigned short *rgba);
+colorToString (const unsigned short *rgba);
 
 const char *
 optionTypeToString (CompOptionType type);
 
 Bool
-isActionOption (CompOption *option);
+isActionOption (const CompOption *option);
 
 
 /* core.c */
@@ -3347,7 +3347,7 @@ matchAddFromString (CompMatch  *match,
 		    const char *str);
 
 char *
-matchToString (CompMatch *match);
+matchToString (const CompMatch *match);
 
 void
 matchUpdate (CompDisplay *display,
