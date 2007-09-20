@@ -166,21 +166,25 @@ screenForEachMember (CompObject		*object,
 }
 
 static CompBool
-screenSetObjectProp (CompObject		   *object,
-		     const char		   *interface,
-		     const char		   *name,
-		     const CompOptionValue *value)
+screenInvokeMethod (CompObject	     *object,
+		    const char	     *interface,
+		    const char	     *name,
+		    const CompOption *in,
+		    CompOption	     *out)
 {
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
     CORE_SCREEN (object);
 
-    if (strcmp (interface, CORE_SCREEN_INTERFACE_NAME) == 0)
-	return setScreenOption (NULL, s, name, value);
+    if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
+	if (strcmp (in[0].value.s, CORE_SCREEN_INTERFACE_NAME) == 0)
+	    if (strcmp (name, PROPERTIES_METHOD_SET_NAME) == 0)
+		return setScreenOption (NULL, s, in[1].value.s, &in[2].value);
 
     UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->setProp) (object, interface, name, value);
+    status = (*object->vTable->invokeMethod) (object, interface, name, in,
+					      out);
     WRAP (&s->object, object, vTable, v.vTable);
 
     return status;
@@ -1560,7 +1564,7 @@ static CompObjectVTable screenObjectVTable = {
     screenForEachInterface,
     screenGetObjectMetadata,
     screenForEachMember,
-    screenSetObjectProp
+    screenInvokeMethod
 };
 
 static CompBool

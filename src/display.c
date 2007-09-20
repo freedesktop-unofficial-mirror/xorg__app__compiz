@@ -187,21 +187,25 @@ displayForEachMember (CompObject	 *object,
 }
 
 static CompBool
-displaySetObjectProp (CompObject	    *object,
-		      const char	    *interface,
-		      const char	    *name,
-		      const CompOptionValue *value)
+displayInvokeMethod (CompObject	      *object,
+		     const char	      *interface,
+		     const char	      *name,
+		     const CompOption *in,
+		     CompOption	      *out)
 {
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
     CORE_DISPLAY (object);
 
-    if (strcmp (interface, CORE_DISPLAY_INTERFACE_NAME) == 0)
-	return setDisplayOption (NULL, d, name, value);
+    if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
+	if (strcmp (in[0].value.s, CORE_DISPLAY_INTERFACE_NAME) == 0)
+	    if (strcmp (name, PROPERTIES_METHOD_SET_NAME) == 0)
+		return setDisplayOption (NULL, d, in[1].value.s, &in[2].value);
 
     UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->setProp) (object, interface, name, value);
+    status = (*object->vTable->invokeMethod) (object, interface, name, in,
+					      out);
     WRAP (&d->object, object, vTable, v.vTable);
 
     return status;
@@ -2006,7 +2010,7 @@ static CompObjectVTable displayObjectVTable = {
     displayForEachInterface,
     displayGetObjectMetadata,
     displayForEachMember,
-    displaySetObjectProp
+    displayInvokeMethod
 };
 
 static CompBool

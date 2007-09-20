@@ -142,21 +142,20 @@ coreForEachMember (CompObject	      *object,
 }
 
 static CompBool
-coreSetObjectProp (CompObject		 *object,
-		   const char		 *interface,
-		   const char		 *name,
-		   const CompOptionValue *value)
+coreInvokeMethod (CompObject	   *object,
+		  const char	   *interface,
+		  const char	   *name,
+		  const CompOption *in,
+		  CompOption	   *out)
 {
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
     CORE_CORE (object);
 
-    if (strcmp (interface, CORE_CORE_INTERFACE_NAME) == 0)
-	return FALSE;
-
     UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->setProp) (object, interface, name, value);
+    status = (*object->vTable->invokeMethod) (object, interface, name, in,
+					      out);
     WRAP (&c->object, object, vTable, v.vTable);
 
     return status;
@@ -242,7 +241,7 @@ static CompObjectVTable coreObjectVTable = {
     coreForEachInterface,
     coreGetObjectMetadata,
     coreForEachMember,
-    coreSetObjectProp
+    coreInvokeMethod
 };
 
 static CompBool

@@ -271,6 +271,9 @@ freePrivateIndex (int  len,
 
 /* object.c */
 
+#define PROPERTIES_INTERFACE_NAME  "properties"
+#define PROPERTIES_METHOD_SET_NAME "set"
+
 typedef struct _CompObjectType CompObjectType;
 
 typedef char *(*QueryObjectNameProc) (CompObject *object);
@@ -331,10 +334,11 @@ typedef CompBool (*ForEachMemberProc) (CompObject	  *object,
 				       MemberCallBackProc proc,
 				       void		  *closure);
 
-typedef CompBool (*SetObjectPropProc) (CompObject	     *object,
-				       const char	     *interface,
-				       const char	     *name,
-				       const CompOptionValue *value);
+typedef CompBool (*InvokeMethodProc) (CompObject       *object,
+				      const char       *interface,
+				      const char       *name,
+				      const CompOption *in,
+				      CompOption       *out);
 
 typedef struct _CompObjectVTable {
     ForEachChildObjectProc forEachChildObject;
@@ -342,7 +346,7 @@ typedef struct _CompObjectVTable {
     ForEachInterfaceProc   forEachInterface;
     GetObjectMetadataProc  getMetadata;
     ForEachMemberProc      forEachMember;
-    SetObjectPropProc	   setProp;
+    InvokeMethodProc	   invokeMethod;
 } CompObjectVTable;
 
 typedef struct _CompObjectVTableVec {
@@ -410,6 +414,11 @@ compObjectInitOther (CompObject	    *object,
 void
 compObjectFiniOther (CompObject *object,
 		     int	index);
+
+const CompOption *
+compObjectLookupMember (CompObject *object,
+			const char *interface,
+			const char *name);
 
 
 #define ARRAY_SIZE(array)		 \

@@ -61,6 +61,7 @@ typedef enum {
     CompOptionTypeEdge,
     CompOptionTypeBell,
     CompOptionTypeMatch,
+    CompOptionTypeMethod, /* temporary solution */
     CompOptionTypeList
 } CompOptionType;
 

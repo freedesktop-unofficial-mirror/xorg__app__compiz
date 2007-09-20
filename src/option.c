@@ -417,6 +417,8 @@ compSetOption (CompOption            *option,
     case CompOptionTypeEdge:
     case CompOptionTypeBell:
 	return compSetActionOption (option, value);
+    case CompOptionTypeMethod:
+	return FALSE;
     case CompOptionTypeList:
 	return compSetOptionList (option, value);
     }
@@ -940,6 +942,8 @@ optionTypeToString (CompOptionType type)
 	return "bell";
     case CompOptionTypeMatch:
 	return "match";
+    case CompOptionTypeMethod:
+	return "unknown";
     case CompOptionTypeList:
 	return "list";
     }

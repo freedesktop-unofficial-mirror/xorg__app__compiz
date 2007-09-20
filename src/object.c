@@ -64,14 +64,26 @@ forEachMember (CompObject	  *object,
 	       MemberCallBackProc proc,
 	       void		  *closure)
 {
+    if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
+    {
+	CompOption set;
+
+	set.type = CompOptionTypeMethod;
+	set.name = PROPERTIES_METHOD_SET_NAME;
+
+	if (!(*proc) (&set, closure))
+	    return FALSE;
+    }
+
     return TRUE;
 }
 
 static CompBool
-setObjectProp (CompObject	     *object,
-	       const char	     *interface,
-	       const char	     *name,
-	       const CompOptionValue *value)
+invokeObjectMethod (CompObject	     *object,
+		    const char	     *interface,
+		    const char	     *name,
+		    const CompOption *in,
+		    CompOption	     *out)
 {
     return FALSE;
 }
@@ -82,7 +94,7 @@ static CompObjectVTable objectVTable = {
     forEachInterface,
     getObjectMetadata,
     forEachMember,
-    setObjectProp
+    invokeObjectMethod
 };
 
 CompBool
@@ -430,4 +442,40 @@ compObjectFiniOther (CompObject *o,
 
     if (funcs)
 	(*funcs->fini) (o);
+}
+
+typedef struct _CheckMemberContext {
+    const char	     *name;
+    const CompOption *member;
+} CheckMemberContext;
+
+static CompBool
+checkMember (const CompOption *member,
+	     void	      *closure)
+{
+    CheckMemberContext *pCtx = (CheckMemberContext *) closure;
+
+    if (strcmp (member->name , pCtx->name) == 0)
+    {
+	pCtx->member = member;
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+const CompOption *
+compObjectLookupMember (CompObject *object,
+			const char *interface,
+			const char *name)
+{
+    CheckMemberContext ctx;
+
+    ctx.name   = name;
+    ctx.member = NULL;
+
+    (*object->vTable->forEachMember) (object, interface, checkMember,
+				      (void *) &ctx);
+
+    return ctx.member;
 }
