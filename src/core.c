@@ -124,15 +124,6 @@ coreForEachMember (CompObject	      *object,
 
     CORE_CORE (object);
 
-    if (strcmp (interface, CORE_CORE_INTERFACE_NAME) == 0)
-    {
-	int i;
-
-	for (i = 0; i < N_ELEMENTS (c->prop); i++)
-	    if (!(*proc) (&c->prop[i], closure))
-		return FALSE;
-    }
-
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachMember) (object, interface, proc,
 					       closure);
@@ -160,10 +151,6 @@ coreInvokeMethod (CompObject	   *object,
 
     return status;
 }
-
-const CompMetadataOptionInfo coreCoreOptionInfo[COMP_CORE_PROP_NUM] = {
-    { "abi", "int", 0, 0, 0 }
-};
 
 static CompBool
 initCorePluginForObject (CompPlugin *p,
@@ -253,22 +240,9 @@ coreInitObject (CompObject     *object,
     if (!compObjectInit (object, type, COMP_OBJECT_TYPE_CORE))
 	return FALSE;
 
-    if (!compInitObjectPropsFromMetadata (&c->base,
-					  &coreMetadata,
-					  coreCoreOptionInfo,
-					  c->prop,
-					  COMP_CORE_PROP_NUM))
-    {
-	compObjectFini (object);
-	return FALSE;
-    }
-
-    c->prop[COMP_CORE_PROP_ABI].value.i = CORE_ABIVERSION;
-
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	compFiniObjectProps (&c->base, c->prop, COMP_CORE_PROP_NUM);
 	compObjectFini (object);
 	return FALSE;
     }
@@ -277,7 +251,6 @@ coreInitObject (CompObject     *object,
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	compFiniObjectProps (&c->base, c->prop, COMP_CORE_PROP_NUM);
 	compObjectFini (object);
 	return FALSE;
     }
@@ -328,8 +301,6 @@ coreFiniObject (CompObject *object)
     XDestroyRegion (c->tmpRegion);
 
     UNWRAP (&c->object, &c->base, vTable);
-
-    compFiniObjectProps (&c->base, c->prop, COMP_CORE_PROP_NUM);
 
     compObjectFini (&c->base);
 }

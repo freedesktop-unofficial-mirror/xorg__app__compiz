@@ -274,6 +274,9 @@ freePrivateIndex (int  len,
 #define PROPERTIES_INTERFACE_NAME  "properties"
 #define PROPERTIES_METHOD_SET_NAME "set"
 
+#define VERSION_INTERFACE_NAME  "version"
+#define VERSION_METHOD_GET_NAME "get"
+
 typedef struct _CompObjectType CompObjectType;
 
 typedef char *(*QueryObjectNameProc) (CompObject *object);
@@ -692,9 +695,6 @@ isActionOption (const CompOption *option);
 
 /* core.c */
 
-#define COMP_CORE_PROP_ABI 0
-#define COMP_CORE_PROP_NUM 1
-
 typedef CompBool (*InitPluginForObjectProc) (CompPlugin *plugin,
 					     CompObject *object);
 typedef void (*FiniPluginForObjectProc) (CompPlugin *plugin,
@@ -762,8 +762,6 @@ struct _CompCore {
     CompObject base;
 
     CompObjectVTableVec object;
-
-    CompOption prop[COMP_CORE_PROP_NUM];
 
     CompDisplay *displays;
 
@@ -3401,8 +3399,6 @@ typedef struct _CompMetadataObjectInfo {
     int				 nOptionInfo;
 } CompMetadataObjectInfo;
 
-extern const CompMetadataOptionInfo
-coreCoreOptionInfo[COMP_CORE_PROP_NUM];
 extern const CompMetadataOptionInfo
 coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM];
 extern const CompMetadataOptionInfo

@@ -74,6 +74,17 @@ forEachMember (CompObject	  *object,
 	if (!(*proc) (&set, closure))
 	    return FALSE;
     }
+    else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
+    {
+	CompOption get;
+
+	get.type = CompOptionTypeMethod;
+	get.name = VERSION_METHOD_GET_NAME;
+
+	if (!(*proc) (&get, closure))
+	    return FALSE;
+    }
+
 
     return TRUE;
 }
@@ -85,6 +96,15 @@ invokeObjectMethod (CompObject	     *object,
 		    const CompOption *in,
 		    CompOption	     *out)
 {
+    if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
+    {
+	if (strcmp (name, VERSION_METHOD_GET_NAME) == 0)
+	{
+	    out[0].value.i = CORE_ABIVERSION;
+	    return TRUE;
+	}
+    }
+
     return FALSE;
 }
 
