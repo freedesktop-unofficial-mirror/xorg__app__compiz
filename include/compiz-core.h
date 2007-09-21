@@ -274,6 +274,9 @@ freePrivateIndex (int  len,
 #define PROPERTIES_INTERFACE_NAME  "properties"
 #define PROPERTIES_METHOD_SET_NAME "set"
 
+#define METADATA_INTERFACE_NAME  "metadata"
+#define METADATA_METHOD_GET_NAME "get"
+
 #define VERSION_INTERFACE_NAME  "version"
 #define VERSION_METHOD_GET_NAME "get"
 
@@ -326,9 +329,6 @@ typedef CompBool (*ForEachInterfaceProc) (CompObject		*object,
 					  InterfaceCallBackProc proc,
 					  void		        *closure);
 
-typedef CompMetadata *(*GetObjectMetadataProc) (CompObject *object,
-						const char *interface);
-
 typedef CompBool (*MemberCallBackProc) (const CompOption *member,
 					void		 *closure);
 
@@ -347,7 +347,6 @@ typedef struct _CompObjectVTable {
     ForEachChildObjectProc forEachChildObject;
     LookupChildObjectProc  lookupChildObject;
     ForEachInterfaceProc   forEachInterface;
-    GetObjectMetadataProc  getMetadata;
     ForEachMemberProc      forEachMember;
     InvokeMethodProc	   invokeMethod;
 } CompObjectVTable;

@@ -139,25 +139,6 @@ displayForEachInterface (CompObject	       *object,
     return status;
 }
 
-static CompMetadata *
-displayGetObjectMetadata (CompObject *object,
-			  const char *interface)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompMetadata	*result;
-
-    CORE_DISPLAY (object);
-
-    if (strcmp (interface, CORE_DISPLAY_INTERFACE_NAME) == 0)
-	return &coreMetadata;
-
-    UNWRAP (&d->object, object, vTable);
-    result = (*object->vTable->getMetadata) (object, interface);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return result;
-}
-
 static CompBool
 displayForEachMember (CompObject	 *object,
 		      const char	 *interface,
@@ -2008,7 +1989,6 @@ static CompObjectVTable displayObjectVTable = {
     displayForEachChildObject,
     displayLookupChildObject,
     displayForEachInterface,
-    displayGetObjectMetadata,
     displayForEachMember,
     displayInvokeMethod
 };

@@ -51,13 +51,6 @@ forEachInterface (CompObject		*object,
     return TRUE;
 }
 
-static CompMetadata *
-getObjectMetadata (CompObject *object,
-		   const char *interface)
-{
-    return NULL;
-}
-
 static CompBool
 forEachMember (CompObject	  *object,
 	       const char	  *interface,
@@ -112,7 +105,6 @@ static CompObjectVTable objectVTable = {
     forEachChildObject,
     findChildObject,
     forEachInterface,
-    getObjectMetadata,
     forEachMember,
     invokeObjectMethod
 };
