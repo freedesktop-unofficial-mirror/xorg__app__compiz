@@ -36,9 +36,9 @@ forEachChildObject (CompObject		    *object,
 }
 
 static CompObject *
-findChildObject (CompObject *parent,
-		 const char *type,
-		 const char *name)
+lookupChildObject (CompObject *parent,
+		   const char *type,
+		   const char *name)
 {
     return NULL;
 }
@@ -52,42 +52,45 @@ forEachInterface (CompObject		*object,
 }
 
 static CompBool
-forEachMember (CompObject	  *object,
+forEachMethod (CompObject	  *object,
 	       const char	  *interface,
-	       MemberCallBackProc proc,
+	       MethodCallBackProc proc,
 	       void		  *closure)
 {
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
-	CompOption set;
-
-	set.type = CompOptionTypeMethod;
-	set.name = PROPERTIES_METHOD_SET_NAME;
-
-	if (!(*proc) (&set, closure))
+	if (!(*proc) (PROPERTIES_METHOD_SET_NAME, "ss", "", closure))
 	    return FALSE;
     }
     else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
     {
-	CompOption get;
-
-	get.type = CompOptionTypeMethod;
-	get.name = VERSION_METHOD_GET_NAME;
-
-	if (!(*proc) (&get, closure))
+	if (!(*proc) (VERSION_METHOD_GET_NAME, "s", "i", closure))
 	    return FALSE;
     }
     else if (strcmp (interface, METADATA_INTERFACE_NAME) == 0)
     {
-	CompOption get;
-
-	get.type = CompOptionTypeMethod;
-	get.name = METADATA_METHOD_GET_NAME;
-
-	if (!(*proc) (&get, closure))
+	if (!(*proc) (METADATA_METHOD_GET_NAME, "s", "s", closure))
 	    return FALSE;
     }
 
+    return TRUE;
+}
+
+static CompBool
+forEachSignal (CompObject	 *object,
+	       const char	 *interface,
+	       SignalCallBackProc proc,
+	       void		 *closure)
+{
+    return TRUE;
+}
+
+static CompBool
+forEachProp (CompObject	     *object,
+	     const char	     *interface,
+	     PropCallBackProc proc,
+	     void	     *closure)
+{
     return TRUE;
 }
 
@@ -117,9 +120,11 @@ invokeObjectMethod (CompObject	     *object,
 
 static CompObjectVTable objectVTable = {
     forEachChildObject,
-    findChildObject,
+    lookupChildObject,
     forEachInterface,
-    forEachMember,
+    forEachMethod,
+    forEachSignal,
+    forEachProp,
     invokeObjectMethod
 };
 
@@ -470,38 +475,42 @@ compObjectFiniOther (CompObject *o,
 	(*funcs->fini) (o);
 }
 
-typedef struct _CheckMemberContext {
-    const char	     *name;
-    const CompOption *member;
-} CheckMemberContext;
+typedef struct _CheckPropContext {
+    const char     *name;
+    CompOptionType type;
+} CheckPropContext;
 
 static CompBool
-checkMember (const CompOption *member,
-	     void	      *closure)
+checkProp (const char     *name,
+	   CompOptionType type,
+	   void	          *closure)
 {
-    CheckMemberContext *pCtx = (CheckMemberContext *) closure;
+    CheckPropContext *pCtx = (CheckPropContext *) closure;
 
-    if (strcmp (member->name , pCtx->name) == 0)
+    if (strcmp (name , pCtx->name) == 0)
     {
-	pCtx->member = member;
+	pCtx->type = type;
 	return FALSE;
     }
 
     return TRUE;
 }
 
-const CompOption *
-compObjectLookupMember (CompObject *object,
-			const char *interface,
-			const char *name)
+CompBool
+compObjectPropType (CompObject	   *object,
+		    const char	   *interface,
+		    const char	   *name,
+		    CompOptionType *type)
 {
-    CheckMemberContext ctx;
+    CheckPropContext ctx;
 
-    ctx.name   = name;
-    ctx.member = NULL;
+    ctx.name = name;
 
-    (*object->vTable->forEachMember) (object, interface, checkMember,
-				      (void *) &ctx);
+    if ((*object->vTable->forEachProp) (object, interface, checkProp,
+					(void *) &ctx))
+	return FALSE;
 
-    return ctx.member;
+    *type = ctx.type;
+
+    return TRUE;
 }

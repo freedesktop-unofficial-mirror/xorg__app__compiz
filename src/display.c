@@ -140,10 +140,48 @@ displayForEachInterface (CompObject	       *object,
 }
 
 static CompBool
-displayForEachMember (CompObject	 *object,
+displayForEachMethod (CompObject	 *object,
 		      const char	 *interface,
-		      MemberCallBackProc proc,
+		      MethodCallBackProc proc,
 		      void		 *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_DISPLAY (object);
+
+    UNWRAP (&d->object, object, vTable);
+    status = (*object->vTable->forEachMethod) (object, interface, proc,
+					       closure);
+    WRAP (&d->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+displayForEachSignal (CompObject	 *object,
+		      const char	 *interface,
+		      SignalCallBackProc proc,
+		      void		 *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_DISPLAY (object);
+
+    UNWRAP (&d->object, object, vTable);
+    status = (*object->vTable->forEachSignal) (object, interface, proc,
+					       closure);
+    WRAP (&d->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+displayForEachProp (CompObject	     *object,
+		    const char	     *interface,
+		    PropCallBackProc proc,
+		    void	     *closure)
 {
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
@@ -155,13 +193,12 @@ displayForEachMember (CompObject	 *object,
 	int i;
 
 	for (i = 0; i < N_ELEMENTS (d->opt); i++)
-	    if (!(*proc) (&d->opt[i], closure))
+	    if (!(*proc) (d->opt[i].name, d->opt[i].type, closure))
 		return FALSE;
     }
 
     UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->forEachMember) (object, interface, proc,
-					       closure);
+    status = (*object->vTable->forEachProp) (object, interface, proc, closure);
     WRAP (&d->object, object, vTable, v.vTable);
 
     return status;
@@ -2002,7 +2039,9 @@ static CompObjectVTable displayObjectVTable = {
     displayForEachChildObject,
     displayLookupChildObject,
     displayForEachInterface,
-    displayForEachMember,
+    displayForEachMethod,
+    displayForEachSignal,
+    displayForEachProp,
     displayInvokeMethod
 };
 

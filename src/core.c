@@ -95,9 +95,9 @@ coreForEachInterface (CompObject	    *object,
 }
 
 static CompBool
-coreForEachMember (CompObject	      *object,
+coreForEachMethod (CompObject	      *object,
 		   const char	      *interface,
-		   MemberCallBackProc proc,
+		   MethodCallBackProc proc,
 		   void		      *closure)
 {
     CompObjectVTableVec v = { object->vTable };
@@ -106,8 +106,45 @@ coreForEachMember (CompObject	      *object,
     CORE_CORE (object);
 
     UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->forEachMember) (object, interface, proc,
+    status = (*object->vTable->forEachMethod) (object, interface, proc,
 					       closure);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+coreForEachSignal (CompObject	      *object,
+		   const char	      *interface,
+		   SignalCallBackProc proc,
+		   void		      *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_CORE (object);
+
+    UNWRAP (&c->object, object, vTable);
+    status = (*object->vTable->forEachSignal) (object, interface, proc,
+					       closure);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+coreForEachProp (CompObject	  *object,
+		 const char	  *interface,
+		 PropCallBackProc proc,
+		 void		  *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_CORE (object);
+
+    UNWRAP (&c->object, object, vTable);
+    status = (*object->vTable->forEachProp) (object, interface, proc, closure);
     WRAP (&c->object, object, vTable, v.vTable);
 
     return status;
@@ -207,7 +244,9 @@ static CompObjectVTable coreObjectVTable = {
     coreForEachChildObject,
     coreLookupChildObject,
     coreForEachInterface,
-    coreForEachMember,
+    coreForEachMethod,
+    coreForEachSignal,
+    coreForEachProp,
     coreInvokeMethod
 };
 

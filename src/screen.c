@@ -119,10 +119,48 @@ screenForEachInterface (CompObject	      *object,
 }
 
 static CompBool
-screenForEachMember (CompObject		*object,
-		     const char	        *interface,
-		     MemberCallBackProc proc,
+screenForEachMethod (CompObject		 *object,
+		      const char	 *interface,
+		      MethodCallBackProc proc,
+		      void		 *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_SCREEN (object);
+
+    UNWRAP (&s->object, object, vTable);
+    status = (*object->vTable->forEachMethod) (object, interface, proc,
+					       closure);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+screenForEachSignal (CompObject		*object,
+		     const char		*interface,
+		     SignalCallBackProc proc,
 		     void		*closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE_SCREEN (object);
+
+    UNWRAP (&s->object, object, vTable);
+    status = (*object->vTable->forEachSignal) (object, interface, proc,
+					       closure);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+screenForEachProp (CompObject	    *object,
+		   const char	    *interface,
+		   PropCallBackProc proc,
+		   void		    *closure)
 {
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
@@ -134,13 +172,12 @@ screenForEachMember (CompObject		*object,
 	int i;
 
 	for (i = 0; i < N_ELEMENTS (s->opt); i++)
-	    if (!(*proc) (&s->opt[i], closure))
+	    if (!(*proc) (s->opt[i].name, s->opt[i].type, closure))
 		return FALSE;
     }
 
     UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->forEachMember) (object, interface, proc,
-					       closure);
+    status = (*object->vTable->forEachProp) (object, interface, proc, closure);
     WRAP (&s->object, object, vTable, v.vTable);
 
     return status;
@@ -1556,7 +1593,9 @@ static CompObjectVTable screenObjectVTable = {
     screenForEachChildObject,
     screenLookupChildObject,
     screenForEachInterface,
-    screenForEachMember,
+    screenForEachMethod,
+    screenForEachSignal,
+    screenForEachProp,
     screenInvokeMethod
 };
 

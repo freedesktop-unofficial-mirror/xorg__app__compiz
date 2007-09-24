@@ -329,13 +329,33 @@ typedef CompBool (*ForEachInterfaceProc) (CompObject		*object,
 					  InterfaceCallBackProc proc,
 					  void		        *closure);
 
-typedef CompBool (*MemberCallBackProc) (const CompOption *member,
-					void		 *closure);
+typedef CompBool (*MethodCallBackProc) (const char *name,
+					const char *in,
+					const char *out,
+					void	   *closure);
 
-typedef CompBool (*ForEachMemberProc) (CompObject	  *object,
+typedef CompBool (*ForEachMethodProc) (CompObject	  *object,
 				       const char	  *interface,
-				       MemberCallBackProc proc,
+				       MethodCallBackProc proc,
 				       void		  *closure);
+
+typedef CompBool (*SignalCallBackProc) (const char *name,
+					const char *out,
+					void	   *closure);
+
+typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
+				       const char	  *interface,
+				       SignalCallBackProc proc,
+				       void		  *closure);
+
+typedef CompBool (*PropCallBackProc) (const char     *name,
+				      CompOptionType type,
+				      void	     *closure);
+
+typedef CompBool (*ForEachPropProc) (CompObject	      *object,
+				     const char	      *interface,
+				     PropCallBackProc proc,
+				     void	      *closure);
 
 typedef CompBool (*InvokeMethodProc) (CompObject       *object,
 				      const char       *interface,
@@ -347,7 +367,9 @@ typedef struct _CompObjectVTable {
     ForEachChildObjectProc forEachChildObject;
     LookupChildObjectProc  lookupChildObject;
     ForEachInterfaceProc   forEachInterface;
-    ForEachMemberProc      forEachMember;
+    ForEachMethodProc      forEachMethod;
+    ForEachSignalProc      forEachSignal;
+    ForEachPropProc        forEachProp;
     InvokeMethodProc	   invokeMethod;
 } CompObjectVTable;
 
@@ -417,10 +439,11 @@ void
 compObjectFiniOther (CompObject *object,
 		     int	index);
 
-const CompOption *
-compObjectLookupMember (CompObject *object,
-			const char *interface,
-			const char *name);
+CompBool
+compObjectPropType (CompObject	   *object,
+		    const char	   *interface,
+		    const char	   *name,
+		    CompOptionType *type);
 
 
 #define ARRAY_SIZE(array)		 \

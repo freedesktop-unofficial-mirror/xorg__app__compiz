@@ -779,13 +779,6 @@ initMatchValue (CompDisplay     *d,
 }
 
 static void
-initMethodValue (CompOptionValue *v,
-		 xmlDocPtr       doc,
-		 xmlNodePtr      node)
-{
-}
-
-static void
 initListValue (CompDisplay	     *d,
 	       CompOptionValue	     *v,
 	       CompOptionRestriction *r,
@@ -1083,9 +1076,6 @@ initOptionFromMetadataPath (CompDisplay   *d,
 	helper = boolFromMetadataPathElement (metadata, (char *) path, "helper",
 					      FALSE);
 	initMatchValue (d, &option->value, helper, defaultDoc, defaultNode);
-	break;
-    case CompOptionTypeMethod:
-	initMethodValue (&option->value, defaultDoc, defaultNode);
 	break;
     case CompOptionTypeList:
 	value = stringFromMetadataPathElement (metadata, (char *) path, "type");
