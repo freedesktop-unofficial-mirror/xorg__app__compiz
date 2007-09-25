@@ -134,6 +134,15 @@ static CompObjectVTable objectVTable = {
     invokeObjectMethod
 };
 
+static void
+processObjectSignal (CompObject	      *object,
+		     CompObject	      *source,
+		     const char	      *interface,
+		     const char	      *name,
+		     const CompOption *out)
+{
+}
+
 CompBool
 compObjectInit (CompObject       *object,
 		CompObjectType   *type,
@@ -153,6 +162,8 @@ compObjectInit (CompObject       *object,
     object->id     = id;
     object->type   = type;
     object->vTable = &objectVTable;
+
+    object->processSignal = processObjectSignal;
 
     return TRUE;
 }
@@ -242,6 +253,25 @@ compObjectFreePrivateIndex (CompObjectType *type,
     freePrivateIndex (type->privateLen, type->privateIndices, index);
 }
 
+static void
+processChildObjectSignal (CompObject	   *object,
+			  CompObject	   *source,
+			  const char	   *interface,
+			  const char	   *name,
+			  const CompOption *out)
+{
+    CompChildObject *child = (CompChildObject *) object;
+    CompObject      *parent = child->parent;
+
+    /* propagate to parent */
+    if (parent)
+	(*parent->processSignal) (parent, source, interface, name, out);
+
+    UNWRAP (child, object, processSignal);
+    (*object->processSignal) (object, source, interface, name, out);
+    WRAP (child, object, processSignal, processChildObjectSignal);
+}
+
 CompBool
 compChildObjectInit (CompChildObject  *object,
 		     CompObjectType   *type,
@@ -252,12 +282,16 @@ compChildObjectInit (CompChildObject  *object,
 
     object->parent = NULL;
 
+    WRAP (object, &object->base, processSignal, processChildObjectSignal);
+
     return TRUE;
 }
 
 void
 compChildObjectFini (CompChildObject *object)
 {
+    UNWRAP (object, &object->base, processSignal);
+
     compObjectFini (&object->base);
 }
 

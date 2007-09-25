@@ -401,11 +401,19 @@ typedef struct _CompObjectVTableVec {
     CompObjectVTable *vTable;
 } CompObjectVTableVec;
 
+typedef void (*ProcessSignalProc) (CompObject       *object,
+				   CompObject       *source,
+				   const char       *interface,
+				   const char       *name,
+				   const CompOption *out);
+
 struct _CompObject {
     CompObjectTypeID id;
     CompPrivate	     *privates;
     CompObjectType   *type;
     CompObjectVTable *vTable;
+
+    ProcessSignalProc processSignal;
 };
 
 int
@@ -427,6 +435,8 @@ struct _CompChildObject {
     CompObject base;
 
     CompObject *parent;
+
+    ProcessSignalProc processSignal;
 };
 
 CompBool
