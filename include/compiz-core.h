@@ -348,9 +348,31 @@ typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
 				       SignalCallBackProc proc,
 				       void		  *closure);
 
-typedef CompBool (*PropCallBackProc) (const char     *name,
-				      CompOptionType type,
-				      void	     *closure);
+/* compiz uses a sub-set of the type-codes specified in the
+   dbus specification
+
+   BOOLEAN	98  (ASCII 'b')	Boolean value, 0 is FALSE and 1 is TRUE.
+   INT32	105 (ASCII 'i')	32-bit signed integer.
+   DOUBLE	100 (ASCII 'd')	IEEE 754 double.
+   STRING	115 (ASCII 's')	Nul terminated UTF-8 string.
+   ARRAY	97  (ASCII 'a')	Array.
+*/
+
+/* XXX: temporary type-codes that will be removed once core and standard
+   set of plugins no longer expose them.
+
+   COLOR	99  (ASCII 'c')	Color.
+   ACTION	116 (ASCII 't')	Action.
+   KEY		107 (ASCII 'k')	Key-binding.
+   BUTTON	102 (ASCII 'f')	Button-binding.
+   EDGE		104 (ASCII 'h')	Edge-binding.
+   BELL		108 (ASCII 'l')	Bell-binding.
+   MATCH	109 (ASCII 'm')	Match.
+*/
+
+typedef CompBool (*PropCallBackProc) (const char *name,
+				      const char *type,
+				      void	 *closure);
 
 typedef CompBool (*ForEachPropProc) (CompObject	      *object,
 				     const char	      *interface,
@@ -439,11 +461,10 @@ void
 compObjectFiniOther (CompObject *object,
 		     int	index);
 
-CompBool
-compObjectPropType (CompObject	   *object,
-		    const char	   *interface,
-		    const char	   *name,
-		    CompOptionType *type);
+const char *
+compObjectPropType (CompObject *object,
+		    const char *interface,
+		    const char *name);
 
 
 #define ARRAY_SIZE(array)		 \
@@ -713,6 +734,12 @@ optionTypeToString (CompOptionType type);
 
 Bool
 isActionOption (const CompOption *option);
+
+const char *
+propTypeFromOption (CompOption *option);
+
+CompOptionType
+propTypeToOptionType (const char type);
 
 
 /* core.c */

@@ -963,3 +963,92 @@ isActionOption (const CompOption *option)
 
     return FALSE;
 }
+
+const char *
+propTypeFromOption (CompOption *o)
+{
+    switch (o->type) {
+    case CompOptionTypeBool:
+	return "b";
+    case CompOptionTypeInt:
+	return "i";
+    case CompOptionTypeFloat:
+	return "d";
+    case CompOptionTypeString:
+	return "s";
+    case CompOptionTypeColor:
+	return "c";
+    case CompOptionTypeAction:
+	return "t";
+    case CompOptionTypeKey:
+	return "k";
+    case CompOptionTypeButton:
+	return "f";
+    case CompOptionTypeBell:
+	return "l";
+    case CompOptionTypeEdge:
+	return "h";
+    case CompOptionTypeMatch:
+	return "m";
+    case CompOptionTypeList:
+	switch (o->value.list.type) {
+	case CompOptionTypeBool:
+	    return "ab";
+	case CompOptionTypeInt:
+	    return "ai";
+	case CompOptionTypeFloat:
+	    return "ad";
+	case CompOptionTypeString:
+	    return "as";
+	case CompOptionTypeColor:
+	    return "ac";
+	case CompOptionTypeAction:
+	    return "at";
+	case CompOptionTypeKey:
+	    return "ak";
+	case CompOptionTypeButton:
+	    return "af";
+	case CompOptionTypeEdge:
+	    return "ah";
+	case CompOptionTypeBell:
+	    return "al";
+	case CompOptionTypeMatch:
+	    return "am";
+	case CompOptionTypeList:
+	    return "aa";
+	}
+    }
+
+    return "i";
+}
+
+CompOptionType
+propTypeToOptionType (char type)
+{
+    switch (type) {
+    case 'b':
+	return CompOptionTypeBool;
+    case 'i':
+	return CompOptionTypeInt;
+    case 'd':
+	return CompOptionTypeFloat;
+    case 'c':
+	return CompOptionTypeColor;
+    case 't':
+	return CompOptionTypeAction;
+    case 'k':
+	return CompOptionTypeKey;
+    case 'f':
+	return CompOptionTypeButton;
+    case 'h':
+	return CompOptionTypeEdge;
+    case 'l':
+	return CompOptionTypeBell;
+    case 'm':
+	return CompOptionTypeMatch;
+    case 'a':
+	return CompOptionTypeList;
+    }
+
+    return CompOptionTypeBool;
+}

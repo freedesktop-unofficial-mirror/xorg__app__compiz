@@ -476,18 +476,18 @@ compObjectFiniOther (CompObject *o,
 }
 
 typedef struct _CheckPropContext {
-    const char     *name;
-    CompOptionType type;
+    const char *name;
+    const char *type;
 } CheckPropContext;
 
 static CompBool
-checkProp (const char     *name,
-	   CompOptionType type,
-	   void	          *closure)
+checkProp (const char *name,
+	   const char *type,
+	   void	      *closure)
 {
     CheckPropContext *pCtx = (CheckPropContext *) closure;
 
-    if (strcmp (name , pCtx->name) == 0)
+    if (strcmp (name, pCtx->name) == 0)
     {
 	pCtx->type = type;
 	return FALSE;
@@ -496,21 +496,18 @@ checkProp (const char     *name,
     return TRUE;
 }
 
-CompBool
-compObjectPropType (CompObject	   *object,
-		    const char	   *interface,
-		    const char	   *name,
-		    CompOptionType *type)
+const char *
+compObjectPropType (CompObject *object,
+		    const char *interface,
+		    const char *name)
 {
     CheckPropContext ctx;
 
     ctx.name = name;
+    ctx.type = NULL;
 
-    if ((*object->vTable->forEachProp) (object, interface, checkProp,
-					(void *) &ctx))
-	return FALSE;
+    (*object->vTable->forEachProp) (object, interface, checkProp,
+				    (void *) &ctx);
 
-    *type = ctx.type;
-
-    return TRUE;
+    return ctx.type;
 }

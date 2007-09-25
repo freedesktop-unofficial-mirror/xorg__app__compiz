@@ -193,7 +193,8 @@ displayForEachProp (CompObject	     *object,
 	int i;
 
 	for (i = 0; i < N_ELEMENTS (d->opt); i++)
-	    if (!(*proc) (d->opt[i].name, d->opt[i].type, closure))
+	    if (!(*proc) (d->opt[i].name, propTypeFromOption (&d->opt[i]),
+			  closure))
 		return FALSE;
     }
 

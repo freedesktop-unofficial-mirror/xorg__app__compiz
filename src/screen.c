@@ -172,7 +172,8 @@ screenForEachProp (CompObject	    *object,
 	int i;
 
 	for (i = 0; i < N_ELEMENTS (s->opt); i++)
-	    if (!(*proc) (s->opt[i].name, s->opt[i].type, closure))
+	    if (!(*proc) (s->opt[i].name, propTypeFromOption (&s->opt[i]),
+			  closure))
 		return FALSE;
     }
 
