@@ -82,6 +82,12 @@ forEachSignal (CompObject	 *object,
 	       SignalCallBackProc proc,
 	       void		 *closure)
 {
+    if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
+    {
+	if (!(*proc) (PROPERTIES_SIGNAL_CHANGED_NAME, "ss", closure))
+	    return FALSE;
+    }
+
     return TRUE;
 }
 

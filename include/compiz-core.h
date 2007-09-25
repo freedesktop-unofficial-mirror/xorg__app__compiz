@@ -271,8 +271,9 @@ freePrivateIndex (int  len,
 
 /* object.c */
 
-#define PROPERTIES_INTERFACE_NAME  "properties"
-#define PROPERTIES_METHOD_SET_NAME "set"
+#define PROPERTIES_INTERFACE_NAME      "properties"
+#define PROPERTIES_METHOD_SET_NAME     "set"
+#define PROPERTIES_SIGNAL_CHANGED_NAME "changed"
 
 #define METADATA_INTERFACE_NAME  "metadata"
 #define METADATA_METHOD_GET_NAME "get"
