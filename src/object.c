@@ -59,7 +59,7 @@ forEachMethod (CompObject	  *object,
 {
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
-	if (!(*proc) (PROPERTIES_METHOD_SET_NAME, "ss", "", closure))
+	if (!(*proc) (PROPERTIES_METHOD_SET_NAME, "ssv", "", closure))
 	    return FALSE;
     }
     else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
@@ -84,7 +84,7 @@ forEachSignal (CompObject	 *object,
 {
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
-	if (!(*proc) (PROPERTIES_SIGNAL_CHANGED_NAME, "ss", closure))
+	if (!(*proc) (PROPERTIES_SIGNAL_CHANGED_NAME, "ssv", closure))
 	    return FALSE;
     }
 

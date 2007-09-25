@@ -356,6 +356,7 @@ typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
    INT32	105 (ASCII 'i')	32-bit signed integer.
    DOUBLE	100 (ASCII 'd')	IEEE 754 double.
    STRING	115 (ASCII 's')	Nul terminated UTF-8 string.
+   VARIANT	118 (ASCII 'v')	Variant.
    ARRAY	97  (ASCII 'a')	Array.
 */
 
