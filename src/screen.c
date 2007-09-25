@@ -199,8 +199,24 @@ screenInvokeMethod (CompObject	     *object,
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
 	if (strcmp (name, PROPERTIES_METHOD_SET_NAME) == 0)
+	{
 	    if (strcmp (in[0].value.s, CORE_SCREEN_INTERFACE_NAME) == 0)
-		return setScreenOption (NULL, s, in[1].value.s, &in[2].value);
+	    {
+		if (setScreenOption (NULL, s, in[1].value.s, &in[2].value))
+		{
+		    (object->processSignal) (object, object,
+					     PROPERTIES_INTERFACE_NAME,
+					     PROPERTIES_SIGNAL_CHANGED_NAME,
+					     in);
+
+		    return TRUE;
+		}
+		else
+		{
+		    return FALSE;
+		}
+	    }
+	}
     }
     else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
     {
