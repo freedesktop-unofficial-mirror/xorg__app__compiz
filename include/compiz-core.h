@@ -360,6 +360,15 @@ typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
    ARRAY	97  (ASCII 'a')	Array.
 */
 
+#define COMP_TYPE_INVALID ((int) '\0')
+
+#define COMP_TYPE_BOOLEAN ((int) 'b')
+#define COMP_TYPE_INT32   ((int) 'i')
+#define COMP_TYPE_DOUBLE  ((int) 'd')
+#define COMP_TYPE_STRING  ((int) 's')
+#define COMP_TYPE_VARIANT ((int) 'v')
+#define COMP_TYPE_ARRAY   ((int) 'a')
+
 /* XXX: temporary type-codes that will be removed once core and standard
    set of plugins no longer expose them.
 
@@ -477,6 +486,11 @@ const char *
 compObjectPropType (CompObject *object,
 		    const char *interface,
 		    const char *name);
+
+const char *
+compObjectSignalType (CompObject *object,
+		      const char *interface,
+		      const char *name);
 
 
 #define ARRAY_SIZE(array)		 \
@@ -748,10 +762,10 @@ Bool
 isActionOption (const CompOption *option);
 
 const char *
-propTypeFromOption (CompOption *option);
+propTypeFromOption (const CompOption *option);
 
 CompOptionType
-propTypeToOptionType (const char type);
+propTypeToOptionType (const char *type);
 
 
 /* core.c */

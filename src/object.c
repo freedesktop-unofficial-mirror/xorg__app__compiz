@@ -515,17 +515,17 @@ compObjectFiniOther (CompObject *o,
 	(*funcs->fini) (o);
 }
 
-typedef struct _CheckPropContext {
+typedef struct _CheckContext {
     const char *name;
     const char *type;
-} CheckPropContext;
+} CheckContext;
 
 static CompBool
-checkProp (const char *name,
-	   const char *type,
-	   void	      *closure)
+checkSignalOrProp (const char *name,
+		   const char *type,
+		   void	      *closure)
 {
-    CheckPropContext *pCtx = (CheckPropContext *) closure;
+    CheckContext *pCtx = (CheckContext *) closure;
 
     if (strcmp (name, pCtx->name) == 0)
     {
@@ -541,13 +541,29 @@ compObjectPropType (CompObject *object,
 		    const char *interface,
 		    const char *name)
 {
-    CheckPropContext ctx;
+    CheckContext ctx;
 
     ctx.name = name;
     ctx.type = NULL;
 
-    (*object->vTable->forEachProp) (object, interface, checkProp,
+    (*object->vTable->forEachProp) (object, interface, checkSignalOrProp,
 				    (void *) &ctx);
+
+    return ctx.type;
+}
+
+const char *
+compObjectSignalType (CompObject *object,
+		      const char *interface,
+		      const char *name)
+{
+    CheckContext ctx;
+
+    ctx.name = name;
+    ctx.type = NULL;
+
+    (*object->vTable->forEachSignal) (object, interface, checkSignalOrProp,
+				      (void *) &ctx);
 
     return ctx.type;
 }

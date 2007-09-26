@@ -965,7 +965,7 @@ isActionOption (const CompOption *option)
 }
 
 const char *
-propTypeFromOption (CompOption *o)
+propTypeFromOption (const CompOption *o)
 {
     switch (o->type) {
     case CompOptionTypeBool:
@@ -1023,14 +1023,14 @@ propTypeFromOption (CompOption *o)
 }
 
 CompOptionType
-propTypeToOptionType (char type)
+propTypeToOptionType (const char *type)
 {
-    switch (type) {
-    case 'b':
+    switch (type[0]) {
+    case COMP_TYPE_BOOLEAN:
 	return CompOptionTypeBool;
-    case 'i':
+    case COMP_TYPE_INT32:
 	return CompOptionTypeInt;
-    case 'd':
+    case COMP_TYPE_DOUBLE:
 	return CompOptionTypeFloat;
     case 'c':
 	return CompOptionTypeColor;
@@ -1046,7 +1046,7 @@ propTypeToOptionType (char type)
 	return CompOptionTypeBell;
     case 'm':
 	return CompOptionTypeMatch;
-    case 'a':
+    case COMP_TYPE_ARRAY:
 	return CompOptionTypeList;
     }
 
