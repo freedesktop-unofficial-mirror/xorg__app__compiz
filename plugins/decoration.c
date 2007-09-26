@@ -132,6 +132,8 @@ typedef struct _DecorScreen {
 typedef struct _DecorWindow {
     WindowDecoration *wd;
     Decoration	     *decor;
+
+    CompTimeoutHandle resizeUpdateHandle;
 } DecorWindow;
 
 #define GET_DECOR_DISPLAY(d)				      \
@@ -1202,6 +1204,21 @@ decorWindowMoveNotify (CompWindow *w,
     WRAP (ds, w->screen, windowMoveNotify, decorWindowMoveNotify);
 }
 
+static Bool
+decorResizeUpdateTimeout (void *closure)
+{
+    CompWindow *w = (CompWindow *) closure;
+
+    DECOR_WINDOW (w);
+
+    if (!decorWindowUpdate (w, TRUE))
+	updateWindowDecorationScale (w);
+
+    dw->resizeUpdateHandle = 0;
+
+    return FALSE;
+}
+
 static void
 decorWindowResizeNotify (CompWindow *w,
 			 int	    dx,
@@ -1210,9 +1227,9 @@ decorWindowResizeNotify (CompWindow *w,
 			 int	    dheight)
 {
     DECOR_SCREEN (w->screen);
+    DECOR_WINDOW (w);
 
-    if (!decorWindowUpdate (w, TRUE))
-	updateWindowDecorationScale (w);
+    dw->resizeUpdateHandle = compAddTimeout (0, decorResizeUpdateTimeout, w);
 
     UNWRAP (ds, w->screen, windowResizeNotify);
     (*w->screen->windowResizeNotify) (w, dx, dy, dwidth, dheight);
@@ -1420,6 +1437,8 @@ decorInitWindow (CompPlugin *p,
     dw->wd    = NULL;
     dw->decor = NULL;
 
+    dw->resizeUpdateHandle = 0;
+
     w->privates[ds->windowPrivateIndex].ptr = dw;
 
     if (!w->attrib.override_redirect)
@@ -1439,6 +1458,9 @@ decorFiniWindow (CompPlugin *p,
 
     if (!w->destroyed)
 	decorWindowUpdate (w, FALSE);
+
+    if (dw->resizeUpdateHandle)
+	compRemoveTimeout (dw->resizeUpdateHandle);
 
     if (dw->wd)
 	destroyWindowDecoration (w->screen, dw->wd);
