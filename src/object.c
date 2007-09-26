@@ -48,6 +48,15 @@ forEachInterface (CompObject		*object,
 		  InterfaceCallBackProc proc,
 		  void			*closure)
 {
+    if (!(*proc) (object, PROPERTIES_INTERFACE_NAME, closure))
+	return FALSE;
+
+    if (!(*proc) (object, VERSION_INTERFACE_NAME, closure))
+	return FALSE;
+
+    if (!(*proc) (object, METADATA_INTERFACE_NAME, closure))
+	return FALSE;
+
     return TRUE;
 }
 
