@@ -108,7 +108,7 @@ screenForEachInterface (CompObject	      *object,
 
     CORE_SCREEN (object);
 
-    if (!(*proc) (CORE_SCREEN_INTERFACE_NAME, closure))
+    if (!(*proc) (object, CORE_SCREEN_INTERFACE_NAME, closure))
 	return FALSE;
 
     UNWRAP (&s->object, object, vTable);
@@ -172,8 +172,8 @@ screenForEachProp (CompObject	    *object,
 	int i;
 
 	for (i = 0; i < N_ELEMENTS (s->opt); i++)
-	    if (!(*proc) (s->opt[i].name, propTypeFromOption (&s->opt[i]),
-			  closure))
+	    if (!(*proc) (object, s->opt[i].name,
+			  propTypeFromOption (&s->opt[i]), closure))
 		return FALSE;
     }
 

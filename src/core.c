@@ -84,7 +84,7 @@ coreForEachInterface (CompObject	    *object,
 
     CORE_CORE (object);
 
-    if (!(*proc) (CORE_CORE_INTERFACE_NAME, closure))
+    if (!(*proc) (object, CORE_CORE_INTERFACE_NAME, closure))
 	return FALSE;
 
     UNWRAP (&c->object, object, vTable);

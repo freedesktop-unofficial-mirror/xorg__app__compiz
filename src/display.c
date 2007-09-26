@@ -129,7 +129,7 @@ displayForEachInterface (CompObject	       *object,
 
     CORE_DISPLAY (object);
 
-    if (!(*proc) (CORE_DISPLAY_INTERFACE_NAME, closure))
+    if (!(*proc) (object, CORE_DISPLAY_INTERFACE_NAME, closure))
 	return FALSE;
 
     UNWRAP (&d->object, object, vTable);
@@ -193,8 +193,8 @@ displayForEachProp (CompObject	     *object,
 	int i;
 
 	for (i = 0; i < N_ELEMENTS (d->opt); i++)
-	    if (!(*proc) (d->opt[i].name, propTypeFromOption (&d->opt[i]),
-			  closure))
+	    if (!(*proc) (object, d->opt[i].name,
+			  propTypeFromOption (&d->opt[i]), closure))
 		return FALSE;
     }
 

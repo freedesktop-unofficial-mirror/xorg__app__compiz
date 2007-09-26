@@ -59,17 +59,17 @@ forEachMethod (CompObject	  *object,
 {
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
-	if (!(*proc) (PROPERTIES_METHOD_SET_NAME, "ssv", "", closure))
+	if (!(*proc) (object, PROPERTIES_METHOD_SET_NAME, "ssv", "", closure))
 	    return FALSE;
     }
     else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
     {
-	if (!(*proc) (VERSION_METHOD_GET_NAME, "s", "i", closure))
+	if (!(*proc) (object, VERSION_METHOD_GET_NAME, "s", "i", closure))
 	    return FALSE;
     }
     else if (strcmp (interface, METADATA_INTERFACE_NAME) == 0)
     {
-	if (!(*proc) (METADATA_METHOD_GET_NAME, "s", "s", closure))
+	if (!(*proc) (object, METADATA_METHOD_GET_NAME, "s", "s", closure))
 	    return FALSE;
     }
 
@@ -84,7 +84,7 @@ forEachSignal (CompObject	 *object,
 {
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
-	if (!(*proc) (PROPERTIES_SIGNAL_CHANGED_NAME, "ssv", closure))
+	if (!(*proc) (object, PROPERTIES_SIGNAL_CHANGED_NAME, "ssv", closure))
 	    return FALSE;
     }
 
@@ -521,7 +521,8 @@ typedef struct _CheckContext {
 } CheckContext;
 
 static CompBool
-checkSignalOrProp (const char *name,
+checkSignalOrProp (CompObject *object,
+		   const char *name,
 		   const char *type,
 		   void	      *closure)
 {

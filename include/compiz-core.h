@@ -310,45 +310,6 @@ typedef unsigned int CompObjectTypeID;
 #define COMP_OBJECT_TYPE_SCREEN  2
 #define COMP_OBJECT_TYPE_WINDOW  3
 
-typedef struct _CompChildObject CompChildObject;
-
-typedef CompBool (*ChildObjectCallBackProc) (CompChildObject *object,
-					     void	     *closure);
-
-typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
-					    ChildObjectCallBackProc proc,
-					    void		    *closure);
-
-typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
-					      const char *type,
-					      const char *name);
-
-typedef CompBool (*InterfaceCallBackProc) (const char *interface,
-					   void	      *closure);
-
-typedef CompBool (*ForEachInterfaceProc) (CompObject		*object,
-					  InterfaceCallBackProc proc,
-					  void		        *closure);
-
-typedef CompBool (*MethodCallBackProc) (const char *name,
-					const char *in,
-					const char *out,
-					void	   *closure);
-
-typedef CompBool (*ForEachMethodProc) (CompObject	  *object,
-				       const char	  *interface,
-				       MethodCallBackProc proc,
-				       void		  *closure);
-
-typedef CompBool (*SignalCallBackProc) (const char *name,
-					const char *out,
-					void	   *closure);
-
-typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
-				       const char	  *interface,
-				       SignalCallBackProc proc,
-				       void		  *closure);
-
 /* compiz uses a sub-set of the type-codes specified in the
    dbus specification
 
@@ -381,7 +342,50 @@ typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
    MATCH	109 (ASCII 'm')	Match.
 */
 
-typedef CompBool (*PropCallBackProc) (const char *name,
+typedef struct _CompChildObject CompChildObject;
+
+typedef CompBool (*ChildObjectCallBackProc) (CompChildObject *object,
+					     void	     *closure);
+
+typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
+					    ChildObjectCallBackProc proc,
+					    void		    *closure);
+
+typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
+					      const char *type,
+					      const char *name);
+
+typedef CompBool (*InterfaceCallBackProc) (CompObject *object,
+					   const char *interface,
+					   void	      *closure);
+
+typedef CompBool (*ForEachInterfaceProc) (CompObject		*object,
+					  InterfaceCallBackProc proc,
+					  void		        *closure);
+
+typedef CompBool (*MethodCallBackProc) (CompObject *object,
+					const char *name,
+					const char *in,
+					const char *out,
+					void	   *closure);
+
+typedef CompBool (*ForEachMethodProc) (CompObject	  *object,
+				       const char	  *interface,
+				       MethodCallBackProc proc,
+				       void		  *closure);
+
+typedef CompBool (*SignalCallBackProc) (CompObject *object,
+					const char *name,
+					const char *out,
+					void	   *closure);
+
+typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
+				       const char	  *interface,
+				       SignalCallBackProc proc,
+				       void		  *closure);
+
+typedef CompBool (*PropCallBackProc) (CompObject *object,
+				      const char *name,
 				      const char *type,
 				      void	 *closure);
 
