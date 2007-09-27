@@ -84,9 +84,6 @@ coreForEachInterface (CompObject	    *object,
 
     CORE_CORE (object);
 
-    if (!(*proc) (object, CORE_CORE_INTERFACE_NAME, closure))
-	return FALSE;
-
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachInterface) (object, proc, closure);
     WRAP (&c->object, object, vTable, v.vTable);
