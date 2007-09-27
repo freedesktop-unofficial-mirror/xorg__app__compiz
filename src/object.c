@@ -190,28 +190,13 @@ typedef struct _ReallocObjectPrivatesContext {
 } ReallocObjectPrivatesContext;
 
 static CompBool
-reallocObjectPrivates (CompObject *object,
-		       int	  size)
-{
-    void *privates;
-
-    privates = realloc (object->privates, size * sizeof (CompPrivate));
-    if (!privates)
-	return FALSE;
-
-    object->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
-static CompBool
 reallocTypedObjectPrivates (CompObject		 *object,
 			    const CompObjectType *type,
 			    int			 size)
 {
     do {
 	if (object->type == type)
-	    if (!reallocObjectPrivates (object, size))
+	    if (!(*type->reallocObjectPrivates) (object, size))
 		return FALSE;
 
 	type = (*type->superType) (object);
