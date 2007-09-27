@@ -436,12 +436,14 @@ typedef void (*ProcessSignalProc) (CompObject       *object,
 				   const CompOption *out);
 
 struct _CompObject {
-    CompObjectTypeID id;
-    CompPrivate	     *privates;
-    CompObjectType   *type;
+    const CompObjectType *type;
+
     CompObjectVTable *vTable;
 
+    CompPrivate	*privates;
+
     ProcessSignalProc processSignal;
+    CompObjectTypeID  id;
 };
 
 int
