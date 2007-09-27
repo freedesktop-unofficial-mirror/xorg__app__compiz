@@ -299,6 +299,9 @@ typedef const CompObjectType *(*ObjectSuperTypeProc) (CompObject *object);
 
 typedef char *(*QueryObjectNameProc) (CompObject *object);
 
+typedef CompBool (*ReallocObjectPrivatesProc) (CompObject *object,
+					       int	  size);
+
 typedef CompBool (*InitObjectProc) (CompObject     *object,
 				    CompObjectType *type);
 typedef void     (*FiniObjectProc) (CompObject *object);
@@ -309,13 +312,14 @@ typedef struct _CompObjectFuncs {
 } CompObjectFuncs;
 
 struct _CompObjectType {
-    const char		*name;
-    ObjectSuperTypeProc superType;
-    QueryObjectNameProc queryObjectName;
-    char		*privateIndices;
-    int			privateLen;
-    CompPrivate		*privates;
-    CompObjectFuncs	*funcs;
+    const char		      *name;
+    ObjectSuperTypeProc	      superType;
+    QueryObjectNameProc	      queryObjectName;
+    ReallocObjectPrivatesProc reallocObjectPrivates;
+    char		      *privateIndices;
+    int			      privateLen;
+    CompPrivate		      *privates;
+    CompObjectFuncs	      *funcs;
 };
 
 typedef unsigned int CompObjectTypeID;

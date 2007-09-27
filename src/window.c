@@ -1816,10 +1816,26 @@ windowQueryObjectName (CompObject *object)
     return strdup (tmp);
 }
 
+static CompBool
+windowReallocObjectPrivates (CompObject *object,
+			     int	size)
+{
+    void *privates;
+
+    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    object->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
 static CompObjectType windowObjectType = {
     "window",
     windowObjectSuperType,
     windowQueryObjectName,
+    windowReallocObjectPrivates,
     NULL,
     0,
     NULL,

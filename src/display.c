@@ -2141,10 +2141,26 @@ displayQueryObjectName (CompObject *object)
     return NULL;
 }
 
+static CompBool
+displayReallocObjectPrivates (CompObject *object,
+			      int	 size)
+{
+    void *privates;
+
+    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    object->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
 static CompObjectType displayObjectType = {
     "display",
     displayObjectSuperType,
     displayQueryObjectName,
+    displayReallocObjectPrivates,
     NULL,
     0,
     NULL,

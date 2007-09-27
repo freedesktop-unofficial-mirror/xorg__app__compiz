@@ -1868,10 +1868,26 @@ screenQueryObjectName (CompObject *object)
     return strdup (tmp);
 }
 
+static CompBool
+screenReallocObjectPrivates (CompObject *object,
+			     int	size)
+{
+    void *privates;
+
+    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    object->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
 static CompObjectType screenObjectType = {
     "screen",
     screenObjectSuperType,
     screenQueryObjectName,
+    screenReallocObjectPrivates,
     NULL,
     0,
     NULL,
