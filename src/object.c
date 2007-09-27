@@ -184,11 +184,6 @@ compObjectFini (CompObject *object)
 	free (object->privates);
 }
 
-typedef struct _ReallocObjectPrivatesContext {
-    CompObjectType *type;
-    int		   size;
-} ReallocObjectPrivatesContext;
-
 static CompBool
 reallocTypedObjectPrivates (CompObject		 *object,
 			    const CompObjectType *type,
@@ -204,6 +199,11 @@ reallocTypedObjectPrivates (CompObject		 *object,
 
     return TRUE;
 }
+
+typedef struct _ReallocObjectPrivatesContext {
+    CompObjectType *type;
+    int		   size;
+} ReallocObjectPrivatesContext;
 
 static CompBool
 reallocObjectPrivatesTree (CompChildObject *object,
