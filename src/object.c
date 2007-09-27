@@ -205,6 +205,18 @@ reallocObjectPrivates (CompObject *object,
 }
 
 static CompBool
+reallocTypedObjectPrivates (CompObject     *object,
+			    CompObjectType *type,
+			    int	           size)
+{
+    if (object->type == type)
+	if (!reallocObjectPrivates (object, size))
+	    return FALSE;
+
+    return TRUE;
+}
+
+static CompBool
 reallocObjectPrivatesTree (CompChildObject *object,
 			   void		   *closure)
 {
@@ -212,9 +224,8 @@ reallocObjectPrivatesTree (CompChildObject *object,
     ReallocObjectPrivatesContext *ctx =
 	(ReallocObjectPrivatesContext *) closure;
 
-    if (object->base.type == ctx->type)
-	if (!reallocObjectPrivates (&object->base, ctx->size))
-	    return FALSE;
+    if (!reallocTypedObjectPrivates (&object->base, ctx->type, ctx->size))
+	return FALSE;
 
     return (*vTable->forEachChildObject) (&object->base,
 					  reallocObjectPrivatesTree,
@@ -237,9 +248,8 @@ reallocObjectPrivate (int  size,
 
     ctx.type->privates = privates;
 
-    if (core.base.type == ctx.type)
-	if (!reallocObjectPrivates (&core.base, size))
-	    return FALSE;
+    if (!reallocTypedObjectPrivates (&core.base, ctx.type, size))
+	return FALSE;
 
     return (*core.base.vTable->forEachChildObject) (&core.base,
 						    reallocObjectPrivatesTree,
