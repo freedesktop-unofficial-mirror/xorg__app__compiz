@@ -205,13 +205,17 @@ reallocObjectPrivates (CompObject *object,
 }
 
 static CompBool
-reallocTypedObjectPrivates (CompObject     *object,
-			    CompObjectType *type,
-			    int	           size)
+reallocTypedObjectPrivates (CompObject		 *object,
+			    const CompObjectType *type,
+			    int			 size)
 {
-    if (object->type == type)
-	if (!reallocObjectPrivates (object, size))
-	    return FALSE;
+    do {
+	if (object->type == type)
+	    if (!reallocObjectPrivates (object, size))
+		return FALSE;
+
+	type = (*type->superType) (object);
+    } while (type);
 
     return TRUE;
 }
