@@ -271,6 +271,18 @@ freePrivateIndex (int  len,
 
 /* object.c */
 
+/*
+  object-type, object, interface and member names
+
+  - must only contain the ASCII characters "[A-Z][a-z][0-9]_"
+  - may not be the empty string
+  - may not be exceed the maximum length of 127 characters
+
+  object-type, interface and member names
+
+  - must also not begin with a digit
+*/
+
 #define PROPERTIES_INTERFACE_NAME      "properties"
 #define PROPERTIES_METHOD_SET_NAME     "set"
 #define PROPERTIES_SIGNAL_CHANGED_NAME "changed"
