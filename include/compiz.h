@@ -2783,7 +2783,7 @@ setWindowUserTime (CompWindow *w,
 		   Time       time);
 
 Bool
-focusWindowOnMap (CompWindow *w);
+allowWindowFocus (CompWindow *w);
 
 void
 unredirectWindow (CompWindow *w);
