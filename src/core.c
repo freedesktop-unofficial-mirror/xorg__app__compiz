@@ -326,6 +326,12 @@ static CompObjectFuncs coreObjectFuncs = {
     coreFiniObject
 };
 
+static const CompObjectType *
+coreObjectSuperType (CompObject *object)
+{
+    return NULL;
+}
+
 static char *
 coreQueryObjectName (CompObject *object)
 {
@@ -334,6 +340,7 @@ coreQueryObjectName (CompObject *object)
 
 static CompObjectType coreObjectType = {
     "core",
+    coreObjectSuperType,
     coreQueryObjectName,
     NULL,
     0,

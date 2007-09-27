@@ -1798,6 +1798,12 @@ static CompObjectFuncs windowObjectFuncs = {
     windowFiniObject
 };
 
+static const CompObjectType *
+windowObjectSuperType (CompObject *object)
+{
+    return NULL;
+}
+
 static char *
 windowQueryObjectName (CompObject *object)
 {
@@ -1812,6 +1818,7 @@ windowQueryObjectName (CompObject *object)
 
 static CompObjectType windowObjectType = {
     "window",
+    windowObjectSuperType,
     windowQueryObjectName,
     NULL,
     0,

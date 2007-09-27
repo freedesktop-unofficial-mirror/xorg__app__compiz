@@ -1850,6 +1850,12 @@ static CompObjectFuncs screenObjectFuncs = {
     screenFiniObject
 };
 
+static const CompObjectType *
+screenObjectSuperType (CompObject *object)
+{
+    return NULL;
+}
+
 static char *
 screenQueryObjectName (CompObject *object)
 {
@@ -1864,6 +1870,7 @@ screenQueryObjectName (CompObject *object)
 
 static CompObjectType screenObjectType = {
     "screen",
+    screenObjectSuperType,
     screenQueryObjectName,
     NULL,
     0,

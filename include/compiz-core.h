@@ -295,6 +295,8 @@ freePrivateIndex (int  len,
 
 typedef struct _CompObjectType CompObjectType;
 
+typedef const CompObjectType *(*ObjectSuperTypeProc) (CompObject *object);
+
 typedef char *(*QueryObjectNameProc) (CompObject *object);
 
 typedef CompBool (*InitObjectProc) (CompObject     *object,
@@ -308,6 +310,7 @@ typedef struct _CompObjectFuncs {
 
 struct _CompObjectType {
     const char		*name;
+    ObjectSuperTypeProc superType;
     QueryObjectNameProc queryObjectName;
     char		*privateIndices;
     int			privateLen;

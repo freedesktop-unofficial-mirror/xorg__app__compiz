@@ -2129,6 +2129,12 @@ static CompObjectFuncs displayObjectFuncs = {
     displayFiniObject
 };
 
+static const CompObjectType *
+displayObjectSuperType (CompObject *object)
+{
+    return NULL;
+}
+
 static char *
 displayQueryObjectName (CompObject *object)
 {
@@ -2137,6 +2143,7 @@ displayQueryObjectName (CompObject *object)
 
 static CompObjectType displayObjectType = {
     "display",
+    displayObjectSuperType,
     displayQueryObjectName,
     NULL,
     0,
