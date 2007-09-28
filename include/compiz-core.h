@@ -454,20 +454,15 @@ struct _CompObject {
     CompObjectTypeID  id;
 };
 
+CompObjectType *
+getObjectType (void);
+
 int
 compObjectAllocatePrivateIndex (CompObjectType *type);
 
 void
 compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index);
-
-CompBool
-compObjectInit (CompObject       *object,
-		CompObjectType   *type,
-		CompObjectTypeID id);
-
-void
-compObjectFini (CompObject *object);
 
 struct _CompChildObject {
     CompObject base;

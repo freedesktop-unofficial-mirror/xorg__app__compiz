@@ -225,6 +225,12 @@ static CompBool
 coreForEachObjectType (ObjectTypeCallBackProc proc,
 		       void		      *closure)
 {
+    if (!(*proc) (getObjectType (), closure))
+	return FALSE;
+
+    if (!(*proc) (getCoreObjectType (), closure))
+	return FALSE;
+
     if (!(*proc) (getDisplayObjectType (), closure))
 	return FALSE;
 
@@ -234,7 +240,7 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
     if (!(*proc) (getWindowObjectType (), closure))
 	return FALSE;
 
-    return (*proc) (getCoreObjectType (), closure);
+    return TRUE;
 }
 
 static CompObjectVTable coreObjectVTable = {
@@ -276,21 +282,23 @@ coreInitObject (CompObject     *object,
 {
     CORE_CORE (object);
 
-    if (!compObjectInit (object, type, COMP_OBJECT_TYPE_CORE))
+    if (!(*getObjectType ()->funcs->init) (object, type))
 	return FALSE;
+
+    c->base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
     c->privates = NULL;
 
     if (!coreReallocObjectPrivates (object, coreObjectPrivates.len))
     {
-	compObjectFini (&c->base);
+	(*getObjectType ()->funcs->fini) (&c->base);
 	return FALSE;
     }
 
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	compObjectFini (object);
+	(*getObjectType ()->funcs->fini) (&c->base);
 	return FALSE;
     }
 
@@ -298,7 +306,7 @@ coreInitObject (CompObject     *object,
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	compObjectFini (object);
+	(*getObjectType ()->funcs->fini) (&c->base);
 	return FALSE;
     }
 
@@ -352,7 +360,7 @@ coreFiniObject (CompObject *object)
     if (c->privates)
 	free (c->privates);
 
-    compObjectFini (&c->base);
+    (*getObjectType ()->funcs->fini) (&c->base);
 }
 
 static CompObjectFuncs coreObjectFuncs = {

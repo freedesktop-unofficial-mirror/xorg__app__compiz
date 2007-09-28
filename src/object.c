@@ -152,36 +152,82 @@ processObjectSignal (CompObject	      *object,
 {
 }
 
-CompBool
-compObjectInit (CompObject       *object,
-		CompObjectType   *type,
-		CompObjectTypeID id)
+static CompBool
+reallocObjectPrivates (CompObject *object,
+		       int	  size)
 {
-    if (type->privs->len)
-    {
-	object->privates = malloc (type->privs->len * sizeof (CompPrivate));
-	if (!object->privates)
-	    return FALSE;
-    }
-    else
-    {
-	object->privates = NULL;
-    }
+    void *privates;
 
-    object->id     = id;
-    object->type   = type;
-    object->vTable = &objectVTable;
+    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    object->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
+static CompObjectPrivates objectPrivates = {
+    NULL,
+    0,
+    reallocObjectPrivates
+};
+
+static CompBool
+initObject (CompObject     *object,
+	    CompObjectType *type)
+{
+    object->id = ~0; /* XXX: remove id asap */
+
+    object->type     = type;
+    object->vTable   = &objectVTable;
+    object->privates = NULL;
+
+    if (!reallocObjectPrivates (object, objectPrivates.len))
+	return FALSE;
 
     object->processSignal = processObjectSignal;
 
     return TRUE;
 }
 
-void
-compObjectFini (CompObject *object)
+static void
+finiObject (CompObject *object)
 {
     if (object->privates)
 	free (object->privates);
+}
+
+static CompObjectFuncs objectFuncs = {
+    initObject,
+    finiObject
+};
+
+static const CompObjectType *
+objectSuperType (CompObject *object)
+{
+    return NULL;
+}
+
+static char *
+queryObjectName (CompObject *object)
+{
+    return NULL;
+}
+
+static CompObjectType objectType = {
+    "object",
+    objectSuperType,
+    queryObjectName,
+    &objectPrivates,
+    &objectFuncs,
+    NULL
+};
+
+CompObjectType *
+getObjectType (void)
+{
+    return &objectType;
 }
 
 static CompBool
@@ -285,8 +331,10 @@ compChildObjectInit (CompChildObject  *object,
 		     CompObjectType   *type,
 		     CompObjectTypeID id)
 {
-    if (!compObjectInit (&object->base, type, id))
+    if (!(*getObjectType ()->funcs->init) (&object->base, type))
 	return FALSE;
+
+    object->base.id = id; /* XXX: remove id asap */
 
     object->parent = NULL;
 
@@ -300,7 +348,7 @@ compChildObjectFini (CompChildObject *object)
 {
     UNWRAP (object, &object->base, processSignal);
 
-    compObjectFini (&object->base);
+    (*getObjectType ()->funcs->fini) (&object->base);
 }
 
 typedef struct _FindTypeContext {
