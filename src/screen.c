@@ -1887,7 +1887,7 @@ static CompObjectFuncs screenObjectFuncs = {
 static const CompObjectType *
 screenObjectSuperType (CompObject *object)
 {
-    return NULL;
+    return compChildObjectSuperType (&GET_CORE_SCREEN (object)->base);
 }
 
 static char *

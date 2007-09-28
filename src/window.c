@@ -1835,7 +1835,7 @@ static CompObjectFuncs windowObjectFuncs = {
 static const CompObjectType *
 windowObjectSuperType (CompObject *object)
 {
-    return NULL;
+    return compChildObjectSuperType (&GET_CORE_WINDOW (object)->base);
 }
 
 static char *

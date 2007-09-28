@@ -371,7 +371,7 @@ static CompObjectFuncs coreObjectFuncs = {
 static const CompObjectType *
 coreObjectSuperType (CompObject *object)
 {
-    return NULL;
+    return getObjectType ();
 }
 
 static char *

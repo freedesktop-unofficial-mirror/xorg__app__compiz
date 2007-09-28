@@ -2166,7 +2166,7 @@ static CompObjectFuncs displayObjectFuncs = {
 static const CompObjectType *
 displayObjectSuperType (CompObject *object)
 {
-    return NULL;
+    return compChildObjectSuperType (&GET_CORE_DISPLAY (object)->base);
 }
 
 static char *
