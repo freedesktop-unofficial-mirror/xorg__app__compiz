@@ -1774,6 +1774,29 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
 }
 
 static CompBool
+windowReallocObjectPrivates (CompObject *object,
+			     int	size)
+{
+    void *privates;
+
+    CORE_WINDOW (object);
+
+    privates = realloc (w->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    w->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
+static CompObjectPrivates windowObjectPrivates = {
+    NULL,
+    0,
+    windowReallocObjectPrivates
+};
+
+static CompBool
 windowInitObject (CompObject     *object,
 		  CompObjectType *type)
 {
@@ -1826,29 +1849,6 @@ windowQueryObjectName (CompObject *object)
 
     return strdup (tmp);
 }
-
-static CompBool
-windowReallocObjectPrivates (CompObject *object,
-			     int	size)
-{
-    void *privates;
-
-    CORE_WINDOW (object);
-
-    privates = realloc (w->privates, size * sizeof (CompPrivate));
-    if (!privates)
-	return FALSE;
-
-    w->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
-static CompObjectPrivates windowObjectPrivates = {
-    NULL,
-    0,
-    windowReallocObjectPrivates
-};
 
 static CompObjectType windowObjectType = {
     "window",

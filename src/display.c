@@ -2063,6 +2063,29 @@ static CompObjectVTable displayObjectVTable = {
 };
 
 static CompBool
+displayReallocObjectPrivates (CompObject *object,
+			      int	 size)
+{
+    void *privates;
+
+    CORE_DISPLAY (object);
+
+    privates = realloc (d->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    d->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
+static CompObjectPrivates displayObjectPrivates = {
+    NULL,
+    0,
+    displayReallocObjectPrivates
+};
+
+static CompBool
 displayInitObject (CompObject     *object,
 		   CompObjectType *type)
 {
@@ -2151,29 +2174,6 @@ displayQueryObjectName (CompObject *object)
 {
     return NULL;
 }
-
-static CompBool
-displayReallocObjectPrivates (CompObject *object,
-			      int	 size)
-{
-    void *privates;
-
-    CORE_DISPLAY (object);
-
-    privates = realloc (d->privates, size * sizeof (CompPrivate));
-    if (!privates)
-	return FALSE;
-
-    d->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
-static CompObjectPrivates displayObjectPrivates = {
-    NULL,
-    0,
-    displayReallocObjectPrivates
-};
 
 static CompObjectType displayObjectType = {
     "display",

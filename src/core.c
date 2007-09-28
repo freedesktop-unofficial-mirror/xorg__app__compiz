@@ -248,6 +248,29 @@ static CompObjectVTable coreObjectVTable = {
 };
 
 static CompBool
+coreReallocObjectPrivates (CompObject *object,
+			   int	      size)
+{
+    void *privates;
+
+    CORE_CORE (object);
+
+    privates = realloc (c->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    c->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
+static CompObjectPrivates coreObjectPrivates = {
+    NULL,
+    0,
+    coreReallocObjectPrivates
+};
+
+static CompBool
 coreInitObject (CompObject     *object,
 		CompObjectType *type)
 {
@@ -348,29 +371,6 @@ coreQueryObjectName (CompObject *object)
 {
     return NULL;
 }
-
-static CompBool
-coreReallocObjectPrivates (CompObject *object,
-			   int	      size)
-{
-    void *privates;
-
-    CORE_CORE (object);
-
-    privates = realloc (c->privates, size * sizeof (CompPrivate));
-    if (!privates)
-	return FALSE;
-
-    c->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
-static CompObjectPrivates coreObjectPrivates = {
-    NULL,
-    0,
-    coreReallocObjectPrivates
-};
 
 static CompObjectType coreObjectType = {
     "core",

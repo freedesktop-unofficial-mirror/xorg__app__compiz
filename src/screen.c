@@ -1617,6 +1617,29 @@ static CompObjectVTable screenObjectVTable = {
 };
 
 static CompBool
+screenReallocObjectPrivates (CompObject *object,
+			     int	size)
+{
+    void *privates;
+
+    CORE_SCREEN (object);
+
+    privates = realloc (s->privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
+
+    s->privates = (CompPrivate *) privates;
+
+    return TRUE;
+}
+
+static CompObjectPrivates screenObjectPrivates = {
+    NULL,
+    0,
+    screenReallocObjectPrivates
+};
+
+static CompBool
 screenInitObject (CompObject     *object,
 		  CompObjectType *type)
 {
@@ -1878,29 +1901,6 @@ screenQueryObjectName (CompObject *object)
 
     return strdup (tmp);
 }
-
-static CompBool
-screenReallocObjectPrivates (CompObject *object,
-			     int	size)
-{
-    void *privates;
-
-    CORE_SCREEN (object);
-
-    privates = realloc (s->privates, size * sizeof (CompPrivate));
-    if (!privates)
-	return FALSE;
-
-    s->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
-static CompObjectPrivates screenObjectPrivates = {
-    NULL,
-    0,
-    screenReallocObjectPrivates
-};
 
 static CompObjectType screenObjectType = {
     "screen",
