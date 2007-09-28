@@ -1782,18 +1782,12 @@ windowInitObject (CompObject     *object,
     if (!compChildObjectInit (&w->base, type, COMP_OBJECT_TYPE_WINDOW))
 	return FALSE;
 
-    if (type->privateLen)
+    w->privates = NULL;
+
+    if (!(*type->reallocObjectPrivates) (object, type->privateLen))
     {
-	w->privates = malloc (type->privateLen * sizeof (CompPrivate));
-	if (!w->privates)
-	{
-	    compChildObjectFini (&w->base);
-	    return FALSE;
-	}
-    }
-    else
-    {
-	w->privates = NULL;
+	compChildObjectFini (&w->base);
+	return FALSE;
     }
 
     return TRUE;

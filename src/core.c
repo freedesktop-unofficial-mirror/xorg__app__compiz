@@ -256,18 +256,12 @@ coreInitObject (CompObject     *object,
     if (!compObjectInit (object, type, COMP_OBJECT_TYPE_CORE))
 	return FALSE;
 
-    if (type->privateLen)
+    c->privates = NULL;
+
+    if (!(*type->reallocObjectPrivates) (object, type->privateLen))
     {
-	c->privates = malloc (type->privateLen * sizeof (CompPrivate));
-	if (!c->privates)
-	{
-	    compObjectFini (object);
-	    return FALSE;
-	}
-    }
-    else
-    {
-	c->privates = NULL;
+	compObjectFini (&c->base);
+	return FALSE;
     }
 
     c->tmpRegion = XCreateRegion ();

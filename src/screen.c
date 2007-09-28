@@ -1627,18 +1627,12 @@ screenInitObject (CompObject     *object,
     if (!compChildObjectInit (&s->base, type, COMP_OBJECT_TYPE_SCREEN))
 	return FALSE;
 
-    if (type->privateLen)
+    s->privates = NULL;
+
+    if (!(*type->reallocObjectPrivates) (object, type->privateLen))
     {
-	s->privates = malloc (type->privateLen * sizeof (CompPrivate));
-	if (!s->privates)
-	{
-	    compChildObjectFini (&s->base);
-	    return FALSE;
-	}
-    }
-    else
-    {
-	s->privates = NULL;
+	compChildObjectFini (&s->base);
+	return FALSE;
     }
 
     WRAP (&s->object, &s->base.base, vTable, &screenObjectVTable);

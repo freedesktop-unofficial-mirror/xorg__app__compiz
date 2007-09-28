@@ -2073,18 +2073,12 @@ displayInitObject (CompObject     *object,
     if (!compChildObjectInit (&d->base, type, COMP_OBJECT_TYPE_DISPLAY))
 	return FALSE;
 
-    if (type->privateLen)
+    d->privates = NULL;
+
+    if (!(*type->reallocObjectPrivates) (object, type->privateLen))
     {
-	d->privates = malloc (type->privateLen * sizeof (CompPrivate));
-	if (!d->privates)
-	{
-	    compChildObjectFini (&d->base);
-	    return FALSE;
-	}
-    }
-    else
-    {
-	d->privates = NULL;
+	compChildObjectFini (&d->base);
+	return FALSE;
     }
 
     WRAP (&d->object, &d->base.base, vTable, &displayObjectVTable);
