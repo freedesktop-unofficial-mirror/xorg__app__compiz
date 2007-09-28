@@ -1779,7 +1779,7 @@ windowReallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    CORE_WINDOW (object);
+    WINDOW (object);
 
     privates = realloc (w->privates, size * sizeof (CompPrivate));
     if (!privates)
@@ -1800,7 +1800,7 @@ static CompBool
 windowInitObject (CompObject     *object,
 		  CompObjectType *type)
 {
-    CORE_WINDOW (object);
+    WINDOW (object);
 
     if (!compChildObjectInit (&w->base, type, COMP_OBJECT_TYPE_WINDOW))
 	return FALSE;
@@ -1819,7 +1819,7 @@ windowInitObject (CompObject     *object,
 static void
 windowFiniObject (CompObject *object)
 {
-    CORE_WINDOW (object);
+    WINDOW (object);
 
     if (w->privates)
 	free (w->privates);
@@ -1835,7 +1835,7 @@ static CompObjectFuncs windowObjectFuncs = {
 static const CompObjectType *
 windowObjectSuperType (CompObject *object)
 {
-    return compChildObjectSuperType (&GET_CORE_WINDOW (object)->base);
+    return compChildObjectSuperType (&GET_WINDOW (object)->base);
 }
 
 static char *
@@ -1843,7 +1843,7 @@ windowQueryObjectName (CompObject *object)
 {
     char tmp[256];
 
-    CORE_WINDOW (object);
+    WINDOW (object);
 
     snprintf (tmp, 256, "0x%lu", w->id);
 

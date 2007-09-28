@@ -79,7 +79,7 @@ displayForEachChildObject (CompObject		   *object,
     CompScreen		*s;
     CompBool		status;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     for (s = d->screens; s; s = s->next)
 	if (!(*proc) (&s->base, closure))
@@ -100,7 +100,7 @@ displayLookupChildObject (CompObject *object,
     CompObjectVTableVec v = { object->vTable };
     CompObject		*result;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     if (strcmp (type, getScreenObjectType ()->name) == 0)
     {
@@ -127,7 +127,7 @@ displayForEachInterface (CompObject	       *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     if (!(*proc) (object, CORE_DISPLAY_INTERFACE_NAME, closure))
 	return FALSE;
@@ -148,7 +148,7 @@ displayForEachMethod (CompObject	 *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     UNWRAP (&d->object, object, vTable);
     status = (*object->vTable->forEachMethod) (object, interface, proc,
@@ -167,7 +167,7 @@ displayForEachSignal (CompObject	 *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     UNWRAP (&d->object, object, vTable);
     status = (*object->vTable->forEachSignal) (object, interface, proc,
@@ -186,7 +186,7 @@ displayForEachProp (CompObject	     *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     if (strcmp (interface, CORE_DISPLAY_INTERFACE_NAME) == 0)
     {
@@ -215,7 +215,7 @@ displayInvokeMethod (CompObject	      *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
@@ -2068,7 +2068,7 @@ displayReallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     privates = realloc (d->privates, size * sizeof (CompPrivate));
     if (!privates)
@@ -2091,7 +2091,7 @@ displayInitObject (CompObject     *object,
 {
     int i;
 
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     if (!compChildObjectInit (&d->base, type, COMP_OBJECT_TYPE_DISPLAY))
 	return FALSE;
@@ -2146,7 +2146,7 @@ displayInitObject (CompObject     *object,
 static void
 displayFiniObject (CompObject *object)
 {
-    CORE_DISPLAY (object);
+    DISPLAY (object);
 
     compFiniOptionValue (&d->plugin, CompOptionTypeList);
 
@@ -2166,7 +2166,7 @@ static CompObjectFuncs displayObjectFuncs = {
 static const CompObjectType *
 displayObjectSuperType (CompObject *object)
 {
-    return compChildObjectSuperType (&GET_CORE_DISPLAY (object)->base);
+    return compChildObjectSuperType (&GET_DISPLAY (object)->base);
 }
 
 static char *

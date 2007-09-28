@@ -902,8 +902,8 @@ struct _CompCore {
     SessionEventProc sessionEvent;
 };
 
-#define GET_CORE_CORE(object) ((CompCore *) (object))
-#define CORE_CORE(object) CompCore *c = GET_CORE_CORE (object)
+#define GET_CORE(object) ((CompCore *) (object))
+#define CORE(object) CompCore *c = GET_CORE (object)
 
 CompObjectType *
 getCoreObjectType (void);
@@ -1294,8 +1294,8 @@ struct _CompDisplay {
     LogMessageProc logMessage;
 };
 
-#define GET_CORE_DISPLAY(object) ((CompDisplay *) (object))
-#define CORE_DISPLAY(object) CompDisplay *d = GET_CORE_DISPLAY (object)
+#define GET_DISPLAY(object) ((CompDisplay *) (object))
+#define DISPLAY(object) CompDisplay *d = GET_DISPLAY (object)
 
 CompObjectType *
 getDisplayObjectType (void);
@@ -2387,8 +2387,8 @@ struct _CompScreen {
     InitWindowWalkerProc initWindowWalker;
 };
 
-#define GET_CORE_SCREEN(object) ((CompScreen *) (object))
-#define CORE_SCREEN(object) CompScreen *s = GET_CORE_SCREEN (object)
+#define GET_SCREEN(object) ((CompScreen *) (object))
+#define SCREEN(object) CompScreen *s = GET_SCREEN (object)
 
 CompObjectType *
 getScreenObjectType (void);
@@ -2827,8 +2827,8 @@ struct _CompWindow {
     DrawWindowGeometryProc drawWindowGeometry;
 };
 
-#define GET_CORE_WINDOW(object) ((CompWindow *) (object))
-#define CORE_WINDOW(object) CompWindow *w = GET_CORE_WINDOW (object)
+#define GET_WINDOW(object) ((CompWindow *) (object))
+#define WINDOW(object) CompWindow *w = GET_WINDOW (object)
 
 CompObjectType *
 getWindowObjectType (void);

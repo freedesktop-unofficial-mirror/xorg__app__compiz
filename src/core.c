@@ -40,7 +40,7 @@ coreForEachChildObject (CompObject		*object,
     CompDisplay		*d;
     CompBool		status;
 
-    CORE_CORE (object);
+    CORE (object);
 
     for (d = c->displays; d; d = d->next)
 	if (!(*proc) (&d->base, closure))
@@ -61,7 +61,7 @@ coreLookupChildObject (CompObject *object,
     CompObjectVTableVec v = { object->vTable };
     CompObject		*result;
 
-    CORE_CORE (object);
+    CORE (object);
 
     if (strcmp (type, getDisplayObjectType ()->name) == 0)
 	if (c->displays && (!name || !name[0]))
@@ -82,7 +82,7 @@ coreForEachInterface (CompObject	    *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_CORE (object);
+    CORE (object);
 
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachInterface) (object, proc, closure);
@@ -100,7 +100,7 @@ coreForEachMethod (CompObject	      *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_CORE (object);
+    CORE (object);
 
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachMethod) (object, interface, proc,
@@ -119,7 +119,7 @@ coreForEachSignal (CompObject	      *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_CORE (object);
+    CORE (object);
 
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachSignal) (object, interface, proc,
@@ -138,7 +138,7 @@ coreForEachProp (CompObject	  *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_CORE (object);
+    CORE (object);
 
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachProp) (object, interface, proc, closure);
@@ -157,7 +157,7 @@ coreInvokeMethod (CompObject	   *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_CORE (object);
+    CORE (object);
 
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->invokeMethod) (object, interface, name, in,
@@ -259,7 +259,7 @@ coreReallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    CORE_CORE (object);
+    CORE (object);
 
     privates = realloc (c->privates, size * sizeof (CompPrivate));
     if (!privates)
@@ -280,7 +280,7 @@ static CompBool
 coreInitObject (CompObject     *object,
 		CompObjectType *type)
 {
-    CORE_CORE (object);
+    CORE (object);
 
     if (!(*getObjectType ()->funcs->init) (object, type))
 	return FALSE;
@@ -350,7 +350,7 @@ coreInitObject (CompObject     *object,
 static void
 coreFiniObject (CompObject *object)
 {
-    CORE_CORE (object);
+    CORE (object);
 
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);

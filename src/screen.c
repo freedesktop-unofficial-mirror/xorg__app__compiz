@@ -58,7 +58,7 @@ screenForEachChildObject (CompObject		  *object,
     CompWindow		*w;
     CompBool		status;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     for (w = s->windows; w; w = w->next)
 	if (!(*proc) (&w->base, closure))
@@ -79,7 +79,7 @@ screenLookupChildObject (CompObject *object,
     CompObjectVTableVec v = { object->vTable };
     CompObject		*result;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     if (strcmp (type, getWindowObjectType ()->name) == 0)
     {
@@ -106,7 +106,7 @@ screenForEachInterface (CompObject	      *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     if (!(*proc) (object, CORE_SCREEN_INTERFACE_NAME, closure))
 	return FALSE;
@@ -127,7 +127,7 @@ screenForEachMethod (CompObject		 *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     UNWRAP (&s->object, object, vTable);
     status = (*object->vTable->forEachMethod) (object, interface, proc,
@@ -146,7 +146,7 @@ screenForEachSignal (CompObject		*object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     UNWRAP (&s->object, object, vTable);
     status = (*object->vTable->forEachSignal) (object, interface, proc,
@@ -165,7 +165,7 @@ screenForEachProp (CompObject	    *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     if (strcmp (interface, CORE_SCREEN_INTERFACE_NAME) == 0)
     {
@@ -194,7 +194,7 @@ screenInvokeMethod (CompObject	     *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
@@ -1622,7 +1622,7 @@ screenReallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     privates = realloc (s->privates, size * sizeof (CompPrivate));
     if (!privates)
@@ -1645,7 +1645,7 @@ screenInitObject (CompObject     *object,
 {
     int i;
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     if (!compChildObjectInit (&s->base, type, COMP_OBJECT_TYPE_SCREEN))
 	return FALSE;
@@ -1869,7 +1869,7 @@ screenInitObject (CompObject     *object,
 static void
 screenFiniObject (CompObject *object)
 {
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     UNWRAP (&s->object, &s->base.base, vTable);
 
@@ -1887,7 +1887,7 @@ static CompObjectFuncs screenObjectFuncs = {
 static const CompObjectType *
 screenObjectSuperType (CompObject *object)
 {
-    return compChildObjectSuperType (&GET_CORE_SCREEN (object)->base);
+    return compChildObjectSuperType (&GET_SCREEN (object)->base);
 }
 
 static char *
@@ -1895,7 +1895,7 @@ screenQueryObjectName (CompObject *object)
 {
     char tmp[256];
 
-    CORE_SCREEN (object);
+    SCREEN (object);
 
     snprintf (tmp, 256, "%d", s->screenNum);
 

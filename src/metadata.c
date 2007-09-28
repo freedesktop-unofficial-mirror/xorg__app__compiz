@@ -1136,9 +1136,9 @@ compInitObjectPropFromMetadata (CompObject   *o,
 	     m->path, o->type->name, name);
 
     if (o->type == getDisplayObjectType ())
-	display = GET_CORE_DISPLAY (o);
+	display = GET_DISPLAY (o);
     else if (o->type == getScreenObjectType ())
-	display = GET_CORE_SCREEN (o)->display;
+	display = GET_SCREEN (o)->display;
 
     return initOptionFromMetadataPath (display, m, prop, BAD_CAST str);
 }
@@ -1162,12 +1162,12 @@ finiObjectPropValue (CompObject      *o,
 	    {
 		CompScreen *s;
 
-		for (s = GET_CORE_DISPLAY (o)->screens; s; s = s->next)
+		for (s = GET_DISPLAY (o)->screens; s; s = s->next)
 		    removeScreenAction (s, &v->action);
 	    }
 	    else if (o->type == getScreenObjectType ())
 	    {
-		removeScreenAction (GET_CORE_SCREEN (o), &v->action);
+		removeScreenAction (GET_SCREEN (o), &v->action);
 	    }
 	}
 	break;
@@ -1235,7 +1235,7 @@ compSetObjectProp (CompObject		 *object,
     {
 	if (prop->value.action.state & CompActionStateAutoGrab)
 	{
-	    if (setDisplayAction (GET_CORE_DISPLAY (object), prop, value))
+	    if (setDisplayAction (GET_DISPLAY (object), prop, value))
 		return TRUE;
 	}
 	else
