@@ -1807,7 +1807,7 @@ windowInitObject (CompObject     *object,
 
     w->privates = NULL;
 
-    if (!(*type->privs->realloc) (object, type->privs->len))
+    if (!windowReallocObjectPrivates (object, windowObjectPrivates.len))
     {
 	compChildObjectFini (&w->base);
 	return FALSE;

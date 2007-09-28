@@ -281,7 +281,7 @@ coreInitObject (CompObject     *object,
 
     c->privates = NULL;
 
-    if (!(*type->privs->realloc) (object, type->privs->len))
+    if (!coreReallocObjectPrivates (object, coreObjectPrivates.len))
     {
 	compObjectFini (&c->base);
 	return FALSE;

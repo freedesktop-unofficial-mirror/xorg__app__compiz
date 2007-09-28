@@ -1652,7 +1652,7 @@ screenInitObject (CompObject     *object,
 
     s->privates = NULL;
 
-    if (!(*type->privs->realloc) (object, type->privs->len))
+    if (!screenReallocObjectPrivates (object, screenObjectPrivates.len))
     {
 	compChildObjectFini (&s->base);
 	return FALSE;

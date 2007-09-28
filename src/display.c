@@ -2098,7 +2098,7 @@ displayInitObject (CompObject     *object,
 
     d->privates = NULL;
 
-    if (!(*type->privs->realloc) (object, type->privs->len))
+    if (!displayReallocObjectPrivates (object, displayObjectPrivates.len))
     {
 	compChildObjectFini (&d->base);
 	return FALSE;
