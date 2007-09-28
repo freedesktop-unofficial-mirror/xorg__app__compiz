@@ -258,7 +258,7 @@ coreInitObject (CompObject     *object,
 
     c->privates = NULL;
 
-    if (!(*type->reallocObjectPrivates) (object, type->privateLen))
+    if (!(*type->privs->realloc) (object, type->privs->len))
     {
 	compObjectFini (&c->base);
 	return FALSE;
@@ -366,15 +366,19 @@ coreReallocObjectPrivates (CompObject *object,
     return TRUE;
 }
 
+static CompObjectPrivates coreObjectPrivates = {
+    NULL,
+    0,
+    coreReallocObjectPrivates
+};
+
 static CompObjectType coreObjectType = {
     "core",
     coreObjectSuperType,
     coreQueryObjectName,
-    coreReallocObjectPrivates,
-    NULL,
-    0,
-    NULL,
-    &coreObjectFuncs
+    &coreObjectPrivates,
+    &coreObjectFuncs,
+    NULL
 };
 
 CompObjectType *

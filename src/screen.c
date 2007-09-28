@@ -1629,7 +1629,7 @@ screenInitObject (CompObject     *object,
 
     s->privates = NULL;
 
-    if (!(*type->reallocObjectPrivates) (object, type->privateLen))
+    if (!(*type->privs->realloc) (object, type->privs->len))
     {
 	compChildObjectFini (&s->base);
 	return FALSE;
@@ -1896,15 +1896,19 @@ screenReallocObjectPrivates (CompObject *object,
     return TRUE;
 }
 
+static CompObjectPrivates screenObjectPrivates = {
+    NULL,
+    0,
+    screenReallocObjectPrivates
+};
+
 static CompObjectType screenObjectType = {
     "screen",
     screenObjectSuperType,
     screenQueryObjectName,
-    screenReallocObjectPrivates,
-    NULL,
-    0,
-    NULL,
-    &screenObjectFuncs
+    &screenObjectPrivates,
+    &screenObjectFuncs,
+    NULL
 };
 
 CompObjectType *

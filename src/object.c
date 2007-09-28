@@ -157,9 +157,9 @@ compObjectInit (CompObject       *object,
 		CompObjectType   *type,
 		CompObjectTypeID id)
 {
-    if (type->privateLen)
+    if (type->privs->len)
     {
-	object->privates = malloc (type->privateLen * sizeof (CompPrivate));
+	object->privates = malloc (type->privs->len * sizeof (CompPrivate));
 	if (!object->privates)
 	    return FALSE;
     }
@@ -191,7 +191,7 @@ reallocTypedObjectPrivates (CompObject		 *object,
 {
     do {
 	if (object->type == type)
-	    if (!(*type->reallocObjectPrivates) (object, size))
+	    if (!(*type->privs->realloc) (object, size))
 		return FALSE;
 
 	type = (*type->superType) (object);
@@ -248,8 +248,8 @@ reallocObjectPrivate (int  size,
 int
 compObjectAllocatePrivateIndex (CompObjectType *type)
 {
-    return allocatePrivateIndex (&type->privateLen,
-				 &type->privateIndices,
+    return allocatePrivateIndex (&type->privs->len,
+				 &type->privs->indices,
 				 reallocObjectPrivate,
 				 (void *) type);
 }
@@ -258,7 +258,7 @@ void
 compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index)
 {
-    freePrivateIndex (type->privateLen, type->privateIndices, index);
+    freePrivateIndex (type->privs->len, type->privs->indices, index);
 }
 
 static void

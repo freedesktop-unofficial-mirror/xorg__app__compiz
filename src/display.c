@@ -2075,7 +2075,7 @@ displayInitObject (CompObject     *object,
 
     d->privates = NULL;
 
-    if (!(*type->reallocObjectPrivates) (object, type->privateLen))
+    if (!(*type->privs->realloc) (object, type->privs->len))
     {
 	compChildObjectFini (&d->base);
 	return FALSE;
@@ -2169,15 +2169,19 @@ displayReallocObjectPrivates (CompObject *object,
     return TRUE;
 }
 
+static CompObjectPrivates displayObjectPrivates = {
+    NULL,
+    0,
+    displayReallocObjectPrivates
+};
+
 static CompObjectType displayObjectType = {
     "display",
     displayObjectSuperType,
     displayQueryObjectName,
-    displayReallocObjectPrivates,
-    NULL,
-    0,
-    NULL,
-    &displayObjectFuncs
+    &displayObjectPrivates,
+    &displayObjectFuncs,
+    NULL
 };
 
 CompObjectType *

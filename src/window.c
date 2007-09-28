@@ -1784,7 +1784,7 @@ windowInitObject (CompObject     *object,
 
     w->privates = NULL;
 
-    if (!(*type->reallocObjectPrivates) (object, type->privateLen))
+    if (!(*type->privs->realloc) (object, type->privs->len))
     {
 	compChildObjectFini (&w->base);
 	return FALSE;
@@ -1844,15 +1844,19 @@ windowReallocObjectPrivates (CompObject *object,
     return TRUE;
 }
 
+static CompObjectPrivates windowObjectPrivates = {
+    NULL,
+    0,
+    windowReallocObjectPrivates
+};
+
 static CompObjectType windowObjectType = {
     "window",
     windowObjectSuperType,
     windowQueryObjectName,
-    windowReallocObjectPrivates,
-    NULL,
-    0,
-    NULL,
-    &windowObjectFuncs
+    &windowObjectPrivates,
+    &windowObjectFuncs,
+    NULL
 };
 
 CompObjectType *
