@@ -1782,6 +1782,20 @@ windowInitObject (CompObject     *object,
     if (!compChildObjectInit (&w->base, type, COMP_OBJECT_TYPE_WINDOW))
 	return FALSE;
 
+    if (type->privateLen)
+    {
+	w->privates = malloc (type->privateLen * sizeof (CompPrivate));
+	if (!w->privates)
+	{
+	    compChildObjectFini (&w->base);
+	    return FALSE;
+	}
+    }
+    else
+    {
+	w->privates = NULL;
+    }
+
     return TRUE;
 }
 
@@ -1789,6 +1803,9 @@ static void
 windowFiniObject (CompObject *object)
 {
     CORE_WINDOW (object);
+
+    if (w->privates)
+	free (w->privates);
 
     compChildObjectFini (&w->base);
 }
@@ -1822,11 +1839,13 @@ windowReallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    CORE_WINDOW (object);
+
+    privates = realloc (w->privates, size * sizeof (CompPrivate));
     if (!privates)
 	return FALSE;
 
-    object->privates = (CompPrivate *) privates;
+    w->privates = (CompPrivate *) privates;
 
     return TRUE;
 }

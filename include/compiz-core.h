@@ -863,6 +863,8 @@ struct _CompCore {
 
     CompObjectVTableVec object;
 
+    CompPrivate	*privates;
+
     CompDisplay *displays;
 
     Region tmpRegion;
@@ -1094,6 +1096,8 @@ struct _CompDisplay {
     CompChildObject base;
 
     CompObjectVTableVec object;
+
+    CompPrivate	*privates;
 
     CompDisplay *next;
 
@@ -2180,6 +2184,8 @@ struct _CompScreen {
 
     CompObjectVTableVec object;
 
+    CompPrivate	*privates;
+
     CompScreen  *next;
     CompDisplay *display;
     CompWindow	*windows;
@@ -2689,6 +2695,8 @@ typedef struct _CompStruts {
 
 struct _CompWindow {
     CompChildObject base;
+
+    CompPrivate	*privates;
 
     CompScreen *screen;
     CompWindow *next;

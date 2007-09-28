@@ -2073,6 +2073,20 @@ displayInitObject (CompObject     *object,
     if (!compChildObjectInit (&d->base, type, COMP_OBJECT_TYPE_DISPLAY))
 	return FALSE;
 
+    if (type->privateLen)
+    {
+	d->privates = malloc (type->privateLen * sizeof (CompPrivate));
+	if (!d->privates)
+	{
+	    compChildObjectFini (&d->base);
+	    return FALSE;
+	}
+    }
+    else
+    {
+	d->privates = NULL;
+    }
+
     WRAP (&d->object, &d->base.base, vTable, &displayObjectVTable);
 
     d->next    = NULL;
@@ -2121,6 +2135,9 @@ displayFiniObject (CompObject *object)
 
     UNWRAP (&d->object, &d->base.base, vTable);
 
+    if (d->privates)
+	free (d->privates);
+
     compChildObjectFini (&d->base);
 }
 
@@ -2147,11 +2164,13 @@ displayReallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    CORE_DISPLAY (object);
+
+    privates = realloc (d->privates, size * sizeof (CompPrivate));
     if (!privates)
 	return FALSE;
 
-    object->privates = (CompPrivate *) privates;
+    d->privates = (CompPrivate *) privates;
 
     return TRUE;
 }

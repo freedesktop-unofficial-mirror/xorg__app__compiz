@@ -256,6 +256,20 @@ coreInitObject (CompObject     *object,
     if (!compObjectInit (object, type, COMP_OBJECT_TYPE_CORE))
 	return FALSE;
 
+    if (type->privateLen)
+    {
+	c->privates = malloc (type->privateLen * sizeof (CompPrivate));
+	if (!c->privates)
+	{
+	    compObjectFini (object);
+	    return FALSE;
+	}
+    }
+    else
+    {
+	c->privates = NULL;
+    }
+
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
@@ -318,6 +332,9 @@ coreFiniObject (CompObject *object)
 
     UNWRAP (&c->object, &c->base, vTable);
 
+    if (c->privates)
+	free (c->privates);
+
     compObjectFini (&c->base);
 }
 
@@ -344,11 +361,13 @@ coreReallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    CORE_CORE (object);
+
+    privates = realloc (c->privates, size * sizeof (CompPrivate));
     if (!privates)
 	return FALSE;
 
-    object->privates = (CompPrivate *) privates;
+    c->privates = (CompPrivate *) privates;
 
     return TRUE;
 }

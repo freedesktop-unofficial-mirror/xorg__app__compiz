@@ -1627,6 +1627,20 @@ screenInitObject (CompObject     *object,
     if (!compChildObjectInit (&s->base, type, COMP_OBJECT_TYPE_SCREEN))
 	return FALSE;
 
+    if (type->privateLen)
+    {
+	s->privates = malloc (type->privateLen * sizeof (CompPrivate));
+	if (!s->privates)
+	{
+	    compChildObjectFini (&s->base);
+	    return FALSE;
+	}
+    }
+    else
+    {
+	s->privates = NULL;
+    }
+
     WRAP (&s->object, &s->base.base, vTable, &screenObjectVTable);
 
     s->display = NULL;
@@ -1842,6 +1856,9 @@ screenFiniObject (CompObject *object)
 
     UNWRAP (&s->object, &s->base.base, vTable);
 
+    if (s->privates)
+	free (s->privates);
+
     compChildObjectFini (&s->base);
 }
 
@@ -1874,11 +1891,13 @@ screenReallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    CORE_SCREEN (object);
+
+    privates = realloc (s->privates, size * sizeof (CompPrivate));
     if (!privates)
 	return FALSE;
 
-    object->privates = (CompPrivate *) privates;
+    s->privates = (CompPrivate *) privates;
 
     return TRUE;
 }
