@@ -480,6 +480,9 @@ compChildObjectInit (CompChildObject  *object,
 void
 compChildObjectFini (CompChildObject *object);
 
+const CompObjectType *
+compChildObjectSuperType (CompChildObject *object);
+
 CompObjectType *
 compObjectFindType (const char *name);
 

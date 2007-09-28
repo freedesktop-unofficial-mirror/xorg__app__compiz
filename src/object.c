@@ -351,6 +351,12 @@ compChildObjectFini (CompChildObject *object)
     (*getObjectType ()->funcs->fini) (&object->base);
 }
 
+const CompObjectType *
+compChildObjectSuperType (CompChildObject *object)
+{
+    return getObjectType ();
+}
+
 typedef struct _FindTypeContext {
     const char	   *name;
     CompObjectType *type;
