@@ -49,6 +49,20 @@
 
 #define CORE_SCREEN_INTERFACE_NAME "screen"
 
+static void
+screenForBaseObject (CompObject	            *object,
+		     BaseObjectCallBackProc proc,
+		     void		    *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+
+    SCREEN (object);
+
+    UNWRAP (&s->object, object, vTable);
+    (*proc) (object, closure);
+    WRAP (&s->object, object, vTable, v.vTable);
+}
+
 static CompBool
 screenForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
@@ -1607,6 +1621,7 @@ freeScreen (CompScreen *s)
 }
 
 static CompObjectVTable screenObjectVTable = {
+    screenForBaseObject,
     screenForEachChildObject,
     screenLookupChildObject,
     screenForEachInterface,

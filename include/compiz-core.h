@@ -365,6 +365,12 @@ typedef unsigned int CompObjectTypeID;
    MATCH	109 (ASCII 'm')	Match.
 */
 
+typedef void (*BaseObjectCallBackProc) (CompObject *object,
+					void	   *closure);
+typedef void (*ForBaseObjectProc) (CompObject		  *object,
+				   BaseObjectCallBackProc proc,
+				   void			  *closure);
+
 typedef struct _CompChildObject CompChildObject;
 
 typedef CompBool (*ChildObjectCallBackProc) (CompChildObject *object,
@@ -424,6 +430,7 @@ typedef CompBool (*InvokeMethodProc) (CompObject       *object,
 				      CompOption       *out);
 
 typedef struct _CompObjectVTable {
+    ForBaseObjectProc	   forBaseObject;
     ForEachChildObjectProc forEachChildObject;
     LookupChildObjectProc  lookupChildObject;
     ForEachInterfaceProc   forEachInterface;

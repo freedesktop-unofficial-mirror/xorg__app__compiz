@@ -27,6 +27,13 @@
 
 #include <compiz-core.h>
 
+static void
+forBaseObject (CompObject	      *object,
+	       BaseObjectCallBackProc proc,
+	       void		      *closure)
+{
+}
+
 static CompBool
 forEachChildObject (CompObject		    *object,
 		    ChildObjectCallBackProc proc,
@@ -134,6 +141,7 @@ invokeObjectMethod (CompObject	     *object,
 }
 
 static CompObjectVTable objectVTable = {
+    forBaseObject,
     forEachChildObject,
     lookupChildObject,
     forEachInterface,

@@ -70,6 +70,20 @@ int pointerY     = 0;
 
 #define CORE_DISPLAY_INTERFACE_NAME "display"
 
+static void
+displayForBaseObject (CompObject	     *object,
+		      BaseObjectCallBackProc proc,
+		      void		     *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+
+    DISPLAY (object);
+
+    UNWRAP (&d->object, object, vTable);
+    (*proc) (object, closure);
+    WRAP (&d->object, object, vTable, v.vTable);
+}
+
 static CompBool
 displayForEachChildObject (CompObject		   *object,
 			   ChildObjectCallBackProc proc,
@@ -2053,6 +2067,7 @@ freeDisplay (CompDisplay *d)
 }
 
 static CompObjectVTable displayObjectVTable = {
+    displayForBaseObject,
     displayForEachChildObject,
     displayLookupChildObject,
     displayForEachInterface,
