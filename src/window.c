@@ -1833,9 +1833,9 @@ static CompObjectFuncs windowObjectFuncs = {
 };
 
 static const CompObjectType *
-windowObjectSuperType (CompObject *object)
+windowObjectParentType (CompObject *object)
 {
-    return compChildObjectSuperType (&GET_WINDOW (object)->base);
+    return compChildObjectParentType (&GET_WINDOW (object)->base);
 }
 
 static char *
@@ -1852,7 +1852,7 @@ windowQueryObjectName (CompObject *object)
 
 static CompObjectType windowObjectType = {
     "window",
-    windowObjectSuperType,
+    windowObjectParentType,
     windowQueryObjectName,
     &windowObjectPrivates,
     &windowObjectFuncs,

@@ -295,7 +295,7 @@ freePrivateIndex (int  len,
 
 typedef struct _CompObjectType CompObjectType;
 
-typedef const CompObjectType *(*ObjectSuperTypeProc) (CompObject *object);
+typedef const CompObjectType *(*ObjectParentTypeProc) (CompObject *object);
 
 typedef char *(*QueryObjectNameProc) (CompObject *object);
 
@@ -318,12 +318,12 @@ typedef struct _CompObjectFuncs {
 } CompObjectFuncs;
 
 struct _CompObjectType {
-    const char		*name;
-    ObjectSuperTypeProc	superType;
-    QueryObjectNameProc	queryObjectName;
-    CompObjectPrivates  *privs;
-    CompObjectFuncs	*funcs;
-    CompPrivate		*privates;
+    const char		 *name;
+    ObjectParentTypeProc parentType;
+    QueryObjectNameProc	 queryObjectName;
+    CompObjectPrivates   *privs;
+    CompObjectFuncs	 *funcs;
+    CompPrivate		 *privates;
 };
 
 typedef unsigned int CompObjectTypeID;
@@ -481,7 +481,7 @@ void
 compChildObjectFini (CompChildObject *object);
 
 const CompObjectType *
-compChildObjectSuperType (CompChildObject *object);
+compChildObjectParentType (CompChildObject *object);
 
 CompObjectType *
 compObjectFindType (const char *name);

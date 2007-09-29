@@ -369,7 +369,7 @@ static CompObjectFuncs coreObjectFuncs = {
 };
 
 static const CompObjectType *
-coreObjectSuperType (CompObject *object)
+coreObjectParentType (CompObject *object)
 {
     return getObjectType ();
 }
@@ -382,7 +382,7 @@ coreQueryObjectName (CompObject *object)
 
 static CompObjectType coreObjectType = {
     "core",
-    coreObjectSuperType,
+    coreObjectParentType,
     coreQueryObjectName,
     &coreObjectPrivates,
     &coreObjectFuncs,

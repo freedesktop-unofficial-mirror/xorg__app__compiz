@@ -1885,9 +1885,9 @@ static CompObjectFuncs screenObjectFuncs = {
 };
 
 static const CompObjectType *
-screenObjectSuperType (CompObject *object)
+screenObjectParentType (CompObject *object)
 {
-    return compChildObjectSuperType (&GET_SCREEN (object)->base);
+    return compChildObjectParentType (&GET_SCREEN (object)->base);
 }
 
 static char *
@@ -1904,7 +1904,7 @@ screenQueryObjectName (CompObject *object)
 
 static CompObjectType screenObjectType = {
     "screen",
-    screenObjectSuperType,
+    screenObjectParentType,
     screenQueryObjectName,
     &screenObjectPrivates,
     &screenObjectFuncs,

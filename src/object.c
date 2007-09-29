@@ -204,7 +204,7 @@ static CompObjectFuncs objectFuncs = {
 };
 
 static const CompObjectType *
-objectSuperType (CompObject *object)
+objectParentType (CompObject *object)
 {
     return NULL;
 }
@@ -217,7 +217,7 @@ queryObjectName (CompObject *object)
 
 static CompObjectType objectType = {
     "object",
-    objectSuperType,
+    objectParentType,
     queryObjectName,
     &objectPrivates,
     &objectFuncs,
@@ -240,7 +240,7 @@ reallocTypedObjectPrivates (CompObject		 *object,
 	    if (!(*type->privs->realloc) (object, size))
 		return FALSE;
 
-	type = (*type->superType) (object);
+	type = (*type->parentType) (object);
     } while (type);
 
     return TRUE;
@@ -352,7 +352,7 @@ compChildObjectFini (CompChildObject *object)
 }
 
 const CompObjectType *
-compChildObjectSuperType (CompChildObject *object)
+compChildObjectParentType (CompChildObject *object)
 {
     return getObjectType ();
 }
