@@ -298,12 +298,6 @@ typedef struct _CompObjectType CompObjectType;
 typedef CompBool (*ReallocObjectPrivatesProc) (CompObject *object,
 					       int	  size);
 
-typedef struct _CompObjectPrivates {
-    char		      *indices;
-    int			      len;
-    ReallocObjectPrivatesProc realloc;
-} CompObjectPrivates;
-
 typedef CompBool (*InitObjectProc) (CompObject *object);
 typedef void     (*FiniObjectProc) (CompObject *object);
 
@@ -312,11 +306,18 @@ typedef struct _CompObjectFuncs {
     FiniObjectProc fini;
 } CompObjectFuncs;
 
+typedef struct _CompObjectPrivates {
+    char		      *indices;
+    int			      len;
+    CompObjectFuncs	      *funcs;
+    int			      nFuncs;
+    ReallocObjectPrivatesProc realloc;
+} CompObjectPrivates;
+
 struct _CompObjectType {
-    const char		*name;
-    CompObjectPrivates  *privs;
-    CompObjectFuncs	*funcs;
-    CompPrivate		*privates;
+    const char	       *name;
+    CompObjectFuncs    funcs;
+    CompObjectPrivates *privates;
 };
 
 typedef unsigned int CompObjectTypeID;
@@ -510,15 +511,6 @@ compObjectInitPrivates (CompObjectPrivate *privates,
 void
 compObjectFiniPrivates (CompObjectPrivate *privates,
 			int		  nPrivates);
-
-CompBool
-compObjectInitOther (CompObject	    *object,
-		     CompObjectType *type,
-		     int	    index);
-
-void
-compObjectFiniOther (CompObject *object,
-		     int	index);
 
 const char *
 compObjectPropType (CompObject *object,

@@ -2071,7 +2071,7 @@ addScreenToDisplay (CompDisplay *display,
 static void
 freeDisplay (CompDisplay *d)
 {
-    (*getDisplayObjectType ()->funcs->fini) (&d->base.base);
+    compObjectFini (&d->base.base, getDisplayObjectType ());
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 
@@ -2112,6 +2112,8 @@ displayReallocObjectPrivates (CompObject *object,
 }
 
 static CompObjectPrivates displayObjectPrivates = {
+    NULL,
+    0,
     NULL,
     0,
     displayReallocObjectPrivates
@@ -2189,16 +2191,13 @@ displayFiniObject (CompObject *object)
     compChildObjectFini (&d->base);
 }
 
-static CompObjectFuncs displayObjectFuncs = {
-    displayInitObject,
-    displayFiniObject
-};
-
 static CompObjectType displayObjectType = {
     "display",
-    &displayObjectPrivates,
-    &displayObjectFuncs,
-    NULL
+    {
+	displayInitObject,
+	displayFiniObject
+    },
+    &displayObjectPrivates
 };
 
 CompObjectType *

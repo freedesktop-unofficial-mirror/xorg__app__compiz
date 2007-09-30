@@ -31,17 +31,36 @@ CompBool
 compObjectInit (CompObject     *object,
 		CompObjectType *type)
 {
-    if (!(*type->funcs->init) (object))
+    int i;
+
+    if (!(*type->funcs.init) (object))
 	return FALSE;
 
-    return TRUE;
+    for (i = 0; i < type->privates->nFuncs; i++)
+	if (!(*type->privates->funcs[i].init) (object))
+	    break;
+
+    if (i == type->privates->nFuncs)
+	return TRUE;
+
+    while (--i >= 0)
+	(*type->privates->funcs[i].fini) (object);
+
+    (*type->funcs.fini) (object);
+
+    return FALSE;
 }
 
 void
 compObjectFini (CompObject     *object,
 		CompObjectType *type)
 {
-    (*type->funcs->fini) (object);
+    int i = type->privates->nFuncs;
+
+    while (--i >= 0)
+	(*type->privates->funcs[i].fini) (object);
+
+    (*type->funcs.fini) (object);
 }
 
 static CompBool
@@ -210,6 +229,8 @@ reallocObjectPrivates (CompObject *object,
 static CompObjectPrivates objectPrivates = {
     NULL,
     0,
+    NULL,
+    0,
     reallocObjectPrivates
 };
 
@@ -236,16 +257,13 @@ finiObject (CompObject *object)
 	free (object->privates);
 }
 
-static CompObjectFuncs objectFuncs = {
-    initObject,
-    finiObject
-};
-
 static CompObjectType objectType = {
     "object",
-    &objectPrivates,
-    &objectFuncs,
-    NULL
+    {
+	initObject,
+	finiObject
+    },
+    &objectPrivates
 };
 
 CompObjectType *
@@ -267,7 +285,7 @@ reallocBaseObjectPrivates (CompObject *object,
 	(ReallocObjectPrivatesContext *) closure;
 
     if ((*object->vTable->getType) (object) == pCtx->type)
-	if (!(*pCtx->type->privs->realloc) (object, pCtx->size))
+	if (!(*pCtx->type->privates->realloc) (object, pCtx->size))
 	    return FALSE;
 
     return (*object->vTable->forBaseObject) (object,
@@ -294,16 +312,9 @@ reallocObjectPrivate (int  size,
 		      void *closure)
 {
     ReallocObjectPrivatesContext ctx;
-    void			 *privates;
 
     ctx.type = (CompObjectType *) closure;
     ctx.size = size;
-
-    privates = realloc (ctx.type->privates, size * sizeof (CompPrivate));
-    if (!privates)
-	return FALSE;
-
-    ctx.type->privates = privates;
 
     if (!reallocBaseObjectPrivates (&core.base, (void *) &ctx))
 	return FALSE;
@@ -316,8 +327,8 @@ reallocObjectPrivate (int  size,
 int
 compObjectAllocatePrivateIndex (CompObjectType *type)
 {
-    return allocatePrivateIndex (&type->privs->len,
-				 &type->privs->indices,
+    return allocatePrivateIndex (&type->privates->len,
+				 &type->privates->indices,
 				 reallocObjectPrivate,
 				 (void *) type);
 }
@@ -326,7 +337,7 @@ void
 compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index)
 {
-    freePrivateIndex (type->privs->len, type->privs->indices, index);
+    freePrivateIndex (type->privates->len, type->privates->indices, index);
 }
 
 static void
@@ -413,16 +424,19 @@ compObjectFindType (const char *name)
 
 typedef struct _InitObjectContext {
     CompObjectType  *type;
+    CompObjectFuncs *funcs;
     CompChildObject *object;
 } InitObjectContext;
 
 static CompBool
-initTypedObjects (CompObject	 *o,
-		  CompObjectType *type);
+initTypedObjects (CompObject	  *o,
+		  CompObjectType  *type,
+		  CompObjectFuncs *funcs);
 
 static CompBool
 finiTypedObjects (CompObject	 *o,
-		  CompObjectType *type);
+		  CompObjectType *type,
+		  CompObjectFuncs *funcs);
 
 static CompBool
 initObjectTree (CompChildObject *o,
@@ -432,7 +446,7 @@ initObjectTree (CompChildObject *o,
 
     pCtx->object = o;
 
-    return initTypedObjects (&o->base, pCtx->type);
+    return initTypedObjects (&o->base, pCtx->type, pCtx->funcs);
 }
 
 static CompBool
@@ -445,27 +459,29 @@ finiObjectTree (CompChildObject *o,
     if (pCtx->object == o)
 	return FALSE;
 
-    return finiTypedObjects (&o->base, pCtx->type);
+    return finiTypedObjects (&o->base, pCtx->type, pCtx->funcs);
 }
 
 static CompBool
-initTypedObjects (CompObject	 *o,
-		  CompObjectType *type)
+initTypedObjects (CompObject	  *o,
+		  CompObjectType  *type,
+		  CompObjectFuncs *funcs)
 {
     InitObjectContext ctx;
 
     ctx.type   = type;
+    ctx.funcs  = funcs;
     ctx.object = NULL;
 
     if ((*o->vTable->getType) (o) == type)
-	(*ctx.type->funcs->init) (o);
+	(*funcs->init) (o);
 
     if (!(*o->vTable->forEachChildObject) (o, initObjectTree, (void *) &ctx))
     {
 	(*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
 	if ((*o->vTable->getType) (o) == type)
-	    (*ctx.type->funcs->fini) (o);
+	    (*funcs->fini) (o);
 
 	return FALSE;
     }
@@ -474,18 +490,20 @@ initTypedObjects (CompObject	 *o,
 }
 
 static CompBool
-finiTypedObjects (CompObject	 *o,
-		  CompObjectType *type)
+finiTypedObjects (CompObject	  *o,
+		  CompObjectType  *type,
+		  CompObjectFuncs *funcs)
 {
     InitObjectContext ctx;
 
     ctx.type   = type;
+    ctx.funcs  = funcs;
     ctx.object = NULL;
 
     (*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
     if ((*o->vTable->getType) (o) == type)
-	(*ctx.type->funcs->fini) (o);
+	(*funcs->fini) (o);
 
     return TRUE;
 }
@@ -506,29 +524,31 @@ compObjectInitPrivates (CompObjectPrivate *private,
 	if (!type)
 	    break;
 
+	funcs = realloc (type->privates->funcs, (type->privates->nFuncs + 1) *
+			 sizeof (CompObjectFuncs));
+	if (!funcs)
+	    break;
+
+	type->privates->funcs = funcs;
+
 	index = compObjectAllocatePrivateIndex (type);
 	if (index < 0)
 	    break;
 
 	*(private[i].pIndex) = index;
 
-	/* wrap initialization functions */
-	funcs	    = type->funcs;
-	type->funcs = private[i].funcs;
-
-	/* disable propagation of calls to init/fini */
-	type->privates[index].ptr = NULL;
+	funcs[type->privates->nFuncs].init = private[i].funcs->init;
+	funcs[type->privates->nFuncs].fini = private[i].funcs->fini;
 
 	/* initialize all objects of this type */
-	if (!initTypedObjects (&core.base, type))
+	if (!initTypedObjects (&core.base, type,
+			       &funcs[type->privates->nFuncs]))
 	{
 	    compObjectFreePrivateIndex (type, index);
-	    type->funcs = funcs;
 	    break;
 	}
 
-	/* enable propagation of calls to init */
-	type->privates[index].ptr = funcs;
+	type->privates->nFuncs++;
     }
 
     if (i < nPrivate)
@@ -560,43 +580,19 @@ compObjectFiniPrivates (CompObjectPrivate *private,
 
 	index = *(private[i].pIndex);
 
-	funcs = type->privates[index].ptr;
+	type->privates->nFuncs--;
 
-	/* disable propagation of calls to fini */
-	type->privates[index].ptr = NULL;
-
-	/* finish all objects of this type */
-	finiTypedObjects (&core.base, type);
-
-	/* unwrap initialization functions */
-	type->funcs = funcs;
+	/* finalize all objects of this type */
+	finiTypedObjects (&core.base, type,
+			  &type->privates->funcs[type->privates->nFuncs]);
 
 	compObjectFreePrivateIndex (type, index);
+
+	funcs = realloc (type->privates->funcs, type->privates->nFuncs *
+			 sizeof (CompObjectFuncs));
+	if (funcs)
+	    type->privates->funcs = funcs;
     }
-}
-
-CompBool
-compObjectInitOther (CompObject	    *o,
-		     CompObjectType *type,
-		     int	    index)
-{
-    CompObjectFuncs *funcs = (CompObjectFuncs *) type->privates[index].ptr;
-
-    if (funcs && !(*funcs->init) (o))
-	return FALSE;
-
-    return TRUE;
-}
-
-void
-compObjectFiniOther (CompObject *o,
-		     int	index)
-{
-    const CompObjectType *t = (*o->vTable->getType) (o);
-    CompObjectFuncs	 *funcs = (CompObjectFuncs *) t->privates[index].ptr;
-
-    if (funcs)
-	(*funcs->fini) (o);
 }
 
 typedef struct _CheckContext {

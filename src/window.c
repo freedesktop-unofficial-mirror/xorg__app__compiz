@@ -1282,7 +1282,7 @@ freeWindow (CompWindow *w)
 {
     releaseWindow (w);
 
-    (*getWindowObjectType ()->funcs->fini) (&w->base.base);
+    compObjectFini (&w->base.base, getWindowObjectType ());
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
@@ -1968,6 +1968,8 @@ windowReallocObjectPrivates (CompObject *object,
 static CompObjectPrivates windowObjectPrivates = {
     NULL,
     0,
+    NULL,
+    0,
     windowReallocObjectPrivates
 };
 
@@ -2005,16 +2007,13 @@ windowFiniObject (CompObject *object)
     compChildObjectFini (&w->base);
 }
 
-static CompObjectFuncs windowObjectFuncs = {
-    windowInitObject,
-    windowFiniObject
-};
-
 static CompObjectType windowObjectType = {
     "window",
-    &windowObjectPrivates,
-    &windowObjectFuncs,
-    NULL
+    {
+	windowInitObject,
+	windowFiniObject
+    },
+    &windowObjectPrivates
 };
 
 CompObjectType *

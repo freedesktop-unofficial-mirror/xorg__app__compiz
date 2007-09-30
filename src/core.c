@@ -305,6 +305,8 @@ coreReallocObjectPrivates (CompObject *object,
 static CompObjectPrivates coreObjectPrivates = {
     NULL,
     0,
+    NULL,
+    0,
     coreReallocObjectPrivates
 };
 
@@ -313,7 +315,7 @@ coreInitObject (CompObject *object)
 {
     CORE (object);
 
-    if (!(*getObjectType ()->funcs->init) (object))
+    if (!compObjectInit (object, getObjectType ()))
 	return FALSE;
 
     c->base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
@@ -322,14 +324,14 @@ coreInitObject (CompObject *object)
 
     if (!coreReallocObjectPrivates (object, coreObjectPrivates.len))
     {
-	(*getObjectType ()->funcs->fini) (&c->base);
+	compObjectFini (&c->base, getObjectType ());
 	return FALSE;
     }
 
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	(*getObjectType ()->funcs->fini) (&c->base);
+	compObjectFini (&c->base, getObjectType ());
 	return FALSE;
     }
 
@@ -337,7 +339,7 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	(*getObjectType ()->funcs->fini) (&c->base);
+	compObjectFini (&c->base, getObjectType ());
 	return FALSE;
     }
 
@@ -391,19 +393,16 @@ coreFiniObject (CompObject *object)
     if (c->privates)
 	free (c->privates);
 
-    (*getObjectType ()->funcs->fini) (&c->base);
+    compObjectFini (&c->base, getObjectType ());
 }
-
-static CompObjectFuncs coreObjectFuncs = {
-    coreInitObject,
-    coreFiniObject
-};
 
 static CompObjectType coreObjectType = {
     "core",
-    &coreObjectPrivates,
-    &coreObjectFuncs,
-    NULL
+    {
+	coreInitObject,
+	coreFiniObject
+    },
+    &coreObjectPrivates
 };
 
 CompObjectType *
@@ -437,7 +436,7 @@ initCore (void)
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't load core plugin");
-	(*getCoreObjectType ()->funcs->fini) (&core.base);
+	compObjectFini (&core.base, getCoreObjectType ());
 	return FALSE;
     }
 
@@ -446,7 +445,7 @@ initCore (void)
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
 	unloadPlugin (corePlugin);
-	(*getCoreObjectType ()->funcs->fini) (&core.base);
+	compObjectFini (&core.base, getCoreObjectType ());
 	return FALSE;
     }
 
@@ -461,7 +460,7 @@ finiCore (void)
 
     while (popPlugin ());
 
-    compObjectFini (&object->base, getCoreObjectType ());
+    compObjectFini (&core.base, getCoreObjectType ());
 }
 
 void

@@ -1605,7 +1605,7 @@ initWindowWalker (CompScreen *screen,
 static void
 freeScreen (CompScreen *s)
 {
-    (*getScreenObjectType ()->funcs->fini) (&s->base.base);
+    compObjectFini (&s->base.base, getScreenObjectType ());
 
     if (s->outputDev)
     {
@@ -1672,6 +1672,8 @@ screenReallocObjectPrivates (CompObject *object,
 }
 
 static CompObjectPrivates screenObjectPrivates = {
+    NULL,
+    0,
     NULL,
     0,
     screenReallocObjectPrivates
@@ -1916,16 +1918,13 @@ screenFiniObject (CompObject *object)
     compChildObjectFini (&s->base);
 }
 
-static CompObjectFuncs screenObjectFuncs = {
-    screenInitObject,
-    screenFiniObject
-};
-
 static CompObjectType screenObjectType = {
     "screen",
-    &screenObjectPrivates,
-    &screenObjectFuncs,
-    NULL
+    {
+	screenInitObject,
+	screenFiniObject
+    },
+    &screenObjectPrivates
 };
 
 CompObjectType *
