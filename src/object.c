@@ -218,12 +218,6 @@ static CompObjectFuncs objectFuncs = {
     finiObject
 };
 
-static const CompObjectType *
-objectParentType (CompObject *object)
-{
-    return NULL;
-}
-
 static char *
 queryObjectName (CompObject *object)
 {
@@ -232,7 +226,6 @@ queryObjectName (CompObject *object)
 
 static CompObjectType objectType = {
     "object",
-    objectParentType,
     queryObjectName,
     &objectPrivates,
     &objectFuncs,

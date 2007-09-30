@@ -1998,12 +1998,6 @@ static CompObjectFuncs windowObjectFuncs = {
     windowFiniObject
 };
 
-static const CompObjectType *
-windowObjectParentType (CompObject *object)
-{
-    return compChildObjectParentType (&GET_WINDOW (object)->base);
-}
-
 static char *
 windowQueryObjectName (CompObject *object)
 {
@@ -2018,7 +2012,6 @@ windowQueryObjectName (CompObject *object)
 
 static CompObjectType windowObjectType = {
     "window",
-    windowObjectParentType,
     windowQueryObjectName,
     &windowObjectPrivates,
     &windowObjectFuncs,

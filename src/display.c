@@ -2188,12 +2188,6 @@ static CompObjectFuncs displayObjectFuncs = {
     displayFiniObject
 };
 
-static const CompObjectType *
-displayObjectParentType (CompObject *object)
-{
-    return compChildObjectParentType (&GET_DISPLAY (object)->base);
-}
-
 static char *
 displayQueryObjectName (CompObject *object)
 {
@@ -2202,7 +2196,6 @@ displayQueryObjectName (CompObject *object)
 
 static CompObjectType displayObjectType = {
     "display",
-    displayObjectParentType,
     displayQueryObjectName,
     &displayObjectPrivates,
     &displayObjectFuncs,

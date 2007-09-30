@@ -295,8 +295,6 @@ freePrivateIndex (int  len,
 
 typedef struct _CompObjectType CompObjectType;
 
-typedef const CompObjectType *(*ObjectParentTypeProc) (CompObject *object);
-
 typedef char *(*QueryObjectNameProc) (CompObject *object);
 
 typedef CompBool (*ReallocObjectPrivatesProc) (CompObject *object,
@@ -318,12 +316,11 @@ typedef struct _CompObjectFuncs {
 } CompObjectFuncs;
 
 struct _CompObjectType {
-    const char		 *name;
-    ObjectParentTypeProc parentType;
-    QueryObjectNameProc	 queryObjectName;
-    CompObjectPrivates   *privs;
-    CompObjectFuncs	 *funcs;
-    CompPrivate		 *privates;
+    const char		*name;
+    QueryObjectNameProc	queryObjectName;
+    CompObjectPrivates  *privs;
+    CompObjectFuncs	*funcs;
+    CompPrivate		*privates;
 };
 
 typedef unsigned int CompObjectTypeID;
