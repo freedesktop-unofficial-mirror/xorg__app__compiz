@@ -34,6 +34,12 @@ forBaseObject (CompObject	      *object,
 {
 }
 
+static const CompObjectType *
+getType (CompObject *object)
+{
+    return getObjectType ();
+}
+
 static CompBool
 forEachChildObject (CompObject		    *object,
 		    ChildObjectCallBackProc proc,
@@ -142,6 +148,7 @@ invokeObjectMethod (CompObject	     *object,
 
 static CompObjectVTable objectVTable = {
     forBaseObject,
+    getType,
     forEachChildObject,
     lookupChildObject,
     forEachInterface,

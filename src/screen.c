@@ -63,6 +63,12 @@ screenForBaseObject (CompObject	            *object,
     WRAP (&s->object, object, vTable, v.vTable);
 }
 
+static const CompObjectType *
+screenGetObjectType (CompObject *object)
+{
+    return getScreenObjectType ();
+}
+
 static CompBool
 screenForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
@@ -1622,6 +1628,7 @@ freeScreen (CompScreen *s)
 
 static CompObjectVTable screenObjectVTable = {
     screenForBaseObject,
+    screenGetObjectType,
     screenForEachChildObject,
     screenLookupChildObject,
     screenForEachInterface,

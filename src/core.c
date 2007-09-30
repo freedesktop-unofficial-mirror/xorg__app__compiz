@@ -45,6 +45,12 @@ coreForBaseObject (CompObject		  *object,
     WRAP (&c->object, object, vTable, v.vTable);
 }
 
+static const CompObjectType *
+coreGetObjectType (CompObject *object)
+{
+    return getCoreObjectType ();
+}
+
 static CompBool
 coreForEachChildObject (CompObject		*object,
 			ChildObjectCallBackProc proc,
@@ -259,6 +265,7 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 
 static CompObjectVTable coreObjectVTable = {
     coreForBaseObject,
+    coreGetObjectType,
     coreForEachChildObject,
     coreLookupChildObject,
     coreForEachInterface,

@@ -84,6 +84,12 @@ displayForBaseObject (CompObject	     *object,
     WRAP (&d->object, object, vTable, v.vTable);
 }
 
+static const CompObjectType *
+displayGetObjectType (CompObject *object)
+{
+    return getDisplayObjectType ();
+}
+
 static CompBool
 displayForEachChildObject (CompObject		   *object,
 			   ChildObjectCallBackProc proc,
@@ -2068,6 +2074,7 @@ freeDisplay (CompDisplay *d)
 
 static CompObjectVTable displayObjectVTable = {
     displayForBaseObject,
+    displayGetObjectType,
     displayForEachChildObject,
     displayLookupChildObject,
     displayForEachInterface,

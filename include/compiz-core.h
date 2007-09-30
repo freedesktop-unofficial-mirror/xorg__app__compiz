@@ -371,6 +371,8 @@ typedef void (*ForBaseObjectProc) (CompObject		  *object,
 				   BaseObjectCallBackProc proc,
 				   void			  *closure);
 
+typedef const CompObjectType *(*GetObjectTypeProc) (CompObject *object);
+
 typedef struct _CompChildObject CompChildObject;
 
 typedef CompBool (*ChildObjectCallBackProc) (CompChildObject *object,
@@ -431,6 +433,7 @@ typedef CompBool (*InvokeMethodProc) (CompObject       *object,
 
 typedef struct _CompObjectVTable {
     ForBaseObjectProc	   forBaseObject;
+    GetObjectTypeProc	   getType;
     ForEachChildObjectProc forEachChildObject;
     LookupChildObjectProc  lookupChildObject;
     ForEachInterfaceProc   forEachInterface;
