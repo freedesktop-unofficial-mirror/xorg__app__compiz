@@ -499,9 +499,10 @@ CompObjectType *
 compObjectFindType (const char *name);
 
 typedef struct _CompObjectPrivate {
-    const char	    *name;
-    int		    *pIndex;
-    CompObjectFuncs *funcs;
+    const char	   *name;
+    int		   *pIndex;
+    InitObjectProc init;
+    FiniObjectProc fini;
 } CompObjectPrivate;
 
 CompBool

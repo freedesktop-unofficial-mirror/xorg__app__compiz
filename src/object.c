@@ -532,8 +532,8 @@ compObjectInitPrivate (CompObjectPrivate *private)
 
     *(private->pIndex) = index;
 
-    funcs[type->privates->nFuncs].init = private->funcs->init;
-    funcs[type->privates->nFuncs].fini = private->funcs->fini;
+    funcs[type->privates->nFuncs].init = private->init;
+    funcs[type->privates->nFuncs].fini = private->fini;
 
     /* initialize all objects of this type */
     if (!initTypedObjects (&core.base, type, &funcs[type->privates->nFuncs]))
