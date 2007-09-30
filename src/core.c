@@ -54,6 +54,12 @@ coreGetObjectType (CompObject *object)
     return getCoreObjectType ();
 }
 
+static char *
+coreQueryName (CompObject *object)
+{
+    return NULL;
+}
+
 static CompBool
 coreForEachChildObject (CompObject		*object,
 			ChildObjectCallBackProc proc,
@@ -269,6 +275,7 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 static CompObjectVTable coreObjectVTable = {
     coreForBaseObject,
     coreGetObjectType,
+    coreQueryName,
     coreForEachChildObject,
     coreLookupChildObject,
     coreForEachInterface,
@@ -393,15 +400,8 @@ static CompObjectFuncs coreObjectFuncs = {
     coreFiniObject
 };
 
-static char *
-coreQueryObjectName (CompObject *object)
-{
-    return NULL;
-}
-
 static CompObjectType coreObjectType = {
     "core",
-    coreQueryObjectName,
     &coreObjectPrivates,
     &coreObjectFuncs,
     NULL

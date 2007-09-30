@@ -72,6 +72,18 @@ screenGetObjectType (CompObject *object)
     return getScreenObjectType ();
 }
 
+static char *
+screenQueryName (CompObject *object)
+{
+    char tmp[256];
+
+    SCREEN (object);
+
+    snprintf (tmp, 256, "%d", s->screenNum);
+
+    return strdup (tmp);
+}
+
 static CompBool
 screenForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
@@ -1632,6 +1644,7 @@ freeScreen (CompScreen *s)
 static CompObjectVTable screenObjectVTable = {
     screenForBaseObject,
     screenGetObjectType,
+    screenQueryName,
     screenForEachChildObject,
     screenLookupChildObject,
     screenForEachInterface,
@@ -1909,21 +1922,8 @@ static CompObjectFuncs screenObjectFuncs = {
     screenFiniObject
 };
 
-static char *
-screenQueryObjectName (CompObject *object)
-{
-    char tmp[256];
-
-    SCREEN (object);
-
-    snprintf (tmp, 256, "%d", s->screenNum);
-
-    return strdup (tmp);
-}
-
 static CompObjectType screenObjectType = {
     "screen",
-    screenQueryObjectName,
     &screenObjectPrivates,
     &screenObjectFuncs,
     NULL

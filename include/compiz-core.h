@@ -295,8 +295,6 @@ freePrivateIndex (int  len,
 
 typedef struct _CompObjectType CompObjectType;
 
-typedef char *(*QueryObjectNameProc) (CompObject *object);
-
 typedef CompBool (*ReallocObjectPrivatesProc) (CompObject *object,
 					       int	  size);
 
@@ -317,7 +315,6 @@ typedef struct _CompObjectFuncs {
 
 struct _CompObjectType {
     const char		*name;
-    QueryObjectNameProc	queryObjectName;
     CompObjectPrivates  *privs;
     CompObjectFuncs	*funcs;
     CompPrivate		*privates;
@@ -369,6 +366,8 @@ typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
 				       void		      *closure);
 
 typedef const CompObjectType *(*GetObjectTypeProc) (CompObject *object);
+
+typedef char *(*QueryObjectNameProc) (CompObject *object);
 
 typedef struct _CompChildObject CompChildObject;
 
@@ -431,6 +430,7 @@ typedef CompBool (*InvokeMethodProc) (CompObject       *object,
 typedef struct _CompObjectVTable {
     ForBaseObjectProc	   forBaseObject;
     GetObjectTypeProc	   getType;
+    QueryObjectNameProc    queryName;
     ForEachChildObjectProc forEachChildObject;
     LookupChildObjectProc  lookupChildObject;
     ForEachInterfaceProc   forEachInterface;

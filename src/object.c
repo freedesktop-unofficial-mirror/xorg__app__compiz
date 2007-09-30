@@ -41,6 +41,12 @@ getType (CompObject *object)
     return getObjectType ();
 }
 
+static char *
+queryObjectName (CompObject *object)
+{
+    return NULL;
+}
+
 static CompBool
 forEachChildObject (CompObject		    *object,
 		    ChildObjectCallBackProc proc,
@@ -150,6 +156,7 @@ invokeObjectMethod (CompObject	     *object,
 static CompObjectVTable objectVTable = {
     forBaseObject,
     getType,
+    queryObjectName,
     forEachChildObject,
     lookupChildObject,
     forEachInterface,
@@ -218,15 +225,8 @@ static CompObjectFuncs objectFuncs = {
     finiObject
 };
 
-static char *
-queryObjectName (CompObject *object)
-{
-    return NULL;
-}
-
 static CompObjectType objectType = {
     "object",
-    queryObjectName,
     &objectPrivates,
     &objectFuncs,
     NULL

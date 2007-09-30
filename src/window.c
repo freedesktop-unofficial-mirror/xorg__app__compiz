@@ -1796,6 +1796,18 @@ windowGetObjectType (CompObject *object)
     return getWindowObjectType ();
 }
 
+static char *
+windowQueryName (CompObject *object)
+{
+    char tmp[256];
+
+    WINDOW (object);
+
+    snprintf (tmp, 256, "0x%lu", w->id);
+
+    return strdup (tmp);
+}
+
 static CompBool
 windowForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
@@ -1926,6 +1938,7 @@ windowInvokeMethod (CompObject	     *object,
 static CompObjectVTable windowObjectVTable = {
     windowForBaseObject,
     windowGetObjectType,
+    windowQueryName,
     windowForEachChildObject,
     windowLookupChildObject,
     windowForEachInterface,
@@ -1998,21 +2011,8 @@ static CompObjectFuncs windowObjectFuncs = {
     windowFiniObject
 };
 
-static char *
-windowQueryObjectName (CompObject *object)
-{
-    char tmp[256];
-
-    WINDOW (object);
-
-    snprintf (tmp, 256, "0x%lu", w->id);
-
-    return strdup (tmp);
-}
-
 static CompObjectType windowObjectType = {
     "window",
-    windowQueryObjectName,
     &windowObjectPrivates,
     &windowObjectFuncs,
     NULL

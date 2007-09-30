@@ -93,6 +93,12 @@ displayGetObjectType (CompObject *object)
     return getDisplayObjectType ();
 }
 
+static char *
+displayQueryName (CompObject *object)
+{
+    return NULL;
+}
+
 static CompBool
 displayForEachChildObject (CompObject		   *object,
 			   ChildObjectCallBackProc proc,
@@ -2078,6 +2084,7 @@ freeDisplay (CompDisplay *d)
 static CompObjectVTable displayObjectVTable = {
     displayForBaseObject,
     displayGetObjectType,
+    displayQueryName,
     displayForEachChildObject,
     displayLookupChildObject,
     displayForEachInterface,
@@ -2188,15 +2195,8 @@ static CompObjectFuncs displayObjectFuncs = {
     displayFiniObject
 };
 
-static char *
-displayQueryObjectName (CompObject *object)
-{
-    return NULL;
-}
-
 static CompObjectType displayObjectType = {
     "display",
-    displayQueryObjectName,
     &displayObjectPrivates,
     &displayObjectFuncs,
     NULL
