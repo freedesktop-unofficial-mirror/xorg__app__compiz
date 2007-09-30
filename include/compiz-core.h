@@ -453,6 +453,10 @@ CompBool
 compObjectInit (CompObject     *object,
 		CompObjectType *type);
 
+void
+compObjectFini (CompObject     *object,
+		CompObjectType *type);
+
 struct _CompObject {
     CompObjectVTable *vTable;
 

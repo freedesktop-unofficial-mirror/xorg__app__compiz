@@ -37,6 +37,13 @@ compObjectInit (CompObject     *object,
     return TRUE;
 }
 
+void
+compObjectFini (CompObject     *object,
+		CompObjectType *type)
+{
+    (*type->funcs->fini) (object);
+}
+
 static CompBool
 forBaseObject (CompObject	      *object,
 	       BaseObjectCallBackProc proc,
