@@ -309,12 +309,11 @@ static CompObjectPrivates coreObjectPrivates = {
 };
 
 static CompBool
-coreInitObject (CompObject     *object,
-		CompObjectType *type)
+coreInitObject (CompObject *object)
 {
     CORE (object);
 
-    if (!(*getObjectType ()->funcs->init) (object, type))
+    if (!(*getObjectType ()->funcs->init) (object))
 	return FALSE;
 
     c->base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
@@ -430,7 +429,7 @@ initCore (void)
 {
     CompPlugin *corePlugin;
 
-    if (!(*coreObjectType.funcs->init) (&core.base, &coreObjectType))
+    if (!(*getCoreObjectType ()->funcs->init) (&core.base))
 	return FALSE;
 
     corePlugin = loadPlugin ("core");

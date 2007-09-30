@@ -304,8 +304,7 @@ typedef struct _CompObjectPrivates {
     ReallocObjectPrivatesProc realloc;
 } CompObjectPrivates;
 
-typedef CompBool (*InitObjectProc) (CompObject     *object,
-				    CompObjectType *type);
+typedef CompBool (*InitObjectProc) (CompObject *object);
 typedef void     (*FiniObjectProc) (CompObject *object);
 
 typedef struct _CompObjectFuncs {
@@ -479,7 +478,6 @@ struct _CompChildObject {
 
 CompBool
 compChildObjectInit (CompChildObject  *object,
-		     CompObjectType   *type,
 		     CompObjectTypeID id);
 
 void

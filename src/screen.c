@@ -1678,14 +1678,13 @@ static CompObjectPrivates screenObjectPrivates = {
 };
 
 static CompBool
-screenInitObject (CompObject     *object,
-		  CompObjectType *type)
+screenInitObject (CompObject *object)
 {
     int i;
 
     SCREEN (object);
 
-    if (!compChildObjectInit (&s->base, type, COMP_OBJECT_TYPE_SCREEN))
+    if (!compChildObjectInit (&s->base, COMP_OBJECT_TYPE_SCREEN))
 	return FALSE;
 
     s->privates = NULL;
@@ -1978,7 +1977,7 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!(*screenObjectType.funcs->init) (&s->base.base, &screenObjectType))
+    if (!(*getScreenObjectType ()->funcs->init) (&s->base.base))
     {
 	free (s);
 	return FALSE;

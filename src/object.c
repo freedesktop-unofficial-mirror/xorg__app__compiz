@@ -197,8 +197,7 @@ static CompObjectPrivates objectPrivates = {
 };
 
 static CompBool
-initObject (CompObject     *object,
-	    CompObjectType *type)
+initObject (CompObject *object)
 {
     object->id = ~0; /* XXX: remove id asap */
 
@@ -334,10 +333,9 @@ processChildObjectSignal (CompObject	   *object,
 
 CompBool
 compChildObjectInit (CompChildObject  *object,
-		     CompObjectType   *type,
 		     CompObjectTypeID id)
 {
-    if (!(*getObjectType ()->funcs->init) (&object->base, type))
+    if (!(*getObjectType ()->funcs->init) (&object->base))
 	return FALSE;
 
     object->base.id = id; /* XXX: remove id asap */
@@ -443,7 +441,7 @@ initTypedObjects (CompObject	 *o,
     ctx.object = NULL;
 
     if ((*o->vTable->getType) (o) == type)
-	(*ctx.type->funcs->init) (o, ctx.type);
+	(*ctx.type->funcs->init) (o);
 
     if (!(*o->vTable->forEachChildObject) (o, initObjectTree, (void *) &ctx))
     {
@@ -567,7 +565,7 @@ compObjectInitOther (CompObject	    *o,
 {
     CompObjectFuncs *funcs = (CompObjectFuncs *) type->privates[index].ptr;
 
-    if (funcs && !(*funcs->init) (o, type))
+    if (funcs && !(*funcs->init) (o))
 	return FALSE;
 
     return TRUE;

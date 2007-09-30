@@ -2118,14 +2118,13 @@ static CompObjectPrivates displayObjectPrivates = {
 };
 
 static CompBool
-displayInitObject (CompObject     *object,
-		   CompObjectType *type)
+displayInitObject (CompObject *object)
 {
     int i;
 
     DISPLAY (object);
 
-    if (!compChildObjectInit (&d->base, type, COMP_OBJECT_TYPE_DISPLAY))
+    if (!compChildObjectInit (&d->base, COMP_OBJECT_TYPE_DISPLAY))
 	return FALSE;
 
     d->privates = NULL;
@@ -2236,7 +2235,7 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (!(*displayObjectType.funcs->init) (&d->base.base, &displayObjectType))
+    if (!(*getDisplayObjectType ()->funcs->init) (&d->base.base))
     {
 	free (d);
 	return FALSE;

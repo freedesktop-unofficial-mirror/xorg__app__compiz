@@ -1972,12 +1972,11 @@ static CompObjectPrivates windowObjectPrivates = {
 };
 
 static CompBool
-windowInitObject (CompObject     *object,
-		  CompObjectType *type)
+windowInitObject (CompObject *object)
 {
     WINDOW (object);
 
-    if (!compChildObjectInit (&w->base, type, COMP_OBJECT_TYPE_WINDOW))
+    if (!compChildObjectInit (&w->base, COMP_OBJECT_TYPE_WINDOW))
 	return FALSE;
 
     w->privates = NULL;
@@ -2152,7 +2151,7 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!(*windowObjectType.funcs->init) (&w->base.base, &windowObjectType))
+    if (!(*getWindowObjectType ()->funcs->init) (&w->base.base))
     {
 	free (w);
 	return;
