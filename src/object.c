@@ -27,6 +27,16 @@
 
 #include <compiz-core.h>
 
+CompBool
+compObjectInit (CompObject     *object,
+		CompObjectType *type)
+{
+    if (!(*type->funcs->init) (object))
+	return FALSE;
+
+    return TRUE;
+}
+
 static CompBool
 forBaseObject (CompObject	      *object,
 	       BaseObjectCallBackProc proc,

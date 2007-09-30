@@ -449,6 +449,10 @@ typedef void (*ProcessSignalProc) (CompObject       *object,
 				   const char       *name,
 				   const CompOption *out);
 
+CompBool
+compObjectInit (CompObject     *object,
+		CompObjectType *type);
+
 struct _CompObject {
     CompObjectVTable *vTable;
 
