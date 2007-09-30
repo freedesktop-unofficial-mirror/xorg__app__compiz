@@ -369,7 +369,7 @@ compChildObjectFini (CompChildObject *object)
 {
     UNWRAP (object, &object->base, processSignal);
 
-    (*getObjectType ()->funcs->fini) (&object->base);
+    compObjectFini (&object->base, getObjectType ());
 }
 
 const CompObjectType *

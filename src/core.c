@@ -461,7 +461,7 @@ finiCore (void)
 
     while (popPlugin ());
 
-    (*coreObjectType.funcs->fini) (&core.base);
+    compObjectFini (&object->base, getCoreObjectType ());
 }
 
 void
