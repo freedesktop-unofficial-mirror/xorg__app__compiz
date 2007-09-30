@@ -27,11 +27,12 @@
 
 #include <compiz-core.h>
 
-static void
+static CompBool
 forBaseObject (CompObject	      *object,
 	       BaseObjectCallBackProc proc,
 	       void		      *closure)
 {
+    return TRUE;
 }
 
 static const CompObjectType *

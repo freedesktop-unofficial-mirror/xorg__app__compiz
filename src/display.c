@@ -70,18 +70,21 @@ int pointerY     = 0;
 
 #define CORE_DISPLAY_INTERFACE_NAME "display"
 
-static void
+static CompBool
 displayForBaseObject (CompObject	     *object,
 		      BaseObjectCallBackProc proc,
 		      void		     *closure)
 {
     CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
     DISPLAY (object);
 
     UNWRAP (&d->object, object, vTable);
-    (*proc) (object, closure);
+    status = (*proc) (object, closure);
     WRAP (&d->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static const CompObjectType *

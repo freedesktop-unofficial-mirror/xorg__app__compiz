@@ -1773,18 +1773,21 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
     wa->screen		      = NULL;
 }
 
-static void
+static CompBool
 windowForBaseObject (CompObject	            *object,
 		     BaseObjectCallBackProc proc,
 		     void		    *closure)
 {
     CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
     WINDOW (object);
 
     UNWRAP (&w->object, object, vTable);
-    (*proc) (object, closure);
+    status = (*proc) (object, closure);
     WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static const CompObjectType *

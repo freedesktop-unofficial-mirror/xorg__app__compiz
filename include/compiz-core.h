@@ -365,11 +365,11 @@ typedef unsigned int CompObjectTypeID;
    MATCH	109 (ASCII 'm')	Match.
 */
 
-typedef void (*BaseObjectCallBackProc) (CompObject *object,
-					void	   *closure);
-typedef void (*ForBaseObjectProc) (CompObject		  *object,
-				   BaseObjectCallBackProc proc,
-				   void			  *closure);
+typedef CompBool (*BaseObjectCallBackProc) (CompObject *object,
+					    void       *closure);
+typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
+				       BaseObjectCallBackProc proc,
+				       void		      *closure);
 
 typedef const CompObjectType *(*GetObjectTypeProc) (CompObject *object);
 

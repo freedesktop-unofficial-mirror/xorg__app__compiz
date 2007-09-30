@@ -49,18 +49,21 @@
 
 #define CORE_SCREEN_INTERFACE_NAME "screen"
 
-static void
+static CompBool
 screenForBaseObject (CompObject	            *object,
 		     BaseObjectCallBackProc proc,
 		     void		    *closure)
 {
     CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
     SCREEN (object);
 
     UNWRAP (&s->object, object, vTable);
-    (*proc) (object, closure);
+    status = (*proc) (object, closure);
     WRAP (&s->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static const CompObjectType *

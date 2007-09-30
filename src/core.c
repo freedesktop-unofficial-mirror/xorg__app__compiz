@@ -31,18 +31,21 @@ CompCore core;
 
 #define CORE_CORE_INTERFACE_NAME "core"
 
-static void
+static CompBool
 coreForBaseObject (CompObject		  *object,
 		   BaseObjectCallBackProc proc,
 		   void			  *closure)
 {
     CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
     CORE (object);
 
     UNWRAP (&c->object, object, vTable);
-    (*proc) (object, closure);
+    status = (*proc) (object, closure);
     WRAP (&c->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static const CompObjectType *
