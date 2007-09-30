@@ -59,10 +59,10 @@ allocatePrivateIndex (int		  *len,
 }
 
 void
-freePrivateIndex (int  len,
-		  char *indices,
+freePrivateIndex (int  *len,
+		  char **indices,
 		  int  index)
 {
-    if (index < len)
-	indices[index] = 0;
+    if (index < *len)
+	(*indices)[index] = 0;
 }

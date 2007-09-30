@@ -264,8 +264,8 @@ allocatePrivateIndex (int		  *len,
 		      void		  *closure);
 
 void
-freePrivateIndex (int  len,
-		  char *indices,
+freePrivateIndex (int  *len,
+		  char **indices,
 		  int  index);
 
 

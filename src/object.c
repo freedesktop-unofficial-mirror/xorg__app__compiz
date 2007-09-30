@@ -337,7 +337,7 @@ void
 compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index)
 {
-    freePrivateIndex (type->privates->len, type->privates->indices, index);
+    freePrivateIndex (&type->privates->len, &type->privates->indices, index);
 }
 
 static void
