@@ -442,7 +442,7 @@ initCore (void)
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't load core plugin");
-	(*core.base.type->funcs->fini) (&core.base);
+	(*getCoreObjectType ()->funcs->fini) (&core.base);
 	return FALSE;
     }
 
@@ -451,7 +451,7 @@ initCore (void)
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
 	unloadPlugin (corePlugin);
-	(*core.base.type->funcs->fini) (&core.base);
+	(*getCoreObjectType ()->funcs->fini) (&core.base);
 	return FALSE;
     }
 

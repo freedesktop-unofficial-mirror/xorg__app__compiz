@@ -194,7 +194,6 @@ initObject (CompObject     *object,
 {
     object->id = ~0; /* XXX: remove id asap */
 
-    object->type     = type;
     object->vTable   = &objectVTable;
     object->privates = NULL;
 
@@ -251,7 +250,7 @@ reallocTypedObjectPrivates (CompObject		 *object,
 			    int			 size)
 {
     do {
-	if (object->type == type)
+	if ((*object->vTable->getType) (object) == type)
 	    if (!(*type->privs->realloc) (object, size))
 		return FALSE;
 
@@ -451,14 +450,14 @@ initTypedObjects (CompObject	 *o,
     ctx.type   = type;
     ctx.object = NULL;
 
-    if (o->type == type)
+    if ((*o->vTable->getType) (o) == type)
 	(*ctx.type->funcs->init) (o, ctx.type);
 
     if (!(*o->vTable->forEachChildObject) (o, initObjectTree, (void *) &ctx))
     {
 	(*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
-	if (o->type == type)
+	if ((*o->vTable->getType) (o) == type)
 	    (*ctx.type->funcs->fini) (o);
 
 	return FALSE;
@@ -478,7 +477,7 @@ finiTypedObjects (CompObject	 *o,
 
     (*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
-    if (o->type == type)
+    if ((*o->vTable->getType) (o) == type)
 	(*ctx.type->funcs->fini) (o);
 
     return TRUE;
@@ -586,7 +585,8 @@ void
 compObjectFiniOther (CompObject *o,
 		     int	index)
 {
-    CompObjectFuncs *funcs = (CompObjectFuncs *) o->type->privates[index].ptr;
+    const CompObjectType *t = (*o->vTable->getType) (o);
+    CompObjectFuncs	 *funcs = (CompObjectFuncs *) t->privates[index].ptr;
 
     if (funcs)
 	(*funcs->fini) (o);

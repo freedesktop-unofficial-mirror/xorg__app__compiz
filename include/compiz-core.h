@@ -454,8 +454,6 @@ typedef void (*ProcessSignalProc) (CompObject       *object,
 				   const CompOption *out);
 
 struct _CompObject {
-    const CompObjectType *type;
-
     CompObjectVTable *vTable;
 
     CompPrivate	*privates;
@@ -2707,6 +2705,8 @@ typedef struct _CompStruts {
 
 struct _CompWindow {
     CompChildObject base;
+
+    CompObjectVTableVec object;
 
     CompPrivate	*privates;
 

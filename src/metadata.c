@@ -1133,11 +1133,11 @@ compInitObjectPropFromMetadata (CompObject   *o,
     char	str[1024];
 
     sprintf (str, "/compiz/%s/%s//option[@name=\"%s\"]",
-	     m->path, o->type->name, name);
+	     m->path, (*o->vTable->getType) (o)->name, name);
 
-    if (o->type == getDisplayObjectType ())
+    if ((*o->vTable->getType) (o) == getDisplayObjectType ())
 	display = GET_DISPLAY (o);
-    else if (o->type == getScreenObjectType ())
+    else if ((*o->vTable->getType) (o) == getScreenObjectType ())
 	display = GET_SCREEN (o)->display;
 
     return initOptionFromMetadataPath (display, m, prop, BAD_CAST str);
@@ -1158,14 +1158,14 @@ finiObjectPropValue (CompObject      *o,
     case CompOptionTypeBell:
 	if (v->action.state & CompActionStateAutoGrab)
 	{
-	    if (o->type == getDisplayObjectType ())
+	    if ((*o->vTable->getType) (o) == getDisplayObjectType ())
 	    {
 		CompScreen *s;
 
 		for (s = GET_DISPLAY (o)->screens; s; s = s->next)
 		    removeScreenAction (s, &v->action);
 	    }
-	    else if (o->type == getScreenObjectType ())
+	    else if ((*o->vTable->getType) (o) == getScreenObjectType ())
 	    {
 		removeScreenAction (GET_SCREEN (o), &v->action);
 	    }
@@ -1231,7 +1231,8 @@ compSetObjectProp (CompObject		 *object,
 		   CompOption		 *prop,
 		   const CompOptionValue *value)
 {
-    if (object->type == getDisplayObjectType () && isActionOption (prop))
+    if ((*object->vTable->getType) (object) == getDisplayObjectType () &&
+	isActionOption (prop))
     {
 	if (prop->value.action.state & CompActionStateAutoGrab)
 	{

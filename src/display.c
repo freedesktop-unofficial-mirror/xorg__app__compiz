@@ -2062,7 +2062,7 @@ addScreenToDisplay (CompDisplay *display,
 static void
 freeDisplay (CompDisplay *d)
 {
-    (*d->base.base.type->funcs->fini) (&d->base.base);
+    (*getDisplayObjectType ()->funcs->fini) (&d->base.base);
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 

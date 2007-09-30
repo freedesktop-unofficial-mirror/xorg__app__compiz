@@ -1590,7 +1590,7 @@ initWindowWalker (CompScreen *screen,
 static void
 freeScreen (CompScreen *s)
 {
-    (*s->base.base.type->funcs->fini) (&s->base.base);
+    (*getScreenObjectType ()->funcs->fini) (&s->base.base);
 
     if (s->outputDev)
     {

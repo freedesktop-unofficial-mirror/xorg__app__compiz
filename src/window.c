@@ -1282,7 +1282,7 @@ freeWindow (CompWindow *w)
 {
     releaseWindow (w);
 
-    (*w->base.base.type->funcs->fini) (&w->base.base);
+    (*getWindowObjectType ()->funcs->fini) (&w->base.base);
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
@@ -1773,6 +1773,165 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
     wa->screen		      = NULL;
 }
 
+static void
+windowForBaseObject (CompObject	            *object,
+		     BaseObjectCallBackProc proc,
+		     void		    *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+
+    WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    (*proc) (object, closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+}
+
+static const CompObjectType *
+windowGetObjectType (CompObject *object)
+{
+    return getWindowObjectType ();
+}
+
+static CompBool
+windowForEachChildObject (CompObject		  *object,
+			  ChildObjectCallBackProc proc,
+			  void			  *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->forEachChildObject) (object, proc, closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompObject *
+windowLookupChildObject (CompObject *object,
+			 const char *type,
+			 const char *name)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompObject		*result;
+
+    WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    result = (*object->vTable->lookupChildObject) (object, type, name);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return result;
+}
+
+static CompBool
+windowForEachInterface (CompObject	      *object,
+			InterfaceCallBackProc proc,
+			void		      *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->forEachInterface) (object, proc, closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+windowForEachMethod (CompObject		 *object,
+		      const char	 *interface,
+		      MethodCallBackProc proc,
+		      void		 *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->forEachMethod) (object, interface, proc,
+					       closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+windowForEachSignal (CompObject		*object,
+		     const char		*interface,
+		     SignalCallBackProc proc,
+		     void		*closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->forEachSignal) (object, interface, proc,
+					       closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+windowForEachProp (CompObject	    *object,
+		   const char	    *interface,
+		   PropCallBackProc proc,
+		   void		    *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->forEachProp) (object, interface, proc, closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+windowInvokeMethod (CompObject	     *object,
+		    const char	     *interface,
+		    const char	     *name,
+		    const CompOption *in,
+		    CompOption	     *out)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    WINDOW (object);
+
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->invokeMethod) (object, interface, name, in,
+					      out);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompObjectVTable windowObjectVTable = {
+    windowForBaseObject,
+    windowGetObjectType,
+    windowForEachChildObject,
+    windowLookupChildObject,
+    windowForEachInterface,
+    windowForEachMethod,
+    windowForEachSignal,
+    windowForEachProp,
+    windowInvokeMethod
+};
+
 static CompBool
 windowReallocObjectPrivates (CompObject *object,
 			     int	size)
@@ -1813,6 +1972,8 @@ windowInitObject (CompObject     *object,
 	return FALSE;
     }
 
+    WRAP (&w->object, &w->base.base, vTable, &windowObjectVTable);
+
     return TRUE;
 }
 
@@ -1820,6 +1981,8 @@ static void
 windowFiniObject (CompObject *object)
 {
     WINDOW (object);
+
+    UNWRAP (&w->object, &w->base.base, vTable);
 
     if (w->privates)
 	free (w->privates);
