@@ -429,7 +429,7 @@ initCore (void)
 {
     CompPlugin *corePlugin;
 
-    if (!(*getCoreObjectType ()->funcs->init) (&core.base))
+    if (!compObjectInit (&core.base, getCoreObjectType ()))
 	return FALSE;
 
     corePlugin = loadPlugin ("core");

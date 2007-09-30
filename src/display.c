@@ -2235,7 +2235,7 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (!(*getDisplayObjectType ()->funcs->init) (&d->base.base))
+    if (!compObjectInit (&d->base.base, getDisplayObjectType ()))
     {
 	free (d);
 	return FALSE;

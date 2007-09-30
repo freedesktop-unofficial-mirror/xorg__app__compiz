@@ -1977,7 +1977,7 @@ addScreen (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!(*getScreenObjectType ()->funcs->init) (&s->base.base))
+    if (!compObjectInit (&s->base.base, getScreenObjectType ()))
     {
 	free (s);
 	return FALSE;

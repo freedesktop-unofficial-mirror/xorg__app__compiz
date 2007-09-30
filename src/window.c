@@ -2151,7 +2151,7 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!(*getWindowObjectType ()->funcs->init) (&w->base.base))
+    if (!compObjectInit (&w->base.base, getWindowObjectType ()))
     {
 	free (w);
 	return;

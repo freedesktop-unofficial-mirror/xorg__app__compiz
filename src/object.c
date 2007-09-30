@@ -345,7 +345,7 @@ CompBool
 compChildObjectInit (CompChildObject  *object,
 		     CompObjectTypeID id)
 {
-    if (!(*getObjectType ()->funcs->init) (&object->base))
+    if (!compObjectInit (&object->base, getObjectType ()))
 	return FALSE;
 
     object->base.id = id; /* XXX: remove id asap */
