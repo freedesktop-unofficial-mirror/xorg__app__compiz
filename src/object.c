@@ -218,7 +218,7 @@ reallocObjectPrivates (CompObject *object,
     void *privates;
 
     privates = realloc (object->privates, size * sizeof (CompPrivate));
-    if (!privates)
+    if (size && !privates)
 	return FALSE;
 
     object->privates = (CompPrivate *) privates;

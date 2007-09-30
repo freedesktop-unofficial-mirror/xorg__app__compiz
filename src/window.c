@@ -1957,7 +1957,7 @@ windowReallocObjectPrivates (CompObject *object,
     WINDOW (object);
 
     privates = realloc (w->privates, size * sizeof (CompPrivate));
-    if (!privates)
+    if (size && !privates)
 	return FALSE;
 
     w->privates = (CompPrivate *) privates;

@@ -294,7 +294,7 @@ coreReallocObjectPrivates (CompObject *object,
     CORE (object);
 
     privates = realloc (c->privates, size * sizeof (CompPrivate));
-    if (!privates)
+    if (size && !privates)
 	return FALSE;
 
     c->privates = (CompPrivate *) privates;

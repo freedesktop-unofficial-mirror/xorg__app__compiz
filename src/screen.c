@@ -1663,7 +1663,7 @@ screenReallocObjectPrivates (CompObject *object,
     SCREEN (object);
 
     privates = realloc (s->privates, size * sizeof (CompPrivate));
-    if (!privates)
+    if (size && !privates)
 	return FALSE;
 
     s->privates = (CompPrivate *) privates;

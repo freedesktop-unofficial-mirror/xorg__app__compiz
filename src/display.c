@@ -2103,7 +2103,7 @@ displayReallocObjectPrivates (CompObject *object,
     DISPLAY (object);
 
     privates = realloc (d->privates, size * sizeof (CompPrivate));
-    if (!privates)
+    if (size && !privates)
 	return FALSE;
 
     d->privates = (CompPrivate *) privates;

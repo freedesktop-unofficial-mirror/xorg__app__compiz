@@ -24,6 +24,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <compiz-core.h>
 
@@ -34,16 +35,6 @@ allocatePrivateIndex (int		  *len,
 		      void		  *closure)
 {
     char *newIndices;
-    int  i;
-
-    for (i = 0; i < *len; i++)
-    {
-	if (!(*indices)[i])
-	{
-	    (*indices)[i] = 1;
-	    return i;
-	}
-    }
 
     newIndices = (char *) realloc (*indices, (*len + 1) * sizeof (char));
     if (!newIndices)
@@ -65,6 +56,19 @@ freePrivateIndex (int		      *len,
 		  void		      *closure,
 		  int		      index)
 {
+    char *newIndices;
+
+    (*len)--;
+
     if (index < *len)
-	(*indices)[index] = 0;
+	memmove ((*indices) + index, (*indices) + (index + 1),
+		 *len - index);
+
+    (*indices)[(*len)] = 0;
+
+    newIndices = (char *) realloc (*indices, (*len) * sizeof (char));
+    if (!*len || newIndices)
+	*indices = newIndices;
+
+    (*reallocProc) (*len, closure);
 }
