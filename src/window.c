@@ -1791,7 +1791,7 @@ windowForBaseObject (CompObject	            *object,
 }
 
 static const CompObjectType *
-windowGetObjectType (CompObject *object)
+windowGetType (CompObject *object)
 {
     return getWindowObjectType ();
 }
@@ -1937,7 +1937,7 @@ windowInvokeMethod (CompObject	     *object,
 
 static CompObjectVTable windowObjectVTable = {
     windowForBaseObject,
-    windowGetObjectType,
+    windowGetType,
     windowQueryName,
     windowForEachChildObject,
     windowLookupChildObject,

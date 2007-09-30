@@ -67,7 +67,7 @@ screenForBaseObject (CompObject	            *object,
 }
 
 static const CompObjectType *
-screenGetObjectType (CompObject *object)
+screenGetType (CompObject *object)
 {
     return getScreenObjectType ();
 }
@@ -1643,7 +1643,7 @@ freeScreen (CompScreen *s)
 
 static CompObjectVTable screenObjectVTable = {
     screenForBaseObject,
-    screenGetObjectType,
+    screenGetType,
     screenQueryName,
     screenForEachChildObject,
     screenLookupChildObject,

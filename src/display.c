@@ -88,7 +88,7 @@ displayForBaseObject (CompObject	     *object,
 }
 
 static const CompObjectType *
-displayGetObjectType (CompObject *object)
+displayGetType (CompObject *object)
 {
     return getDisplayObjectType ();
 }
@@ -2083,7 +2083,7 @@ freeDisplay (CompDisplay *d)
 
 static CompObjectVTable displayObjectVTable = {
     displayForBaseObject,
-    displayGetObjectType,
+    displayGetType,
     displayQueryName,
     displayForEachChildObject,
     displayLookupChildObject,

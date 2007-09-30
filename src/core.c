@@ -49,7 +49,7 @@ coreForBaseObject (CompObject		  *object,
 }
 
 static const CompObjectType *
-coreGetObjectType (CompObject *object)
+coreGetType (CompObject *object)
 {
     return getCoreObjectType ();
 }
@@ -274,7 +274,7 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 
 static CompObjectVTable coreObjectVTable = {
     coreForBaseObject,
-    coreGetObjectType,
+    coreGetType,
     coreQueryName,
     coreForEachChildObject,
     coreLookupChildObject,
