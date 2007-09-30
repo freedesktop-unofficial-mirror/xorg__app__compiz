@@ -508,6 +508,72 @@ finiTypedObjects (CompObject	  *o,
     return TRUE;
 }
 
+static CompBool
+compObjectInitPrivate (CompObjectPrivate *private)
+{
+    CompObjectType  *type;
+    CompObjectFuncs *funcs;
+    int		    index;
+
+    type = compObjectFindType (private->name);
+    if (!type)
+	return FALSE;
+
+    funcs = realloc (type->privates->funcs, (type->privates->nFuncs + 1) *
+		     sizeof (CompObjectFuncs));
+    if (!funcs)
+	return FALSE;
+
+    type->privates->funcs = funcs;
+
+    index = compObjectAllocatePrivateIndex (type);
+    if (index < 0)
+	return FALSE;
+
+    *(private->pIndex) = index;
+
+    funcs[type->privates->nFuncs].init = private->funcs->init;
+    funcs[type->privates->nFuncs].fini = private->funcs->fini;
+
+    /* initialize all objects of this type */
+    if (!initTypedObjects (&core.base, type, &funcs[type->privates->nFuncs]))
+    {
+	compObjectFreePrivateIndex (type, index);
+	return FALSE;
+    }
+
+    type->privates->nFuncs++;
+
+    return TRUE;
+}
+
+static void
+compObjectFiniPrivate (CompObjectPrivate *private)
+{
+    CompObjectType  *type;
+    CompObjectFuncs *funcs;
+    int		    index;
+
+    type = compObjectFindType (private->name);
+    if (!type)
+	return;
+
+    index = *(private->pIndex);
+
+    type->privates->nFuncs--;
+
+    /* finalize all objects of this type */
+    finiTypedObjects (&core.base, type,
+		      &type->privates->funcs[type->privates->nFuncs]);
+
+    compObjectFreePrivateIndex (type, index);
+
+    funcs = realloc (type->privates->funcs, type->privates->nFuncs *
+		     sizeof (CompObjectFuncs));
+    if (funcs)
+	type->privates->funcs = funcs;
+}
+
 CompBool
 compObjectInitPrivates (CompObjectPrivate *private,
 			int		  nPrivate)
@@ -515,41 +581,8 @@ compObjectInitPrivates (CompObjectPrivate *private,
     int	i;
 
     for (i = 0; i < nPrivate; i++)
-    {
-	CompObjectType  *type;
-	CompObjectFuncs *funcs;
-	int	        index;
-
-	type = compObjectFindType (private[i].name);
-	if (!type)
+	if (!compObjectInitPrivate (&private[i]))
 	    break;
-
-	funcs = realloc (type->privates->funcs, (type->privates->nFuncs + 1) *
-			 sizeof (CompObjectFuncs));
-	if (!funcs)
-	    break;
-
-	type->privates->funcs = funcs;
-
-	index = compObjectAllocatePrivateIndex (type);
-	if (index < 0)
-	    break;
-
-	*(private[i].pIndex) = index;
-
-	funcs[type->privates->nFuncs].init = private[i].funcs->init;
-	funcs[type->privates->nFuncs].fini = private[i].funcs->fini;
-
-	/* initialize all objects of this type */
-	if (!initTypedObjects (&core.base, type,
-			       &funcs[type->privates->nFuncs]))
-	{
-	    compObjectFreePrivateIndex (type, index);
-	    break;
-	}
-
-	type->privates->nFuncs++;
-    }
 
     if (i < nPrivate)
     {
@@ -569,30 +602,7 @@ compObjectFiniPrivates (CompObjectPrivate *private,
     int	i;
 
     for (i = 0; i < nPrivate; i++)
-    {
-	CompObjectType  *type;
-	CompObjectFuncs *funcs;
-	int	        index;
-
-	type = compObjectFindType (private[i].name);
-	if (!type)
-	    break;
-
-	index = *(private[i].pIndex);
-
-	type->privates->nFuncs--;
-
-	/* finalize all objects of this type */
-	finiTypedObjects (&core.base, type,
-			  &type->privates->funcs[type->privates->nFuncs]);
-
-	compObjectFreePrivateIndex (type, index);
-
-	funcs = realloc (type->privates->funcs, type->privates->nFuncs *
-			 sizeof (CompObjectFuncs));
-	if (funcs)
-	    type->privates->funcs = funcs;
-    }
+	compObjectFiniPrivate (&private[i]);
 }
 
 typedef struct _CheckContext {
