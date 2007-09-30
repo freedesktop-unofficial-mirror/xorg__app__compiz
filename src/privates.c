@@ -59,9 +59,11 @@ allocatePrivateIndex (int		  *len,
 }
 
 void
-freePrivateIndex (int  *len,
-		  char **indices,
-		  int  index)
+freePrivateIndex (int		      *len,
+		  char		      **indices,
+		  ReallocPrivatesProc reallocProc,
+		  void		      *closure,
+		  int		      index)
 {
     if (index < *len)
 	(*indices)[index] = 0;

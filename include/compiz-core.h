@@ -264,9 +264,11 @@ allocatePrivateIndex (int		  *len,
 		      void		  *closure);
 
 void
-freePrivateIndex (int  *len,
-		  char **indices,
-		  int  index);
+freePrivateIndex (int		      *len,
+		  char		      **indices,
+		  ReallocPrivatesProc reallocProc,
+		  void		      *closure,
+		  int		      index);
 
 
 /* object.c */
