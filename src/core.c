@@ -293,7 +293,7 @@ coreReallocObjectPrivates (CompObject *object,
 
     CORE (object);
 
-    privates = realloc (c->privates, size * sizeof (CompPrivate));
+    privates = realloc (c->privates, size);
     if (size && !privates)
 	return FALSE;
 
@@ -322,7 +322,8 @@ coreInitObject (CompObject *object)
 
     c->privates = NULL;
 
-    if (!coreReallocObjectPrivates (object, coreObjectPrivates.len))
+    if (!coreReallocObjectPrivates (object, coreObjectPrivates.len *
+				    sizeof (CompPrivate)))
     {
 	compObjectFini (&c->base, getObjectType ());
 	return FALSE;

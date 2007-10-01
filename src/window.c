@@ -1956,7 +1956,7 @@ windowReallocObjectPrivates (CompObject *object,
 
     WINDOW (object);
 
-    privates = realloc (w->privates, size * sizeof (CompPrivate));
+    privates = realloc (w->privates, size);
     if (size && !privates)
 	return FALSE;
 
@@ -1983,7 +1983,8 @@ windowInitObject (CompObject *object)
 
     w->privates = NULL;
 
-    if (!windowReallocObjectPrivates (object, windowObjectPrivates.len))
+    if (!windowReallocObjectPrivates (object, windowObjectPrivates.len *
+				      sizeof (CompPrivate)))
     {
 	compChildObjectFini (&w->base);
 	return FALSE;

@@ -2102,7 +2102,7 @@ displayReallocObjectPrivates (CompObject *object,
 
     DISPLAY (object);
 
-    privates = realloc (d->privates, size * sizeof (CompPrivate));
+    privates = realloc (d->privates, size);
     if (size && !privates)
 	return FALSE;
 
@@ -2131,7 +2131,8 @@ displayInitObject (CompObject *object)
 
     d->privates = NULL;
 
-    if (!displayReallocObjectPrivates (object, displayObjectPrivates.len))
+    if (!displayReallocObjectPrivates (object, displayObjectPrivates.len *
+				       sizeof (CompPrivate)))
     {
 	compChildObjectFini (&d->base);
 	return FALSE;

@@ -44,7 +44,7 @@ allocatePrivateIndex (int		  *len,
     newIndices[*len] = size;
     *indices = newIndices;
 
-    if (!(*reallocProc) (*len + 1, closure))
+    if (!(*reallocProc) ((*len + 1) * sizeof (CompPrivate), closure))
 	return -1;
 
     return (*len)++;
@@ -71,5 +71,5 @@ freePrivateIndex (int		      *len,
     if (!*len || newIndices)
 	*indices = newIndices;
 
-    (*reallocProc) (*len, closure);
+    (*reallocProc) (*len * sizeof (CompPrivate), closure);
 }

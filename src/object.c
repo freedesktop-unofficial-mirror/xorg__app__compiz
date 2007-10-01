@@ -217,7 +217,7 @@ reallocObjectPrivates (CompObject *object,
 {
     void *privates;
 
-    privates = realloc (object->privates, size * sizeof (CompPrivate));
+    privates = realloc (object->privates, size);
     if (size && !privates)
 	return FALSE;
 
@@ -242,7 +242,8 @@ initObject (CompObject *object)
     object->vTable   = &objectVTable;
     object->privates = NULL;
 
-    if (!reallocObjectPrivates (object, objectPrivates.len))
+    if (!reallocObjectPrivates (object, objectPrivates.len *
+				sizeof (CompPrivate)))
 	return FALSE;
 
     object->processSignal = processObjectSignal;
