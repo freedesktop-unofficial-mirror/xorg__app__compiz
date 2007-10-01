@@ -1936,7 +1936,7 @@ getScreenObjectType (void)
 int
 allocateScreenPrivateIndex (void)
 {
-    return compObjectAllocatePrivateIndex (&screenObjectType);
+    return compObjectAllocatePrivateIndex (&screenObjectType, 0);
 }
 
 void

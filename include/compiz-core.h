@@ -260,6 +260,7 @@ typedef int (*ReallocPrivatesProc) (int size, void *closure);
 int
 allocatePrivateIndex (int		  *len,
 		      int		  **indices,
+		      int		  size,
 		      ReallocPrivatesProc reallocProc,
 		      void		  *closure);
 
@@ -473,7 +474,8 @@ CompObjectType *
 getObjectType (void);
 
 int
-compObjectAllocatePrivateIndex (CompObjectType *type);
+compObjectAllocatePrivateIndex (CompObjectType *type,
+				int	       size);
 
 void
 compObjectFreePrivateIndex (CompObjectType *type,

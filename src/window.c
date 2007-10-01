@@ -2025,7 +2025,7 @@ getWindowObjectType (void)
 int
 allocateWindowPrivateIndex (void)
 {
-    return compObjectAllocatePrivateIndex (&windowObjectType);
+    return compObjectAllocatePrivateIndex (&windowObjectType, 0);
 }
 
 void

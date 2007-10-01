@@ -325,11 +325,12 @@ reallocObjectPrivate (int  size,
 }
 
 int
-compObjectAllocatePrivateIndex (CompObjectType *type)
+compObjectAllocatePrivateIndex (CompObjectType *type,
+				int	       size)
 {
     return allocatePrivateIndex (&type->privates->len,
 				 &type->privates->indices,
-				 reallocObjectPrivate,
+				 size, reallocObjectPrivate,
 				 (void *) type);
 }
 
@@ -530,7 +531,7 @@ compObjectInitPrivate (CompObjectPrivate *private)
 
     type->privates->funcs = funcs;
 
-    index = compObjectAllocatePrivateIndex (type);
+    index = compObjectAllocatePrivateIndex (type, 0);
     if (index < 0)
 	return FALSE;
 

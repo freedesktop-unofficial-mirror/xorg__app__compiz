@@ -414,7 +414,7 @@ getCoreObjectType (void)
 int
 allocateCorePrivateIndex (void)
 {
-    return compObjectAllocatePrivateIndex (&coreObjectType);
+    return compObjectAllocatePrivateIndex (&coreObjectType, 0);
 }
 
 void

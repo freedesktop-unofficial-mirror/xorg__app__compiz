@@ -2209,7 +2209,7 @@ getDisplayObjectType (void)
 int
 allocateDisplayPrivateIndex (void)
 {
-    return compObjectAllocatePrivateIndex (&displayObjectType);
+    return compObjectAllocatePrivateIndex (&displayObjectType, 0);
 }
 
 void
