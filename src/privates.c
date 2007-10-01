@@ -30,13 +30,13 @@
 
 int
 allocatePrivateIndex (int		  *len,
-		      char		  **indices,
+		      int		  **indices,
 		      ReallocPrivatesProc reallocProc,
 		      void		  *closure)
 {
-    char *newIndices;
+    int *newIndices;
 
-    newIndices = (char *) realloc (*indices, (*len + 1) * sizeof (char));
+    newIndices = realloc (*indices, (*len + 1) * sizeof (int));
     if (!newIndices)
 	return -1;
 
@@ -51,12 +51,12 @@ allocatePrivateIndex (int		  *len,
 
 void
 freePrivateIndex (int		      *len,
-		  char		      **indices,
+		  int		      **indices,
 		  ReallocPrivatesProc reallocProc,
 		  void		      *closure,
 		  int		      index)
 {
-    char *newIndices;
+    int *newIndices;
 
     (*len)--;
 
@@ -66,7 +66,7 @@ freePrivateIndex (int		      *len,
 
     (*indices)[(*len)] = 0;
 
-    newIndices = (char *) realloc (*indices, (*len) * sizeof (char));
+    newIndices = realloc (*indices, (*len) * sizeof (int));
     if (!*len || newIndices)
 	*indices = newIndices;
 

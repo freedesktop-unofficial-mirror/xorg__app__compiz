@@ -259,13 +259,13 @@ typedef int (*ReallocPrivatesProc) (int size, void *closure);
 
 int
 allocatePrivateIndex (int		  *len,
-		      char		  **indices,
+		      int		  **indices,
 		      ReallocPrivatesProc reallocProc,
 		      void		  *closure);
 
 void
 freePrivateIndex (int		      *len,
-		  char		      **indices,
+		  int		      **indices,
 		  ReallocPrivatesProc reallocProc,
 		  void		      *closure,
 		  int		      index);
@@ -309,7 +309,7 @@ typedef struct _CompObjectFuncs {
 } CompObjectFuncs;
 
 typedef struct _CompObjectPrivates {
-    char		      *indices;
+    int			      *indices;
     int			      len;
     CompObjectFuncs	      *funcs;
     int			      nFuncs;
