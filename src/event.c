@@ -1926,7 +1926,8 @@ handleEvent (CompDisplay *d,
 
 		if (!allowFocus &&
 		    (w->type & ~(CompWindowTypeSplashMask |
-				 CompWindowTypeDockMask)))
+				 CompWindowTypeDockMask   |
+				 CompWindowTypeDesktopMask)))
 		{
 		    CompWindow *p;
 
