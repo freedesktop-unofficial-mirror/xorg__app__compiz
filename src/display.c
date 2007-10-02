@@ -2083,15 +2083,15 @@ freeDisplay (CompDisplay *d)
 
 static CompObjectVTable displayObjectVTable = {
     displayForBaseObject,
-    displayGetType,
-    displayQueryName,
-    displayForEachChildObject,
-    displayLookupChildObject,
     displayForEachInterface,
     displayForEachMethod,
     displayForEachSignal,
     displayForEachProp,
-    displayInvokeMethod
+    displayInvokeMethod,
+    displayGetType,
+    displayQueryName,
+    displayForEachChildObject,
+    displayLookupChildObject
 };
 
 static CompObjectPrivates displayObjectPrivates = {

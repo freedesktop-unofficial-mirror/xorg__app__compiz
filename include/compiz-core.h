@@ -383,23 +383,6 @@ typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
 				       BaseObjectCallBackProc proc,
 				       void		      *closure);
 
-typedef const CompObjectType *(*GetObjectTypeProc) (CompObject *object);
-
-typedef char *(*QueryObjectNameProc) (CompObject *object);
-
-typedef struct _CompChildObject CompChildObject;
-
-typedef CompBool (*ChildObjectCallBackProc) (CompChildObject *object,
-					     void	     *closure);
-
-typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
-					    ChildObjectCallBackProc proc,
-					    void		    *closure);
-
-typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
-					      const char *type,
-					      const char *name);
-
 typedef CompBool (*InterfaceCallBackProc) (CompObject *object,
 					   const char *interface,
 					   void	      *closure);
@@ -445,17 +428,37 @@ typedef CompBool (*InvokeMethodProc) (CompObject       *object,
 				      const CompOption *in,
 				      CompOption       *out);
 
+typedef const CompObjectType *(*GetObjectTypeProc) (CompObject *object);
+
+typedef char *(*QueryObjectNameProc) (CompObject *object);
+
+typedef struct _CompChildObject CompChildObject;
+
+typedef CompBool (*ChildObjectCallBackProc) (CompChildObject *object,
+					     void	     *closure);
+
+typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
+					    ChildObjectCallBackProc proc,
+					    void		    *closure);
+
+typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
+					      const char *type,
+					      const char *name);
+
 typedef struct _CompObjectVTable {
     ForBaseObjectProc	   forBaseObject;
-    GetObjectTypeProc	   getType;
-    QueryObjectNameProc    queryName;
-    ForEachChildObjectProc forEachChildObject;
-    LookupChildObjectProc  lookupChildObject;
+
     ForEachInterfaceProc   forEachInterface;
     ForEachMethodProc      forEachMethod;
     ForEachSignalProc      forEachSignal;
     ForEachPropProc        forEachProp;
     InvokeMethodProc	   invokeMethod;
+
+    GetObjectTypeProc	   getType;
+    QueryObjectNameProc    queryName;
+
+    ForEachChildObjectProc forEachChildObject;
+    LookupChildObjectProc  lookupChildObject;
 } CompObjectVTable;
 
 typedef struct _CompObjectVTableVec {

@@ -191,15 +191,15 @@ invokeObjectMethod (CompObject	     *object,
 
 static CompObjectVTable objectVTable = {
     forBaseObject,
-    getType,
-    queryObjectName,
-    forEachChildObject,
-    lookupChildObject,
     forEachInterface,
     forEachMethod,
     forEachSignal,
     forEachProp,
-    invokeObjectMethod
+    invokeObjectMethod,
+    getType,
+    queryObjectName,
+    forEachChildObject,
+    lookupChildObject
 };
 
 static void

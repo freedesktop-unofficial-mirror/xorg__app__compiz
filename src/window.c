@@ -1937,15 +1937,15 @@ windowInvokeMethod (CompObject	     *object,
 
 static CompObjectVTable windowObjectVTable = {
     windowForBaseObject,
-    windowGetType,
-    windowQueryName,
-    windowForEachChildObject,
-    windowLookupChildObject,
     windowForEachInterface,
     windowForEachMethod,
     windowForEachSignal,
     windowForEachProp,
-    windowInvokeMethod
+    windowInvokeMethod,
+    windowGetType,
+    windowQueryName,
+    windowForEachChildObject,
+    windowLookupChildObject
 };
 
 static CompObjectPrivates windowObjectPrivates = {

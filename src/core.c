@@ -274,15 +274,15 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 
 static CompObjectVTable coreObjectVTable = {
     coreForBaseObject,
-    coreGetType,
-    coreQueryName,
-    coreForEachChildObject,
-    coreLookupChildObject,
     coreForEachInterface,
     coreForEachMethod,
     coreForEachSignal,
     coreForEachProp,
-    coreInvokeMethod
+    coreInvokeMethod,
+    coreGetType,
+    coreQueryName,
+    coreForEachChildObject,
+    coreLookupChildObject
 };
 
 static CompObjectPrivates coreObjectPrivates = {

@@ -1643,15 +1643,15 @@ freeScreen (CompScreen *s)
 
 static CompObjectVTable screenObjectVTable = {
     screenForBaseObject,
-    screenGetType,
-    screenQueryName,
-    screenForEachChildObject,
-    screenLookupChildObject,
     screenForEachInterface,
     screenForEachMethod,
     screenForEachSignal,
     screenForEachProp,
-    screenInvokeMethod
+    screenInvokeMethod,
+    screenGetType,
+    screenQueryName,
+    screenForEachChildObject,
+    screenLookupChildObject
 };
 
 static CompObjectPrivates screenObjectPrivates = {
