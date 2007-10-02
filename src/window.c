@@ -1808,144 +1808,10 @@ windowQueryName (CompObject *object)
     return strdup (tmp);
 }
 
-static CompBool
-windowForEachChildObject (CompObject		  *object,
-			  ChildObjectCallBackProc proc,
-			  void			  *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachChildObject) (object, proc, closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObject *
-windowLookupChildObject (CompObject *object,
-			 const char *type,
-			 const char *name)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompObject		*result;
-
-    WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    result = (*object->vTable->lookupChildObject) (object, type, name);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return result;
-}
-
-static CompBool
-windowForEachInterface (CompObject	      *object,
-			InterfaceCallBackProc proc,
-			void		      *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachInterface) (object, proc, closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-windowForEachMethod (CompObject		 *object,
-		      const char	 *interface,
-		      MethodCallBackProc proc,
-		      void		 *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachMethod) (object, interface, proc,
-					       closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-windowForEachSignal (CompObject		*object,
-		     const char		*interface,
-		     SignalCallBackProc proc,
-		     void		*closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachSignal) (object, interface, proc,
-					       closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-windowForEachProp (CompObject	    *object,
-		   const char	    *interface,
-		   PropCallBackProc proc,
-		   void		    *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachProp) (object, interface, proc, closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-windowInvokeMethod (CompObject	     *object,
-		    const char	     *interface,
-		    const char	     *name,
-		    const CompOption *in,
-		    CompOption	     *out)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->invokeMethod) (object, interface, name, in,
-					      out);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
 static CompObjectVTable windowObjectVTable = {
-    windowForBaseObject,
-    windowForEachInterface,
-    windowForEachMethod,
-    windowForEachSignal,
-    windowForEachProp,
-    windowInvokeMethod,
-    windowGetType,
-    windowQueryName,
-    windowForEachChildObject,
-    windowLookupChildObject
+    .forBaseObject = windowForBaseObject,
+    .getType	   = windowGetType,
+    .queryName	   = windowQueryName
 };
 
 static CompObjectPrivates windowObjectPrivates = {
@@ -1990,9 +1856,9 @@ windowFiniObject (CompObject *object)
 }
 
 static void
-windowInitVTable (CompObjectType *type,
-		  void	         *vTable)
+windowInitVTable (void *vTable)
 {
+    compInitChildObjectVTable (vTable);
 }
 
 static CompObjectType windowObjectType = {
@@ -2008,6 +1874,14 @@ static CompObjectType windowObjectType = {
 CompObjectType *
 getWindowObjectType (void)
 {
+    static CompBool init = FALSE;
+
+    if (!init)
+    {
+	windowInitVTable (&windowObjectVTable);
+	init = TRUE;
+    }
+
     return &windowObjectType;
 }
 

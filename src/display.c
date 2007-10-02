@@ -169,44 +169,6 @@ displayForEachInterface (CompObject	       *object,
 }
 
 static CompBool
-displayForEachMethod (CompObject	 *object,
-		      const char	 *interface,
-		      MethodCallBackProc proc,
-		      void		 *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    DISPLAY (object);
-
-    UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->forEachMethod) (object, interface, proc,
-					       closure);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-displayForEachSignal (CompObject	 *object,
-		      const char	 *interface,
-		      SignalCallBackProc proc,
-		      void		 *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    DISPLAY (object);
-
-    UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->forEachSignal) (object, interface, proc,
-					       closure);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
 displayForEachProp (CompObject	     *object,
 		    const char	     *interface,
 		    PropCallBackProc proc,
@@ -2082,16 +2044,14 @@ freeDisplay (CompDisplay *d)
 }
 
 static CompObjectVTable displayObjectVTable = {
-    displayForBaseObject,
-    displayForEachInterface,
-    displayForEachMethod,
-    displayForEachSignal,
-    displayForEachProp,
-    displayInvokeMethod,
-    displayGetType,
-    displayQueryName,
-    displayForEachChildObject,
-    displayLookupChildObject
+    .forBaseObject	= displayForBaseObject,
+    .forEachInterface   = displayForEachInterface,
+    .forEachProp	= displayForEachProp,
+    .invokeMethod	= displayInvokeMethod,
+    .getType		= displayGetType,
+    .queryName		= displayQueryName,
+    .forEachChildObject = displayForEachChildObject,
+    .lookupChildObject	= displayLookupChildObject
 };
 
 static CompObjectPrivates displayObjectPrivates = {
@@ -2174,9 +2134,9 @@ displayFiniObject (CompObject *object)
 }
 
 static void
-displayInitVTable (CompObjectType *type,
-		   void	          *vTable)
+displayInitVTable (void *vTable)
 {
+    compInitChildObjectVTable (vTable);
 }
 
 static CompObjectType displayObjectType = {
@@ -2192,6 +2152,14 @@ static CompObjectType displayObjectType = {
 CompObjectType *
 getDisplayObjectType (void)
 {
+    static CompBool init = FALSE;
+
+    if (!init)
+    {
+	displayInitVTable (&displayObjectVTable);
+	init = TRUE;
+    }
+
     return &displayObjectType;
 }
 

@@ -539,8 +539,7 @@ finiObject (CompObject *object)
 }
 
 static void
-initObjectVTable (CompObjectType   *type,
-		  CompObjectVTable *vTable)
+initObjectVTable (CompObjectVTable *vTable)
 {
     ENSURE (vTable, forEachInterface, noopForEachInterface);
     ENSURE (vTable, forEachMethod,    noopForEachMethod);
@@ -694,7 +693,7 @@ processChildObjectSignal (CompObject	   *object,
 void
 compInitChildObjectVTable (CompObjectVTable *vTable)
 {
-    (*getObjectType ()->initVTable) (getObjectType (), vTable);
+    (*getObjectType ()->initVTable) (vTable);
 }
 
 CompBool

@@ -154,44 +154,6 @@ screenForEachInterface (CompObject	      *object,
 }
 
 static CompBool
-screenForEachMethod (CompObject		 *object,
-		      const char	 *interface,
-		      MethodCallBackProc proc,
-		      void		 *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    SCREEN (object);
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->forEachMethod) (object, interface, proc,
-					       closure);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-screenForEachSignal (CompObject		*object,
-		     const char		*interface,
-		     SignalCallBackProc proc,
-		     void		*closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    SCREEN (object);
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->forEachSignal) (object, interface, proc,
-					       closure);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
 screenForEachProp (CompObject	    *object,
 		   const char	    *interface,
 		   PropCallBackProc proc,
@@ -1642,16 +1604,14 @@ freeScreen (CompScreen *s)
 }
 
 static CompObjectVTable screenObjectVTable = {
-    screenForBaseObject,
-    screenForEachInterface,
-    screenForEachMethod,
-    screenForEachSignal,
-    screenForEachProp,
-    screenInvokeMethod,
-    screenGetType,
-    screenQueryName,
-    screenForEachChildObject,
-    screenLookupChildObject
+    .forBaseObject	= screenForBaseObject,
+    .forEachInterface   = screenForEachInterface,
+    .forEachProp	= screenForEachProp,
+    .invokeMethod	= screenInvokeMethod,
+    .getType		= screenGetType,
+    .queryName		= screenQueryName,
+    .forEachChildObject = screenForEachChildObject,
+    .lookupChildObject	= screenLookupChildObject
 };
 
 static CompObjectPrivates screenObjectPrivates = {
@@ -1901,9 +1861,9 @@ screenFiniObject (CompObject *object)
 }
 
 static void
-screenInitVTable (CompObjectType *type,
-		  void	         *vTable)
+screenInitVTable (void *vTable)
 {
+    compInitChildObjectVTable (vTable);
 }
 
 static CompObjectType screenObjectType = {
@@ -1919,6 +1879,14 @@ static CompObjectType screenObjectType = {
 CompObjectType *
 getScreenObjectType (void)
 {
+    static CompBool init = FALSE;
+
+    if (!init)
+    {
+	screenInitVTable (&screenObjectVTable);
+	init = TRUE;
+    }
+
     return &screenObjectType;
 }
 

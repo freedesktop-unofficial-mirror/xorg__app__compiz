@@ -331,8 +331,7 @@ typedef struct _CompObjectPrivates {
     int		    nFuncs;
 } CompObjectPrivates;
 
-typedef void (*InitVTableProc) (CompObjectType *type,
-				void	       *vTable);
+typedef void (*InitVTableProc) (void *vTable);
 
 struct _CompObjectType {
     const char	       *name;
