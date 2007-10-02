@@ -1021,3 +1021,37 @@ compObjectSignalType (CompObject *object,
 
     return ctx.type;
 }
+
+CompBool
+compObjectCheckVersion (CompObject *object,
+			const char *interface,
+			int	   version)
+{
+    CompOption in;
+    CompOption out;
+
+    in.value.s = (char *) interface;
+
+    if (!(object->vTable->invokeMethod) (object,
+					 VERSION_INTERFACE_NAME,
+					 VERSION_METHOD_GET_NAME,
+					 &in, &out))
+    {
+	compLogMessage (NULL, "core", CompLogLevelError,
+			"couldn't get '%s' interface version "
+			"for '%s' object\n", interface,
+			(*object->vTable->getType) (object)->name);
+	return FALSE;
+    }
+
+    if (out.value.i != version)
+    {
+	compLogMessage (NULL, "core", CompLogLevelError,
+			"wrong '%s' interface version "
+			"for '%s' object\n", interface,
+			(*object->vTable->getType) (object)->name);
+	return FALSE;
+    }
+
+    return TRUE;
+}

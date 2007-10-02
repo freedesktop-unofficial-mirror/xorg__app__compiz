@@ -29,7 +29,7 @@
 
 CompCore core;
 
-#define CORE_CORE_INTERFACE_NAME "core"
+#define CORE_INTERFACE_NAME "core"
 
 static CompBool
 coreForBaseObject (CompObject		  *object,
@@ -43,6 +43,38 @@ coreForBaseObject (CompObject		  *object,
 
     UNWRAP (&c->object, object, vTable);
     status = (*proc) (object, closure);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompBool
+coreInvokeMethod (CompObject	   *object,
+		  const char	   *interface,
+		  const char	   *name,
+		  const CompOption *in,
+		  CompOption	   *out)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE (object);
+
+    if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
+    {
+	if (strcmp (name, VERSION_METHOD_GET_NAME) == 0)
+	{
+	    if (strcmp (in[0].value.s, CORE_INTERFACE_NAME) == 0)
+	    {
+		out[0].value.i = CORE_ABIVERSION;
+		return TRUE;
+	    }
+	}
+    }
+
+    UNWRAP (&c->object, object, vTable);
+    status = (*object->vTable->invokeMethod) (object, interface, name, in,
+					      out);
     WRAP (&c->object, object, vTable, v.vTable);
 
     return status;
@@ -181,6 +213,7 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 
 static CompObjectVTable coreObjectVTable = {
     .forBaseObject	= coreForBaseObject,
+    .invokeMethod       = coreInvokeMethod,
     .getType		= coreGetType,
     .queryName		= coreQueryName,
     .forEachChildObject = coreForEachChildObject,

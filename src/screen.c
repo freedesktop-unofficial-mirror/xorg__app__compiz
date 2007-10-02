@@ -47,7 +47,7 @@
 
 #include <compiz-core.h>
 
-#define CORE_SCREEN_INTERFACE_NAME "screen"
+#define SCREEN_INTERFACE_NAME "screen"
 
 static CompBool
 screenForBaseObject (CompObject	            *object,
@@ -143,7 +143,7 @@ screenForEachInterface (CompObject	      *object,
 
     SCREEN (object);
 
-    if (!(*proc) (object, CORE_SCREEN_INTERFACE_NAME, closure))
+    if (!(*proc) (object, SCREEN_INTERFACE_NAME, closure))
 	return FALSE;
 
     UNWRAP (&s->object, object, vTable);
@@ -164,7 +164,7 @@ screenForEachProp (CompObject	    *object,
 
     SCREEN (object);
 
-    if (strcmp (interface, CORE_SCREEN_INTERFACE_NAME) == 0)
+    if (strcmp (interface, SCREEN_INTERFACE_NAME) == 0)
     {
 	int i;
 
@@ -197,7 +197,7 @@ screenInvokeMethod (CompObject	     *object,
     {
 	if (strcmp (name, PROPERTIES_METHOD_SET_NAME) == 0)
 	{
-	    if (strcmp (in[0].value.s, CORE_SCREEN_INTERFACE_NAME) == 0)
+	    if (strcmp (in[0].value.s, SCREEN_INTERFACE_NAME) == 0)
 	    {
 		if (setScreenOption (NULL, s, in[1].value.s, &in[2].value))
 		{
@@ -219,7 +219,7 @@ screenInvokeMethod (CompObject	     *object,
     {
 	if (strcmp (name, VERSION_METHOD_GET_NAME) == 0)
 	{
-	    if (strcmp (in[0].value.s, CORE_SCREEN_INTERFACE_NAME))
+	    if (strcmp (in[0].value.s, SCREEN_INTERFACE_NAME) == 0)
 	    {
 		out[0].value.i = CORE_ABIVERSION;
 		return TRUE;

@@ -571,6 +571,11 @@ compObjectSignalType (CompObject *object,
 		      const char *interface,
 		      const char *name);
 
+CompBool
+compObjectCheckVersion (CompObject *object,
+			const char *interface,
+			int	   version);
+
 
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))

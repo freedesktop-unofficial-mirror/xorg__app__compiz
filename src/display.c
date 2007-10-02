@@ -68,7 +68,7 @@ int lastPointerY = 0;
 int pointerX     = 0;
 int pointerY     = 0;
 
-#define CORE_DISPLAY_INTERFACE_NAME "display"
+#define DISPLAY_INTERFACE_NAME "display"
 
 static CompBool
 displayForBaseObject (CompObject	     *object,
@@ -158,7 +158,7 @@ displayForEachInterface (CompObject	       *object,
 
     DISPLAY (object);
 
-    if (!(*proc) (object, CORE_DISPLAY_INTERFACE_NAME, closure))
+    if (!(*proc) (object, DISPLAY_INTERFACE_NAME, closure))
 	return FALSE;
 
     UNWRAP (&d->object, object, vTable);
@@ -179,7 +179,7 @@ displayForEachProp (CompObject	     *object,
 
     DISPLAY (object);
 
-    if (strcmp (interface, CORE_DISPLAY_INTERFACE_NAME) == 0)
+    if (strcmp (interface, DISPLAY_INTERFACE_NAME) == 0)
     {
 	int i;
 
@@ -212,7 +212,7 @@ displayInvokeMethod (CompObject	      *object,
     {
 	if (strcmp (name, PROPERTIES_METHOD_SET_NAME) == 0)
 	{
-	    if (strcmp (in[0].value.s, CORE_DISPLAY_INTERFACE_NAME) == 0)
+	    if (strcmp (in[0].value.s, DISPLAY_INTERFACE_NAME) == 0)
 	    {
 		if (setDisplayOption (NULL, d, in[1].value.s, &in[2].value))
 		{
@@ -234,7 +234,7 @@ displayInvokeMethod (CompObject	      *object,
     {
 	if (strcmp (name, VERSION_METHOD_GET_NAME) == 0)
 	{
-	    if (strcmp (in[0].value.s, CORE_DISPLAY_INTERFACE_NAME))
+	    if (strcmp (in[0].value.s, DISPLAY_INTERFACE_NAME) == 0)
 	    {
 		out[0].value.i = CORE_ABIVERSION;
 		return TRUE;
