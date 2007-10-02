@@ -63,6 +63,302 @@ compObjectFini (CompObject     *object,
     (*type->funcs.fini) (object);
 }
 
+typedef struct _ForEachInterfaceContext {
+    InterfaceCallBackProc proc;
+    void		  *closure;
+} ForEachInterfaceContext;
+
+static CompBool
+baseObjectForEachInterface (CompObject *object,
+			    void       *closure)
+{
+    ForEachInterfaceContext *pCtx = (ForEachInterfaceContext *) closure;
+
+    return (*object->vTable->forEachInterface) (object,
+						pCtx->proc,
+						pCtx->closure);
+}
+
+static CompBool
+noopForEachInterface (CompObject	    *object,
+		      InterfaceCallBackProc proc,
+		      void		    *closure)
+{
+    ForEachInterfaceContext ctx;
+
+    ctx.proc    = proc;
+    ctx.closure = closure;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectForEachInterface,
+					     (void *) &ctx);
+}
+
+typedef struct _ForEachMethodContext {
+    const char	       *interface;
+    MethodCallBackProc proc;
+    void	       *closure;
+} ForEachMethodContext;
+
+static CompBool
+baseObjectForEachMethod (CompObject *object,
+			 void       *closure)
+{
+    ForEachMethodContext *pCtx = (ForEachMethodContext *) closure;
+
+    return (*object->vTable->forEachMethod) (object,
+					     pCtx->interface,
+					     pCtx->proc,
+					     pCtx->closure);
+}
+
+static CompBool
+noopForEachMethod (CompObject	      *object,
+		   const char	      *interface,
+		   MethodCallBackProc proc,
+		   void		      *closure)
+{
+    ForEachMethodContext ctx;
+
+    ctx.interface = interface;
+    ctx.proc      = proc;
+    ctx.closure   = closure;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectForEachMethod,
+					     (void *) &ctx);
+}
+
+typedef struct _ForEachSignalContext {
+    const char	       *interface;
+    SignalCallBackProc proc;
+    void	       *closure;
+} ForEachSignalContext;
+
+static CompBool
+baseObjectForEachSignal (CompObject *object,
+			 void       *closure)
+{
+    ForEachSignalContext *pCtx = (ForEachSignalContext *) closure;
+
+    return (*object->vTable->forEachSignal) (object,
+					     pCtx->interface,
+					     pCtx->proc,
+					     pCtx->closure);
+}
+
+static CompBool
+noopForEachSignal (CompObject	      *object,
+		   const char	      *interface,
+		   SignalCallBackProc proc,
+		   void		      *closure)
+{
+    ForEachSignalContext ctx;
+
+    ctx.interface = interface;
+    ctx.proc      = proc;
+    ctx.closure   = closure;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectForEachSignal,
+					     (void *) &ctx);
+}
+
+typedef struct _ForEachPropContext {
+    const char	     *interface;
+    PropCallBackProc proc;
+    void	     *closure;
+} ForEachPropContext;
+
+static CompBool
+baseObjectForEachProp (CompObject *object,
+		       void       *closure)
+{
+    ForEachPropContext *pCtx = (ForEachPropContext *) closure;
+
+    return (*object->vTable->forEachProp) (object,
+					   pCtx->interface,
+					   pCtx->proc,
+					   pCtx->closure);
+}
+
+static CompBool
+noopForEachProp (CompObject	  *object,
+		 const char	  *interface,
+		 PropCallBackProc proc,
+		 void		  *closure)
+{
+    ForEachPropContext ctx;
+
+    ctx.interface = interface;
+    ctx.proc      = proc;
+    ctx.closure   = closure;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectForEachProp,
+					     (void *) &ctx);
+}
+
+typedef struct _InvokeMethodContext {
+    const char       *interface;
+    const char       *name;
+    const CompOption *in;
+    CompOption       *out;
+} InvokeMethodContext;
+
+static CompBool
+baseObjectInvokeMethod (CompObject *object,
+			void       *closure)
+{
+    InvokeMethodContext *pCtx = (InvokeMethodContext *) closure;
+
+    return (*object->vTable->invokeMethod) (object,
+					    pCtx->interface,
+					    pCtx->name,
+					    pCtx->in,
+					    pCtx->out);
+}
+
+static CompBool
+noopInvokeMethod (CompObject	   *object,
+		  const char       *interface,
+		  const char       *name,
+		  const CompOption *in,
+		  CompOption       *out)
+{
+    InvokeMethodContext ctx;
+
+    ctx.interface = interface;
+    ctx.name      = name;
+    ctx.in	  = in;
+    ctx.out	  = out;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectInvokeMethod,
+					     (void *) &ctx);
+}
+
+typedef struct _GetTypeContext {
+    const CompObjectType *result;
+} GetTypeContext;
+
+static CompBool
+baseObjectGetType (CompObject *object,
+		   void       *closure)
+{
+    GetTypeContext *pCtx = (GetTypeContext *) closure;
+
+    pCtx->result = (*object->vTable->getType) (object);
+
+    return TRUE;
+}
+
+static const CompObjectType *
+noopGetType (CompObject *object)
+{
+    GetTypeContext ctx;
+
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectGetType,
+				      (void *) &ctx);
+
+    return ctx.result;
+}
+
+typedef struct _QueryNameContext {
+    char *result;
+} QueryNameContext;
+
+static CompBool
+baseObjectQueryName (CompObject *object,
+		     void       *closure)
+{
+    QueryNameContext *pCtx = (QueryNameContext *) closure;
+
+    pCtx->result = (*object->vTable->queryName) (object);
+
+    return TRUE;
+}
+
+static char *
+noopQueryName (CompObject *object)
+{
+    QueryNameContext ctx;
+
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectQueryName,
+				      (void *) &ctx);
+
+    return ctx.result;
+}
+
+typedef struct _ForEachChildObjectContext {
+    ChildObjectCallBackProc proc;
+    void		    *closure;
+} ForEachChildObjectContext;
+
+static CompBool
+baseObjectForEachChildObject (CompObject *object,
+			      void       *closure)
+{
+    ForEachChildObjectContext *pCtx = (ForEachChildObjectContext *) closure;
+
+    return (*object->vTable->forEachChildObject) (object,
+						  pCtx->proc,
+						  pCtx->closure);
+}
+
+static CompBool
+noopForEachChildObject (CompObject		*object,
+			ChildObjectCallBackProc proc,
+			void		        *closure)
+{
+    ForEachChildObjectContext ctx;
+
+    ctx.proc    = proc;
+    ctx.closure = closure;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectForEachChildObject,
+					     (void *) &ctx);
+}
+
+typedef struct _LookupChildObjectContext {
+    const char *type;
+    const char *name;
+    CompObject *result;
+} LookupChildObjectContext;
+
+static CompBool
+baseObjectLookupChildObject (CompObject *object,
+			     void       *closure)
+{
+    LookupChildObjectContext *pCtx = (LookupChildObjectContext *) closure;
+
+    pCtx->result = (*object->vTable->lookupChildObject) (object,
+							 pCtx->type,
+							 pCtx->name);
+
+    return TRUE;
+}
+
+static CompObject *
+noopLookupChildObject (CompObject *object,
+		       const char *type,
+		       const char *name)
+{
+    LookupChildObjectContext ctx;
+
+    ctx.type = type;
+    ctx.name = name;
+
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectLookupChildObject,
+				      (void *) &ctx);
+
+    return ctx.result;
+}
+
 static CompBool
 forBaseObject (CompObject	      *object,
 	       BaseObjectCallBackProc proc,
@@ -243,9 +539,20 @@ finiObject (CompObject *object)
 }
 
 static void
-initObjectVTable (CompObjectType *type,
-		  void		 *vTable)
+initObjectVTable (CompObjectType   *type,
+		  CompObjectVTable *vTable)
 {
+    ENSURE (vTable, forEachInterface, noopForEachInterface);
+    ENSURE (vTable, forEachMethod,    noopForEachMethod);
+    ENSURE (vTable, forEachSignal,    noopForEachSignal);
+    ENSURE (vTable, forEachProp,      noopForEachProp);
+    ENSURE (vTable, invokeMethod,     noopInvokeMethod);
+
+    ENSURE (vTable, getType,   noopGetType);
+    ENSURE (vTable, queryName, noopQueryName);
+
+    ENSURE (vTable, forEachChildObject, noopForEachChildObject);
+    ENSURE (vTable, lookupChildObject,  noopLookupChildObject);
 }
 
 static CompObjectType objectType = {
@@ -255,7 +562,7 @@ static CompObjectType objectType = {
 	finiObject
     },
     &objectPrivates,
-    initObjectVTable
+    (InitVTableProc) initObjectVTable
 };
 
 CompObjectType *

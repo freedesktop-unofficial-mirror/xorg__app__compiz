@@ -238,15 +238,18 @@ extern CompMetadata coreMetadata;
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof ((array)[0]))
 
-
-/* privates.c */
-
 #define WRAP(priv, real, func, wrapFunc) \
     (priv)->func = (real)->func;	 \
     (real)->func = (wrapFunc)
 
 #define UNWRAP(priv, real, func) \
     (real)->func = (priv)->func
+
+#define ENSURE(table, func, ensureFunc)		     \
+    if (!(table)->func) (table)->func = (ensureFunc)
+
+
+/* privates.c */
 
 typedef union _CompPrivate {
     void	  *ptr;
