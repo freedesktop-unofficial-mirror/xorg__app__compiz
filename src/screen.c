@@ -1654,29 +1654,13 @@ static CompObjectVTable screenObjectVTable = {
     screenInvokeMethod
 };
 
-static CompBool
-screenReallocObjectPrivates (CompObject *object,
-			     int	size)
-{
-    void *privates;
-
-    SCREEN (object);
-
-    privates = realloc (s->privates, size);
-    if (size && !privates)
-	return FALSE;
-
-    s->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
 static CompObjectPrivates screenObjectPrivates = {
-    NULL,
     0,
     NULL,
     0,
-    screenReallocObjectPrivates
+    offsetof (CompScreen, privates),
+    NULL,
+    0
 };
 
 static CompBool
@@ -1689,10 +1673,7 @@ screenInitObject (CompObject *object)
     if (!compChildObjectInit (&s->base, COMP_OBJECT_TYPE_SCREEN))
 	return FALSE;
 
-    s->privates = NULL;
-
-    if (!screenReallocObjectPrivates (object, screenObjectPrivates.len *
-				      sizeof (CompPrivate)))
+    if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
 	compChildObjectFini (&s->base);
 	return FALSE;

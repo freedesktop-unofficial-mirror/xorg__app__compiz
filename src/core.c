@@ -285,29 +285,13 @@ static CompObjectVTable coreObjectVTable = {
     coreInvokeMethod
 };
 
-static CompBool
-coreReallocObjectPrivates (CompObject *object,
-			   int	      size)
-{
-    void *privates;
-
-    CORE (object);
-
-    privates = realloc (c->privates, size);
-    if (size && !privates)
-	return FALSE;
-
-    c->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
 static CompObjectPrivates coreObjectPrivates = {
-    NULL,
     0,
     NULL,
     0,
-    coreReallocObjectPrivates
+    offsetof (CompCore, privates),
+    NULL,
+    0
 };
 
 static CompBool
@@ -320,10 +304,7 @@ coreInitObject (CompObject *object)
 
     c->base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
-    c->privates = NULL;
-
-    if (!coreReallocObjectPrivates (object, coreObjectPrivates.len *
-				    sizeof (CompPrivate)))
+    if (!allocateObjectPrivates (object, &coreObjectPrivates))
     {
 	compObjectFini (&c->base, getObjectType ());
 	return FALSE;

@@ -255,21 +255,34 @@ typedef union _CompPrivate {
     void	  *(*fptr) (void);
 } CompPrivate;
 
-typedef int (*ReallocPrivatesProc) (int size, void *closure);
+typedef CompBool (*PrivatesCallBackProc) (CompPrivate **pPrivates,
+					  void	      *data);
+
+typedef CompBool (*ForEachPrivatesProc) (PrivatesCallBackProc proc,
+					 void		      *data,
+					 void		      *closure);
+
 
 int
 allocatePrivateIndex (int		  *len,
-		      int		  **indices,
+		      int		  **sizes,
+		      int		  *totalSize,
 		      int		  size,
-		      ReallocPrivatesProc reallocProc,
+		      ForEachPrivatesProc forEachPrivates,
 		      void		  *closure);
 
 void
 freePrivateIndex (int		      *len,
-		  int		      **indices,
-		  ReallocPrivatesProc reallocProc,
+		  int		      **sizes,
+		  int		      *totalSize,
+		  ForEachPrivatesProc forEachPrivates,
 		  void		      *closure,
 		  int		      index);
+
+CompPrivate *
+allocatePrivates (int len,
+		  int *sizes,
+		  int totalSize);
 
 
 /* object.c */
@@ -299,7 +312,9 @@ freePrivateIndex (int		      *len,
 typedef struct _CompObjectType CompObjectType;
 
 typedef CompBool (*ReallocObjectPrivatesProc) (CompObject *object,
-					       int	  size);
+					       int	  len,
+					       int	  *sizes,
+					       int	  totalSize);
 
 typedef CompBool (*InitObjectProc) (CompObject *object);
 typedef void     (*FiniObjectProc) (CompObject *object);
@@ -310,11 +325,12 @@ typedef struct _CompObjectFuncs {
 } CompObjectFuncs;
 
 typedef struct _CompObjectPrivates {
-    int			      *indices;
-    int			      len;
-    CompObjectFuncs	      *funcs;
-    int			      nFuncs;
-    ReallocObjectPrivatesProc realloc;
+    int		    len;
+    int		    *sizes;
+    int		    totalSize;
+    int		    offset;
+    CompObjectFuncs *funcs;
+    int		    nFuncs;
 } CompObjectPrivates;
 
 struct _CompObjectType {
@@ -473,6 +489,10 @@ struct _CompObject {
 CompObjectType *
 getObjectType (void);
 
+CompBool
+allocateObjectPrivates (CompObject	   *object,
+			CompObjectPrivates *objectPrivates);
+
 int
 compObjectAllocatePrivateIndex (CompObjectType *type,
 				int	       size);
@@ -505,6 +525,7 @@ compObjectFindType (const char *name);
 typedef struct _CompObjectPrivate {
     const char	   *name;
     int		   *pIndex;
+    int		   size;
     InitObjectProc init;
     FiniObjectProc fini;
 } CompObjectPrivate;

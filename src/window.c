@@ -1948,29 +1948,13 @@ static CompObjectVTable windowObjectVTable = {
     windowInvokeMethod
 };
 
-static CompBool
-windowReallocObjectPrivates (CompObject *object,
-			     int	size)
-{
-    void *privates;
-
-    WINDOW (object);
-
-    privates = realloc (w->privates, size);
-    if (size && !privates)
-	return FALSE;
-
-    w->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
 static CompObjectPrivates windowObjectPrivates = {
-    NULL,
     0,
     NULL,
     0,
-    windowReallocObjectPrivates
+    offsetof (CompWindow, privates),
+    NULL,
+    0
 };
 
 static CompBool
@@ -1981,10 +1965,7 @@ windowInitObject (CompObject *object)
     if (!compChildObjectInit (&w->base, COMP_OBJECT_TYPE_WINDOW))
 	return FALSE;
 
-    w->privates = NULL;
-
-    if (!windowReallocObjectPrivates (object, windowObjectPrivates.len *
-				      sizeof (CompPrivate)))
+    if (!allocateObjectPrivates (object, &windowObjectPrivates))
     {
 	compChildObjectFini (&w->base);
 	return FALSE;

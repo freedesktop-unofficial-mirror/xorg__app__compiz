@@ -2094,29 +2094,13 @@ static CompObjectVTable displayObjectVTable = {
     displayInvokeMethod
 };
 
-static CompBool
-displayReallocObjectPrivates (CompObject *object,
-			      int	 size)
-{
-    void *privates;
-
-    DISPLAY (object);
-
-    privates = realloc (d->privates, size);
-    if (size && !privates)
-	return FALSE;
-
-    d->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
 static CompObjectPrivates displayObjectPrivates = {
-    NULL,
     0,
     NULL,
     0,
-    displayReallocObjectPrivates
+    offsetof (CompDisplay, privates),
+    NULL,
+    0
 };
 
 static CompBool
@@ -2129,10 +2113,7 @@ displayInitObject (CompObject *object)
     if (!compChildObjectInit (&d->base, COMP_OBJECT_TYPE_DISPLAY))
 	return FALSE;
 
-    d->privates = NULL;
-
-    if (!displayReallocObjectPrivates (object, displayObjectPrivates.len *
-				       sizeof (CompPrivate)))
+    if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
 	compChildObjectFini (&d->base);
 	return FALSE;

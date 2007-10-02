@@ -211,42 +211,26 @@ processObjectSignal (CompObject	      *object,
 {
 }
 
-static CompBool
-reallocObjectPrivates (CompObject *object,
-		       int	  size)
-{
-    void *privates;
-
-    privates = realloc (object->privates, size);
-    if (size && !privates)
-	return FALSE;
-
-    object->privates = (CompPrivate *) privates;
-
-    return TRUE;
-}
-
 static CompObjectPrivates objectPrivates = {
-    NULL,
     0,
     NULL,
     0,
-    reallocObjectPrivates
+    offsetof (CompObject, privates),
+    NULL,
+    0
 };
 
 static CompBool
 initObject (CompObject *object)
 {
-    object->id = ~0; /* XXX: remove id asap */
+    object->vTable = &objectVTable;
 
-    object->vTable   = &objectVTable;
-    object->privates = NULL;
-
-    if (!reallocObjectPrivates (object, objectPrivates.len *
-				sizeof (CompPrivate)))
+    if (!allocateObjectPrivates (object, &objectPrivates))
 	return FALSE;
 
     object->processSignal = processObjectSignal;
+
+    object->id = ~0; /* XXX: remove id asap */
 
     return TRUE;
 }
@@ -273,55 +257,81 @@ getObjectType (void)
     return &objectType;
 }
 
-typedef struct _ReallocObjectPrivatesContext {
-    CompObjectType *type;
-    int		   size;
-} ReallocObjectPrivatesContext;
+CompBool
+allocateObjectPrivates (CompObject	   *object,
+			CompObjectPrivates *objectPrivates)
+{
+    CompPrivate *privates, **pPrivates = (CompPrivate **)
+	(((char *) object) + objectPrivates->offset);
+
+    privates = allocatePrivates (objectPrivates->len,
+				 objectPrivates->sizes,
+				 objectPrivates->totalSize);
+    if (!privates)
+	return FALSE;
+
+    *pPrivates = privates;
+
+    return TRUE;
+}
+
+typedef struct _ForEachObjectPrivatesContext {
+    CompObjectType       *type;
+    PrivatesCallBackProc proc;
+    void	         *data;
+} ForEachObjectPrivatesContext;
 
 static CompBool
-reallocBaseObjectPrivates (CompObject *object,
+forEachBaseObjectPrivates (CompObject *object,
 			   void       *closure)
 {
-    ReallocObjectPrivatesContext *pCtx =
-	(ReallocObjectPrivatesContext *) closure;
+    ForEachObjectPrivatesContext *pCtx =
+	(ForEachObjectPrivatesContext *) closure;
 
     if ((*object->vTable->getType) (object) == pCtx->type)
-	if (!(*pCtx->type->privates->realloc) (object, pCtx->size))
-	    return FALSE;
+    {
+	CompObjectPrivates *objectPrivates = pCtx->type->privates;
+	CompPrivate	   **pPrivates = (CompPrivate **)
+	    (((char *) object) + objectPrivates->offset);
+
+	return (*pCtx->proc) (pPrivates, pCtx->data);
+    }
 
     return (*object->vTable->forBaseObject) (object,
-					     reallocBaseObjectPrivates,
+					     forEachBaseObjectPrivates,
 					     closure);
 }
 
 static CompBool
-reallocObjectPrivatesTree (CompChildObject *object,
+forEachObjectPrivatesTree (CompChildObject *object,
 			   void		   *closure)
 {
     CompObjectVTable *vTable = object->base.vTable;
 
-    if (!reallocBaseObjectPrivates (&object->base, closure))
+    if (!forEachBaseObjectPrivates (&object->base, closure))
 	return FALSE;
 
     return (*vTable->forEachChildObject) (&object->base,
-					  reallocObjectPrivatesTree,
+					  forEachObjectPrivatesTree,
 					  closure);
 }
 
-static int
-reallocObjectPrivate (int  size,
-		      void *closure)
+static CompBool
+forEachObjectPrivates (PrivatesCallBackProc proc,
+		       void		    *data,
+		       void		    *closure)
 {
-    ReallocObjectPrivatesContext ctx;
+    ForEachObjectPrivatesContext ctx;
 
     ctx.type = (CompObjectType *) closure;
-    ctx.size = size;
+    ctx.proc = proc;
+    ctx.data = data;
 
-    if (!reallocBaseObjectPrivates (&core.base, (void *) &ctx))
+    if (!forEachBaseObjectPrivates (&core.base, (void *) &ctx))
 	return FALSE;
 
     return (*core.base.vTable->forEachChildObject) (&core.base,
-						    reallocObjectPrivatesTree,
+						    forEachObjectPrivatesTree,
 						    (void *) &ctx);
 }
 
@@ -330,8 +340,9 @@ compObjectAllocatePrivateIndex (CompObjectType *type,
 				int	       size)
 {
     return allocatePrivateIndex (&type->privates->len,
-				 &type->privates->indices,
-				 size, reallocObjectPrivate,
+				 &type->privates->sizes,
+				 &type->privates->totalSize,
+				 size, forEachObjectPrivates,
 				 (void *) type);
 }
 
@@ -340,8 +351,9 @@ compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index)
 {
     freePrivateIndex (&type->privates->len,
-		      &type->privates->indices,
-		      reallocObjectPrivate,
+		      &type->privates->sizes,
+		      &type->privates->totalSize,
+		      forEachObjectPrivates,
 		      (void *) type,
 		      index);
 }
@@ -532,7 +544,7 @@ compObjectInitPrivate (CompObjectPrivate *private)
 
     type->privates->funcs = funcs;
 
-    index = compObjectAllocatePrivateIndex (type, 0);
+    index = compObjectAllocatePrivateIndex (type, private->size);
     if (index < 0)
 	return FALSE;
 
@@ -605,10 +617,10 @@ void
 compObjectFiniPrivates (CompObjectPrivate *private,
 			int		  nPrivate)
 {
-    int	i;
+    int	n = nPrivate;
 
-    for (i = 0; i < nPrivate; i++)
-	compObjectFiniPrivate (&private[i]);
+    while (n--)
+	compObjectFiniPrivate (&private[n]);
 }
 
 typedef struct _CheckContext {
