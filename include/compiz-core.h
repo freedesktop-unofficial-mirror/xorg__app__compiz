@@ -311,11 +311,6 @@ allocatePrivates (int len,
 
 typedef struct _CompObjectType CompObjectType;
 
-typedef CompBool (*ReallocObjectPrivatesProc) (CompObject *object,
-					       int	  len,
-					       int	  *sizes,
-					       int	  totalSize);
-
 typedef CompBool (*InitObjectProc) (CompObject *object);
 typedef void     (*FiniObjectProc) (CompObject *object);
 
