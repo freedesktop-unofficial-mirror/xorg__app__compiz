@@ -532,15 +532,15 @@ struct _CompChildObject {
     ProcessSignalProc processSignal;
 };
 
+void
+compInitChildObjectVTable (CompObjectVTable *vTable);
+
 CompBool
 compChildObjectInit (CompChildObject  *object,
 		     CompObjectTypeID id);
 
 void
 compChildObjectFini (CompChildObject *object);
-
-const CompObjectType *
-compChildObjectParentType (CompChildObject *object);
 
 CompObjectType *
 compObjectFindType (const char *name);

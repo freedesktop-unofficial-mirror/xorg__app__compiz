@@ -691,6 +691,12 @@ processChildObjectSignal (CompObject	   *object,
     WRAP (child, object, processSignal, processChildObjectSignal);
 }
 
+void
+compInitChildObjectVTable (CompObjectVTable *vTable)
+{
+    (*getObjectType ()->initVTable) (getObjectType (), vTable);
+}
+
 CompBool
 compChildObjectInit (CompChildObject  *object,
 		     CompObjectTypeID id)
@@ -713,12 +719,6 @@ compChildObjectFini (CompChildObject *object)
     UNWRAP (object, &object->base, processSignal);
 
     compObjectFini (&object->base, getObjectType ());
-}
-
-const CompObjectType *
-compChildObjectParentType (CompChildObject *object)
-{
-    return getObjectType ();
 }
 
 typedef struct _FindTypeContext {
