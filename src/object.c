@@ -890,6 +890,9 @@ compObjectInitPrivate (CompObjectPrivate *private)
     if (index < 0)
 	return FALSE;
 
+    if (private->vTable)
+	(*type->initVTable) (private->vTable);
+
     *(private->pIndex) = index;
 
     funcs[type->privates->nFuncs].init = private->init;

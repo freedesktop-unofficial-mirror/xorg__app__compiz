@@ -548,6 +548,7 @@ typedef struct _CompObjectPrivate {
     const char	   *name;
     int		   *pIndex;
     int		   size;
+    void	   *vTable;
     InitObjectProc init;
     FiniObjectProc fini;
 } CompObjectPrivate;
