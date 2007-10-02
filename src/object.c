@@ -447,6 +447,37 @@ typedef struct _InitObjectContext {
 } InitObjectContext;
 
 static CompBool
+initBaseObject (CompObject *object,
+		void       *closure)
+{
+    InitObjectContext *pCtx = (InitObjectContext *) closure;
+
+    if ((*object->vTable->getType) (object) == pCtx->type)
+	return (*pCtx->funcs->init) (object);
+
+    return (*object->vTable->forBaseObject) (object,
+					     initBaseObject,
+					     closure);
+}
+
+static CompBool
+finiBaseObject (CompObject *object,
+		void       *closure)
+{
+    InitObjectContext *pCtx = (InitObjectContext *) closure;
+
+    if ((*object->vTable->getType) (object) == pCtx->type)
+    {
+	(*pCtx->funcs->fini) (object);
+	return TRUE;
+    }
+
+    return (*object->vTable->forBaseObject) (object,
+					     finiBaseObject,
+					     closure);
+}
+
+static CompBool
 initTypedObjects (CompObject	  *o,
 		  CompObjectType  *type,
 		  CompObjectFuncs *funcs);
@@ -491,15 +522,14 @@ initTypedObjects (CompObject	  *o,
     ctx.funcs  = funcs;
     ctx.object = NULL;
 
-    if ((*o->vTable->getType) (o) == type)
-	(*funcs->init) (o);
+    if (!initBaseObject (o, (void *) &ctx))
+	return FALSE;
 
     if (!(*o->vTable->forEachChildObject) (o, initObjectTree, (void *) &ctx))
     {
 	(*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
-	if ((*o->vTable->getType) (o) == type)
-	    (*funcs->fini) (o);
+	finiBaseObject (o, (void *) &ctx);
 
 	return FALSE;
     }
@@ -520,8 +550,7 @@ finiTypedObjects (CompObject	  *o,
 
     (*o->vTable->forEachChildObject) (o, finiObjectTree, (void *) &ctx);
 
-    if ((*o->vTable->getType) (o) == type)
-	(*funcs->fini) (o);
+    finiBaseObject (o, (void *) &ctx);
 
     return TRUE;
 }
