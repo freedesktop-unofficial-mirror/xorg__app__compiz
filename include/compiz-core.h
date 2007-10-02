@@ -446,17 +446,35 @@ typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
 					      const char *name);
 
 typedef struct _CompObjectVTable {
-    ForBaseObjectProc	   forBaseObject;
 
-    ForEachInterfaceProc   forEachInterface;
-    ForEachMethodProc      forEachMethod;
-    ForEachSignalProc      forEachSignal;
-    ForEachPropProc        forEachProp;
-    InvokeMethodProc	   invokeMethod;
+    /* base object function
 
-    GetObjectTypeProc	   getType;
-    QueryObjectNameProc    queryName;
+       must be implemented by every interface and subtype
+    */
+    ForBaseObjectProc forBaseObject;
 
+    /* interface functions
+
+       object interfaces are provided by implementing some of these
+    */
+    ForEachInterfaceProc forEachInterface;
+    ForEachMethodProc    forEachMethod;
+    ForEachSignalProc    forEachSignal;
+    ForEachPropProc      forEachProp;
+    InvokeMethodProc	 invokeMethod;
+
+    /* type functions
+
+       provide object-type functionality and must be implemented by every
+       subtype
+     */
+    GetObjectTypeProc	getType;
+    QueryObjectNameProc queryName;
+
+    /* child functions
+
+       child objects areprovided by implementing these
+     */
     ForEachChildObjectProc forEachChildObject;
     LookupChildObjectProc  lookupChildObject;
 } CompObjectVTable;
