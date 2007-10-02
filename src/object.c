@@ -242,13 +242,20 @@ finiObject (CompObject *object)
 	free (object->privates);
 }
 
+static void
+initObjectVTable (CompObjectType *type,
+		  void		 *vTable)
+{
+}
+
 static CompObjectType objectType = {
     "object",
     {
 	initObject,
 	finiObject
     },
-    &objectPrivates
+    &objectPrivates,
+    initObjectVTable
 };
 
 CompObjectType *

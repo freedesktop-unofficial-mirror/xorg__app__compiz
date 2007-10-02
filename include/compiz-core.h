@@ -328,10 +328,14 @@ typedef struct _CompObjectPrivates {
     int		    nFuncs;
 } CompObjectPrivates;
 
+typedef void (*InitVTableProc) (CompObjectType *type,
+				void	       *vTable);
+
 struct _CompObjectType {
     const char	       *name;
     CompObjectFuncs    funcs;
     CompObjectPrivates *privates;
+    InitVTableProc     initVTable;
 };
 
 typedef unsigned int CompObjectTypeID;

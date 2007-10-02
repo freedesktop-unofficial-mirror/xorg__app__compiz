@@ -1989,13 +1989,20 @@ windowFiniObject (CompObject *object)
     compChildObjectFini (&w->base);
 }
 
+static void
+windowInitVTable (CompObjectType *type,
+		  void	         *vTable)
+{
+}
+
 static CompObjectType windowObjectType = {
     "window",
     {
 	windowInitObject,
 	windowFiniObject
     },
-    &windowObjectPrivates
+    &windowObjectPrivates,
+    windowInitVTable
 };
 
 CompObjectType *

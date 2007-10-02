@@ -378,13 +378,20 @@ coreFiniObject (CompObject *object)
     compObjectFini (&c->base, getObjectType ());
 }
 
+static void
+coreInitVTable (CompObjectType *type,
+		void	       *vTable)
+{
+}
+
 static CompObjectType coreObjectType = {
     "core",
     {
 	coreInitObject,
 	coreFiniObject
     },
-    &coreObjectPrivates
+    &coreObjectPrivates,
+    coreInitVTable
 };
 
 CompObjectType *

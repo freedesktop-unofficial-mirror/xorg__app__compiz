@@ -2173,13 +2173,20 @@ displayFiniObject (CompObject *object)
     compChildObjectFini (&d->base);
 }
 
+static void
+displayInitVTable (CompObjectType *type,
+		   void	          *vTable)
+{
+}
+
 static CompObjectType displayObjectType = {
     "display",
     {
 	displayInitObject,
 	displayFiniObject
     },
-    &displayObjectPrivates
+    &displayObjectPrivates,
+    displayInitVTable
 };
 
 CompObjectType *

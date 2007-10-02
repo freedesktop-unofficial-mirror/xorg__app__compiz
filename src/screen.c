@@ -1900,13 +1900,20 @@ screenFiniObject (CompObject *object)
     compChildObjectFini (&s->base);
 }
 
+static void
+screenInitVTable (CompObjectType *type,
+		  void	         *vTable)
+{
+}
+
 static CompObjectType screenObjectType = {
     "screen",
     {
 	screenInitObject,
 	screenFiniObject
     },
-    &screenObjectPrivates
+    &screenObjectPrivates,
+    screenInitVTable
 };
 
 CompObjectType *
