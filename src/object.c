@@ -367,34 +367,6 @@ forBaseObject (CompObject	      *object,
     return TRUE;
 }
 
-static const CompObjectType *
-getType (CompObject *object)
-{
-    return getObjectType ();
-}
-
-static char *
-queryObjectName (CompObject *object)
-{
-    return NULL;
-}
-
-static CompBool
-forEachChildObject (CompObject		    *object,
-		    ChildObjectCallBackProc proc,
-		    void		    *closure)
-{
-    return TRUE;
-}
-
-static CompObject *
-lookupChildObject (CompObject *parent,
-		   const char *type,
-		   const char *name)
-{
-    return NULL;
-}
-
 static CompBool
 forEachInterface (CompObject		*object,
 		  InterfaceCallBackProc proc,
@@ -483,6 +455,34 @@ invokeObjectMethod (CompObject	     *object,
     }
 
     return FALSE;
+}
+
+static const CompObjectType *
+getType (CompObject *object)
+{
+    return getObjectType ();
+}
+
+static char *
+queryObjectName (CompObject *object)
+{
+    return NULL;
+}
+
+static CompBool
+forEachChildObject (CompObject		    *object,
+		    ChildObjectCallBackProc proc,
+		    void		    *closure)
+{
+    return TRUE;
+}
+
+static CompObject *
+lookupChildObject (CompObject *parent,
+		   const char *type,
+		   const char *name)
+{
+    return NULL;
 }
 
 static CompObjectVTable objectVTable = {

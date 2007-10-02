@@ -66,73 +66,6 @@ screenForBaseObject (CompObject	            *object,
     return status;
 }
 
-static const CompObjectType *
-screenGetType (CompObject *object)
-{
-    return getScreenObjectType ();
-}
-
-static char *
-screenQueryName (CompObject *object)
-{
-    char tmp[256];
-
-    SCREEN (object);
-
-    snprintf (tmp, 256, "%d", s->screenNum);
-
-    return strdup (tmp);
-}
-
-static CompBool
-screenForEachChildObject (CompObject		  *object,
-			  ChildObjectCallBackProc proc,
-			  void			  *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompWindow		*w;
-    CompBool		status;
-
-    SCREEN (object);
-
-    for (w = s->windows; w; w = w->next)
-	if (!(*proc) (&w->base, closure))
-	    return FALSE;
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->forEachChildObject) (object, proc, closure);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObject *
-screenLookupChildObject (CompObject *object,
-			 const char *type,
-			 const char *name)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompObject		*result;
-
-    SCREEN (object);
-
-    if (strcmp (type, getWindowObjectType ()->name) == 0)
-    {
-	CompWindow *w;
-	Window     id = atoi (name);
-
-	for (w = s->windows; w; w = w->next)
-	    if (w->id == id)
-		return &w->base.base;
-    }
-
-    UNWRAP (&s->object, object, vTable);
-    result = (*object->vTable->lookupChildObject) (object, type, name);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return result;
-}
-
 static CompBool
 screenForEachInterface (CompObject	      *object,
 			InterfaceCallBackProc proc,
@@ -233,6 +166,73 @@ screenInvokeMethod (CompObject	     *object,
     WRAP (&s->object, object, vTable, v.vTable);
 
     return status;
+}
+
+static const CompObjectType *
+screenGetType (CompObject *object)
+{
+    return getScreenObjectType ();
+}
+
+static char *
+screenQueryName (CompObject *object)
+{
+    char tmp[256];
+
+    SCREEN (object);
+
+    snprintf (tmp, 256, "%d", s->screenNum);
+
+    return strdup (tmp);
+}
+
+static CompBool
+screenForEachChildObject (CompObject		  *object,
+			  ChildObjectCallBackProc proc,
+			  void			  *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompWindow		*w;
+    CompBool		status;
+
+    SCREEN (object);
+
+    for (w = s->windows; w; w = w->next)
+	if (!(*proc) (&w->base, closure))
+	    return FALSE;
+
+    UNWRAP (&s->object, object, vTable);
+    status = (*object->vTable->forEachChildObject) (object, proc, closure);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static CompObject *
+screenLookupChildObject (CompObject *object,
+			 const char *type,
+			 const char *name)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompObject		*result;
+
+    SCREEN (object);
+
+    if (strcmp (type, getWindowObjectType ()->name) == 0)
+    {
+	CompWindow *w;
+	Window     id = atoi (name);
+
+	for (w = s->windows; w; w = w->next)
+	    if (w->id == id)
+		return &w->base.base;
+    }
+
+    UNWRAP (&s->object, object, vTable);
+    result = (*object->vTable->lookupChildObject) (object, type, name);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return result;
 }
 
 static Bool
