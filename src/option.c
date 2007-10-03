@@ -1032,6 +1032,8 @@ propTypeToOptionType (const char *type)
 	return CompOptionTypeInt;
     case COMP_TYPE_DOUBLE:
 	return CompOptionTypeFloat;
+    case COMP_TYPE_STRING:
+	return CompOptionTypeString;
     case 'c':
 	return CompOptionTypeColor;
     case 't':
