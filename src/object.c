@@ -392,7 +392,7 @@ forEachMethod (CompObject	  *object,
 {
     if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
     {
-	if (!(*proc) (object, PROPERTIES_METHOD_SET_NAME, "ssv", 0, closure))
+	if (!(*proc) (object, PROPERTIES_METHOD_SET_NAME, "ssv", "", closure))
 	    return FALSE;
     }
     else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
