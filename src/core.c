@@ -52,8 +52,10 @@ static CompBool
 coreInvokeMethod (CompObject	   *object,
 		  const char	   *interface,
 		  const char	   *name,
+		  const char	   *signature,
 		  const CompOption *in,
-		  CompOption	   *out)
+		  CompOption	   *out,
+		  char		   **error)
 {
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
@@ -73,8 +75,9 @@ coreInvokeMethod (CompObject	   *object,
     }
 
     UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->invokeMethod) (object, interface, name, in,
-					      out);
+    status = (*object->vTable->invokeMethod) (object,
+					      interface, name, signature,
+					      in, out, error);
     WRAP (&c->object, object, vTable, v.vTable);
 
     return status;

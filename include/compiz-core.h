@@ -427,8 +427,10 @@ typedef CompBool (*ForEachPropProc) (CompObject	      *object,
 typedef CompBool (*InvokeMethodProc) (CompObject       *object,
 				      const char       *interface,
 				      const char       *name,
+				      const char       *signature,
 				      const CompOption *in,
-				      CompOption       *out);
+				      CompOption       *out,
+				      char	       **error);
 
 typedef const CompObjectType *(*GetObjectTypeProc) (CompObject *object);
 

@@ -202,8 +202,10 @@ noopForEachProp (CompObject	  *object,
 typedef struct _InvokeMethodContext {
     const char       *interface;
     const char       *name;
+    const char       *signature;
     const CompOption *in;
     CompOption       *out;
+    char	     **error;
 } InvokeMethodContext;
 
 static CompBool
@@ -215,23 +217,29 @@ baseObjectInvokeMethod (CompObject *object,
     return (*object->vTable->invokeMethod) (object,
 					    pCtx->interface,
 					    pCtx->name,
+					    pCtx->signature,
 					    pCtx->in,
-					    pCtx->out);
+					    pCtx->out,
+					    pCtx->error);
 }
 
 static CompBool
 noopInvokeMethod (CompObject	   *object,
 		  const char       *interface,
 		  const char       *name,
+		  const char       *signature,
 		  const CompOption *in,
-		  CompOption       *out)
+		  CompOption       *out,
+		  char		   **error)
 {
     InvokeMethodContext ctx;
 
     ctx.interface = interface;
     ctx.name      = name;
+    ctx.signature = signature;
     ctx.in	  = in;
     ctx.out	  = out;
+    ctx.error	  = error;
 
     return (*object->vTable->forBaseObject) (object,
 					     baseObjectInvokeMethod,
@@ -437,8 +445,10 @@ static CompBool
 invokeObjectMethod (CompObject	     *object,
 		    const char	     *interface,
 		    const char	     *name,
+		    const char	     *signature,
 		    const CompOption *in,
-		    CompOption	     *out)
+		    CompOption	     *out,
+		    char	     **error)
 {
     if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
     {
@@ -453,6 +463,9 @@ invokeObjectMethod (CompObject	     *object,
 	    }
 	}
     }
+
+    if (error)
+	*error = strdup ("Not implemented");
 
     return FALSE;
 }
@@ -1034,8 +1047,8 @@ compObjectCheckVersion (CompObject *object,
 
     if (!(object->vTable->invokeMethod) (object,
 					 VERSION_INTERFACE_NAME,
-					 VERSION_METHOD_GET_NAME,
-					 &in, &out))
+					 VERSION_METHOD_GET_NAME, "s",
+					 &in, &out, NULL))
     {
 	compLogMessage (NULL, "core", CompLogLevelError,
 			"couldn't get '%s' interface version "
