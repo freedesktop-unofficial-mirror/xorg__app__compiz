@@ -1922,7 +1922,7 @@ handleEvent (CompDisplay *d,
 
 		allowFocus = allowWindowFocus (w);
 
-		updateWindowAttributes (w, CompStackingUpdateModeNormal);
+		updateWindowAttributes (w, CompStackingUpdateModeInitialMap);
 
 		if (!allowFocus &&
 		    (w->type & ~(CompWindowTypeSplashMask |
