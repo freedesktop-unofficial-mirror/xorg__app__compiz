@@ -1595,8 +1595,11 @@ handleEvent (CompDisplay *d,
 	    {
 		/* use focus stealing prevention if request came from an
 		   application (which means data.l[0] is 1 */
-		if (event->xclient.data.l[0] != 1 || allowWindowFocus (w, 0))
+		if (event->xclient.data.l[0] != 1 ||
+		    allowWindowFocus (w, 0, event->xclient.data.l[1]))
+		{
 		    activateWindow (w);
+		}
 	    }
 	}
 	else if (event->xclient.message_type == d->winOpacityAtom)
@@ -1920,7 +1923,7 @@ handleEvent (CompDisplay *d,
 		    w->placed   = TRUE;
 		}
 
-		allowFocus = allowWindowFocus (w, NO_FOCUS_MASK);
+		allowFocus = allowWindowFocus (w, NO_FOCUS_MASK, 0);
 
 		updateWindowAttributes (w, CompStackingUpdateModeInitialMap);
 
@@ -1991,7 +1994,7 @@ handleEvent (CompDisplay *d,
 
 		switch (event->xconfigurerequest.detail) {
 		case Above:
-		    if (allowWindowFocus (w, NO_FOCUS_MASK))
+		    if (allowWindowFocus (w, NO_FOCUS_MASK, 0))
 		    {
 			if (above)
 			{

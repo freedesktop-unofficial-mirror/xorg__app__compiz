@@ -4545,7 +4545,8 @@ setWindowUserTime (CompWindow *w,
 
 Bool
 allowWindowFocus (CompWindow   *w,
-		  unsigned int noFocusMask)
+		  unsigned int noFocusMask,
+		  Time         timestamp)
 {
     CompDisplay *d = w->screen->display;
     CompScreen  *s = w->screen;
@@ -4567,18 +4568,27 @@ allowWindowFocus (CompWindow   *w,
     if (vx != w->screen->x || vy != w->screen->y)
 	return FALSE;
 
-    if (!getWindowUserTime (w, &wUserTime))
+    if (timestamp)
     {
-	/* no user time or initial timestamp */
-	if (!w->initialTimestampSet)
-	    return TRUE;
-
-	wUserTime = w->initialTimestamp;
+	/* the caller passed a timestamp, so use that
+	   instead of the window's user time */
+	wUserTime = timestamp;
     }
+    else
+    {
+	if (!getWindowUserTime (w, &wUserTime))
+	{
+	    /* no user time or initial timestamp */
+	    if (!w->initialTimestampSet)
+		return TRUE;
 
-    /* window explicitly requested no focus */
-    if (!wUserTime)
-	return FALSE;
+	    wUserTime = w->initialTimestamp;
+	}
+
+    	/* window explicitly requested no focus */
+	if (!wUserTime)
+	    return FALSE;
+    }
 
     /* can't get user time for active window */
     active = findWindowAtDisplay (d, d->activeWindow);
