@@ -1595,7 +1595,7 @@ handleEvent (CompDisplay *d,
 	    {
 		/* use focus stealing prevention if request came from an
 		   application (which means data.l[0] is 1 */
-		if (event->xclient.data.l[0] != 1 || allowWindowFocus (w))
+		if (event->xclient.data.l[0] != 1 || allowWindowFocus (w, 0))
 		    activateWindow (w);
 	    }
 	}
@@ -1920,7 +1920,7 @@ handleEvent (CompDisplay *d,
 		    w->placed   = TRUE;
 		}
 
-		allowFocus = allowWindowFocus (w);
+		allowFocus = allowWindowFocus (w, NO_FOCUS_MASK);
 
 		updateWindowAttributes (w, CompStackingUpdateModeInitialMap);
 
@@ -1991,7 +1991,7 @@ handleEvent (CompDisplay *d,
 
 		switch (event->xconfigurerequest.detail) {
 		case Above:
-		    if (allowWindowFocus (w))
+		    if (allowWindowFocus (w, NO_FOCUS_MASK))
 		    {
 			if (above)
 			{
