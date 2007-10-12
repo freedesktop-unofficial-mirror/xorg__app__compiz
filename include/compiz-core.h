@@ -81,6 +81,12 @@ typedef struct _CompMatch	  CompMatch;
 typedef struct _CompOutput        CompOutput;
 typedef struct _CompWalker        CompWalker;
 
+struct _CompMetadata {
+    char   *path;
+    xmlDoc **doc;
+    int    nDoc;
+};
+
 /* virtual modifiers */
 
 #define CompModAlt        0
@@ -302,16 +308,6 @@ allocatePrivates (int len,
   - must also not begin with a digit
 */
 
-#define PROPERTIES_INTERFACE_NAME      "properties"
-#define PROPERTIES_METHOD_SET_NAME     "set"
-#define PROPERTIES_SIGNAL_CHANGED_NAME "changed"
-
-#define METADATA_INTERFACE_NAME  "metadata"
-#define METADATA_METHOD_GET_NAME "get"
-
-#define VERSION_INTERFACE_NAME  "version"
-#define VERSION_METHOD_GET_NAME "get"
-
 typedef struct _CompObjectType CompObjectType;
 
 typedef CompBool (*InitObjectProc) (CompObject *object);
@@ -326,7 +322,7 @@ typedef struct _CompObjectPrivates {
     int		    len;
     int		    *sizes;
     int		    totalSize;
-    int		    offset;
+    size_t	    offset;
     CompObjectFuncs *funcs;
     int		    nFuncs;
 } CompObjectPrivates;
@@ -386,21 +382,31 @@ typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
 				       void		      *closure);
 
 typedef CompBool (*InterfaceCallBackProc) (CompObject *object,
-					   const char *interface,
+					   const char *name,
+					   void	      *interface,
+					   size_t     offset,
 					   void	      *closure);
 
 typedef CompBool (*ForEachInterfaceProc) (CompObject		*object,
 					  InterfaceCallBackProc proc,
 					  void		        *closure);
 
-typedef CompBool (*MethodCallBackProc) (CompObject *object,
-					const char *name,
-					const char *in,
-					const char *out,
-					void	   *closure);
+typedef CompBool (*MethodMarshalProc) (CompObject       *object,
+				       void		(*method) (void),
+				       const CompOption *in,
+				       CompOption       *out,
+				       char	        **error);
+
+typedef CompBool (*MethodCallBackProc) (CompObject	  *object,
+					const char	  *name,
+					const char	  *in,
+					const char	  *out,
+					size_t		  offset,
+					MethodMarshalProc marshal,
+					void		  *closure);
 
 typedef CompBool (*ForEachMethodProc) (CompObject	  *object,
-				       const char	  *interface,
+				       void	          *interface,
 				       MethodCallBackProc proc,
 				       void		  *closure);
 
@@ -410,7 +416,7 @@ typedef CompBool (*SignalCallBackProc) (CompObject *object,
 					void	   *closure);
 
 typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
-				       const char	  *interface,
+				       void	          *interface,
 				       SignalCallBackProc proc,
 				       void		  *closure);
 
@@ -420,17 +426,9 @@ typedef CompBool (*PropCallBackProc) (CompObject *object,
 				      void	 *closure);
 
 typedef CompBool (*ForEachPropProc) (CompObject	      *object,
-				     const char	      *interface,
+				     void	      *interface,
 				     PropCallBackProc proc,
 				     void	      *closure);
-
-typedef CompBool (*InvokeMethodProc) (CompObject       *object,
-				      const char       *interface,
-				      const char       *name,
-				      const char       *signature,
-				      const CompOption *in,
-				      CompOption       *out,
-				      char	       **error);
 
 typedef const CompObjectType *(*GetObjectTypeProc) (CompObject *object);
 
@@ -449,11 +447,46 @@ typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
 					      const char *type,
 					      const char *name);
 
+typedef int (*GetVersionProc) (CompObject *object,
+			       const char *interface);
+
+typedef struct _CompVersionVTable {
+    GetVersionProc get;
+} CompVersionVTable;
+
+typedef CompBool (*GetPropProc) (CompObject *object,
+				 const char *interface,
+				 const char *name,
+				 CompOption *value,
+				 char	    **error);
+
+typedef CompBool (*SetPropProc) (CompObject	  *object,
+				 const char       *interface,
+				 const char	  *name,
+				 const CompOption *value,
+				 char		  **error);
+
+typedef struct _CompPropertiesVTable {
+    GetPropProc get;
+    SetPropProc set;
+} CompPropertiesVTable;
+
+typedef struct _CompListValue CompListValue;
+
+typedef CompBool (*GetMetadataProc) (CompObject    *object,
+				     const char    *interface,
+				     CompListValue *list,
+				     char	   **error);
+
+typedef struct _CompMetadataVTable {
+    GetMetadataProc get;
+} CompMetadataVTable;
+
 typedef struct _CompObjectVTable {
 
     /* base object function
 
-       must be implemented by every interface and subtype
+       must be implemented by each subtype
     */
     ForBaseObjectProc forBaseObject;
 
@@ -465,22 +498,24 @@ typedef struct _CompObjectVTable {
     ForEachMethodProc    forEachMethod;
     ForEachSignalProc    forEachSignal;
     ForEachPropProc      forEachProp;
-    InvokeMethodProc	 invokeMethod;
 
     /* type functions
 
-       provide object-type functionality and must be implemented by every
-       subtype
+       must be implemented by every subtype
      */
     GetObjectTypeProc	getType;
     QueryObjectNameProc queryName;
 
     /* child functions
 
-       child objects areprovided by implementing these
+       child objects are provided by implementing these
      */
     ForEachChildObjectProc forEachChildObject;
     LookupChildObjectProc  lookupChildObject;
+
+    CompVersionVTable    version;
+    CompPropertiesVTable properties;
+    CompMetadataVTable   metadata;
 } CompObjectVTable;
 
 typedef struct _CompObjectVTableVec {
@@ -546,6 +581,17 @@ compChildObjectFini (CompChildObject *object);
 CompObjectType *
 compObjectFindType (const char *name);
 
+CompBool
+compForInterface (CompObject		*object,
+		  const char		*interface,
+		  InterfaceCallBackProc proc,
+		  void			*closure);
+
+CompBool
+compForEachInterface (CompObject	    *object,
+		      InterfaceCallBackProc proc,
+		      void		    *closure);
+
 typedef struct _CompObjectPrivate {
     const char	   *name;
     int		   *pIndex;
@@ -577,6 +623,138 @@ CompBool
 compObjectCheckVersion (CompObject *object,
 			const char *interface,
 			int	   version);
+
+typedef struct _CommonMethod {
+    const char	      *name;
+    const char	      *in;
+    const char	      *out;
+    size_t	      offset;
+    MethodMarshalProc marshal;
+} CommonMethod;
+
+#define C_METHOD(name, in, out, vtable, marshal)			      \
+    { # name, in, out, offsetof (vtable, name), (MethodMarshalProc) marshal }
+
+typedef struct _CommonSignal {
+    const char *name;
+    const char *out;
+} CommonSignal;
+
+#define C_SIGNAL(name, out) \
+    { # name, out }
+
+typedef struct _CommonProp {
+    const char *name;
+    const char *type;
+    size_t     offset;
+} CommonProp;
+
+#define C_PROP(name, type) \
+    { # name, type, 0 }
+
+typedef struct _CommonInterface {
+    const char	       *name;
+    int		       version;
+    CompMetadata       metadata;
+    size_t	       offset;
+    const CommonMethod *method;
+    int		       nMethod;
+    const CommonSignal *signal;
+    int		       nSignal;
+    const CommonProp   *prop;
+    int		       nProp;
+} CommonInterface;
+
+#define C_MEMBER__(name, type, member) NULL, 0
+#define C_MEMBER_X(name, type, member)				\
+    name ## type ## member, N_ELEMENTS (name ## type ## member)
+
+#define C_OFFSET__(vtable, name) 0
+#define C_OFFSET_X(vtable, name) offsetof (vtable, name)
+
+#define C_INTERFACE(name, type, vtable, offset, method, signal, prop) \
+    { # name, INTERFACE_VERSION_ ## name ## type, { NULL, NULL, 0 },  \
+	    C_OFFSET_ ## offset (vtable, name),			      \
+	    C_MEMBER_ ## method (name, type, Method),		      \
+	    C_MEMBER_ ## signal (name, type, Signal),		      \
+	    C_MEMBER_ ## prop   (name, type, Prop) }
+
+CompBool
+handleForEachInterface (CompObject	      *object,
+			const CommonInterface *interface,
+			int		      nInterface,
+			InterfaceCallBackProc proc,
+			void		      *closure);
+
+CompBool
+handleForEachMethod (CompObject	        *object,
+		     const CommonMethod *method,
+		     int		nMethod,
+		     MethodCallBackProc proc,
+		     void		*closure);
+
+CompBool
+commonForEachMethod (CompObject		*object,
+		     void		*key,
+		     MethodCallBackProc proc,
+		     void	        *closure);
+
+CompBool
+handleForEachSignal (CompObject	        *object,
+		     const CommonSignal *signal,
+		     int		nSignal,
+		     SignalCallBackProc proc,
+		     void		*closure);
+
+CompBool
+commonForEachSignal (CompObject		*object,
+		     void	        *interface,
+		     SignalCallBackProc proc,
+		     void		*closure);
+
+CompBool
+handleForEachProp (CompObject	    *object,
+		   const CommonProp *prop,
+		   int		    nProp,
+		   PropCallBackProc proc,
+		   void		    *closure);
+
+CompBool
+commonForEachProp (CompObject	    *object,
+		   void		    *interface,
+		   PropCallBackProc proc,
+		   void		    *closure);
+
+int
+commonGetVersion (CompObject *object,
+		  const char *interface);
+
+typedef struct _CompMethodOutput {
+    CompOption *value;
+    int	       nValue;
+    char       *signature;
+} CompMethodOutput;
+
+void
+compFreeMethodOutput (CompMethodOutput *output);
+
+CompBool
+compInvokeMethodError (CompObject	*object,
+		       const char	*interface,
+		       const char	*name,
+		       const char	*signature,
+		       const CompOption *in,
+		       CompBool		*status,
+		       CompMethodOutput	**out,
+		       char		**error);
+
+CompBool
+compInvokeMethod (CompObject	   *object,
+		  const char	   *interface,
+		  const char	   *name,
+		  const char	   *signature,
+		  const CompOption *in,
+		  CompMethodOutput **out);
 
 
 #define ARRAY_SIZE(array)		 \
@@ -710,11 +888,11 @@ struct _CompMatch {
     int		nOp;
 };
 
-typedef struct {
+struct _CompListValue {
     CompOptionType  type;
     CompOptionValue *value;
     int		    nValue;
-} CompListValue;
+};
 
 union _CompOptionValue {
     Bool	   b;
@@ -852,6 +1030,9 @@ propTypeFromOption (const CompOption *option);
 
 CompOptionType
 propTypeToOptionType (const char *type);
+
+const char *
+nextPropType (const char *type);
 
 
 /* core.c */
@@ -3574,12 +3755,6 @@ extern const CompMetadataOptionInfo
 coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM];
 extern const CompMetadataOptionInfo
 coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM];
-
-struct _CompMetadata {
-    char   *path;
-    xmlDoc **doc;
-    int    nDoc;
-};
 
 Bool
 compInitPluginMetadataFromInfo (CompMetadata		     *metadata,

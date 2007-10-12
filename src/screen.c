@@ -47,7 +47,35 @@
 
 #include <compiz-core.h>
 
-#define SCREEN_INTERFACE_NAME "screen"
+/*
+const CompMetadataOptionInfo coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM] = {
+    { "detect_refresh_rate", "bool", 0, 0, 0 },
+    { "lighting", "bool", 0, 0, 0 },
+    { "refresh_rate", "int", "<min>1</min>", 0, 0 },
+    { "hsize", "int", "<min>1</min><max>32</max>", 0, 0 },
+    { "vsize", "int", "<min>1</min><max>32</max>", 0, 0 },
+    { "opacity_step", "int", "<min>1</min>", 0, 0 },
+    { "unredirect_fullscreen_windows", "bool", 0, 0, 0 },
+    { "default_icon", "string", 0, 0, 0 },
+    { "sync_to_vblank", "bool", 0, 0, 0 },
+    { "number_of_desktops", "int", "<min>1</min>", 0, 0 },
+    { "detect_outputs", "bool", 0, 0, 0 },
+    { "outputs", "list", "<type>string</type>", 0, 0 },
+    { "focus_prevention_match", "match", 0, 0, 0 },
+    { "opacity_matches", "list", "<type>match</type>", 0, 0 },
+    { "opacity_values", "list", "<type>int</type>", 0, 0 }
+};
+*/
+
+static const CommonProp screenTypeProp[] = {
+    C_PROP (detect_refresh_rate, "b"),
+    C_PROP (refresh_rate, "i")
+};
+#define INTERFACE_VERSION_screenType CORE_ABIVERSION
+
+static const CommonInterface screenInterface[] = {
+    C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, X)
+};
 
 static CompBool
 screenForBaseObject (CompObject	            *object,
@@ -71,104 +99,10 @@ screenForEachInterface (CompObject	      *object,
 			InterfaceCallBackProc proc,
 			void		      *closure)
 {
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    SCREEN (object);
-
-    if (!(*proc) (object, SCREEN_INTERFACE_NAME, closure))
-	return FALSE;
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->forEachInterface) (object, proc, closure);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-screenForEachProp (CompObject	    *object,
-		   const char	    *interface,
-		   PropCallBackProc proc,
-		   void		    *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    SCREEN (object);
-
-    if (strcmp (interface, SCREEN_INTERFACE_NAME) == 0)
-    {
-	int i;
-
-	for (i = 0; i < N_ELEMENTS (s->opt); i++)
-	    if (!(*proc) (object, s->opt[i].name,
-			  propTypeFromOption (&s->opt[i]), closure))
-		return FALSE;
-    }
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->forEachProp) (object, interface, proc, closure);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-screenInvokeMethod (CompObject	     *object,
-		    const char	     *interface,
-		    const char	     *name,
-		    const char	     *signature,
-		    const CompOption *in,
-		    CompOption	     *out,
-		    char	     **error)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    SCREEN (object);
-
-    if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
-    {
-	if (strcmp (name, PROPERTIES_METHOD_SET_NAME) == 0)
-	{
-	    if (strcmp (in[0].value.s, SCREEN_INTERFACE_NAME) == 0)
-	    {
-		if (setScreenOption (NULL, s, in[1].value.s, &in[2].value))
-		{
-		    (object->processSignal) (object, object,
-					     PROPERTIES_INTERFACE_NAME,
-					     PROPERTIES_SIGNAL_CHANGED_NAME,
-					     in);
-
-		    return TRUE;
-		}
-		else
-		{
-		    return FALSE;
-		}
-	    }
-	}
-    }
-    else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
-    {
-	if (strcmp (name, VERSION_METHOD_GET_NAME) == 0)
-	{
-	    if (strcmp (in[0].value.s, SCREEN_INTERFACE_NAME) == 0)
-	    {
-		out[0].value.i = CORE_ABIVERSION;
-		return TRUE;
-	    }
-	}
-    }
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->invokeMethod) (object,
-					      interface, name, signature,
-					      in, out, error);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
+    return handleForEachInterface (object,
+				   screenInterface,
+				   N_ELEMENTS (screenInterface),
+				   proc, closure);
 }
 
 static const CompObjectType *
@@ -236,6 +170,27 @@ screenLookupChildObject (CompObject *object,
     WRAP (&s->object, object, vTable, v.vTable);
 
     return result;
+}
+
+static CompBool
+screenSetProp (CompObject	*object,
+	       const char	*interface,
+	       const char	*name,
+	       const CompOption *value,
+	       char	        **error)
+{
+    if (!setScreenOption (NULL,
+			  GET_SCREEN (object),
+			  name,
+			  &value->value))
+    {
+	if (error)
+	    *error = strdup ("No such property");
+
+	return FALSE;
+    }
+
+    return TRUE;
 }
 
 static Bool
@@ -1609,12 +1564,13 @@ freeScreen (CompScreen *s)
 static CompObjectVTable screenObjectVTable = {
     .forBaseObject	= screenForBaseObject,
     .forEachInterface   = screenForEachInterface,
-    .forEachProp	= screenForEachProp,
-    .invokeMethod	= screenInvokeMethod,
+    .forEachProp	= commonForEachProp,
     .getType		= screenGetType,
     .queryName		= screenQueryName,
     .forEachChildObject = screenForEachChildObject,
-    .lookupChildObject	= screenLookupChildObject
+    .lookupChildObject	= screenLookupChildObject,
+    .version.get	= commonGetVersion,
+    .properties.set	= screenSetProp
 };
 
 static CompObjectPrivates screenObjectPrivates = {

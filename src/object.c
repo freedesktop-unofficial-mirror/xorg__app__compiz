@@ -27,6 +27,84 @@
 
 #include <compiz-core.h>
 
+static CompBool
+marshal_I_S (CompObject *object,
+	     int	(*method) (CompObject *,
+				   const char *),
+	     CompOption *in,
+	     CompOption *out,
+	     char       **error)
+{
+    out[0].value.i = (*method) (object, in[0].value.s);
+    return TRUE;
+}
+
+static CompBool
+marshal__SSV__E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       CompOption *,
+				       char       **),
+		 CompOption *in,
+		 CompOption *out,
+		 char       **error)
+{
+    return (*method) (object, in[0].value.s, in[1].value.s, &in[2], error);
+}
+
+static CompBool
+marshal__SS_V_E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       CompOption *,
+				       char       **),
+		 CompOption *in,
+		 CompOption *out,
+		 char       **error)
+{
+    return (*method) (object, in[0].value.s, in[1].value.s, &out[0], error);
+}
+
+static CompBool
+marshal__S_AS_E (CompObject *object,
+		 CompBool   (*method) (CompObject    *,
+				       char	     *,
+				       CompListValue *,
+				       char          **),
+		 CompOption *in,
+		 CompOption *out,
+		 char       **error)
+{
+    return (*method) (object, in[0].value.s, &out[0].value.list, error);
+}
+
+#define INTERFACE_VERSION_objectType CORE_ABIVERSION
+
+static const CommonMethod versionObjectMethod[] = {
+    C_METHOD (get, "s", "i", CompVersionVTable, marshal_I_S)
+};
+#define INTERFACE_VERSION_versionObject CORE_ABIVERSION
+
+static const CommonMethod propertiesObjectMethod[] = {
+    C_METHOD (get, "ss", "v", CompPropertiesVTable, marshal__SS_V_E),
+    C_METHOD (set, "ssv", "", CompPropertiesVTable, marshal__SSV__E)
+};
+#define INTERFACE_VERSION_propertiesObject CORE_ABIVERSION
+
+static const CommonMethod metadataObjectMethod[] = {
+    C_METHOD (get, "s", "as", CompMetadataVTable, marshal__S_AS_E)
+};
+#define INTERFACE_VERSION_metadataObject CORE_ABIVERSION
+
+static const CommonInterface objectInterface[] = {
+    C_INTERFACE (object,     Type,   CompObjectVTable, _, _, _, _),
+    C_INTERFACE (version,    Object, CompObjectVTable, X, X, _, _),
+    C_INTERFACE (properties, Object, CompObjectVTable, X, X, _, _),
+    C_INTERFACE (metadata,   Object, CompObjectVTable, X, X, _, _)
+};
+
 CompBool
 compObjectInit (CompObject     *object,
 		CompObjectType *type)
@@ -63,214 +141,45 @@ compObjectFini (CompObject     *object,
     (*type->funcs.fini) (object);
 }
 
-typedef struct _ForEachInterfaceContext {
-    InterfaceCallBackProc proc;
-    void		  *closure;
-} ForEachInterfaceContext;
-
-static CompBool
-baseObjectForEachInterface (CompObject *object,
-			    void       *closure)
-{
-    ForEachInterfaceContext *pCtx = (ForEachInterfaceContext *) closure;
-
-    return (*object->vTable->forEachInterface) (object,
-						pCtx->proc,
-						pCtx->closure);
-}
-
 static CompBool
 noopForEachInterface (CompObject	    *object,
 		      InterfaceCallBackProc proc,
 		      void		    *closure)
 {
-    ForEachInterfaceContext ctx;
-
-    ctx.proc    = proc;
-    ctx.closure = closure;
-
-    return (*object->vTable->forBaseObject) (object,
-					     baseObjectForEachInterface,
-					     (void *) &ctx);
-}
-
-typedef struct _ForEachMethodContext {
-    const char	       *interface;
-    MethodCallBackProc proc;
-    void	       *closure;
-} ForEachMethodContext;
-
-static CompBool
-baseObjectForEachMethod (CompObject *object,
-			 void       *closure)
-{
-    ForEachMethodContext *pCtx = (ForEachMethodContext *) closure;
-
-    return (*object->vTable->forEachMethod) (object,
-					     pCtx->interface,
-					     pCtx->proc,
-					     pCtx->closure);
+    return TRUE;
 }
 
 static CompBool
 noopForEachMethod (CompObject	      *object,
-		   const char	      *interface,
+		   void		      *interface,
 		   MethodCallBackProc proc,
 		   void		      *closure)
 {
-    ForEachMethodContext ctx;
-
-    ctx.interface = interface;
-    ctx.proc      = proc;
-    ctx.closure   = closure;
-
-    return (*object->vTable->forBaseObject) (object,
-					     baseObjectForEachMethod,
-					     (void *) &ctx);
-}
-
-typedef struct _ForEachSignalContext {
-    const char	       *interface;
-    SignalCallBackProc proc;
-    void	       *closure;
-} ForEachSignalContext;
-
-static CompBool
-baseObjectForEachSignal (CompObject *object,
-			 void       *closure)
-{
-    ForEachSignalContext *pCtx = (ForEachSignalContext *) closure;
-
-    return (*object->vTable->forEachSignal) (object,
-					     pCtx->interface,
-					     pCtx->proc,
-					     pCtx->closure);
+    return TRUE;
 }
 
 static CompBool
 noopForEachSignal (CompObject	      *object,
-		   const char	      *interface,
+		   void		      *interface,
 		   SignalCallBackProc proc,
 		   void		      *closure)
 {
-    ForEachSignalContext ctx;
-
-    ctx.interface = interface;
-    ctx.proc      = proc;
-    ctx.closure   = closure;
-
-    return (*object->vTable->forBaseObject) (object,
-					     baseObjectForEachSignal,
-					     (void *) &ctx);
-}
-
-typedef struct _ForEachPropContext {
-    const char	     *interface;
-    PropCallBackProc proc;
-    void	     *closure;
-} ForEachPropContext;
-
-static CompBool
-baseObjectForEachProp (CompObject *object,
-		       void       *closure)
-{
-    ForEachPropContext *pCtx = (ForEachPropContext *) closure;
-
-    return (*object->vTable->forEachProp) (object,
-					   pCtx->interface,
-					   pCtx->proc,
-					   pCtx->closure);
+    return TRUE;
 }
 
 static CompBool
 noopForEachProp (CompObject	  *object,
-		 const char	  *interface,
+		 void		  *interface,
 		 PropCallBackProc proc,
 		 void		  *closure)
 {
-    ForEachPropContext ctx;
-
-    ctx.interface = interface;
-    ctx.proc      = proc;
-    ctx.closure   = closure;
-
-    return (*object->vTable->forBaseObject) (object,
-					     baseObjectForEachProp,
-					     (void *) &ctx);
-}
-
-typedef struct _InvokeMethodContext {
-    const char       *interface;
-    const char       *name;
-    const char       *signature;
-    const CompOption *in;
-    CompOption       *out;
-    char	     **error;
-} InvokeMethodContext;
-
-static CompBool
-baseObjectInvokeMethod (CompObject *object,
-			void       *closure)
-{
-    InvokeMethodContext *pCtx = (InvokeMethodContext *) closure;
-
-    return (*object->vTable->invokeMethod) (object,
-					    pCtx->interface,
-					    pCtx->name,
-					    pCtx->signature,
-					    pCtx->in,
-					    pCtx->out,
-					    pCtx->error);
-}
-
-static CompBool
-noopInvokeMethod (CompObject	   *object,
-		  const char       *interface,
-		  const char       *name,
-		  const char       *signature,
-		  const CompOption *in,
-		  CompOption       *out,
-		  char		   **error)
-{
-    InvokeMethodContext ctx;
-
-    ctx.interface = interface;
-    ctx.name      = name;
-    ctx.signature = signature;
-    ctx.in	  = in;
-    ctx.out	  = out;
-    ctx.error	  = error;
-
-    return (*object->vTable->forBaseObject) (object,
-					     baseObjectInvokeMethod,
-					     (void *) &ctx);
-}
-
-typedef struct _GetTypeContext {
-    const CompObjectType *result;
-} GetTypeContext;
-
-static CompBool
-baseObjectGetType (CompObject *object,
-		   void       *closure)
-{
-    GetTypeContext *pCtx = (GetTypeContext *) closure;
-
-    pCtx->result = (*object->vTable->getType) (object);
-
     return TRUE;
 }
 
 static const CompObjectType *
 noopGetType (CompObject *object)
 {
-    GetTypeContext ctx;
-
-    (*object->vTable->forBaseObject) (object,
-				      baseObjectGetType,
-				      (void *) &ctx);
-
-    return ctx.result;
+    return NULL;
 }
 
 typedef struct _QueryNameContext {
@@ -367,6 +276,250 @@ noopLookupChildObject (CompObject *object,
     return ctx.result;
 }
 
+typedef struct _GetVersionContext {
+    const char *interface;
+    int	       result;
+} GetVersionContext;
+
+static CompBool
+baseObjectGetVersion (CompObject *object,
+		      void       *closure)
+{
+    GetVersionContext *pCtx = (GetVersionContext *) closure;
+
+    pCtx->result = (*object->vTable->version.get) (object, pCtx->interface);
+
+    return TRUE;
+}
+
+static int
+noopGetVersion (CompObject *object,
+		const char *interface)
+{
+    GetVersionContext ctx;
+
+    ctx.interface = interface;
+
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectGetVersion,
+				      (void *) &ctx);
+
+    return ctx.result;
+}
+
+static CompBool
+noopGetProp (CompObject *object,
+	     const char *interface,
+	     const char *name,
+	     CompOption *value,
+	     char	**error)
+{
+    if (error)
+	*error = strdup ("No such property");
+
+    return FALSE;
+}
+
+static CompBool
+noopSetProp (CompObject	      *object,
+	     const char	      *interface,
+	     const char	      *name,
+	     const CompOption *value,
+	     char	      **error)
+{
+    if (error)
+	*error = strdup ("No such property");
+
+    return FALSE;
+}
+
+typedef struct _GetMetadataContext {
+    const char    *interface;
+    CompListValue *list;
+    char          **error;
+} GetMetadataContext;
+
+static CompBool
+baseObjectGetMetadata (CompObject *object,
+		       void       *closure)
+{
+    GetMetadataContext *pCtx = (GetMetadataContext *) closure;
+
+    return (*object->vTable->metadata.get) (object,
+					    pCtx->interface,
+					    pCtx->list,
+					    pCtx->error);
+}
+
+static CompBool
+noopGetMetadata (CompObject    *object,
+		 const char    *interface,
+		 CompListValue *list,
+		 char	       **error)
+{
+    GetMetadataContext ctx;
+
+    ctx.interface = interface;
+    ctx.list      = list;
+    ctx.error     = error;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectGetMetadata,
+					     (void *) &ctx);
+}
+
+CompBool
+handleForEachInterface (CompObject	      *object,
+			const CommonInterface *interface,
+			int		      nInterface,
+			InterfaceCallBackProc proc,
+			void		      *closure)
+{
+    int i;
+
+    for (i = 0; i < nInterface; i++)
+	if (!(*proc) (object,
+		      interface[i].name,
+		      (void *) &interface[i],
+		      interface[i].offset,
+		      closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+CompBool
+handleForEachMethod (CompObject	        *object,
+		     const CommonMethod *method,
+		     int		nMethod,
+		     MethodCallBackProc proc,
+		     void		*closure)
+{
+    int i;
+
+    for (i = 0; i < nMethod; i++)
+	if (!(*proc) (object, method[i].name, method[i].in, method[i].out,
+		      method[i].offset, method[i].marshal, closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+CompBool
+commonForEachMethod (CompObject		*object,
+		     void		*key,
+		     MethodCallBackProc proc,
+		     void	        *closure)
+{
+    CommonInterface *interface = (CommonInterface *) key;
+
+    if (!handleForEachMethod (object,
+			      interface->method, interface->nMethod,
+			      proc, closure))
+	return FALSE;
+
+    return TRUE;
+}
+
+CompBool
+handleForEachSignal (CompObject	        *object,
+		     const CommonSignal *signal,
+		     int		nSignal,
+		     SignalCallBackProc proc,
+		     void		*closure)
+{
+    int i;
+
+    for (i = 0; i < nSignal; i++)
+	if (!(*proc) (object, signal[i].name, signal[i].out, closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+CompBool
+commonForEachSignal (CompObject		*object,
+		     void	        *key,
+		     SignalCallBackProc proc,
+		     void		*closure)
+{
+    CommonInterface *interface = (CommonInterface *) key;
+
+    if (!handleForEachSignal (object,
+			      interface->signal, interface->nSignal,
+			      proc, closure))
+	return FALSE;
+
+    return TRUE;
+}
+
+CompBool
+handleForEachProp (CompObject	    *object,
+		   const CommonProp *prop,
+		   int		    nProp,
+		   PropCallBackProc proc,
+		   void		    *closure)
+{
+    int i;
+
+    for (i = 0; i < nProp; i++)
+	if (!(*proc) (object, prop[i].name, prop[i].type, closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+CompBool
+commonForEachProp (CompObject	    *object,
+		   void		    *key,
+		   PropCallBackProc proc,
+		   void		    *closure)
+{
+    CommonInterface *interface = (CommonInterface *) key;
+
+    if (!handleForEachProp (object,
+			    interface->prop, interface->nProp,
+			    proc, closure))
+	return FALSE;
+
+    return TRUE;
+}
+
+static CompBool
+handleGetInterfaceVersion (CompObject *object,
+			   const char *name,
+			   void       *key,
+			   size_t     offset,
+			   void       *closure)
+{
+    GetVersionContext *pCtx = (GetVersionContext *) closure;
+    CommonInterface   *interface = (CommonInterface *) key;
+
+    if (strcmp (name, pCtx->interface) == 0)
+    {
+	pCtx->result = interface->version;
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+int
+commonGetVersion (CompObject *object,
+		  const char *interface)
+{
+    GetVersionContext ctx;
+
+    ctx.interface = interface;
+
+    if (!(*object->vTable->forEachInterface) (object,
+					      handleGetInterfaceVersion,
+					      (void *) &ctx))
+	return ctx.result;
+
+    return noopGetVersion (object, interface);
+}
+
 static CompBool
 forBaseObject (CompObject	      *object,
 	       BaseObjectCallBackProc proc,
@@ -380,94 +533,10 @@ forEachInterface (CompObject		*object,
 		  InterfaceCallBackProc proc,
 		  void			*closure)
 {
-    if (!(*proc) (object, PROPERTIES_INTERFACE_NAME, closure))
-	return FALSE;
-
-    if (!(*proc) (object, VERSION_INTERFACE_NAME, closure))
-	return FALSE;
-
-    if (!(*proc) (object, METADATA_INTERFACE_NAME, closure))
-	return FALSE;
-
-    return TRUE;
-}
-
-static CompBool
-forEachMethod (CompObject	  *object,
-	       const char	  *interface,
-	       MethodCallBackProc proc,
-	       void		  *closure)
-{
-    if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
-    {
-	if (!(*proc) (object, PROPERTIES_METHOD_SET_NAME, "ssv", "", closure))
-	    return FALSE;
-    }
-    else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
-    {
-	if (!(*proc) (object, VERSION_METHOD_GET_NAME, "s", "i", closure))
-	    return FALSE;
-    }
-    else if (strcmp (interface, METADATA_INTERFACE_NAME) == 0)
-    {
-	if (!(*proc) (object, METADATA_METHOD_GET_NAME, "s", "s", closure))
-	    return FALSE;
-    }
-
-    return TRUE;
-}
-
-static CompBool
-forEachSignal (CompObject	 *object,
-	       const char	 *interface,
-	       SignalCallBackProc proc,
-	       void		 *closure)
-{
-    if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
-    {
-	if (!(*proc) (object, PROPERTIES_SIGNAL_CHANGED_NAME, "ssv", closure))
-	    return FALSE;
-    }
-
-    return TRUE;
-}
-
-static CompBool
-forEachProp (CompObject	     *object,
-	     const char	     *interface,
-	     PropCallBackProc proc,
-	     void	     *closure)
-{
-    return TRUE;
-}
-
-static CompBool
-invokeObjectMethod (CompObject	     *object,
-		    const char	     *interface,
-		    const char	     *name,
-		    const char	     *signature,
-		    const CompOption *in,
-		    CompOption	     *out,
-		    char	     **error)
-{
-    if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
-    {
-	if (strcmp (name, VERSION_METHOD_GET_NAME) == 0)
-	{
-	    if (strcmp (in[0].value.s, PROPERTIES_INTERFACE_NAME) == 0 ||
-		strcmp (in[0].value.s, VERSION_INTERFACE_NAME)	  == 0 ||
-		strcmp (in[0].value.s, METADATA_INTERFACE_NAME)	  == 0)
-	    {
-		out[0].value.i = CORE_ABIVERSION;
-		return TRUE;
-	    }
-	}
-    }
-
-    if (error)
-	*error = strdup ("Not implemented");
-
-    return FALSE;
+    return handleForEachInterface (object,
+				   objectInterface,
+				   N_ELEMENTS (objectInterface),
+				   proc, closure);
 }
 
 static const CompObjectType *
@@ -498,17 +567,62 @@ lookupChildObject (CompObject *parent,
     return NULL;
 }
 
+static CompBool
+getProp (CompObject *object,
+	 const char *interface,
+	 const char *name,
+	 CompOption *value,
+	 char	    **error)
+{
+    if (error)
+	*error = strdup ("No such property");
+
+    return FALSE;
+}
+
+static CompBool
+setProp (CompObject	  *object,
+	 const char	  *interface,
+	 const char	  *name,
+	 const CompOption *value,
+	 char		  **error)
+{
+    if (error)
+	*error = strdup ("No such property");
+
+    return FALSE;
+}
+
+static CompBool
+getMetadata (CompObject    *object,
+	     const char    *interface,
+	     CompListValue *list,
+	     char	   **error)
+{
+    if (error)
+	*error = strdup ("No available metadata");
+
+    return FALSE;
+}
+
 static CompObjectVTable objectVTable = {
     forBaseObject,
     forEachInterface,
-    forEachMethod,
-    forEachSignal,
-    forEachProp,
-    invokeObjectMethod,
+    commonForEachMethod,
+    commonForEachSignal,
+    commonForEachProp,
     getType,
     queryObjectName,
     forEachChildObject,
-    lookupChildObject
+    lookupChildObject,
+    {
+	commonGetVersion
+    }, {
+	getProp,
+	setProp
+    }, {
+	getMetadata
+    }
 };
 
 static void
@@ -558,13 +672,19 @@ initObjectVTable (CompObjectVTable *vTable)
     ENSURE (vTable, forEachMethod,    noopForEachMethod);
     ENSURE (vTable, forEachSignal,    noopForEachSignal);
     ENSURE (vTable, forEachProp,      noopForEachProp);
-    ENSURE (vTable, invokeMethod,     noopInvokeMethod);
 
     ENSURE (vTable, getType,   noopGetType);
     ENSURE (vTable, queryName, noopQueryName);
 
     ENSURE (vTable, forEachChildObject, noopForEachChildObject);
     ENSURE (vTable, lookupChildObject,  noopLookupChildObject);
+
+    ENSURE (vTable, version.get, noopGetVersion);
+
+    ENSURE (vTable, properties.get, noopGetProp);
+    ENSURE (vTable, properties.set, noopSetProp);
+
+    ENSURE (vTable, metadata.get, noopGetMetadata);
 }
 
 static CompObjectType objectType = {
@@ -766,6 +886,23 @@ compObjectFindType (const char *name)
     return ctx.type;
 }
 
+static CompBool
+baseObjectType (CompObject *object,
+		void	   *closure)
+{
+    const CompObjectType *type = (*object->vTable->getType) (object);
+
+    if (type)
+    {
+	*((const CompObjectType **) closure) = type;
+	return TRUE;
+    }
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectType,
+					     closure);
+}
+
 typedef struct _InitObjectContext {
     CompObjectType  *type;
     CompObjectFuncs *funcs;
@@ -774,33 +911,38 @@ typedef struct _InitObjectContext {
 
 static CompBool
 initBaseObject (CompObject *object,
-		void       *closure)
+		void	   *closure)
 {
-    InitObjectContext *pCtx = (InitObjectContext *) closure;
+    InitObjectContext    *pCtx = (InitObjectContext *) closure;
+    const CompObjectType *type;
 
-    if ((*object->vTable->getType) (object) == pCtx->type)
+    baseObjectType (object, (void *) &type);
+
+    if (type == pCtx->type)
 	return (*pCtx->funcs->init) (object);
-
-    return (*object->vTable->forBaseObject) (object,
-					     initBaseObject,
-					     closure);
+    else
+	return (*object->vTable->forBaseObject) (object,
+						 initBaseObject,
+						 closure);
 }
 
 static CompBool
 finiBaseObject (CompObject *object,
-		void       *closure)
+		void	   *closure)
 {
-    InitObjectContext *pCtx = (InitObjectContext *) closure;
+    InitObjectContext    *pCtx = (InitObjectContext *) closure;
+    const CompObjectType *type;
 
-    if ((*object->vTable->getType) (object) == pCtx->type)
-    {
+    baseObjectType (object, (void *) &type);
+
+    if (type == pCtx->type)
 	(*pCtx->funcs->fini) (object);
-	return TRUE;
-    }
+    else
+	(*object->vTable->forBaseObject) (object,
+					  finiBaseObject,
+					  closure);
 
-    return (*object->vTable->forBaseObject) (object,
-					     finiBaseObject,
-					     closure);
+    return TRUE;
 }
 
 static CompBool
@@ -1003,6 +1145,18 @@ checkSignalOrProp (CompObject *object,
     return TRUE;
 }
 
+static CompBool
+checkInterfaceProp (CompObject *object,
+		    const char *name,
+		    void       *interface,
+		    size_t     offset,
+		    void       *closure)
+{
+    return (*object->vTable->forEachProp) (object, interface,
+					   checkSignalOrProp,
+					   closure);
+}
+
 const char *
 compObjectPropType (CompObject *object,
 		    const char *interface,
@@ -1013,10 +1167,21 @@ compObjectPropType (CompObject *object,
     ctx.name = name;
     ctx.type = NULL;
 
-    (*object->vTable->forEachProp) (object, interface, checkSignalOrProp,
-				    (void *) &ctx);
+    compForInterface (object, interface, checkInterfaceProp, (void *) &ctx);
 
     return ctx.type;
+}
+
+static CompBool
+checkInterfaceSignal (CompObject *object,
+		      const char *name,
+		      void       *interface,
+		      size_t     offset,
+		      void       *closure)
+{
+    return (*object->vTable->forEachSignal) (object, interface,
+					     checkSignalOrProp,
+					     closure);
 }
 
 const char *
@@ -1029,10 +1194,82 @@ compObjectSignalType (CompObject *object,
     ctx.name = name;
     ctx.type = NULL;
 
-    (*object->vTable->forEachSignal) (object, interface, checkSignalOrProp,
-				      (void *) &ctx);
+    compForInterface (object, interface, checkInterfaceSignal, (void *) &ctx);
 
     return ctx.type;
+}
+
+typedef struct _ForInterfaceContext {
+    const char		  *interface;
+    InterfaceCallBackProc proc;
+    void		  *closure;
+} ForInterfaceContext;
+
+static CompBool
+handleInterface (CompObject *object,
+		 const char *name,
+		 void	    *interface,
+		 size_t     offset,
+		 void	    *closure)
+{
+    ForInterfaceContext *pCtx = (ForInterfaceContext *) closure;
+
+    if (!pCtx->interface || strcmp (name, pCtx->interface) == 0)
+	if (!(*pCtx->proc) (object, name, interface, offset, pCtx->closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+static CompBool
+forInterface (CompObject *object,
+	      void	 *closure)
+{
+    if (!(*object->vTable->forEachInterface) (object,
+					      handleInterface,
+					      closure))
+	return FALSE;
+
+    return (*object->vTable->forBaseObject) (object,
+					     forInterface,
+					     closure);
+}
+
+CompBool
+compForInterface (CompObject		*object,
+		  const char		*interface,
+		  InterfaceCallBackProc proc,
+		  void			*closure)
+{
+    ForInterfaceContext ctx;
+
+    ctx.interface = interface;
+    ctx.proc      = proc;
+    ctx.closure   = closure;
+
+    return forInterface (object, (void *) &ctx);
+}
+
+CompBool
+compForEachInterface (CompObject	    *object,
+		      InterfaceCallBackProc proc,
+		      void		    *closure)
+{
+    return compForInterface (object, NULL, proc, closure);
+}
+
+static CompBool
+getInterfaceVersion (CompObject *object,
+		     const char *name,
+		     void	*interface,
+		     size_t     offset,
+		     void       *closure)
+{
+    int *version = (int *) closure;
+
+    *version = (object->vTable->version.get) (object, name);
+
+    return FALSE;
 }
 
 CompBool
@@ -1040,31 +1277,235 @@ compObjectCheckVersion (CompObject *object,
 			const char *interface,
 			int	   version)
 {
-    CompOption in;
-    CompOption out;
+    int v;
 
-    in.value.s = (char *) interface;
-
-    if (!(object->vTable->invokeMethod) (object,
-					 VERSION_INTERFACE_NAME,
-					 VERSION_METHOD_GET_NAME, "s",
-					 &in, &out, NULL))
+    if (!compForInterface (object,
+			   interface,
+			   getInterfaceVersion,
+			   (void *) &v))
     {
-	compLogMessage (NULL, "core", CompLogLevelError,
-			"couldn't get '%s' interface version "
-			"for '%s' object\n", interface,
-			(*object->vTable->getType) (object)->name);
-	return FALSE;
+	if (v != version)
+	{
+	    compLogMessage (NULL, "core", CompLogLevelError,
+			    "wrong '%s' interface version", interface);
+	    return FALSE;
+	}
     }
-
-    if (out.value.i != version)
+    else
     {
 	compLogMessage (NULL, "core", CompLogLevelError,
-			"wrong '%s' interface version "
-			"for '%s' object\n", interface,
-			(*object->vTable->getType) (object)->name);
+			"no '%s' interface available", interface);
+
 	return FALSE;
     }
 
     return TRUE;
+}
+
+void
+compFreeMethodOutput (CompMethodOutput *output)
+{
+    if (output->signature)
+    {
+	CompOption *value = output->value;
+	const char *signature = output->signature;
+
+	while (*signature != COMP_TYPE_INVALID)
+	{
+	    signature = nextPropType (signature);
+	    compFiniOption (value++);
+	}
+    }
+
+    free (output);
+}
+
+typedef struct _MethodCallContext {
+    const char	      *interface;
+    const char	      *name;
+    const char	      *signature;
+    CompObjectVTable  *vTable;
+    int		      offset;
+    MethodMarshalProc marshal;
+    CompMethodOutput  *output;
+} MethodCallContext;
+
+static CompBool
+checkMethod (CompObject	       *object,
+	     const char	       *name,
+	     const char	       *in,
+	     const char	       *out,
+	     size_t	       offset,
+	     MethodMarshalProc marshal,
+	     void	       *closure)
+{
+    MethodCallContext *pCtx = (MethodCallContext *) closure;
+    CompMethodOutput  *output;
+    int		      nOut = 0;
+    const char	      *signature = out;
+
+    if (strcmp (name, pCtx->name))
+	return TRUE;
+
+    if (strcmp (in, pCtx->signature))
+	return TRUE;
+
+    while (*signature != COMP_TYPE_INVALID)
+    {
+	signature = nextPropType (signature);
+	nOut++;
+    }
+
+    output = malloc (sizeof (CompMethodOutput) +
+		     nOut * sizeof (CompOption) +
+		     (strlen (out) + 1) * sizeof (char));
+    if (output)
+    {
+	output->value     = (CompOption *) (output + 1);
+	output->signature = (char *) (output->value + nOut);
+
+	strcpy (output->signature, out);
+    }
+
+    pCtx->offset  = offset;
+    pCtx->marshal = marshal;
+    pCtx->output  = output;
+
+    return FALSE;
+}
+
+static CompBool
+checkInterface (CompObject *object,
+		const char *name,
+		void       *interface,
+		size_t	   offset,
+		void       *closure)
+{
+    MethodCallContext *pCtx = (MethodCallContext *) closure;
+
+    if (!pCtx->interface || strcmp (name, pCtx->interface) == 0)
+    {
+	if (!(*object->vTable->forEachMethod) (object,
+					       interface,
+					       checkMethod,
+					       closure))
+	{
+
+	    /* need vTable if interface is not part of object type */
+	    if (!(*object->vTable->getType) (object))
+		pCtx->vTable = object->vTable;
+
+	    /* add interface vTable offset to method offset set by
+	       checkMethod function */
+	    pCtx->offset += offset;
+
+	    return FALSE;
+	}
+    }
+
+    return TRUE;
+}
+
+static CompBool
+checkInterfaces (CompObject *object,
+		 void       *closure)
+{
+    if (!(*object->vTable->forEachInterface) (object,
+					      checkInterface,
+					      (void *) closure))
+	return FALSE;
+
+    return (*object->vTable->forBaseObject) (object,
+					     checkInterfaces,
+					     closure);
+}
+
+static CompBool
+invokeMethod (CompObject        *o,
+	      CompObjectVTable  *vTable,
+	      int	        offset,
+	      MethodMarshalProc marshal,
+	      const CompOption	*in,
+	      CompOption	*out,
+	      char		**error)
+{
+    CompObjectVTableVec save = { o->vTable };
+    CompObjectVTableVec interface = { vTable };
+    CompBool		status;
+
+    UNWRAP (&interface, o, vTable);
+    status = (*marshal) (o,
+			 *((void (**) (void)) (((char *) o->vTable) + offset)),
+			 in, out,
+			 error);
+    WRAP (&interface, o, vTable, save.vTable);
+
+    return status;
+}
+
+/* returns true if method exist */
+CompBool
+compInvokeMethodError (CompObject	*object,
+		       const char	*interface,
+		       const char	*name,
+		       const char	*signature,
+		       const CompOption *in,
+		       CompBool		*status,
+		       CompMethodOutput	**out,
+		       char		**error)
+{
+    MethodCallContext ctx;
+
+    ctx.interface = interface;
+    ctx.name	  = name;
+    ctx.signature = signature;
+    ctx.vTable    = object->vTable;
+
+    if (checkInterfaces (object, (void *) &ctx))
+	return FALSE;
+
+    if (!ctx.output)
+    {
+	if (error)
+	    *error = strdup ("Failed to allocate memory for method output");
+
+	*status = FALSE;
+    }
+    else
+    {
+	*status = invokeMethod (object,
+				ctx.vTable,
+				ctx.offset,
+				ctx.marshal,
+				in,
+				ctx.output->value,
+				error);
+
+	if (*status)
+	{
+	    if (out)
+		*out = ctx.output;
+	    else
+		compFreeMethodOutput (ctx.output);
+	}
+    }
+
+    return TRUE;
+}
+
+CompBool
+compInvokeMethod (CompObject	   *object,
+		  const char	   *interface,
+		  const char	   *name,
+		  const char	   *signature,
+		  const CompOption *in,
+		  CompMethodOutput **out)
+{
+    CompBool status;
+
+    if (compInvokeMethodError (object, interface, name, signature,
+			       in, &status, out, NULL))
+	return status;
+
+    return FALSE;
 }

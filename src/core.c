@@ -29,7 +29,11 @@
 
 CompCore core;
 
-#define CORE_INTERFACE_NAME "core"
+#define INTERFACE_VERSION_coreType CORE_ABIVERSION
+
+static const CommonInterface coreInterface[] = {
+    C_INTERFACE (core, Type, CompObjectVTable, _, _, _, _)
+};
 
 static CompBool
 coreForBaseObject (CompObject		  *object,
@@ -49,38 +53,14 @@ coreForBaseObject (CompObject		  *object,
 }
 
 static CompBool
-coreInvokeMethod (CompObject	   *object,
-		  const char	   *interface,
-		  const char	   *name,
-		  const char	   *signature,
-		  const CompOption *in,
-		  CompOption	   *out,
-		  char		   **error)
+coreForEachInterface (CompObject	    *object,
+		      InterfaceCallBackProc proc,
+		      void		    *closure)
 {
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE (object);
-
-    if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
-    {
-	if (strcmp (name, VERSION_METHOD_GET_NAME) == 0)
-	{
-	    if (strcmp (in[0].value.s, CORE_INTERFACE_NAME) == 0)
-	    {
-		out[0].value.i = CORE_ABIVERSION;
-		return TRUE;
-	    }
-	}
-    }
-
-    UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->invokeMethod) (object,
-					      interface, name, signature,
-					      in, out, error);
-    WRAP (&c->object, object, vTable, v.vTable);
-
-    return status;
+    return handleForEachInterface (object,
+				   coreInterface,
+				   N_ELEMENTS (coreInterface),
+				   proc, closure);
 }
 
 static const CompObjectType *
@@ -136,6 +116,77 @@ coreLookupChildObject (CompObject *object,
     WRAP (&c->object, object, vTable, v.vTable);
 
     return result;
+}
+
+static CompBool
+coreGetMetadata (CompObject    *object,
+		 const char    *interface,
+		 CompListValue *list,
+		 char	       **error)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    CORE (object);
+
+    if (strcmp (interface, "core") == 0)
+    {
+	xmlBufferPtr buffer;
+
+	buffer = xmlBufferCreate ();
+	if (buffer)
+	{
+	    int i;
+
+	    list->type   = CompOptionTypeString;
+	    list->nValue = 0;
+	    list->value  = NULL;
+
+	    for (i = 0; i < coreMetadata.nDoc; i++)
+	    {
+		/* FIXME: we should only dump the interface specific portion
+		   of the metadata documents */
+		if (xmlNodeDump (buffer,
+				 coreMetadata.doc[i],
+				 coreMetadata.doc[i]->children,
+				 0, 1) > 0)
+		{
+		    char *str;
+
+		    str = strdup ((char *) xmlBufferContent (buffer));
+		    if (str)
+		    {
+			CompOptionValue *value;
+
+			value = realloc (list->value,
+					 sizeof (CompOptionValue) *
+					 (list->nValue + 1));
+			if (value)
+			{
+			    value[list->nValue++].s = str;
+			    list->value = value;
+			}
+			else
+			{
+			    free (str);
+			}
+		    }
+		}
+
+		xmlBufferEmpty (buffer);
+	    }
+
+	    xmlBufferFree (buffer);
+
+	    return TRUE;
+	}
+    }
+
+    UNWRAP (&c->object, object, vTable);
+    status = (*object->vTable->metadata.get) (object, interface, list, error);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompBool
@@ -216,11 +267,13 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 
 static CompObjectVTable coreObjectVTable = {
     .forBaseObject	= coreForBaseObject,
-    .invokeMethod       = coreInvokeMethod,
+    .forEachInterface   = coreForEachInterface,
     .getType		= coreGetType,
     .queryName		= coreQueryName,
     .forEachChildObject = coreForEachChildObject,
-    .lookupChildObject	= coreLookupChildObject
+    .lookupChildObject	= coreLookupChildObject,
+    .version.get	= commonGetVersion,
+    .metadata.get	= coreGetMetadata
 };
 
 static CompObjectPrivates coreObjectPrivates = {

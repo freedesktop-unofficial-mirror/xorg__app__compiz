@@ -68,7 +68,14 @@ int lastPointerY = 0;
 int pointerX     = 0;
 int pointerY     = 0;
 
-#define DISPLAY_INTERFACE_NAME "display"
+static const CommonProp displayTypeProp[] = {
+    C_PROP (active_plugins, "as")
+};
+#define INTERFACE_VERSION_displayType CORE_ABIVERSION
+
+static const CommonInterface displayInterface[] = {
+    C_INTERFACE (display, Type, CompObjectVTable, _, _, _, X)
+};
 
 static CompBool
 displayForBaseObject (CompObject	     *object,
@@ -92,104 +99,10 @@ displayForEachInterface (CompObject	       *object,
 			 InterfaceCallBackProc proc,
 			 void		       *closure)
 {
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    DISPLAY (object);
-
-    if (!(*proc) (object, DISPLAY_INTERFACE_NAME, closure))
-	return FALSE;
-
-    UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->forEachInterface) (object, proc, closure);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-displayForEachProp (CompObject	     *object,
-		    const char	     *interface,
-		    PropCallBackProc proc,
-		    void	     *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    DISPLAY (object);
-
-    if (strcmp (interface, DISPLAY_INTERFACE_NAME) == 0)
-    {
-	int i;
-
-	for (i = 0; i < N_ELEMENTS (d->opt); i++)
-	    if (!(*proc) (object, d->opt[i].name,
-			  propTypeFromOption (&d->opt[i]), closure))
-		return FALSE;
-    }
-
-    UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->forEachProp) (object, interface, proc, closure);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-displayInvokeMethod (CompObject	      *object,
-		     const char	      *interface,
-		     const char	      *name,
-		     const char	      *signature,
-		     const CompOption *in,
-		     CompOption	      *out,
-		     char	      **error)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    DISPLAY (object);
-
-    if (strcmp (interface, PROPERTIES_INTERFACE_NAME) == 0)
-    {
-	if (strcmp (name, PROPERTIES_METHOD_SET_NAME) == 0)
-	{
-	    if (strcmp (in[0].value.s, DISPLAY_INTERFACE_NAME) == 0)
-	    {
-		if (setDisplayOption (NULL, d, in[1].value.s, &in[2].value))
-		{
-		    (object->processSignal) (object, object,
-					     PROPERTIES_INTERFACE_NAME,
-					     PROPERTIES_SIGNAL_CHANGED_NAME,
-					     in);
-
-		    return TRUE;
-		}
-		else
-		{
-		    return FALSE;
-		}
-	    }
-	}
-    }
-    else if (strcmp (interface, VERSION_INTERFACE_NAME) == 0)
-    {
-	if (strcmp (name, VERSION_METHOD_GET_NAME) == 0)
-	{
-	    if (strcmp (in[0].value.s, DISPLAY_INTERFACE_NAME) == 0)
-	    {
-		out[0].value.i = CORE_ABIVERSION;
-		return TRUE;
-	    }
-	}
-    }
-
-    UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->invokeMethod) (object,
-					      interface, name, signature,
-					      in, out, error);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return status;
+    return handleForEachInterface (object,
+				   displayInterface,
+				   N_ELEMENTS (displayInterface),
+				   proc, closure);
 }
 
 static const CompObjectType *
@@ -251,6 +164,27 @@ displayLookupChildObject (CompObject *object,
     WRAP (&d->object, object, vTable, v.vTable);
 
     return result;
+}
+
+static CompBool
+displaySetProp (CompObject	 *object,
+		const char	 *interface,
+		const char	 *name,
+		const CompOption *value,
+		char	         **error)
+{
+    if (!setDisplayOption (NULL,
+			   GET_DISPLAY (object),
+			   name,
+			   &value->value))
+    {
+	if (error)
+	    *error = strdup ("No such property");
+
+	return FALSE;
+    }
+
+    return TRUE;
 }
 
 static Bool
@@ -2049,12 +1983,13 @@ freeDisplay (CompDisplay *d)
 static CompObjectVTable displayObjectVTable = {
     .forBaseObject	= displayForBaseObject,
     .forEachInterface   = displayForEachInterface,
-    .forEachProp	= displayForEachProp,
-    .invokeMethod	= displayInvokeMethod,
+    .forEachProp	= commonForEachProp,
     .getType		= displayGetType,
     .queryName		= displayQueryName,
     .forEachChildObject = displayForEachChildObject,
-    .lookupChildObject	= displayLookupChildObject
+    .lookupChildObject	= displayLookupChildObject,
+    .version.get	= commonGetVersion,
+    .properties.set	= displaySetProp
 };
 
 static CompObjectPrivates displayObjectPrivates = {

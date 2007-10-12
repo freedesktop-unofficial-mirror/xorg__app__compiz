@@ -1054,3 +1054,9 @@ propTypeToOptionType (const char *type)
 
     return CompOptionTypeBool;
 }
+
+const char *
+nextPropType (const char *type)
+{
+    return type + ((type[0] == COMP_TYPE_ARRAY) ? 2 : 1);
+}
