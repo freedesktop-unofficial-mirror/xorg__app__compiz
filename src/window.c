@@ -2896,12 +2896,16 @@ moveInputFocusToWindow (CompWindow *w)
     }
     else
     {
+	Bool setFocus = FALSE;
+
 	if (w->inputHint)
 	{
 	    XSetInputFocus (d->display, w->id, RevertToPointerRoot,
 			    CurrentTime);
+	    setFocus = TRUE;
 	}
-	else if (w->protocols & CompWindowProtocolTakeFocusMask)
+
+	if (w->protocols & CompWindowProtocolTakeFocusMask)
 	{
 	    XEvent ev;
 
@@ -2917,8 +2921,11 @@ moveInputFocusToWindow (CompWindow *w)
 	    ev.xclient.data.l[4]    = 0;
 
 	    XSendEvent (d->display, w->id, FALSE, NoEventMask, &ev);
+
+	    setFocus = TRUE;
 	}
-	else if (!modalTransient)
+
+	if (!setFocus && !modalTransient)
 	{
 	    CompWindow *ancestor;
 
