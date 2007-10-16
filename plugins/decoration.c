@@ -1137,7 +1137,7 @@ decorSetDisplayOption (CompPlugin      *plugin,
 
 	    for (s = display->screens; s; s = s->next)
 	    {
-		DECOR_SCREEN (display->screens);
+		DECOR_SCREEN (s);
 
 		if (!ds->dmWin)
 		    runCommand (s, o->value.s);
