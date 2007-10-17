@@ -4569,6 +4569,9 @@ allowWindowFocus (CompWindow   *w,
     CompMatch   *match;
     int         vx, vy;
 
+    if (w->id == d->activeWindow)
+	return TRUE;
+
     /* do not focus windows of these types */
     if (w->type & noFocusMask)
 	return FALSE;
