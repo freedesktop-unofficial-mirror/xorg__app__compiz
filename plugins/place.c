@@ -1167,8 +1167,10 @@ placeWin (CompWindow *window,
 	    y += window->input.top;
 
 	    /* clip to screen if parent is visible in current viewport */
-	    if (parent->serverX < parent->screen->width &&
-		parent->serverX + parent->serverWidth > 0)
+	    if (parent->serverX < parent->screen->width   &&
+		parent->serverX + parent->serverWidth > 0 &&
+		parent->serverY < parent->screen->height  &&)
+		parent->serverY + parent->serverHeight > 0
 	    {
 		XRectangle area;
 
