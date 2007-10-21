@@ -175,8 +175,6 @@ signalHandler (int sig)
 typedef struct _CompIOCtx {
     int	 offset;
     char *pluginData;
-    char *textureFilterData;
-    char *refreshRateData;
 } CompIOCtx;
 
 static int
@@ -198,10 +196,6 @@ readCoreXmlCallback (void *context,
 	case COMP_DISPLAY_OPTION_ACTIVE_PLUGINS:
 	    if (ctx->pluginData)
 		info.data = ctx->pluginData;
-	    break;
-	case COMP_DISPLAY_OPTION_TEXTURE_FILTER:
-	    if (ctx->textureFilterData)
-		info.data = ctx->textureFilterData;
 	default:
 	    break;
 	}
@@ -218,14 +212,6 @@ readCoreXmlCallback (void *context,
     for (j = 0; j < COMP_SCREEN_OPTION_NUM; j++)
     {
 	CompMetadataOptionInfo info = coreScreenOptionInfo[j];
-
-	switch (j) {
-	case COMP_SCREEN_OPTION_REFRESH_RATE:
-	    if (ctx->refreshRateData)
-		info.data = ctx->refreshRateData;
-	default:
-	    break;
-	}
 
 	i += compReadXmlChunkFromMetadataOptionInfo (&info,
 						     &offset,
@@ -253,7 +239,6 @@ main (int argc, char **argv)
     int	      i, nPlugin = 0;
     Bool      disableSm = FALSE;
     char      *clientId = NULL;
-    char      *refreshRateArg = NULL;
 
     programName = argv[0];
     programArgc = argc;
@@ -297,21 +282,6 @@ main (int argc, char **argv)
 	{
 	    if (i + 1 < argc)
 		displayName = argv[++i];
-	}
-	else if (!strcmp (argv[i], "--refresh-rate"))
-	{
-	    if (i + 1 < argc)
-	    {
-		refreshRateArg = programArgv[++i];
-		defaultRefreshRate = atoi (refreshRateArg);
-		defaultRefreshRate = RESTRICT_VALUE (defaultRefreshRate,
-						     1, 1000);
-	    }
-	}
-	else if (!strcmp (argv[i], "--fast-filter"))
-	{
-	    ctx.textureFilterData = "<default>Fast</default>";
-	    defaultTextureFilter = "Fast";
 	}
 	else if (!strcmp (argv[i], "--indirect-rendering"))
 	{
@@ -371,15 +341,6 @@ main (int argc, char **argv)
 	}
     }
 
-    if (refreshRateArg)
-    {
-	ctx.refreshRateData = malloc (strlen (refreshRateArg) + 256);
-	if (ctx.refreshRateData)
-	    sprintf (ctx.refreshRateData,
-		     "<min>1</min><default>%s</default>",
-		     refreshRateArg);
-    }
-
     if (nPlugin)
     {
 	int size = 256;
@@ -416,9 +377,6 @@ main (int argc, char **argv)
 				readCoreXmlCallback, NULL,
 				&ctx))
 	return 1;
-
-    if (ctx.refreshRateData)
-	free (ctx.refreshRateData);
 
     if (ctx.pluginData)
 	free (ctx.pluginData);

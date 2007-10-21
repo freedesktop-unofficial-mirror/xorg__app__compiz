@@ -32,7 +32,7 @@ CompCore core;
 #define INTERFACE_VERSION_coreType CORE_ABIVERSION
 
 static const CommonInterface coreInterface[] = {
-    C_INTERFACE (core, Type, CompObjectVTable, _, _, _, _)
+    C_INTERFACE (core, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
 static CompBool
@@ -60,19 +60,28 @@ coreForEachInterface (CompObject	    *object,
     return handleForEachInterface (object,
 				   coreInterface,
 				   N_ELEMENTS (coreInterface),
+				   getCoreObjectType (),
 				   proc, closure);
 }
 
-static const CompObjectType *
-coreGetType (CompObject *object)
+static CompBool
+coreForEachType (CompObject	  *object,
+		 TypeCallBackProc proc,
+		 void		  *closure)
 {
-    return getCoreObjectType ();
-}
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
-static char *
-coreQueryName (CompObject *object)
-{
-    return NULL;
+    CORE (object);
+
+    if (!(*proc) (object, getCoreObjectType (), closure))
+	return FALSE;
+
+    UNWRAP (&c->object, object, vTable);
+    status = (*object->vTable->forEachType) (object, proc, closure);
+    WRAP (&c->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompBool
@@ -97,32 +106,11 @@ coreForEachChildObject (CompObject		*object,
     return status;
 }
 
-static CompObject *
-coreLookupChildObject (CompObject *object,
-		       const char *type,
-		       const char *name)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompObject		*result;
-
-    CORE (object);
-
-    if (strcmp (type, getDisplayObjectType ()->name) == 0)
-	if (c->displays && (!name || !name[0]))
-	    return &c->displays->base.base;
-
-    UNWRAP (&c->object, object, vTable);
-    result = (*object->vTable->lookupChildObject) (object, type, name);
-    WRAP (&c->object, object, vTable, v.vTable);
-
-    return result;
-}
-
 static CompBool
-coreGetMetadata (CompObject    *object,
-		 const char    *interface,
-		 CompListValue *list,
-		 char	       **error)
+coreGetMetadata (CompObject *object,
+		 const char *interface,
+		 char	    **data,
+		 char	    **error)
 {
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
@@ -136,54 +124,35 @@ coreGetMetadata (CompObject    *object,
 	buffer = xmlBufferCreate ();
 	if (buffer)
 	{
-	    int i;
-
-	    list->type   = CompOptionTypeString;
-	    list->nValue = 0;
-	    list->value  = NULL;
-
-	    for (i = 0; i < coreMetadata.nDoc; i++)
+	    if (coreMetadata.nDoc)
 	    {
-		/* FIXME: we should only dump the interface specific portion
-		   of the metadata documents */
 		if (xmlNodeDump (buffer,
-				 coreMetadata.doc[i],
-				 coreMetadata.doc[i]->children,
+				 coreMetadata.doc[0],
+				 coreMetadata.doc[0]->children,
 				 0, 1) > 0)
-		{
-		    char *str;
-
-		    str = strdup ((char *) xmlBufferContent (buffer));
-		    if (str)
-		    {
-			CompOptionValue *value;
-
-			value = realloc (list->value,
-					 sizeof (CompOptionValue) *
-					 (list->nValue + 1));
-			if (value)
-			{
-			    value[list->nValue++].s = str;
-			    list->value = value;
-			}
-			else
-			{
-			    free (str);
-			}
-		    }
-		}
-
-		xmlBufferEmpty (buffer);
+		    *data = strdup ((char *) xmlBufferContent (buffer));
+		else
+		    *data = NULL;
+	    }
+	    else
+	    {
+		*data = strdup ("");
 	    }
 
 	    xmlBufferFree (buffer);
 
-	    return TRUE;
+	    if (*data)
+		return TRUE;
 	}
+
+	if (error)
+	    *error = strdup ("No memory");
+
+	return FALSE;
     }
 
     UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->metadata.get) (object, interface, list, error);
+    status = (*object->vTable->metadata.get) (object, interface, data, error);
     WRAP (&c->object, object, vTable, v.vTable);
 
     return status;
@@ -217,18 +186,45 @@ setOptionForPlugin (CompObject      *object,
     return FALSE;
 }
 
-static void
-coreObjectAdd (CompObject      *parent,
-	       CompChildObject *object)
+static CompBool
+coreObjectAdd (CompObject *parent,
+	       CompObject *object,
+	       char       **path)
 {
-    object->parent = parent;
+    int  i, size = sizeof (char *);
+    char *data;
+
+    for (i = 0; path[i]; i++)
+	size += sizeof (char *) + strlen (path[i]) + 1;
+
+    data = malloc (size);
+    if (!data)
+	return FALSE;
+
+    object->path = (char **) data;
+
+    data += sizeof (char *) * (i + 1);
+
+    for (i = 0; path[i]; i++)
+    {
+	object->path[i] = data;
+	data += sprintf (data, "%s", path[i]) + 1;
+    }
+
+    object->path[i] = NULL;
+    object->parent  = parent;
+
+    return TRUE;
 }
 
 static void
-coreObjectRemove (CompObject	  *parent,
-		  CompChildObject *object)
+coreObjectRemove (CompObject *parent,
+		  CompObject *object)
 {
+    free (object->path);
+
     object->parent = NULL;
+    object->path   = NULL;
 }
 
 static void
@@ -268,10 +264,8 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 static CompObjectVTable coreObjectVTable = {
     .forBaseObject	= coreForBaseObject,
     .forEachInterface   = coreForEachInterface,
-    .getType		= coreGetType,
-    .queryName		= coreQueryName,
+    .forEachType	= coreForEachType,
     .forEachChildObject = coreForEachChildObject,
-    .lookupChildObject	= coreLookupChildObject,
     .version.get	= commonGetVersion,
     .metadata.get	= coreGetMetadata
 };
@@ -288,6 +282,8 @@ static CompObjectPrivates coreObjectPrivates = {
 static CompBool
 coreInitObject (CompObject *object)
 {
+    char *path[] = { "core", NULL };
+
     CORE (object);
 
     if (!compObjectInit (object, getObjectType ()))
@@ -346,9 +342,11 @@ coreInitObject (CompObject *object)
     c->fileWatchAdded   = fileWatchAdded;
     c->fileWatchRemoved = fileWatchRemoved;
 
-    core.sessionInit  = sessionInit;
-    core.sessionFini  = sessionFini;
-    core.sessionEvent = sessionEvent;
+    c->sessionInit  = sessionInit;
+    c->sessionFini  = sessionFini;
+    c->sessionEvent = sessionEvent;
+
+    (*c->objectAdd) (NULL, &c->base, path);
 
     return TRUE;
 }

@@ -1123,22 +1123,46 @@ initOptionFromMetadataPath (CompDisplay   *d,
     return TRUE;
 }
 
+static CompBool
+isNotObjectType (CompObject	      *object,
+		 const CompObjectType *type,
+		 void		      *closure)
+{
+    if (type == (const CompObjectType *) closure)
+	return FALSE;
+
+    return TRUE;
+}
+
 CompBool
 compInitObjectPropFromMetadata (CompObject   *o,
 				CompMetadata *m,
 				CompOption   *prop,
 				const char   *name)
 {
-    CompDisplay *display = NULL;
+    CompDisplay	*display = NULL;
     char	str[1024];
 
-    sprintf (str, "/compiz/%s/%s//option[@name=\"%s\"]",
-	     m->path, (*o->vTable->getType) (o)->name, name);
-
-    if ((*o->vTable->getType) (o) == getDisplayObjectType ())
+    if (!(*o->vTable->forEachType) (o, isNotObjectType, (void *)
+				    getDisplayObjectType ()))
+    {
 	display = GET_DISPLAY (o);
-    else if ((*o->vTable->getType) (o) == getScreenObjectType ())
+
+	sprintf (str, "/compiz/%s/display//option[@name=\"%s\"]",
+		 m->path, name);
+    }
+    else if (!(*o->vTable->forEachType) (o, isNotObjectType, (void *)
+					 getScreenObjectType ()))
+    {
 	display = GET_SCREEN (o)->display;
+
+	sprintf (str, "/compiz/%s/screen//option[@name=\"%s\"]",
+		 m->path, name);
+    }
+    else
+    {
+	return FALSE;
+    }
 
     return initOptionFromMetadataPath (display, m, prop, BAD_CAST str);
 }
@@ -1158,14 +1182,16 @@ finiObjectPropValue (CompObject      *o,
     case CompOptionTypeBell:
 	if (v->action.state & CompActionStateAutoGrab)
 	{
-	    if ((*o->vTable->getType) (o) == getDisplayObjectType ())
+	    if (!(*o->vTable->forEachType) (o, isNotObjectType, (void *)
+					    getDisplayObjectType ()))
 	    {
 		CompScreen *s;
 
 		for (s = GET_DISPLAY (o)->screens; s; s = s->next)
 		    removeScreenAction (s, &v->action);
 	    }
-	    else if ((*o->vTable->getType) (o) == getScreenObjectType ())
+	    if (!(*o->vTable->forEachType) (o, isNotObjectType, (void *)
+					    getScreenObjectType ()))
 	    {
 		removeScreenAction (GET_SCREEN (o), &v->action);
 	    }
@@ -1231,7 +1257,8 @@ compSetObjectProp (CompObject		 *object,
 		   CompOption		 *prop,
 		   const CompOptionValue *value)
 {
-    if ((*object->vTable->getType) (object) == getDisplayObjectType () &&
+    if (!(*object->vTable->forEachType) (object, isNotObjectType, (void *)
+					 getDisplayObjectType ()) &&
 	isActionOption (prop))
     {
 	if (prop->value.action.state & CompActionStateAutoGrab)
@@ -1261,7 +1288,7 @@ compInitScreenOptionsFromMetadata (CompScreen			*s,
 				   CompOption			*opt,
 				   int				n)
 {
-    return compInitObjectPropsFromMetadata (&s->base.base, m, info, opt, n);
+    return compInitObjectPropsFromMetadata (&s->base, m, info, opt, n);
 }
 
 void
@@ -1269,7 +1296,7 @@ compFiniScreenOptions (CompScreen *s,
 		       CompOption *opt,
 		       int	  n)
 {
-    compFiniObjectProps (&s->base.base, opt, n);
+    compFiniObjectProps (&s->base, opt, n);
 }
 
 Bool
@@ -1277,7 +1304,7 @@ compSetScreenOption (CompScreen		   *s,
 		     CompOption		   *o,
 		     const CompOptionValue *value)
 {
-    return compSetObjectProp (&s->base.base, o, value);
+    return compSetObjectProp (&s->base, o, value);
 }
 
 Bool
@@ -1287,7 +1314,7 @@ compInitDisplayOptionsFromMetadata (CompDisplay			 *d,
 				    CompOption			 *opt,
 				    int				 n)
 {
-    return compInitObjectPropsFromMetadata (&d->base.base, m, info, opt, n);
+    return compInitObjectPropsFromMetadata (&d->base, m, info, opt, n);
 }
 
 void
@@ -1295,7 +1322,7 @@ compFiniDisplayOptions (CompDisplay *d,
 			CompOption  *opt,
 			int	    n)
 {
-    compFiniObjectProps (&d->base.base, opt, n);
+    compFiniObjectProps (&d->base, opt, n);
 }
 
 Bool
@@ -1303,7 +1330,7 @@ compSetDisplayOption (CompDisplay	    *d,
 		      CompOption	    *o,
 		      const CompOptionValue *value)
 {
-   return compSetObjectProp (&d->base.base, o, value);
+   return compSetObjectProp (&d->base, o, value);
 }
 
 char *

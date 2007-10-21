@@ -47,34 +47,46 @@
 
 #include <compiz-core.h>
 
-/*
-const CompMetadataOptionInfo coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM] = {
-    { "detect_refresh_rate", "bool", 0, 0, 0 },
-    { "lighting", "bool", 0, 0, 0 },
-    { "refresh_rate", "int", "<min>1</min>", 0, 0 },
-    { "hsize", "int", "<min>1</min><max>32</max>", 0, 0 },
-    { "vsize", "int", "<min>1</min><max>32</max>", 0, 0 },
-    { "opacity_step", "int", "<min>1</min>", 0, 0 },
-    { "unredirect_fullscreen_windows", "bool", 0, 0, 0 },
-    { "default_icon", "string", 0, 0, 0 },
-    { "sync_to_vblank", "bool", 0, 0, 0 },
-    { "number_of_desktops", "int", "<min>1</min>", 0, 0 },
-    { "detect_outputs", "bool", 0, 0, 0 },
-    { "outputs", "list", "<type>string</type>", 0, 0 },
-    { "focus_prevention_match", "match", 0, 0, 0 },
-    { "opacity_matches", "list", "<type>match</type>", 0, 0 },
-    { "opacity_values", "list", "<type>int</type>", 0, 0 }
-};
-*/
+static void
+detectRefreshRateChanged (CompObject *object,
+			  const char *interface,
+			  const char *name,
+			  CompBool   value)
+{
+    detectRefreshRateOfScreen (GET_SCREEN (object));
+}
 
-static const CommonProp screenTypeProp[] = {
-    C_PROP (detect_refresh_rate, "b"),
-    C_PROP (refresh_rate, "i")
+static void
+refreshRateChanged (CompObject *object,
+		    const char *interface,
+		    const char *name,
+		    int32_t    value)
+{
+    detectRefreshRateOfScreen (GET_SCREEN (object));
+}
+
+static void
+defaultIconChanged (CompObject *object,
+		    const char *interface,
+		    const char *name,
+		    const char *value)
+{
+    updateDefaultIcon (GET_SCREEN (object));
+}
+
+static const CommonBoolProp screenTypeBoolProp[] = {
+    C_PROP (detectRefreshRate, CompScreen, .changed = detectRefreshRateChanged)
+};
+static const CommonIntProp screenTypeIntProp[] = {
+    C_PROP (refreshRate, CompScreen, .changed = refreshRateChanged)
+};
+static const CommonStringProp screenTypeStringProp[] = {
+    C_PROP (defaultIconImage, CompScreen, .changed = defaultIconChanged)
 };
 #define INTERFACE_VERSION_screenType CORE_ABIVERSION
 
 static const CommonInterface screenInterface[] = {
-    C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, X)
+    C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, _, X, X, _, X)
 };
 
 static CompBool
@@ -102,25 +114,28 @@ screenForEachInterface (CompObject	      *object,
     return handleForEachInterface (object,
 				   screenInterface,
 				   N_ELEMENTS (screenInterface),
+				   getScreenObjectType (),
 				   proc, closure);
 }
 
-static const CompObjectType *
-screenGetType (CompObject *object)
+static CompBool
+screenForEachType (CompObject	    *object,
+		   TypeCallBackProc proc,
+		   void		    *closure)
 {
-    return getScreenObjectType ();
-}
-
-static char *
-screenQueryName (CompObject *object)
-{
-    char tmp[256];
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
     SCREEN (object);
 
-    snprintf (tmp, 256, "%d", s->screenNum);
+    if (!(*proc) (object, getScreenObjectType (), closure))
+	return FALSE;
 
-    return strdup (tmp);
+    UNWRAP (&s->object, object, vTable);
+    status = (*object->vTable->forEachType) (object, proc, closure);
+    WRAP (&s->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompBool
@@ -143,54 +158,6 @@ screenForEachChildObject (CompObject		  *object,
     WRAP (&s->object, object, vTable, v.vTable);
 
     return status;
-}
-
-static CompObject *
-screenLookupChildObject (CompObject *object,
-			 const char *type,
-			 const char *name)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompObject		*result;
-
-    SCREEN (object);
-
-    if (strcmp (type, getWindowObjectType ()->name) == 0)
-    {
-	CompWindow *w;
-	Window     id = atoi (name);
-
-	for (w = s->windows; w; w = w->next)
-	    if (w->id == id)
-		return &w->base.base;
-    }
-
-    UNWRAP (&s->object, object, vTable);
-    result = (*object->vTable->lookupChildObject) (object, type, name);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return result;
-}
-
-static CompBool
-screenSetProp (CompObject	*object,
-	       const char	*interface,
-	       const char	*name,
-	       const CompOption *value,
-	       char	        **error)
-{
-    if (!setScreenOption (NULL,
-			  GET_SCREEN (object),
-			  name,
-			  &value->value))
-    {
-	if (error)
-	    *error = strdup ("No such property");
-
-	return FALSE;
-    }
-
-    return TRUE;
 }
 
 static Bool
@@ -500,7 +467,7 @@ detectOutputDevices (CompScreen *s)
 	name = s->opt[COMP_SCREEN_OPTION_OUTPUTS].name;
 
 	s->opt[COMP_SCREEN_OPTION_DETECT_OUTPUTS].value.b = FALSE;
-	(*core.setOptionForPlugin) (&s->base.base, "core", name, &value);
+	(*core.setOptionForPlugin) (&s->base, "core", name, &value);
 	s->opt[COMP_SCREEN_OPTION_DETECT_OUTPUTS].value.b = TRUE;
 
 	for (i = 0; i < value.list.nValue; i++)
@@ -538,32 +505,12 @@ setScreenOption (CompPlugin	       *plugin,
 	return FALSE;
 
     switch (index) {
-    case COMP_SCREEN_OPTION_DETECT_REFRESH_RATE:
-	if (compSetBoolOption (o, value))
-	{
-	    if (value->b)
-		detectRefreshRateOfScreen (screen);
-
-	    return TRUE;
-	}
-	break;
     case COMP_SCREEN_OPTION_DETECT_OUTPUTS:
 	if (compSetBoolOption (o, value))
 	{
 	    if (value->b)
 		detectOutputDevices (screen);
 
-	    return TRUE;
-	}
-	break;
-    case COMP_SCREEN_OPTION_REFRESH_RATE:
-	if (screen->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b)
-	    return FALSE;
-
-	if (compSetIntOption (o, value))
-	{
-	    screen->redrawTime = 1000 / o->value.i;
-	    screen->optimalRedrawTime = screen->redrawTime;
 	    return TRUE;
 	}
 	break;
@@ -609,10 +556,6 @@ setScreenOption (CompPlugin	       *plugin,
 	    setNumberOfDesktops (screen, o->value.i);
 	    return TRUE;
 	}
-	break;
-    case COMP_SCREEN_OPTION_DEFAULT_ICON:
-	if (compSetStringOption (o, value))
-	    return updateDefaultIcon (screen);
 	break;
     case COMP_SCREEN_OPTION_OUTPUTS:
 	if (!noDetection &&
@@ -661,14 +604,11 @@ setScreenOption (CompPlugin	       *plugin,
 }
 
 const CompMetadataOptionInfo coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM] = {
-    { "detect_refresh_rate", "bool", 0, 0, 0 },
     { "lighting", "bool", 0, 0, 0 },
-    { "refresh_rate", "int", "<min>1</min>", 0, 0 },
     { "hsize", "int", "<min>1</min><max>32</max>", 0, 0 },
     { "vsize", "int", "<min>1</min><max>32</max>", 0, 0 },
     { "opacity_step", "int", "<min>1</min>", 0, 0 },
     { "unredirect_fullscreen_windows", "bool", 0, 0, 0 },
-    { "default_icon", "string", 0, 0, 0 },
     { "sync_to_vblank", "bool", 0, 0, 0 },
     { "number_of_desktops", "int", "<min>1</min>", 0, 0 },
     { "detect_outputs", "bool", 0, 0, 0 },
@@ -1083,37 +1023,28 @@ updateScreenBackground (CompScreen  *screen,
 void
 detectRefreshRateOfScreen (CompScreen *s)
 {
-    if (!noDetection && s->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b)
-    {
-	char		*name;
-	CompOptionValue	value;
+    int rate = s->refreshRate;
 
-	value.i = 0;
+    if (!noDetection && s->detectRefreshRate)
+    {
+	int rate;
 
 	if (s->display->randrExtension)
 	{
 	    XRRScreenConfiguration *config;
 
-	    config  = XRRGetScreenInfo (s->display->display, s->root);
-	    value.i = (int) XRRConfigCurrentRate (config);
+	    config = XRRGetScreenInfo (s->display->display, s->root);
+	    rate   = (int) XRRConfigCurrentRate (config);
 
 	    XRRFreeScreenConfigInfo (config);
 	}
 
-	if (value.i == 0)
-	    value.i = defaultRefreshRate;
-
-	name = s->opt[COMP_SCREEN_OPTION_REFRESH_RATE].name;
-
-	s->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b = FALSE;
-	(*core.setOptionForPlugin) (&s->base.base, "core", name, &value);
-	s->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b = TRUE;
+	if (rate == 0)
+	    rate = defaultRefreshRate;
     }
-    else
-    {
-	s->redrawTime = 1000 / s->opt[COMP_SCREEN_OPTION_REFRESH_RATE].value.i;
-	s->optimalRedrawTime = s->redrawTime;
-    }
+
+    s->redrawTime        = 1000 / rate;
+    s->optimalRedrawTime = s->redrawTime;
 }
 
 static void
@@ -1525,7 +1456,7 @@ initWindowWalker (CompScreen *screen,
 static void
 freeScreen (CompScreen *s)
 {
-    compObjectFini (&s->base.base, getScreenObjectType ());
+    compObjectFini (&s->base, getScreenObjectType ());
 
     if (s->outputDev)
     {
@@ -1562,15 +1493,21 @@ freeScreen (CompScreen *s)
 }
 
 static CompObjectVTable screenObjectVTable = {
-    .forBaseObject	= screenForBaseObject,
-    .forEachInterface   = screenForEachInterface,
-    .forEachProp	= commonForEachProp,
-    .getType		= screenGetType,
-    .queryName		= screenQueryName,
-    .forEachChildObject = screenForEachChildObject,
-    .lookupChildObject	= screenLookupChildObject,
-    .version.get	= commonGetVersion,
-    .properties.set	= screenSetProp
+    .forBaseObject	      = screenForBaseObject,
+    .forEachInterface	      = screenForEachInterface,
+    .forEachProp	      = commonForEachProp,
+    .forEachType	      = screenForEachType,
+    .forEachChildObject	      = screenForEachChildObject,
+    .version.get	      = commonGetVersion,
+    .properties.getBool	      = commonGetBoolProp,
+    .properties.setBool	      = commonSetBoolProp,
+    .properties.boolChanged   = commonBoolPropChanged,
+    .properties.getInt	      = commonGetIntProp,
+    .properties.setInt	      = commonSetIntProp,
+    .properties.intChanged    = commonIntPropChanged,
+    .properties.getString     = commonGetStringProp,
+    .properties.setString     = commonSetStringProp,
+    .properties.stringChanged = commonStringPropChanged
 };
 
 static CompObjectPrivates screenObjectPrivates = {
@@ -1589,16 +1526,18 @@ screenInitObject (CompObject *object)
 
     SCREEN (object);
 
-    if (!compChildObjectInit (&s->base, COMP_OBJECT_TYPE_SCREEN))
+    if (!compObjectInit (&s->base, getObjectType ()))
 	return FALSE;
+
+    s->base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
-	compChildObjectFini (&s->base);
+	compObjectFini (&s->base, getObjectType ());
 	return FALSE;
     }
 
-    WRAP (&s->object, &s->base.base, vTable, &screenObjectVTable);
+    WRAP (&s->object, &s->base, vTable, &screenObjectVTable);
 
     s->display = NULL;
 
@@ -1811,18 +1750,18 @@ screenFiniObject (CompObject *object)
 {
     SCREEN (object);
 
-    UNWRAP (&s->object, &s->base.base, vTable);
+    UNWRAP (&s->object, &s->base, vTable);
 
     if (s->privates)
 	free (s->privates);
 
-    compChildObjectFini (&s->base);
+    compObjectFini (&s->base, getObjectType ());
 }
 
 static void
 screenInitVTable (void *vTable)
 {
-    compInitChildObjectVTable (vTable);
+    (*getObjectType ()->initVTable) (vTable);
 }
 
 static CompObjectType screenObjectType = {
@@ -1887,12 +1826,14 @@ addScreen (CompDisplay *display,
     GLfloat		 diffuseLight[]   = { 0.9f, 0.9f,  0.9f, 0.9f };
     GLfloat		 light0Position[] = { -0.5f, 0.5f, -9.0f, 1.0f };
     CompWindow		 *w;
+    char		 name[256];
+    char		 *path[] = { "screens", name, NULL };
 
     s = malloc (sizeof (CompScreen));
     if (!s)
 	return FALSE;
 
-    if (!compObjectInit (&s->base.base, getScreenObjectType ()))
+    if (!compObjectInit (&s->base, getScreenObjectType ()))
     {
 	free (s);
 	return FALSE;
@@ -1906,6 +1847,10 @@ addScreen (CompDisplay *display,
 					    s->opt,
 					    COMP_SCREEN_OPTION_NUM))
 	return FALSE;
+
+    s->detectRefreshRate = TRUE;
+    s->refreshRate       = 60;
+    s->defaultIconImage  = strdup ("icon");
 
     s->damage = XCreateRegion ();
     if (!s->damage)
@@ -2378,7 +2323,9 @@ addScreen (CompDisplay *display,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&s->base));
 
-    (*core.objectAdd) (&display->base.base, &s->base);
+    snprintf (name, 256, "%d", s->screenNum);
+
+    (*core.objectAdd) (&display->base, &s->base, path);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2462,7 +2409,7 @@ removeScreen (CompScreen *s)
     while (s->windows)
 	removeWindow (s->windows);
 
-    (*core.objectRemove) (&d->base.base, &s->base);
+    (*core.objectRemove) (&d->base, &s->base);
 
     objectFiniPlugins (&s->base);
 
@@ -4238,7 +4185,7 @@ Bool
 updateDefaultIcon (CompScreen *screen)
 {
     CompIcon *icon;
-    char     *file = screen->opt[COMP_SCREEN_OPTION_DEFAULT_ICON].value.s;
+    char     *file = screen->defaultIconImage;
     void     *data;
     int      width, height;
 

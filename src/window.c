@@ -1282,7 +1282,7 @@ freeWindow (CompWindow *w)
 {
     releaseWindow (w);
 
-    compObjectFini (&w->base.base, getWindowObjectType ());
+    compObjectFini (&w->base, getWindowObjectType ());
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
@@ -1790,28 +1790,29 @@ windowForBaseObject (CompObject	            *object,
     return status;
 }
 
-static const CompObjectType *
-windowGetType (CompObject *object)
+static CompBool
+windowForEachType (CompObject	    *object,
+		   TypeCallBackProc proc,
+		   void		    *closure)
 {
-    return getWindowObjectType ();
-}
-
-static char *
-windowQueryName (CompObject *object)
-{
-    char tmp[256];
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
     WINDOW (object);
 
-    snprintf (tmp, 256, "0x%lu", w->id);
+    if (!(*proc) (object, getWindowObjectType (), closure))
+	return FALSE;
 
-    return strdup (tmp);
+    UNWRAP (&w->object, object, vTable);
+    status = (*object->vTable->forEachType) (object, proc, closure);
+    WRAP (&w->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompObjectVTable windowObjectVTable = {
     .forBaseObject = windowForBaseObject,
-    .getType	   = windowGetType,
-    .queryName	   = windowQueryName
+    .forEachType   = windowForEachType
 };
 
 static CompObjectPrivates windowObjectPrivates = {
@@ -1828,16 +1829,18 @@ windowInitObject (CompObject *object)
 {
     WINDOW (object);
 
-    if (!compChildObjectInit (&w->base, COMP_OBJECT_TYPE_WINDOW))
+    if (!compObjectInit (&w->base, getObjectType ()))
 	return FALSE;
+
+    w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &windowObjectPrivates))
     {
-	compChildObjectFini (&w->base);
+	compObjectFini (&w->base, getObjectType ());
 	return FALSE;
     }
 
-    WRAP (&w->object, &w->base.base, vTable, &windowObjectVTable);
+    WRAP (&w->object, &w->base, vTable, &windowObjectVTable);
 
     return TRUE;
 }
@@ -1847,18 +1850,18 @@ windowFiniObject (CompObject *object)
 {
     WINDOW (object);
 
-    UNWRAP (&w->object, &w->base.base, vTable);
+    UNWRAP (&w->object, &w->base, vTable);
 
     if (w->privates)
 	free (w->privates);
 
-    compChildObjectFini (&w->base);
+    compObjectFini (&w->base, getObjectType ());
 }
 
 static void
 windowInitVTable (void *vTable)
 {
-    compInitChildObjectVTable (vTable);
+    (*getObjectType ()->initVTable) (vTable);
 }
 
 static CompObjectType windowObjectType = {
@@ -1903,6 +1906,8 @@ addWindow (CompScreen *screen,
 	   Window     aboveId)
 {
     CompWindow *w;
+    char       name[256];
+    char       *path[] = { "windows", name, NULL };
 
     w = (CompWindow *) malloc (sizeof (CompWindow));
     if (!w)
@@ -2013,7 +2018,7 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!compObjectInit (&w->base.base, getWindowObjectType ()))
+    if (!compObjectInit (&w->base, getWindowObjectType ()))
     {
 	free (w);
 	return;
@@ -2258,7 +2263,9 @@ addWindow (CompScreen *screen,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&w->base));
 
-    (*core.objectAdd) (&screen->base.base, &w->base);
+    snprintf (name, 256, "%lu", w->id);
+
+    (*core.objectAdd) (&screen->base, &w->base, path);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
@@ -2323,7 +2330,7 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (w->screen);
     }
 
-    (*core.objectRemove) (&w->screen->base.base, &w->base);
+    (*core.objectRemove) (&w->screen->base, &w->base);
 
     objectFiniPlugins (&w->base);
 

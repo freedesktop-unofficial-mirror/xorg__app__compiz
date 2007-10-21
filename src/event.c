@@ -692,7 +692,7 @@ static Bool
 handleActionEvent (CompDisplay *d,
 		   XEvent      *event)
 {
-    CompObject *obj = &d->base.base;
+    CompObject *obj = &d->base;
     CompOption *option;
     int	       nOption;
     CompPlugin *p;
@@ -1690,14 +1690,9 @@ handleEvent (CompDisplay *d,
 		CompOptionValue value;
 
 		value.i = event->xclient.data.l[0] / s->width;
-
-		(*core.setOptionForPlugin) (&s->base.base, "core", "hsize",
-					    &value);
-
+		(*core.setOptionForPlugin) (&s->base, "core", "hsize", &value);
 		value.i = event->xclient.data.l[1] / s->height;
-
-		(*core.setOptionForPlugin) (&s->base.base, "core", "vsize",
-					    &value);
+		(*core.setOptionForPlugin) (&s->base, "core", "vsize", &value);
 	    }
 	}
 	else if (event->xclient.message_type == d->moveResizeWindowAtom)
@@ -1802,7 +1797,7 @@ handleEvent (CompDisplay *d,
 
 		value.i = event->xclient.data.l[0];
 
-		(*core.setOptionForPlugin) (&s->base.base,
+		(*core.setOptionForPlugin) (&s->base,
 					    "core", "number_of_desktops",
 					    &value);
 	    }

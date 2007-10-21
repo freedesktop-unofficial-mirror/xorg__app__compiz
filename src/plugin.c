@@ -294,21 +294,21 @@ UnloadPluginProc loaderUnloadPlugin = dlloaderUnloadPlugin;
 ListPluginsProc  loaderListPlugins  = dlloaderListPlugins;
 
 typedef struct _InitObjectContext {
-    CompPlugin      *plugin;
-    CompChildObject *object;
+    CompPlugin *plugin;
+    CompObject *object;
 } InitObjectContext;
 
 static CompBool
-initObjectTree (CompChildObject *object,
-		void		*closure);
+initObjectTree (CompObject *object,
+		void	   *closure);
 
 static CompBool
-finiObjectTree (CompChildObject *object,
-		void		*closure);
+finiObjectTree (CompObject *object,
+		void	   *closure);
 
 static CompBool
-initObjectTree (CompChildObject *o,
-		void		*closure)
+initObjectTree (CompObject *o,
+		void	   *closure)
 {
     InitObjectContext ctx, *pCtx = (InitObjectContext *) closure;
     CompPlugin	      *p = pCtx->plugin;
@@ -317,7 +317,7 @@ initObjectTree (CompChildObject *o,
 
     if (p->vTable->initObject)
     {
-	if (!(*p->vTable->initObject) (p, &o->base))
+	if (!(*p->vTable->initObject) (p, o))
 	{
 	    compLogMessage (NULL, p->vTable->name, CompLogLevelError,
 			    "InitObject failed");
@@ -328,28 +328,28 @@ initObjectTree (CompChildObject *o,
     ctx.plugin = p;
     ctx.object = NULL;
 
-    if (!(*o->base.vTable->forEachChildObject) (&o->base,
-						initObjectTree,
-						(void *) &ctx))
+    if (!(*o->vTable->forEachChildObject) (o,
+					   initObjectTree,
+					   (void *) &ctx))
     {
-	(*o->base.vTable->forEachChildObject) (&o->base,
-					       finiObjectTree,
-					       (void *) &ctx);
+	(*o->vTable->forEachChildObject) (o,
+					  finiObjectTree,
+					  (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, &o->base);
+	    (*p->vTable->finiObject) (p, o);
 
 	return FALSE;
     }
 
-    if (!(*core.initPluginForObject) (p, &o->base))
+    if (!(*core.initPluginForObject) (p, o))
     {
-	(*o->base.vTable->forEachChildObject) (&o->base,
-					       finiObjectTree,
-					       (void *) &ctx);
+	(*o->vTable->forEachChildObject) (o,
+					  finiObjectTree,
+					  (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, &o->base);
+	    (*p->vTable->finiObject) (p, o);
 
 	return FALSE;
     }
@@ -358,8 +358,8 @@ initObjectTree (CompChildObject *o,
 }
 
 static CompBool
-finiObjectTree (CompChildObject *o,
-		void		*closure)
+finiObjectTree (CompObject *o,
+		void	   *closure)
 {
     InitObjectContext ctx, *pCtx = (InitObjectContext *) closure;
     CompPlugin	      *p = pCtx->plugin;
@@ -371,13 +371,13 @@ finiObjectTree (CompChildObject *o,
     ctx.plugin = p;
     ctx.object = NULL;
 
-    (*o->base.vTable->forEachChildObject) (&o->base, finiObjectTree,
-					   (void *) &ctx);
+    (*o->vTable->forEachChildObject) (o, finiObjectTree,
+				      (void *) &ctx);
 
     if (p->vTable->initObject && p->vTable->finiObject)
-	(*p->vTable->finiObject) (p, &o->base);
+	(*p->vTable->finiObject) (p, o);
 
-    (*core.finiPluginForObject) (p, &o->base);
+    (*core.finiPluginForObject) (p, o);
 
     return TRUE;
 }
@@ -445,7 +445,7 @@ finiPlugin (CompPlugin *p)
 }
 
 CompBool
-objectInitPlugins (CompChildObject *o)
+objectInitPlugins (CompObject *o)
 {
     InitObjectContext ctx;
     CompPlugin	      *p;
@@ -481,7 +481,7 @@ objectInitPlugins (CompChildObject *o)
 }
 
 void
-objectFiniPlugins (CompChildObject *o)
+objectFiniPlugins (CompObject *o)
 {
     InitObjectContext ctx;
     CompPlugin	      *p;
@@ -706,7 +706,7 @@ getPluginABI (const char *name)
 	return 0;
 
     /* MULTIDPYERROR: ABI options should be moved into core */
-    option = (*p->vTable->getObjectOptions) (p, &core.displays->base.base,
+    option = (*p->vTable->getObjectOptions) (p, &core.displays->base,
 					     &nOption);
 
     return getIntOptionNamed (option, nOption, "abi", 0);
@@ -739,7 +739,7 @@ getPluginDisplayIndex (CompDisplay *d,
     if (!p || !p->vTable->getObjectOptions)
 	return FALSE;
 
-    option = (*p->vTable->getObjectOptions) (p, &d->base.base, &nOption);
+    option = (*p->vTable->getObjectOptions) (p, &d->base, &nOption);
 
     value = getIntOptionNamed (option, nOption, "index", -1);
     if (value < 0)

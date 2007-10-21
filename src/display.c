@@ -68,13 +68,35 @@ int lastPointerY = 0;
 int pointerX     = 0;
 int pointerY     = 0;
 
-static const CommonProp displayTypeProp[] = {
-    C_PROP (active_plugins, "as")
+static void
+filterChanged (CompObject *object,
+	       const char *interface,
+	       const char *name,
+	       int32_t    value)
+{
+    CompScreen *s;
+
+    DISPLAY (object);
+
+    for (s = d->screens; s; s = s->next)
+	damageScreen (s);
+
+    if (!value)
+	d->textureFilter = GL_NEAREST;
+    else
+	d->textureFilter = GL_LINEAR;
+}
+
+static const CommonBoolProp displayTypeBoolProp[] = {
+    C_PROP (clickToFocus, CompDisplay)
+};
+static const CommonIntProp displayTypeIntProp[] = {
+    C_INT_PROP (filter, CompDisplay, 0, 2, .changed = filterChanged)
 };
 #define INTERFACE_VERSION_displayType CORE_ABIVERSION
 
 static const CommonInterface displayInterface[] = {
-    C_INTERFACE (display, Type, CompObjectVTable, _, _, _, X)
+    C_INTERFACE (display, Type, CompObjectVTable, _, _, _, _, X, X, _, _)
 };
 
 static CompBool
@@ -102,19 +124,28 @@ displayForEachInterface (CompObject	       *object,
     return handleForEachInterface (object,
 				   displayInterface,
 				   N_ELEMENTS (displayInterface),
+				   getDisplayObjectType (),
 				   proc, closure);
 }
 
-static const CompObjectType *
-displayGetType (CompObject *object)
+static CompBool
+displayForEachType (CompObject	     *object,
+		    TypeCallBackProc proc,
+		    void	     *closure)
 {
-    return getDisplayObjectType ();
-}
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
-static char *
-displayQueryName (CompObject *object)
-{
-    return NULL;
+    DISPLAY (object);
+
+    if (!(*proc) (object, getDisplayObjectType (), closure))
+	return FALSE;
+
+    UNWRAP (&d->object, object, vTable);
+    status = (*object->vTable->forEachType) (object, proc, closure);
+    WRAP (&d->object, object, vTable, v.vTable);
+
+    return status;
 }
 
 static CompBool
@@ -137,54 +168,6 @@ displayForEachChildObject (CompObject		   *object,
     WRAP (&d->object, object, vTable, v.vTable);
 
     return status;
-}
-
-static CompObject *
-displayLookupChildObject (CompObject *object,
-			  const char *type,
-			  const char *name)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompObject		*result;
-
-    DISPLAY (object);
-
-    if (strcmp (type, getScreenObjectType ()->name) == 0)
-    {
-	CompScreen *s;
-	int	   screenNum = atoi (name);
-
-	for (s = d->screens; s; s = s->next)
-	    if (s->screenNum == screenNum)
-		return &s->base.base;
-    }
-
-    UNWRAP (&d->object, object, vTable);
-    result = (*object->vTable->lookupChildObject) (object, type, name);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return result;
-}
-
-static CompBool
-displaySetProp (CompObject	 *object,
-		const char	 *interface,
-		const char	 *name,
-		const CompOption *value,
-		char	         **error)
-{
-    if (!setDisplayOption (NULL,
-			   GET_DISPLAY (object),
-			   name,
-			   &value->value))
-    {
-	if (error)
-	    *error = strdup ("No such property");
-
-	return FALSE;
-    }
-
-    return TRUE;
 }
 
 static Bool
@@ -900,22 +883,6 @@ setDisplayOption (CompPlugin		*plugin,
 	    return TRUE;
 	}
 	break;
-    case COMP_DISPLAY_OPTION_TEXTURE_FILTER:
-	if (compSetIntOption (o, value))
-	{
-	    CompScreen *s;
-
-	    for (s = display->screens; s; s = s->next)
-		damageScreen (s);
-
-	    if (!o->value.i)
-		display->textureFilter = GL_NEAREST;
-	    else
-		display->textureFilter = GL_LINEAR;
-
-	    return TRUE;
-	}
-	break;
     case COMP_DISPLAY_OPTION_PING_DELAY:
 	if (compSetIntOption (o, value))
 	{
@@ -970,8 +937,7 @@ updatePlugins (CompDisplay *d)
 	pop = malloc (sizeof (CompPlugin *) * nPop);
 	if (!pop)
 	{
-	    (*core.setOptionForPlugin) (&d->base.base, "core", o->name,
-					&d->plugin);
+	    (*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
 	    return;
 	}
     }
@@ -1043,7 +1009,7 @@ updatePlugins (CompDisplay *d)
     if (nPop)
 	free (pop);
 
-    (*core.setOptionForPlugin) (&d->base.base, "core", o->name, &d->plugin);
+    (*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
 }
 
 static void
@@ -1970,7 +1936,7 @@ addScreenToDisplay (CompDisplay *display,
 static void
 freeDisplay (CompDisplay *d)
 {
-    compObjectFini (&d->base.base, getDisplayObjectType ());
+    compObjectFini (&d->base, getDisplayObjectType ());
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 
@@ -1981,15 +1947,17 @@ freeDisplay (CompDisplay *d)
 }
 
 static CompObjectVTable displayObjectVTable = {
-    .forBaseObject	= displayForBaseObject,
-    .forEachInterface   = displayForEachInterface,
-    .forEachProp	= commonForEachProp,
-    .getType		= displayGetType,
-    .queryName		= displayQueryName,
-    .forEachChildObject = displayForEachChildObject,
-    .lookupChildObject	= displayLookupChildObject,
-    .version.get	= commonGetVersion,
-    .properties.set	= displaySetProp
+    .forBaseObject	   = displayForBaseObject,
+    .forEachInterface      = displayForEachInterface,
+    .forEachProp	   = commonForEachProp,
+    .forEachType	   = displayForEachType,
+    .forEachChildObject    = displayForEachChildObject,
+    .version.get	   = commonGetVersion,
+    .properties.getBool	   = commonGetBoolProp,
+    .properties.setBool	   = commonSetBoolProp,
+    .properties.getInt	   = commonGetIntProp,
+    .properties.setInt	   = commonSetIntProp,
+    .properties.intChanged = commonIntPropChanged,
 };
 
 static CompObjectPrivates displayObjectPrivates = {
@@ -2008,16 +1976,18 @@ displayInitObject (CompObject *object)
 
     DISPLAY (object);
 
-    if (!compChildObjectInit (&d->base, COMP_OBJECT_TYPE_DISPLAY))
+    if (!compObjectInit (&d->base, getObjectType ()))
 	return FALSE;
+
+    d->base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
-	compChildObjectFini (&d->base);
+	compObjectFini (&d->base, getObjectType ());
 	return FALSE;
     }
 
-    WRAP (&d->object, &d->base.base, vTable, &displayObjectVTable);
+    WRAP (&d->object, &d->base, vTable, &displayObjectVTable);
 
     d->next    = NULL;
     d->screens = NULL;
@@ -2063,18 +2033,18 @@ displayFiniObject (CompObject *object)
 
     compFiniOptionValue (&d->plugin, CompOptionTypeList);
 
-    UNWRAP (&d->object, &d->base.base, vTable);
+    UNWRAP (&d->object, &d->base, vTable);
 
     if (d->privates)
 	free (d->privates);
 
-    compChildObjectFini (&d->base);
+    compObjectFini (&d->base, getObjectType ());
 }
 
 static void
 displayInitVTable (void *vTable)
 {
-    compInitChildObjectVTable (vTable);
+    (*getObjectType ()->initVTable) (vTable);
 }
 
 static CompObjectType displayObjectType = {
@@ -2124,12 +2094,13 @@ addDisplay (const char *name)
     int		fixesMinor;
     int		xkbOpcode;
     int		firstScreen, lastScreen;
+    char	*path[] = { "display", NULL };
 
     d = malloc (sizeof (CompDisplay));
     if (!d)
 	return FALSE;
 
-    if (!compObjectInit (&d->base.base, getDisplayObjectType ()))
+    if (!compObjectInit (&d->base, getDisplayObjectType ()))
     {
 	free (d);
 	return FALSE;
@@ -2169,6 +2140,9 @@ addDisplay (const char *name)
 					     d->opt,
 					     COMP_DISPLAY_OPTION_NUM))
 	return FALSE;
+
+    d->clickToFocus = TRUE;
+    d->filter	    = COMP_TEXTURE_FILTER_GOOD;
 
     d->opt[COMP_DISPLAY_OPTION_ABI].value.i = CORE_ABIVERSION;
 
@@ -2451,7 +2425,7 @@ addDisplay (const char *name)
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->base));
 
-    (*core.objectAdd) (&core.base, &d->base);
+    (*core.objectAdd) (&core.base, &d->base, path);
 
     if (onlyCurrentScreen)
     {
