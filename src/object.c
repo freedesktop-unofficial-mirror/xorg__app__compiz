@@ -272,8 +272,8 @@ marshal__S_S_E (CompObject *object,
 }
 
 static const CommonSignal objectTypeSignal[] = {
-    C_SIGNAL (childObjectAdded,   "s", CompObjectVTable),
-    C_SIGNAL (childObjectRemoved, "s", CompObjectVTable)
+    C_SIGNAL (childObjectAdded,   "o", CompObjectVTable),
+    C_SIGNAL (childObjectRemoved, "o", CompObjectVTable)
 };
 #define INTERFACE_VERSION_objectType CORE_ABIVERSION
 
@@ -482,34 +482,34 @@ static CompBool
 baseObjectChildObjectAdded (CompObject *object,
 			    void       *closure)
 {
-    (*object->vTable->childObjectAdded) (object, (const char *) closure);
+    (*object->vTable->childObjectAdded) (object, (CompObject *) closure);
     return TRUE;
 }
 
 static void
 noopChildObjectAdded (CompObject *object,
-		      const char *name)
+		      CompObject *child)
 {
     (*object->vTable->forBaseObject) (object,
 				      baseObjectChildObjectAdded,
-				      (void *) name);
+				      (void *) child);
 }
 
 static CompBool
 baseObjectChildObjectRemoved (CompObject *object,
 			      void       *closure)
 {
-    (*object->vTable->childObjectRemoved) (object, (const char *) closure);
+    (*object->vTable->childObjectRemoved) (object, (CompObject *) closure);
     return TRUE;
 }
 
 static void
 noopChildObjectRemoved (CompObject *object,
-			const char *name)
+			CompObject *child)
 {
     (*object->vTable->forBaseObject) (object,
 				      baseObjectChildObjectRemoved,
-				      (void *) name);
+				      (void *) child);
 }
 
 typedef struct _ConnectContext {
@@ -1485,18 +1485,18 @@ forEachType (CompObject	      *object,
 
 static void
 childObjectAdded (CompObject *object,
-		  const char *name)
+		  CompObject *child)
 {
     EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_ADDED],
-		     "object", "childObjectAdded", "s", name);
+		     "object", "childObjectAdded", "o", child);
 }
 
 static void
 childObjectRemoved (CompObject *object,
-		    const char *name)
+		    CompObject *child)
 {
     EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_REMOVED],
-		     "object", "childObjectRemoved", "s", name);
+		     "object", "childObjectRemoved", "o", child);
 }
 
 static CompBool

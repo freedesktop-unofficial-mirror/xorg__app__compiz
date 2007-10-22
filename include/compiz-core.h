@@ -458,10 +458,10 @@ typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
 					    void		    *closure);
 
 typedef void (*ChildObjectAddedProc) (CompObject *object,
-				      const char *name);
+				      CompObject *child);
 
 typedef void (*ChildObjectRemovedProc) (CompObject *object,
-					const char *name);
+					CompObject *child);
 
 typedef void (*SignalHandlerProc) (CompObject *object,
 				   void	      *data,

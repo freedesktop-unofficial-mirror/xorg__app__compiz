@@ -193,22 +193,20 @@ coreObjectAdd (CompObject *parent,
     object->parent = parent;
 
     if (parent)
-	(*parent->vTable->childObjectAdded) (parent, object->name);
+	(*parent->vTable->childObjectAdded) (parent, object);
 }
 
 static void
 coreObjectRemove (CompObject *parent,
 		  CompObject *object)
 {
-    char *name = object->name;
+    if (parent)
+	(*parent->vTable->childObjectRemoved) (parent, object);
+
+    free (object->name);
 
     object->parent = NULL;
     object->name   = NULL;
-
-    if (parent)
-	(*parent->vTable->childObjectRemoved) (parent, name);
-
-    free (name);
 }
 
 static void
