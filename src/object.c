@@ -271,6 +271,10 @@ marshal__S_S_E (CompObject *object,
     }
 }
 
+static const CommonSignal objectTypeSignal[] = {
+    C_SIGNAL (childObjectAdded,   "s", CompObjectVTable),
+    C_SIGNAL (childObjectRemoved, "s", CompObjectVTable)
+};
 #define INTERFACE_VERSION_objectType CORE_ABIVERSION
 
 static const CommonSignal signalObjectSignal[] = {
@@ -307,7 +311,7 @@ static const CommonMethod versionObjectMethod[] = {
 #define INTERFACE_VERSION_versionObject CORE_ABIVERSION
 
 static const CommonInterface objectInterface[] = {
-    C_INTERFACE (object,     Type,   CompObjectVTable, _, _, _, _, _, _, _, _),
+    C_INTERFACE (object,     Type,   CompObjectVTable, _, _, _, X, _, _, _, _),
     C_INTERFACE (signal,     Object, CompObjectVTable, X, _, _, X, _, _, _, _),
     C_INTERFACE (properties, Object, CompObjectVTable, X, _, X, X, _, _, _, _),
     C_INTERFACE (metadata,   Object, CompObjectVTable, X, _, X, _, _, _, _, _),
@@ -322,6 +326,9 @@ compObjectInit (CompObject     *object,
 
     if (!(*type->funcs.init) (object))
 	return FALSE;
+
+    if (!type->privates)
+	return TRUE;
 
     for (i = 0; i < type->privates->nFuncs; i++)
 	if (!(*type->privates->funcs[i].init) (object))
@@ -342,10 +349,13 @@ void
 compObjectFini (CompObject     *object,
 		CompObjectType *type)
 {
-    int i = type->privates->nFuncs;
+    if (type->privates)
+    {
+	int i = type->privates->nFuncs;
 
-    while (--i >= 0)
-	(*type->privates->funcs[i].fini) (object);
+	while (--i >= 0)
+	    (*type->privates->funcs[i].fini) (object);
+    }
 
     (*type->funcs.fini) (object);
 }
@@ -466,6 +476,40 @@ noopForEachChildObject (CompObject		*object,
     return (*object->vTable->forBaseObject) (object,
 					     baseObjectForEachChildObject,
 					     (void *) &ctx);
+}
+
+static CompBool
+baseObjectChildObjectAdded (CompObject *object,
+			    void       *closure)
+{
+    (*object->vTable->childObjectAdded) (object, (const char *) closure);
+    return TRUE;
+}
+
+static void
+noopChildObjectAdded (CompObject *object,
+		      const char *name)
+{
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectChildObjectAdded,
+				      (void *) name);
+}
+
+static CompBool
+baseObjectChildObjectRemoved (CompObject *object,
+			      void       *closure)
+{
+    (*object->vTable->childObjectRemoved) (object, (const char *) closure);
+    return TRUE;
+}
+
+static void
+noopChildObjectRemoved (CompObject *object,
+			const char *name)
+{
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectChildObjectRemoved,
+				      (void *) name);
 }
 
 typedef struct _ConnectContext {
@@ -1439,6 +1483,22 @@ forEachType (CompObject	      *object,
     return (*proc) (object, getObjectType (), closure);
 }
 
+static void
+childObjectAdded (CompObject *object,
+		  const char *name)
+{
+    EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_ADDED],
+		     "object", "childObjectAdded", "s", name);
+}
+
+static void
+childObjectRemoved (CompObject *object,
+		    const char *name)
+{
+    EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_REMOVED],
+		     "object", "childObjectRemoved", "s", name);
+}
+
 static CompBool
 forEachChildObject (CompObject		    *object,
 		    ChildObjectCallBackProc proc,
@@ -1600,39 +1660,6 @@ disconnect (CompObject *object,
 		      id);
 }
 
-#define EMIT_SIGNAL(object, handlers, ...)			   \
-    do {							   \
-	CompSignalHandler *handler = handlers;			   \
-								   \
-	while (handler)						   \
-	{							   \
-	    (*handler->proc) (object, handler->data, __VA_ARGS__); \
-	    handler = handler->next;				   \
-	}							   \
-    } while (0)
-
-#define EMIT_EXT_SIGNAL(object, handlers, interface, name, signature, ...) \
-    EMIT_SIGNAL (object, handlers, __VA_ARGS__);			   \
-    emitSignalSignal (object, interface, name, signature, __VA_ARGS__)
-
-static void
-emitSignalSignal (CompObject *object,
-		  const char *interface,
-		  const char *name,
-		  const char *signature,
-		  ...)
-{
-    va_list args;
-
-    va_start (args, signature);
-
-    (*object->vTable->signal.signal) (object, object,
-				      interface, name, signature,
-				      args);
-
-    va_end (args);
-}
-
 static void
 signal (CompObject *object,
 	CompObject *source,
@@ -1649,6 +1676,24 @@ signal (CompObject *object,
 	(*object->parent->vTable->signal.signal) (object->parent, source,
 						  interface, name, signature,
 						  args);
+}
+
+void
+emitSignalSignal (CompObject *object,
+		  const char *interface,
+		  const char *name,
+		  const char *signature,
+		  ...)
+{
+    va_list args;
+
+    va_start (args, signature);
+
+    (*object->vTable->signal.signal) (object, object,
+				      interface, name, signature,
+				      args);
+
+    va_end (args);
 }
 
 #define INTERFACE_DATA(object, interface) \
@@ -2473,6 +2518,8 @@ static CompObjectVTable objectVTable = {
     commonForEachProp,
     forEachType,
     forEachChildObject,
+    childObjectAdded,
+    childObjectRemoved,
     {
 	connect,
 	disconnect,
@@ -2542,6 +2589,8 @@ initObjectVTable (CompObjectVTable *vTable)
     ENSURE (vTable, forEachType, noopForEachType);
 
     ENSURE (vTable, forEachChildObject, noopForEachChildObject);
+    ENSURE (vTable, childObjectAdded,   noopChildObjectAdded);
+    ENSURE (vTable, childObjectRemoved, noopChildObjectRemoved);
 
     ENSURE (vTable, signal.connect,    noopConnect);
     ENSURE (vTable, signal.disconnect, noopDisconnect);
@@ -3020,23 +3069,17 @@ checkChildObject (CompObject *object,
 		  void	     *closure)
 {
     LookupObjectContext *pCtx = (LookupObjectContext *) closure;
-    int			i;
 
-    for (i = 0; pCtx->path[i] && object->path[i]; i++)
-	if (strcmp (object->path[i], pCtx->path[i]))
-	    return TRUE;
+    if (strcmp (object->name, pCtx->path[0]))
+	return TRUE;
 
-    if (pCtx->path[i])
+    if (pCtx->path[1])
     {
-	pCtx->path = &pCtx->path[i];
+	pCtx->path = &pCtx->path[1];
 
 	return (*object->vTable->forEachChildObject) (object,
 						      checkChildObject,
 						      closure);
-    }
-    else if (object->path[i])
-    {
-	return TRUE;
     }
 
     pCtx->object = object;

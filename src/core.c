@@ -90,14 +90,12 @@ coreForEachChildObject (CompObject		*object,
 			void			*closure)
 {
     CompObjectVTableVec v = { object->vTable };
-    CompDisplay		*d;
     CompBool		status;
 
     CORE (object);
 
-    for (d = c->displays; d; d = d->next)
-	if (!(*proc) (&d->base, closure))
-	    return FALSE;
+    if (!(*proc) (&c->displayContainer.base, closure))
+	return FALSE;
 
     UNWRAP (&c->object, object, vTable);
     status = (*object->vTable->forEachChildObject) (object, proc, closure);
@@ -186,45 +184,31 @@ setOptionForPlugin (CompObject      *object,
     return FALSE;
 }
 
-static CompBool
+static void
 coreObjectAdd (CompObject *parent,
 	       CompObject *object,
-	       char       **path)
+	       const char *name)
 {
-    int  i, size = sizeof (char *);
-    char *data;
+    object->name   = strdup (name);
+    object->parent = parent;
 
-    for (i = 0; path[i]; i++)
-	size += sizeof (char *) + strlen (path[i]) + 1;
-
-    data = malloc (size);
-    if (!data)
-	return FALSE;
-
-    object->path = (char **) data;
-
-    data += sizeof (char *) * (i + 1);
-
-    for (i = 0; path[i]; i++)
-    {
-	object->path[i] = data;
-	data += sprintf (data, "%s", path[i]) + 1;
-    }
-
-    object->path[i] = NULL;
-    object->parent  = parent;
-
-    return TRUE;
+    if (parent)
+	(*parent->vTable->childObjectAdded) (parent, object->name);
 }
 
 static void
 coreObjectRemove (CompObject *parent,
 		  CompObject *object)
 {
-    free (object->path);
+    char *name = object->name;
 
     object->parent = NULL;
-    object->path   = NULL;
+    object->name   = NULL;
+
+    if (parent)
+	(*parent->vTable->childObjectRemoved) (parent, name);
+
+    free (name);
 }
 
 static void
@@ -244,6 +228,9 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 		       void		      *closure)
 {
     if (!(*proc) (getObjectType (), closure))
+	return FALSE;
+
+    if (!(*proc) (getContainerObjectType (), closure))
 	return FALSE;
 
     if (!(*proc) (getCoreObjectType (), closure))
@@ -280,19 +267,44 @@ static CompObjectPrivates coreObjectPrivates = {
 };
 
 static CompBool
+forEachDisplayObject (CompObject	      *object,
+		      ChildObjectCallBackProc proc,
+		      void		      *closure)
+{
+    CompDisplay	*d;
+
+    CORE (object->parent);
+
+    for (d = c->displays; d; d = d->next)
+	if (!(*proc) (&d->base, closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+static CompBool
 coreInitObject (CompObject *object)
 {
-    char *path[] = { "core", NULL };
-
     CORE (object);
 
     if (!compObjectInit (object, getObjectType ()))
 	return FALSE;
 
+    if (!compObjectInit (&c->displayContainer.base, getContainerObjectType ()))
+    {
+	compObjectFini (&c->base, getObjectType ());
+	return FALSE;
+    }
+
+    c->displayContainer.forEachChildObject = forEachDisplayObject;
+    c->displayContainer.base.parent	   = &c->base;
+    c->displayContainer.base.name	   = "displays";
+
     c->base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &coreObjectPrivates))
     {
+	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
 	compObjectFini (&c->base, getObjectType ());
 	return FALSE;
     }
@@ -300,6 +312,7 @@ coreInitObject (CompObject *object)
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
+	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
 	compObjectFini (&c->base, getObjectType ());
 	return FALSE;
     }
@@ -308,6 +321,7 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
+	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
 	compObjectFini (&c->base, getObjectType ());
 	return FALSE;
     }
@@ -346,7 +360,7 @@ coreInitObject (CompObject *object)
     c->sessionFini  = sessionFini;
     c->sessionEvent = sessionEvent;
 
-    (*c->objectAdd) (NULL, &c->base, path);
+    (*c->objectAdd) (NULL, &c->base, "core");
 
     return TRUE;
 }
@@ -364,6 +378,7 @@ coreFiniObject (CompObject *object)
     if (c->privates)
 	free (c->privates);
 
+    compObjectFini (&c->displayContainer.base, getContainerObjectType ());
     compObjectFini (&c->base, getObjectType ());
 }
 

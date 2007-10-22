@@ -154,14 +154,12 @@ displayForEachChildObject (CompObject		   *object,
 			   void			   *closure)
 {
     CompObjectVTableVec v = { object->vTable };
-    CompScreen		*s;
     CompBool		status;
 
     DISPLAY (object);
 
-    for (s = d->screens; s; s = s->next)
-	if (!(*proc) (&s->base, closure))
-	    return FALSE;
+    if (!(*proc) (&d->screenContainer.base, closure))
+	return FALSE;
 
     UNWRAP (&d->object, object, vTable);
     status = (*object->vTable->forEachChildObject) (object, proc, closure);
@@ -1970,6 +1968,22 @@ static CompObjectPrivates displayObjectPrivates = {
 };
 
 static CompBool
+forEachScreenObject (CompObject	             *object,
+		     ChildObjectCallBackProc proc,
+		     void		     *closure)
+{
+    CompScreen	*s;
+
+    DISPLAY (object->parent);
+
+    for (s = d->screens; s; s = s->next)
+	if (!(*proc) (&s->base, closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+static CompBool
 displayInitObject (CompObject *object)
 {
     int i;
@@ -1979,10 +1993,21 @@ displayInitObject (CompObject *object)
     if (!compObjectInit (&d->base, getObjectType ()))
 	return FALSE;
 
+    if (!compObjectInit (&d->screenContainer.base, getContainerObjectType ()))
+    {
+	compObjectFini (&d->base, getObjectType ());
+	return FALSE;
+    }
+
+    d->screenContainer.forEachChildObject = forEachScreenObject;
+    d->screenContainer.base.parent	  = &d->base;
+    d->screenContainer.base.name	  = "screens";
+
     d->base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
+	compObjectFini (&d->screenContainer.base, getContainerObjectType ());
 	compObjectFini (&d->base, getObjectType ());
 	return FALSE;
     }
@@ -2038,6 +2063,7 @@ displayFiniObject (CompObject *object)
     if (d->privates)
 	free (d->privates);
 
+    compObjectFini (&d->screenContainer.base, getContainerObjectType ());
     compObjectFini (&d->base, getObjectType ());
 }
 
@@ -2094,7 +2120,6 @@ addDisplay (const char *name)
     int		fixesMinor;
     int		xkbOpcode;
     int		firstScreen, lastScreen;
-    char	*path[] = { "display", NULL };
 
     d = malloc (sizeof (CompDisplay));
     if (!d)
@@ -2425,7 +2450,7 @@ addDisplay (const char *name)
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->base));
 
-    (*core.objectAdd) (&core.base, &d->base, path);
+    (*core.objectAdd) (&core.displayContainer.base, &d->base, "display");
 
     if (onlyCurrentScreen)
     {
@@ -2683,7 +2708,7 @@ removeDisplay (CompDisplay *d)
     while (d->screens)
 	removeScreen (d->screens);
 
-    (*core.objectRemove) (&core.base, &d->base);
+    (*core.objectRemove) (&core.displayContainer.base, &d->base);
 
     objectFiniPlugins (&d->base);
 

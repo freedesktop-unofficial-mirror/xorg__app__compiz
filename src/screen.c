@@ -144,14 +144,12 @@ screenForEachChildObject (CompObject		  *object,
 			  void			  *closure)
 {
     CompObjectVTableVec v = { object->vTable };
-    CompWindow		*w;
     CompBool		status;
 
     SCREEN (object);
 
-    for (w = s->windows; w; w = w->next)
-	if (!(*proc) (&w->base, closure))
-	    return FALSE;
+    if (!(*proc) (&s->windowContainer.base, closure))
+	return FALSE;
 
     UNWRAP (&s->object, object, vTable);
     status = (*object->vTable->forEachChildObject) (object, proc, closure);
@@ -1520,6 +1518,22 @@ static CompObjectPrivates screenObjectPrivates = {
 };
 
 static CompBool
+forEachWindowObject (CompObject	             *object,
+		     ChildObjectCallBackProc proc,
+		     void		     *closure)
+{
+    CompWindow	*w;
+
+    SCREEN (object->parent);
+
+    for (w = s->windows; w; w = w->next)
+	if (!(*proc) (&w->base, closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+static CompBool
 screenInitObject (CompObject *object)
 {
     int i;
@@ -1529,10 +1543,21 @@ screenInitObject (CompObject *object)
     if (!compObjectInit (&s->base, getObjectType ()))
 	return FALSE;
 
+    if (!compObjectInit (&s->windowContainer.base, getContainerObjectType ()))
+    {
+	compObjectFini (&s->base, getObjectType ());
+	return FALSE;
+    }
+
+    s->windowContainer.forEachChildObject = forEachWindowObject;
+    s->windowContainer.base.parent	  = &s->base;
+    s->windowContainer.base.name	  = "windows";
+
     s->base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
+	compObjectFini (&s->windowContainer.base, getContainerObjectType ());
 	compObjectFini (&s->base, getObjectType ());
 	return FALSE;
     }
@@ -1755,6 +1780,7 @@ screenFiniObject (CompObject *object)
     if (s->privates)
 	free (s->privates);
 
+    compObjectFini (&s->windowContainer.base, getContainerObjectType ());
     compObjectFini (&s->base, getObjectType ());
 }
 
@@ -1827,7 +1853,6 @@ addScreen (CompDisplay *display,
     GLfloat		 light0Position[] = { -0.5f, 0.5f, -9.0f, 1.0f };
     CompWindow		 *w;
     char		 name[256];
-    char		 *path[] = { "screens", name, NULL };
 
     s = malloc (sizeof (CompScreen));
     if (!s)
@@ -2325,7 +2350,7 @@ addScreen (CompDisplay *display,
 
     snprintf (name, 256, "%d", s->screenNum);
 
-    (*core.objectAdd) (&display->base, &s->base, path);
+    (*core.objectAdd) (&display->screenContainer.base, &s->base, name);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2409,7 +2434,7 @@ removeScreen (CompScreen *s)
     while (s->windows)
 	removeWindow (s->windows);
 
-    (*core.objectRemove) (&d->base, &s->base);
+    (*core.objectRemove) (&d->screenContainer.base, &s->base);
 
     objectFiniPlugins (&s->base);
 

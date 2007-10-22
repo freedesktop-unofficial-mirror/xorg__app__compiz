@@ -1907,7 +1907,6 @@ addWindow (CompScreen *screen,
 {
     CompWindow *w;
     char       name[256];
-    char       *path[] = { "windows", name, NULL };
 
     w = (CompWindow *) malloc (sizeof (CompWindow));
     if (!w)
@@ -2265,7 +2264,7 @@ addWindow (CompScreen *screen,
 
     snprintf (name, 256, "%lu", w->id);
 
-    (*core.objectAdd) (&screen->base, &w->base, path);
+    (*core.objectAdd) (&screen->windowContainer.base, &w->base, name);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
@@ -2330,7 +2329,7 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (w->screen);
     }
 
-    (*core.objectRemove) (&w->screen->base, &w->base);
+    (*core.objectRemove) (&w->screen->windowContainer.base, &w->base);
 
     objectFiniPlugins (&w->base);
 

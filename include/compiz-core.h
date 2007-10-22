@@ -455,6 +455,12 @@ typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
 					    ChildObjectCallBackProc proc,
 					    void		    *closure);
 
+typedef void (*ChildObjectAddedProc) (CompObject *object,
+				      const char *name);
+
+typedef void (*ChildObjectRemovedProc) (CompObject *object,
+					const char *name);
+
 typedef void (*SignalHandlerProc) (CompObject *object,
 				   void	      *data,
 				   ...);
@@ -614,11 +620,13 @@ typedef struct _CompObjectVTable {
      */
     ForEachTypeProc forEachType;
 
-    /* child function
+    /* child object functions
 
-       child objects are provided by implementing this
+       child objects are provided by implementing forEachChildObject
      */
     ForEachChildObjectProc forEachChildObject;
+    ChildObjectAddedProc   childObjectAdded;
+    ChildObjectRemovedProc childObjectRemoved;
 
     CompSignalVTable     signal;
     CompVersionVTable    version;
@@ -645,17 +653,19 @@ typedef struct _CompSignalHandler {
     void		      *data;
 } CompSignalHandler;
 
-#define COMP_OBJECT_SIGNAL_SIGNAL         0
-#define COMP_OBJECT_SIGNAL_BOOL_CHANGED   1
-#define COMP_OBJECT_SIGNAL_INT_CHANGED    2
-#define COMP_OBJECT_SIGNAL_DOUBLE_CHANGED 3
-#define COMP_OBJECT_SIGNAL_STRING_CHANGED 4
-#define COMP_OBJECT_SIGNAL_NUM            5
+#define COMP_OBJECT_SIGNAL_CHILD_ADDED    0
+#define COMP_OBJECT_SIGNAL_CHILD_REMOVED  1
+#define COMP_OBJECT_SIGNAL_SIGNAL         2
+#define COMP_OBJECT_SIGNAL_BOOL_CHANGED   3
+#define COMP_OBJECT_SIGNAL_INT_CHANGED    4
+#define COMP_OBJECT_SIGNAL_DOUBLE_CHANGED 5
+#define COMP_OBJECT_SIGNAL_STRING_CHANGED 6
+#define COMP_OBJECT_SIGNAL_NUM            7
 
 struct _CompObject {
     CompObjectVTable *vTable;
     CompObject       *parent;
-    char	     **path;
+    char	     *name;
 
     CompSignalHandler *signal[COMP_OBJECT_SIGNAL_NUM];
 
@@ -663,6 +673,28 @@ struct _CompObject {
 
     CompObjectTypeID id;
 };
+
+void
+emitSignalSignal (CompObject *object,
+		  const char *interface,
+		  const char *name,
+		  const char *signature,
+		  ...);
+
+#define EMIT_SIGNAL(object, handlers, ...)			   \
+    do {							   \
+	CompSignalHandler *handler = handlers;			   \
+								   \
+	while (handler)						   \
+	{							   \
+	    (*handler->proc) (object, handler->data, __VA_ARGS__); \
+	    handler = handler->next;				   \
+	}							   \
+    } while (0)
+
+#define EMIT_EXT_SIGNAL(object, handlers, interface, name, signature, ...) \
+    EMIT_SIGNAL (object, handlers, __VA_ARGS__);			   \
+    emitSignalSignal (object, interface, name, signature, __VA_ARGS__)
 
 CompObjectType *
 getObjectType (void);
@@ -1024,6 +1056,23 @@ sessionEvent (CompCore         *c,
 	      CompOption       *arguments,
 	      unsigned int     nArguments);
 
+/* container.c */
+
+typedef struct _CompContainer {
+    CompObject base;
+
+    CompObjectVTableVec object;
+
+    ForEachChildObjectProc forEachChildObject;
+} CompContainer;
+
+#define GET_CONTAINER(object) ((CompContainer *) (object))
+#define CONTAINER(object) CompContainer *c = GET_CONTAINER (object)
+
+CompObjectType *
+getContainerObjectType (void);
+
+
 /* option.c */
 
 typedef enum {
@@ -1252,9 +1301,9 @@ typedef CompBool (*SetOptionForPluginProc) (CompObject      *object,
 					    const char	    *name,
 					    CompOptionValue *value);
 
-typedef CompBool (*ObjectAddProc) (CompObject *parent,
-				   CompObject *object,
-				   char	      **path);
+typedef void (*ObjectAddProc) (CompObject *parent,
+			       CompObject *object,
+			       const char *name);
 typedef void (*ObjectRemoveProc) (CompObject *parent,
 				  CompObject *object);
 
@@ -1314,6 +1363,8 @@ struct _CompCore {
     CompPrivate	*privates;
 
     CompDisplay *displays;
+
+    CompContainer displayContainer;
 
     Region tmpRegion;
     Region outputRegion;
@@ -1556,6 +1607,8 @@ struct _CompDisplay {
 
     Display    *display;
     CompScreen *screens;
+
+    CompContainer screenContainer;
 
     CompWatchFdHandle watchFdHandle;
 
@@ -2642,6 +2695,8 @@ struct _CompScreen {
     CompDisplay *display;
     CompWindow	*windows;
     CompWindow	*reverseWindows;
+
+    CompContainer windowContainer;
 
     Colormap	      colormap;
     int		      screenNum;
