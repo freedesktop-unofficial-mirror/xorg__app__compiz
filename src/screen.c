@@ -1852,7 +1852,7 @@ addScreen (CompDisplay *display,
     GLfloat		 diffuseLight[]   = { 0.9f, 0.9f,  0.9f, 0.9f };
     GLfloat		 light0Position[] = { -0.5f, 0.5f, -9.0f, 1.0f };
     CompWindow		 *w;
-    char		 name[256];
+    char		 objectName[256];
 
     s = malloc (sizeof (CompScreen));
     if (!s)
@@ -2348,9 +2348,9 @@ addScreen (CompDisplay *display,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&s->base));
 
-    snprintf (name, 256, "%d", s->screenNum);
+    snprintf (objectName, 256, "%d", s->screenNum);
 
-    (*core.objectAdd) (&display->screenContainer.base, &s->base, name);
+    (*core.objectAdd) (&display->screenContainer.base, &s->base, objectName);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,

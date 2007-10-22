@@ -2120,6 +2120,9 @@ addDisplay (const char *name)
     int		fixesMinor;
     int		xkbOpcode;
     int		firstScreen, lastScreen;
+    char	objectName[256];
+    char	*hostName;
+    int		displayNum;
 
     d = malloc (sizeof (CompDisplay));
     if (!d)
@@ -2450,7 +2453,20 @@ addDisplay (const char *name)
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->base));
 
-    (*core.objectAdd) (&core.displayContainer.base, &d->base, "display");
+    if (xcb_parse_display (name, &hostName, &displayNum, NULL))
+    {
+	snprintf (objectName, 256, "%s_%d",
+		  *hostName == '\0' ? "localhost" : hostName,
+		  displayNum);
+
+	free (hostName);
+    }
+    else
+    {
+	strcpy (objectName, "localhost_0");
+    }
+
+    (*core.objectAdd) (&core.displayContainer.base, &d->base, objectName);
 
     if (onlyCurrentScreen)
     {

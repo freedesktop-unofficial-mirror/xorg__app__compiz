@@ -1906,7 +1906,7 @@ addWindow (CompScreen *screen,
 	   Window     aboveId)
 {
     CompWindow *w;
-    char       name[256];
+    char       objectName[256];
 
     w = (CompWindow *) malloc (sizeof (CompWindow));
     if (!w)
@@ -2262,9 +2262,9 @@ addWindow (CompScreen *screen,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&w->base));
 
-    snprintf (name, 256, "%lu", w->id);
+    snprintf (objectName, 256, "%lu", w->id);
 
-    (*core.objectAdd) (&screen->windowContainer.base, &w->base, name);
+    (*core.objectAdd) (&screen->windowContainer.base, &w->base, objectName);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
