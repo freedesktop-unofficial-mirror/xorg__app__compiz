@@ -3153,6 +3153,9 @@ basicArgsLoad (CompArgs   *args,
     case COMP_TYPE_STRING:
 	*((char **) value) = b->in[b->inPos++].s;
 	break;
+    case COMP_TYPE_OBJECT:
+	*((CompObject **) value) = b->in[b->inPos++].o;
+	break;
     }
 }
 
@@ -3175,6 +3178,9 @@ basicArgsStore (CompArgs   *args,
 	break;
     case COMP_TYPE_STRING:
 	b->out[b->outPos++].s = *((char **) value);
+	break;
+    case COMP_TYPE_OBJECT:
+	b->out[b->outPos++].o = *((CompObject **) value);
 	break;
     }
 }

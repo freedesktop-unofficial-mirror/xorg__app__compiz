@@ -349,7 +349,7 @@ typedef unsigned int CompObjectTypeID;
    INT32	105 (ASCII 'i')	32-bit signed integer.
    DOUBLE	100 (ASCII 'd')	IEEE 754 double.
    STRING	115 (ASCII 's')	Nul terminated UTF-8 string.
-   ARRAY	97  (ASCII 'a')	Array.
+   OBJECT	111 (ASCII 'o')	Object instance
 */
 
 #define COMP_TYPE_INVALID ((int) '\0')
@@ -358,12 +358,14 @@ typedef unsigned int CompObjectTypeID;
 #define COMP_TYPE_INT32   ((int) 'i')
 #define COMP_TYPE_DOUBLE  ((int) 'd')
 #define COMP_TYPE_STRING  ((int) 's')
+#define COMP_TYPE_OBJECT  ((int) 'o')
 
 typedef union {
-    CompBool b;
-    int	     i;
-    double   d;
-    char     *s;
+    CompBool   b;
+    int	       i;
+    double     d;
+    char       *s;
+    CompObject *o;
 } CompAnyValue;
 
 typedef struct _CompArgs CompArgs;
