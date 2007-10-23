@@ -1,5 +1,5 @@
 /*
- * Copyright © 2005 Novell, Inc.
+ * Copyright © 2007 Novell, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software
  * and its documentation for any purpose is hereby granted without
@@ -23,25 +23,15 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#define _GNU_SOURCE
 #include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-
-#include <glib.h>
-#include <glib/gprintf.h>
 #include <gconf/gconf-client.h>
 
 #include <compiz-core.h>
 
 static CompMetadata gconfMetadata;
 
-#define APP_NAME "compiz"
-
-/* From gconf-internal.h. Bleah. */
-int gconf_value_compare (const GConfValue *value_a,
-			 const GConfValue *value_b);
+#define APP_NAME        "compiz"
+#define MAX_PATH_LENGTH 1024
 
 static int corePrivateIndex;
 
@@ -50,336 +40,104 @@ typedef struct _GConfCore {
     guint	cnxn;
 
     CompTimeoutHandle reloadHandle;
-
-    InitPluginForObjectProc initPluginForObject;
-    SetOptionForPluginProc  setOptionForPlugin;
+    int		      signalHandle;
 } GConfCore;
 
-#define GET_GCONF_CORE(c)				     \
-    ((GConfCore *) (c)->base.privates[corePrivateIndex].ptr)
+#define GET_GCONF_CORE(c)				\
+    ((GConfCore *) (c)->privates[corePrivateIndex].ptr)
 
 #define GCONF_CORE(c)		       \
     GConfCore *gc = GET_GCONF_CORE (c)
 
 
 static gchar *
-gconfGetKey (CompObject  *object,
-	     const gchar *plugin,
-	     const gchar *option)
+gconfGetObjectPath (CompObject *object)
 {
-    const gchar *type = object->type->name;
-    gchar	*key, *name, *objectName;
+    gchar *parentPath, *path;
 
-    if (strcmp (type, "display") == 0)
-	type = "allscreens";
-
-    name = (*object->vTable->nameObject) (object);
-    if (name)
-    {
-	objectName = g_strdup_printf ("%s%s", type, name);
-	free (name);
-    }
+    if (object->parent)
+	parentPath = gconfGetObjectPath (object->parent);
     else
-	objectName = g_strdup (type);
+	parentPath = g_strdup ("/apps/" APP_NAME);
 
-    if (strcmp (plugin, "core") == 0)
-	key = g_strjoin ("/", "/apps", APP_NAME, "general", objectName,
-			 "options", option, NULL);
+    if (strcmp (object->name, "core") == 0)
+	return parentPath;
+
+    path = g_strdup_printf ("%s/%s", parentPath, object->name);
+
+    g_free (parentPath);
+
+    return path;
+}
+
+static gchar *
+gconfGetKey (CompObject  *object,
+	     const gchar *interface,
+	     const gchar *name)
+{
+    gchar *key, *path;
+
+    path = gconfGetObjectPath (object);
+
+    /* use interface as prefix when it's not equal to a type name */
+    if (compObjectFindType (interface))
+	key = g_strdup_printf ("%s/%s", path, name);
     else
-	key = g_strjoin ("/", "/apps", APP_NAME, "plugins", plugin, objectName,
-			 "options", option, NULL);
+	key = g_strdup_printf ("%s/%s_%s", path, interface, name);
 
-    g_free (objectName);
+    g_free (path);
 
     return key;
 }
 
-static GConfValueType
-gconfTypeFromCompType (CompOptionType type)
+static CompBool
+gconfSetPropToValue (CompObject       *object,
+		     const char       *interface,
+		     const char       *name,
+		     const GConfValue *gvalue)
 {
-    switch (type) {
-    case CompOptionTypeBool:
-    case CompOptionTypeBell:
-	return GCONF_VALUE_BOOL;
-    case CompOptionTypeInt:
-	return GCONF_VALUE_INT;
-    case CompOptionTypeFloat:
-	return GCONF_VALUE_FLOAT;
-    case CompOptionTypeString:
-    case CompOptionTypeColor:
-    case CompOptionTypeKey:
-    case CompOptionTypeButton:
-    case CompOptionTypeEdge:
-    case CompOptionTypeMatch:
-	return GCONF_VALUE_STRING;
-    case CompOptionTypeList:
-	return GCONF_VALUE_LIST;
-    default:
+    CompPropertiesVTable *vTable = &object->vTable->properties;
+
+    switch (gvalue->type) {
+    case GCONF_VALUE_BOOL:
+	return (*vTable->setBool) (object,
+				   interface,
+				   name,
+				   gconf_value_get_bool (gvalue),
+				   NULL);
+    case GCONF_VALUE_INT:
+	return (*vTable->setInt) (object,
+				  interface,
+				  name,
+				  gconf_value_get_int (gvalue),
+				  NULL);
+    case GCONF_VALUE_FLOAT:
+	return (*vTable->setDouble) (object,
+				     interface,
+				     name,
+				     gconf_value_get_float (gvalue),
+				     NULL);
+    case GCONF_VALUE_STRING:
+	return (*vTable->setString) (object,
+				     interface,
+				     name,
+				     gconf_value_get_string (gvalue),
+				     NULL);
+    case GCONF_VALUE_SCHEMA:
+    case GCONF_VALUE_LIST:
+    case GCONF_VALUE_PAIR:
+    case GCONF_VALUE_INVALID:
 	break;
-    }
-
-    return GCONF_VALUE_INVALID;
-}
-
-static void
-gconfSetValue (CompObject      *object,
-	       CompOptionValue *value,
-	       CompOptionType  type,
-	       GConfValue      *gvalue)
-{
-    switch (type) {
-    case CompOptionTypeBool:
-	gconf_value_set_bool (gvalue, value->b);
-	break;
-    case CompOptionTypeInt:
-	gconf_value_set_int (gvalue, value->i);
-	break;
-    case CompOptionTypeFloat:
-	gconf_value_set_float (gvalue, value->f);
-	break;
-    case CompOptionTypeString:
-	gconf_value_set_string (gvalue, value->s);
-	break;
-    case CompOptionTypeColor: {
-	gchar *color;
-
-	color = colorToString (value->c);
-	gconf_value_set_string (gvalue, color);
-
-	free (color);
-    } break;
-    case CompOptionTypeKey: {
-	gchar *action;
-
-	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-	    object = ((CompChildObject *) object)->parent;
-
-	if (!object)
-	    return;
-
-	action = keyActionToString (GET_CORE_DISPLAY (object), &value->action);
-	gconf_value_set_string (gvalue, action);
-
-	free (action);
-    } break;
-    case CompOptionTypeButton: {
-	gchar *action;
-
-	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-	    object = ((CompChildObject *) object)->parent;
-
-	if (!object)
-	    return;
-
-	action = buttonActionToString (GET_CORE_DISPLAY (object),
-				       &value->action);
-	gconf_value_set_string (gvalue, action);
-
-	free (action);
-    } break;
-    case CompOptionTypeEdge: {
-	gchar *edge;
-
-	edge = edgeMaskToString (value->action.edgeMask);
-	gconf_value_set_string (gvalue, edge);
-
-	free (edge);
-    } break;
-    case CompOptionTypeBell:
-	gconf_value_set_bool (gvalue, value->action.bell);
-	break;
-    case CompOptionTypeMatch: {
-	gchar *match;
-
-	match = matchToString (&value->match);
-	gconf_value_set_string (gvalue, match);
-
-	free (match);
-    } break;
-    default:
-	break;
-    }
-}
-
-static void
-gconfSetOption (CompObject  *object,
-		CompOption  *o,
-		const gchar *plugin)
-{
-    GConfValueType type = gconfTypeFromCompType (o->type);
-    GConfValue     *gvalue, *existingValue = NULL;
-    gchar          *key;
-
-    GCONF_CORE (&core);
-
-    if (type == GCONF_VALUE_INVALID)
-	return;
-
-    key = gconfGetKey (object, plugin, o->name);
-
-    existingValue = gconf_client_get (gc->client, key, NULL);
-    gvalue = gconf_value_new (type);
-
-    if (o->type == CompOptionTypeList)
-    {
-	GSList     *node, *list = NULL;
-	GConfValue *gv;
-	int	   i;
-
-	type = gconfTypeFromCompType (o->value.list.type);
-
-	for (i = 0; i < o->value.list.nValue; i++)
-	{
-	    gv = gconf_value_new (type);
-	    gconfSetValue (object, &o->value.list.value[i],
-			   o->value.list.type, gv);
-	    list = g_slist_append (list, gv);
-	}
-
-	gconf_value_set_list_type (gvalue, type);
-	gconf_value_set_list (gvalue, list);
-
-	if (!existingValue || gconf_value_compare (existingValue, gvalue))
-	    gconf_client_set (gc->client, key, gvalue, NULL);
-
-	for (node = list; node; node = node->next)
-	    gconf_value_free ((GConfValue *) node->data);
-
-	g_slist_free (list);
-    }
-    else
-    {
-	gconfSetValue (object, &o->value, o->type, gvalue);
-
-	if (!existingValue || gconf_value_compare (existingValue, gvalue))
-	    gconf_client_set (gc->client, key, gvalue, NULL);
-    }
-
-    gconf_value_free (gvalue);
-
-    if (existingValue)
-	gconf_value_free (existingValue);
-
-    g_free (key);
-}
-
-static Bool
-gconfGetValue (CompObject      *object,
-	       CompOptionValue *value,
-	       CompOptionType  type,
-	       GConfValue      *gvalue)
-
-{
-    if (type         == CompOptionTypeBool &&
-	gvalue->type == GCONF_VALUE_BOOL)
-    {
-	value->b = gconf_value_get_bool (gvalue);
-	return TRUE;
-    }
-    else if (type         == CompOptionTypeInt &&
-	     gvalue->type == GCONF_VALUE_INT)
-    {
-	value->i = gconf_value_get_int (gvalue);
-	return TRUE;
-    }
-    else if (type         == CompOptionTypeFloat &&
-	     gvalue->type == GCONF_VALUE_FLOAT)
-    {
-	value->f = gconf_value_get_float (gvalue);
-	return TRUE;
-    }
-    else if (type         == CompOptionTypeString &&
-	     gvalue->type == GCONF_VALUE_STRING)
-    {
-	const char *str;
-
-	str = gconf_value_get_string (gvalue);
-	if (str)
-	{
-	    value->s = strdup (str);
-	    if (value->s)
-		return TRUE;
-	}
-    }
-    else if (type         == CompOptionTypeColor &&
-	     gvalue->type == GCONF_VALUE_STRING)
-    {
-	const gchar *color;
-
-	color = gconf_value_get_string (gvalue);
-
-	if (stringToColor (color, value->c))
-	    return TRUE;
-    }
-    else if (type         == CompOptionTypeKey &&
-	     gvalue->type == GCONF_VALUE_STRING)
-    {
-	const gchar *action;
-
-	action = gconf_value_get_string (gvalue);
-
-	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-	    object = ((CompChildObject *) object)->parent;
-
-	if (!object)
-	    return FALSE;
-
-	stringToKeyAction (GET_CORE_DISPLAY (object), action, &value->action);
-	return TRUE;
-    }
-    else if (type         == CompOptionTypeButton &&
-	     gvalue->type == GCONF_VALUE_STRING)
-    {
-	const gchar *action;
-
-	action = gconf_value_get_string (gvalue);
-
-	while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-	    object = ((CompChildObject *) object)->parent;
-
-	if (!object)
-	    return FALSE;
-
-	stringToButtonAction (GET_CORE_DISPLAY (object), action,
-			      &value->action);
-	return TRUE;
-    }
-    else if (type         == CompOptionTypeEdge &&
-	     gvalue->type == GCONF_VALUE_STRING)
-    {
-	const gchar *edge;
-
-	edge = gconf_value_get_string (gvalue);
-
-	value->action.edgeMask = stringToEdgeMask (edge);
-	return TRUE;
-    }
-    else if (type         == CompOptionTypeBell &&
-	     gvalue->type == GCONF_VALUE_BOOL)
-    {
-	value->action.bell = gconf_value_get_bool (gvalue);
-	return TRUE;
-    }
-    else if (type         == CompOptionTypeMatch &&
-	     gvalue->type == GCONF_VALUE_STRING)
-    {
-	const gchar *match;
-
-	match = gconf_value_get_string (gvalue);
-
-	matchInit (&value->match);
-	matchAddFromString (&value->match, match);
-	return TRUE;
     }
 
     return FALSE;
 }
 
-static Bool
-gconfReadOptionValue (CompObject      *object,
-		      GConfEntry      *entry,
-		      CompOption      *o,
-		      CompOptionValue *value)
+static CompBool
+gconfSetPropToEntryValue (CompObject *object,
+			  const char *interface,
+			  const char *name,
+			  GConfEntry *entry)
 {
     GConfValue *gvalue;
 
@@ -387,109 +145,76 @@ gconfReadOptionValue (CompObject      *object,
     if (!gvalue)
 	return FALSE;
 
-    compInitOptionValue (value);
-
-    if (o->type      == CompOptionTypeList &&
-	gvalue->type == GCONF_VALUE_LIST)
-    {
-	GConfValueType type;
-	GSList	       *list;
-	int	       i, n;
-
-	type = gconf_value_get_list_type (gvalue);
-	if (gconfTypeFromCompType (o->value.list.type) != type)
-	    return FALSE;
-
-	list = gconf_value_get_list (gvalue);
-	n    = g_slist_length (list);
-
-	value->list.value  = NULL;
-	value->list.nValue = 0;
-	value->list.type   = o->value.list.type;
-
-	if (n)
-	{
-	    value->list.value = malloc (sizeof (CompOptionValue) * n);
-	    if (value->list.value)
-	    {
-		for (i = 0; i < n; i++)
-		{
-		    if (!gconfGetValue (object,
-					&value->list.value[i],
-					o->value.list.type,
-					(GConfValue *) list->data))
-			break;
-
-		    value->list.nValue++;
-
-		    list = g_slist_next (list);
-		}
-
-		if (value->list.nValue != n)
-		{
-		    compFiniOptionValue (value, o->type);
-		    return FALSE;
-		}
-	    }
-	}
-    }
-    else
-    {
-	if (!gconfGetValue (object, value, o->type, gvalue))
-	    return FALSE;
-    }
-
-    return TRUE;
+    return gconfSetPropToValue (object, interface, name, gvalue);
 }
 
-static void
-gconfGetOption (CompObject *object,
-		CompOption *o,
-		const char *plugin)
+typedef struct _ReloadPropContext {
+    CompCore   *core;
+    const char *interface;
+} ReloadPropContext;
+
+static CompBool
+gconfReloadProp (CompObject *object,
+		 const char *name,
+		 int	    type,
+		 void	    *closure)
 {
-    GConfEntry *entry;
-    gchar      *key;
+    ReloadPropContext *pCtx = (ReloadPropContext *) closure;
+    CompCore          *c = pCtx->core;
+    const char        *interface = pCtx->interface;
+    gchar	      *key = gconfGetKey (object, interface, name);
+    GConfEntry	      *entry;
 
-    GCONF_CORE (&core);
-
-    key = gconfGetKey (object, plugin, o->name);
+    GCONF_CORE (c);
 
     entry = gconf_client_get_entry (gc->client, key, NULL, TRUE, NULL);
     if (entry)
     {
-	CompOptionValue value;
-
-	if (gconfReadOptionValue (object, entry, o, &value))
-	{
-	    (*core.setOptionForPlugin) (object, plugin, o->name, &value);
-	    compFiniOptionValue (&value, o->type);
-	}
-	else
-	{
-	    gconfSetOption (object, o, plugin);
-	}
-
+	gconfSetPropToEntryValue (object, interface, name, entry);
 	gconf_entry_free (entry);
     }
 
     g_free (key);
+
+    return TRUE;
+}
+
+typedef struct _ReloadInterfaceContext {
+    CompCore   *core;
+    CompObject *object;
+} ReloadInterfaceContext;
+
+static CompBool
+gconfReloadInterface (CompObject	   *object,
+		      const char	   *name,
+		      void		   *key,
+		      size_t		   offset,
+		      const CompObjectType *type,
+		      void		   *closure)
+{
+    ReloadPropContext ctx;
+
+    ctx.core      = GET_CORE (closure);
+    ctx.interface = name;
+
+    (*object->vTable->forEachProp) (object, key,
+				    gconfReloadProp,
+				    (void *) &ctx);
+
+    return TRUE;
 }
 
 static CompBool
-gconfReloadObjectTree (CompChildObject *object,
-		       void	       *closure)
+gconfReloadObjectTree (CompObject *object,
+		       void	  *closure)
 {
-    CompPlugin *p = (CompPlugin *) closure;
-    CompOption  *option;
-    int		nOption;
+    (*object->vTable->forEachInterface) (object,
+					 gconfReloadInterface,
+					 closure);
 
-    option = (*p->vTable->getObjectOptions) (p, &object->base, &nOption);
-    while (nOption--)
-	gconfGetOption (&object->base, option++, p->vTable->name);
-
-    (*object->base.vTable->forEachChildObject) (&object->base,
-						gconfReloadObjectTree,
-						closure);
+    (*object->vTable->forEachChildObject) (object,
+					   gconfReloadObjectTree,
+					   closure);
 
     return TRUE;
 }
@@ -497,222 +222,190 @@ gconfReloadObjectTree (CompChildObject *object,
 static Bool
 gconfReload (void *closure)
 {
-    CompPlugin  *p;
+    CompCore *c = (CompCore *) closure;
 
-    GCONF_CORE (&core);
+    GCONF_CORE (c);
 
-    for (p = getPlugins (); p; p = p->next)
-    {
-	if (!p->vTable->getObjectOptions)
-	    continue;
-
-	(*core.base.vTable->forEachChildObject) (&core.base,
-						 gconfReloadObjectTree,
-						 (void *) p);
-    }
+    gconfReloadObjectTree (&c->base, closure);
 
     gc->reloadHandle = 0;
 
     return FALSE;
 }
 
-static Bool
-gconfSetOptionForPlugin (CompObject      *object,
-			 const char	 *plugin,
-			 const char	 *name,
-			 CompOptionValue *value)
-{
-    CompBool status;
-
-    GCONF_CORE (&core);
-
-    UNWRAP (gc, &core, setOptionForPlugin);
-    status = (*core.setOptionForPlugin) (object, plugin, name, value);
-    WRAP (gc, &core, setOptionForPlugin, gconfSetOptionForPlugin);
-
-    if (status && !gc->reloadHandle)
-    {
-	CompPlugin *p;
-
-	p = findActivePlugin (plugin);
-	if (p && p->vTable->getObjectOptions)
-	{
-	    CompOption *option;
-	    int	       nOption;
-
-	    option = (*p->vTable->getObjectOptions) (p, object, &nOption);
-	    option = compFindOption (option, nOption, name, 0);
-	    if (option)
-		gconfSetOption (object, option, p->vTable->name);
-	}
-    }
-
-    return status;
-}
+typedef struct _LoadPropContext {
+    GConfEntry  *entry;
+    const gchar *name;
+} LoadPropContext;
 
 static CompBool
-gconfInitPluginForObject (CompPlugin *p,
-			  CompObject *o)
+gconfLoadProp (CompObject	    *object,
+	       const char	    *name,
+	       void		    *key,
+	       size_t		    offset,
+	       const CompObjectType *type,
+	       void		    *closure)
 {
-    CompBool status;
+    LoadPropContext *pCtx = (LoadPropContext *) closure;
 
-    GCONF_CORE (&core);
+    gconfSetPropToEntryValue (object, name, pCtx->name, pCtx->entry);
 
-    UNWRAP (gc, &core, initPluginForObject);
-    status = (*core.initPluginForObject) (p, o);
-    WRAP (gc, &core, initPluginForObject, gconfInitPluginForObject);
-
-    if (status && p->vTable->getObjectOptions)
-    {
-	CompOption *option;
-	int	   nOption;
-
-	option = (*p->vTable->getObjectOptions) (p, o, &nOption);
-	while (nOption--)
-	    gconfGetOption (o, option++, p->vTable->name);
-    }
-
-    return status;
+    return TRUE;
 }
 
-/* MULTIDPYERROR: only works with one or less displays present */
 static void
 gconfKeyChanged (GConfClient *client,
-		 guint	     cnxn_id,
+		 guint	     cnxnId,
 		 GConfEntry  *entry,
-		 gpointer    user_data)
+		 gpointer    userData)
 {
-    CompPlugin *plugin;
+    CompCore   *c = (CompCore *) userData;
     CompObject *object;
-    CompOption *option = NULL;
-    int	       nOption = 0;
-    gchar      **token;
-    int	       objectIndex = 4;
+    gchar      **token, *prop;
+    guint      nToken;
 
-    token = g_strsplit (entry->key, "/", 8);
+    token  = g_strsplit (entry->key, "/", MAX_PATH_LENGTH);
+    nToken = g_strv_length (token);
 
-    if (g_strv_length (token) < 7)
+    prop = token[nToken - 1];
+    token[nToken - 1] = NULL;
+
+    object = compLookupObject (&c->base, &token[3]);
+    if (object)
     {
-	g_strfreev (token);
-	return;
+	LoadPropContext ctx;
+
+	ctx.entry = entry;
+	ctx.name  = prop;
+
+	/* try to load property for each interface */
+	(*object->vTable->forEachInterface) (object,
+					     gconfLoadProp,
+					     (void *) &ctx);
     }
 
-    if (strcmp (token[0], "")	    != 0 ||
-	strcmp (token[1], "apps")   != 0 ||
-	strcmp (token[2], APP_NAME) != 0)
-    {
-	g_strfreev (token);
-	return;
-    }
-
-    if (strcmp (token[3], "general") == 0)
-    {
-	plugin = findActivePlugin ("core");
-    }
-    else
-    {
-	if (strcmp (token[3], "plugins") != 0 || g_strv_length (token) < 8)
-	{
-	    g_strfreev (token);
-	    return;
-	}
-
-	objectIndex = 5;
-	plugin = findActivePlugin (token[4]);
-    }
-
-    if (!plugin)
-    {
-	g_strfreev (token);
-	return;
-    }
-
-    object = (*core.base.vTable->findChildObject) (&core.base, "display",
-						   NULL);
-    if (!object)
-    {
-	g_strfreev (token);
-	return;
-    }
-
-    if (strncmp (token[objectIndex], "screen", 6) == 0)
-    {
-	object = (*object->vTable->findChildObject) (object, "screen",
-						     token[objectIndex] + 6);
-	if (!object)
-	{
-	    g_strfreev (token);
-	    return;
-	}
-    }
-    else if (strcmp (token[objectIndex], "allscreens") != 0)
-    {
-	g_strfreev (token);
-	return;
-    }
-
-    if (strcmp (token[objectIndex + 1], "options") != 0)
-    {
-	g_strfreev (token);
-	return;
-    }
-
-    if (plugin->vTable->getObjectOptions)
-	option = (*plugin->vTable->getObjectOptions) (plugin, object,
-						      &nOption);
-
-    option = compFindOption (option, nOption, token[objectIndex + 2], 0);
-    if (option)
-    {
-	CompOptionValue value;
-
-	if (gconfReadOptionValue (object, entry, option, &value))
-	{
-	    (*core.setOptionForPlugin) (object,
-					plugin->vTable->name,
-					option->name,
-					&value);
-
-	    compFiniOptionValue (&value, option->type);
-	}
-    }
+    token[nToken - 1] = prop;
 
     g_strfreev (token);
 }
 
 static void
-gconfSendGLibNotify (CompDisplay *d)
+gconfPropChanged (CompCore   *c,
+		  CompObject *object,
+		  const char *signal,
+		  const char *signature,
+		  va_list    args)
 {
-    Display *dpy = d->display;
-    XEvent  xev;
+    GConfValue *gvalue = NULL;
+    const char *interface;
+    const char *name;
+    va_list    ap;
 
-    xev.xclient.type    = ClientMessage;
-    xev.xclient.display = dpy;
-    xev.xclient.format  = 32;
+    va_copy (ap, args);
 
-    xev.xclient.message_type = XInternAtom (dpy, "_COMPIZ_GLIB_NOTIFY", 0);
-    xev.xclient.window	     = d->screens->root;
+    interface = va_arg (ap, const char *);
+    name      = va_arg (ap, const char *);
 
-    memset (xev.xclient.data.l, 0, sizeof (xev.xclient.data.l));
+    if (signature[2] == 'b' && strcmp (signal, "boolChanged") == 0)
+    {
+	gvalue = gconf_value_new (GCONF_VALUE_BOOL);
+	if (gvalue)
+	    gconf_value_set_bool (gvalue, va_arg (ap, CompBool));
+    }
+    else if (signature[2] == 'i' && strcmp (signal, "intChanged") == 0)
+    {
+	gvalue = gconf_value_new (GCONF_VALUE_INT);
+	if (gvalue)
+	    gconf_value_set_int (gvalue, va_arg (ap, int32_t));
+    }
+    else if (signature[2] == 'd' && strcmp (signal, "doubleChanged") == 0)
+    {
+	gvalue = gconf_value_new (GCONF_VALUE_FLOAT);
+	if (gvalue)
+	    gconf_value_set_float (gvalue, va_arg (ap, double));
+    }
+    else if (signature[2] == 's' && strcmp (signal, "stringChanged") == 0)
+    {
+	gvalue = gconf_value_new (GCONF_VALUE_STRING);
+	if (gvalue)
+	    gconf_value_set_string (gvalue, va_arg (ap, const char *));
+    }
 
-    XSendEvent (dpy,
-		d->screens->root,
-		FALSE,
-		SubstructureRedirectMask | SubstructureNotifyMask,
-		&xev);
+    va_end (ap);
+
+    if (gvalue)
+    {
+	gchar *key;
+
+	GCONF_CORE (c);
+
+	key = gconfGetKey (object, interface, name);
+	if (key)
+	{
+	    gconf_client_set (gc->client, key, gvalue, NULL);
+	    g_free (key);
+	}
+
+	gconf_value_free (gvalue);
+    }
 }
 
-static Bool
-gconfInitCore (CompPlugin *p,
-	       CompCore   *c)
+static void
+gconfHandleSignal (CompObject *object,
+		   void	      *data,
+		   ...)
 {
-    GConfCore *gc;
+    CompObject *source;
+    const char *interface;
+    const char *name;
+    const char *signature;
+    va_list    ap, args;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
+    CORE (object);
+
+    va_start (ap, data);
+
+    source    = va_arg (ap, CompObject *);
+    interface = va_arg (ap, const char *);
+    name      = va_arg (ap, const char *);
+    signature = va_arg (ap, const char *);
+    args      = va_arg (ap, va_list);
+
+    va_end (ap);
+
+    if (strcmp (interface, "object") == 0)
+    {
+	if (strcmp (name,      "childObjectAdded") == 0 &&
+	    strcmp (signature, "o")		   == 0)
+	{
+	    va_copy (ap, args);
+	    gconfReloadObjectTree (va_arg (ap, CompObject *), (void *) c);
+	    va_end (ap);
+	}
+    }
+    else if (strcmp (interface, "properties") == 0)
+    {
+	if (strncmp (signature, "ss", 2) == 0)
+	    gconfPropChanged (c, source, name, signature, args);
+    }
+}
+
+static CompBool
+gconfInitCore (CompCore *c)
+{
+    CompBasicArgs args;
+
+    GCONF_CORE (c);
+
+    if (!compObjectCheckVersion (&c->base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    gc = malloc (sizeof (GConfCore));
-    if (!gc)
+    gc->signalHandle =
+	(*c->base.vTable->signal.connect) (&c->base, "signal",
+					   offsetof (CompSignalVTable, signal),
+					   gconfHandleSignal,
+					   NULL);
+    if (gc->signalHandle < 0)
 	return FALSE;
 
     g_type_init ();
@@ -722,27 +415,26 @@ gconfInitCore (CompPlugin *p,
     gconf_client_add_dir (gc->client, "/apps/" APP_NAME,
 			  GCONF_CLIENT_PRELOAD_NONE, NULL);
 
-    gc->reloadHandle = compAddTimeout (0, gconfReload, 0);
+    gc->reloadHandle = compAddTimeout (0, gconfReload, (void *) c);
 
     gc->cnxn = gconf_client_notify_add (gc->client, "/apps/" APP_NAME,
 					gconfKeyChanged, c, NULL, NULL);
 
-    WRAP (gc, c, initPluginForObject, gconfInitPluginForObject);
-    WRAP (gc, c, setOptionForPlugin, gconfSetOptionForPlugin);
-
-    c->base.privates[corePrivateIndex].ptr = gc;
+    compInitBasicArgs (&args, NULL, NULL);
+    compInvokeMethod (&c->base, "glib", "wakeUp", "", "", &args.base);
+    compFiniBasicArgs (&args);
 
     return TRUE;
 }
 
 static void
-gconfFiniCore (CompPlugin *p,
-	       CompCore   *c)
+gconfFiniCore (CompCore *c)
 {
     GCONF_CORE (c);
 
-    UNWRAP (gc, c, initPluginForObject);
-    UNWRAP (gc, c, setOptionForPlugin);
+    (*c->base.vTable->signal.disconnect) (&c->base, "signal",
+					  offsetof (CompSignalVTable, signal),
+					  gc->signalHandle);
 
     if (gc->reloadHandle)
 	compRemoveTimeout (gc->reloadHandle);
@@ -752,57 +444,31 @@ gconfFiniCore (CompPlugin *p,
 
     gconf_client_remove_dir (gc->client, "/apps/" APP_NAME, NULL);
     gconf_client_clear_cache (gc->client);
-
-    free (gc);
 }
 
-static Bool
-gconfInitDisplay (CompPlugin  *p,
-		  CompDisplay *d)
-{
-    gconfSendGLibNotify (d);
-
-    return TRUE;
-}
-
-static CompBool
-gconfInitObject (CompPlugin *p,
-		 CompObject *o)
-{
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) gconfInitCore,
-	(InitPluginObjectProc) gconfInitDisplay
-    };
-
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-gconfFiniObject (CompPlugin *p,
-		 CompObject *o)
-{
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) gconfFiniCore
-    };
-
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
+static CompObjectPrivate gconfObj[] = {
+    {
+	"core",
+	&corePrivateIndex, sizeof (GConfCore), NULL,
+	(InitObjectProc) gconfInitCore,
+	(FiniObjectProc) gconfFiniCore
+    }
+};
 
 static Bool
 gconfInit (CompPlugin *p)
 {
-    if (!compInitPluginMetadataFromInfo (&gconfMetadata, p->vTable->name,
-					 0, 0, 0, 0))
+    if (!compInitObjectMetadataFromInfo (&gconfMetadata, p->vTable->name,
+					 0, 0))
 	return FALSE;
 
-    corePrivateIndex = allocateCorePrivateIndex ();
-    if (corePrivateIndex < 0)
+    compAddMetadataFromFile (&gconfMetadata, p->vTable->name);
+
+    if (!compObjectInitPrivates (gconfObj, N_ELEMENTS (gconfObj)))
     {
 	compFiniMetadata (&gconfMetadata);
 	return FALSE;
     }
-
-    compAddMetadataFromFile (&gconfMetadata, p->vTable->name);
 
     return TRUE;
 }
@@ -810,23 +476,17 @@ gconfInit (CompPlugin *p)
 static void
 gconfFini (CompPlugin *p)
 {
-    freeCorePrivateIndex (corePrivateIndex);
+    compObjectFiniPrivates (gconfObj, N_ELEMENTS (gconfObj));
     compFiniMetadata (&gconfMetadata);
-}
-
-static CompMetadata *
-gconfGetMetadata (CompPlugin *plugin)
-{
-    return &gconfMetadata;
 }
 
 CompPluginVTable gconfVTable = {
     "gconf",
-    gconfGetMetadata,
+    0, /* GetMetadata */
     gconfInit,
     gconfFini,
-    gconfInitObject,
-    gconfFiniObject,
+    0, /* InitObject */
+    0, /* FiniObject */
     0, /* GetObjectOptions */
     0  /* SetObjectOption */
 };
