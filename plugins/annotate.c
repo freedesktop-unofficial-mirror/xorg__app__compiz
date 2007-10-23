@@ -44,11 +44,15 @@ static int annoLastPointerY = 0;
 #define ANNO_DISPLAY_OPTION_CLEAR_BUTTON    4
 #define ANNO_DISPLAY_OPTION_FILL_COLOR      5
 #define ANNO_DISPLAY_OPTION_STROKE_COLOR    6
-#define ANNO_DISPLAY_OPTION_LINE_WIDTH      7
-#define ANNO_DISPLAY_OPTION_STROKE_WIDTH    8
-#define ANNO_DISPLAY_OPTION_NUM	            9
+#define ANNO_DISPLAY_OPTION_NUM	            7
+
 
 typedef struct _AnnoDisplay {
+    CompObjectVTableVec object;
+
+    double lineWidth;
+    double strokeWidth;
+
     HandleEventProc handleEvent;
 
     CompOption opt[ANNO_DISPLAY_OPTION_NUM];
@@ -69,22 +73,33 @@ typedef struct _AnnoScreen {
     Bool eraseMode;
 } AnnoScreen;
 
-#define GET_ANNO_DISPLAY(d)					       \
-    ((AnnoDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
+#define GET_ANNO_DISPLAY(d)				     \
+    ((AnnoDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define ANNO_DISPLAY(d)			   \
     AnnoDisplay *ad = GET_ANNO_DISPLAY (d)
 
-#define GET_ANNO_SCREEN(s, ad)					     \
-    ((AnnoScreen *) (s)->base.base.privates[screenPrivateIndex].ptr)
+#define GET_ANNO_SCREEN(s)				   \
+    ((AnnoScreen *) (s)->privates[screenPrivateIndex].ptr)
 
-#define ANNO_SCREEN(s)							\
-    AnnoScreen *as = GET_ANNO_SCREEN (s, GET_ANNO_DISPLAY (s->display))
+#define ANNO_SCREEN(s)			 \
+    AnnoScreen *as = GET_ANNO_SCREEN (s)
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
+static char *
+getDisplayPropData (CompObject *object)
+{
+    return (char *) GET_ANNO_DISPLAY (GET_DISPLAY (object));
+}
 
+static const CommonDoubleProp annotateDisplayDoubleProp[] = {
+    C_PROP (lineWidth, AnnoDisplay),
+    C_PROP (strokeWidth, AnnoDisplay)
+};
+#define INTERFACE_VERSION_annotateDisplay 20071011
 
-#define NUM_TOOLS (sizeof (tools) / sizeof (tools[0]))
+static const CommonInterface annoDisplayInterface[] = {
+    C_INTERFACE (annotate, Display, CompObjectVTable, _, X, _, _, _, _, X, _)
+};
 
 static void
 annoCairoClear (CompScreen *s,
@@ -123,7 +138,8 @@ annoCairoContext (CompScreen *s)
 
 	if (!bindPixmapToTexture (s, &as->texture, as->pixmap, w, h, 32))
 	{
-	    compLogMessage (s->display, "annotate", CompLogLevelError,
+	    compLogMessage (s->display, "annotate",
+			    CompLogLevelError,
 			    "Couldn't bind pixmap 0x%x to texture",
 			    (int) as->pixmap);
 
@@ -365,11 +381,11 @@ annoDraw (CompDisplay     *d,
 	    strokeColor = getColorOptionNamed (option, nOption,
 					       "stroke_color", strokeColor);
 
-	    strokeWidth = ad->opt[ANNO_DISPLAY_OPTION_STROKE_WIDTH].value.f;
+	    strokeWidth = ad->strokeWidth;
 	    strokeWidth = getFloatOptionNamed (option, nOption, "stroke_width",
 					       strokeWidth);
 
-	    lineWidth = ad->opt[ANNO_DISPLAY_OPTION_LINE_WIDTH].value.f;
+	    lineWidth = ad->lineWidth;
 	    lineWidth = getFloatOptionNamed (option, nOption, "line_width",
 					     lineWidth);
 
@@ -676,7 +692,7 @@ annoHandleMotionEvent (CompScreen *s,
 	    annoDrawLine (s,
 			  annoLastPointerX, annoLastPointerY,
 			  xRoot, yRoot,
-			  ad->opt[ANNO_DISPLAY_OPTION_LINE_WIDTH].value.f,
+			  ad->lineWidth,
 			  ad->opt[ANNO_DISPLAY_OPTION_FILL_COLOR].value.c);
 	}
 
@@ -713,32 +729,32 @@ annoHandleEvent (CompDisplay *d,
     WRAP (ad, d, handleEvent, annoHandleEvent);
 }
 
-static CompOption *
-annoGetDisplayOptions (CompPlugin  *plugin,
-		       CompDisplay *display,
-		       int	   *count)
+static CompBool
+annoDisplayForBaseObject (CompObject		 *object,
+			  BaseObjectCallBackProc proc,
+			  void			 *closure)
 {
-    ANNO_DISPLAY (display);
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
-    *count = NUM_OPTIONS (ad);
-    return ad->opt;
+    ANNO_DISPLAY (GET_DISPLAY (object));
+
+    UNWRAP (&ad->object, object, vTable);
+    status = (*proc) (object, closure);
+    WRAP (&ad->object, object, vTable, v.vTable);
+
+    return status;
 }
 
-static Bool
-annoSetDisplayOption (CompPlugin      *plugin,
-		      CompDisplay     *display,
-		      const char      *name,
-		      CompOptionValue *value)
+static CompBool
+annoDisplayForEachInterface (CompObject		   *object,
+			     InterfaceCallBackProc proc,
+			     void		   *closure)
 {
-    CompOption *o;
-
-    ANNO_DISPLAY (display);
-
-    o = compFindOption (ad->opt, NUM_OPTIONS (ad), name, NULL);
-    if (!o)
-	return FALSE;
-
-    return compSetDisplayOption (display, o, value);
+    return handleForEachInterface (object,
+				   annoDisplayInterface,
+				   N_ELEMENTS (annoDisplayInterface),
+				   NULL, proc, closure);
 }
 
 static const CompMetadataOptionInfo annoDisplayOptionInfo[] = {
@@ -748,22 +764,24 @@ static const CompMetadataOptionInfo annoDisplayOptionInfo[] = {
     { "clear_key", "key", 0, annoClear, 0 },
     { "clear_button", "button", 0, annoClear, 0 },
     { "fill_color", "color", 0, 0, 0 },
-    { "stroke_color", "color", 0, 0, 0 },
-    { "line_width", "float", 0, 0, 0 },
-    { "stroke_width", "float", 0, 0, 0 }
+    { "stroke_color", "color", 0, 0, 0 }
 };
 
-static Bool
-annoInitDisplay (CompPlugin  *p,
-		 CompDisplay *d)
+static CompObjectVTable annoDisplayObjectVTable = {
+    .forBaseObject        = annoDisplayForBaseObject,
+    .forEachInterface     = annoDisplayForEachInterface,
+    .forEachProp          = commonForEachProp,
+    .version.get          = commonGetVersion,
+    .properties.getDouble = commonGetDoubleProp,
+    .properties.setDouble = commonSetDoubleProp
+};
+
+static CompBool
+annoInitDisplay (CompDisplay *d)
 {
-    AnnoDisplay *ad;
+    ANNO_DISPLAY (d);
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
-
-    ad = malloc (sizeof (AnnoDisplay));
-    if (!ad)
+    if (!compObjectCheckVersion (&d->base, "display", CORE_ABIVERSION))
 	return FALSE;
 
     if (!compInitDisplayOptionsFromMetadata (d,
@@ -771,40 +789,34 @@ annoInitDisplay (CompPlugin  *p,
 					     annoDisplayOptionInfo,
 					     ad->opt,
 					     ANNO_DISPLAY_OPTION_NUM))
-    {
-	free (ad);
 	return FALSE;
-    }
+
+    ad->lineWidth   = 3.0;
+    ad->strokeWidth = 1.0;
+
+    WRAP (&ad->object, &d->base, vTable, &annoDisplayObjectVTable);
 
     WRAP (ad, d, handleEvent, annoHandleEvent);
-
-    d->base.base.privates[displayPrivateIndex].ptr = ad;
 
     return TRUE;
 }
 
 static void
-annoFiniDisplay (CompPlugin  *p,
-		 CompDisplay *d)
+annoFiniDisplay (CompDisplay *d)
 {
     ANNO_DISPLAY (d);
 
     UNWRAP (ad, d, handleEvent);
 
-    compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
+    UNWRAP (&ad->object, &d->base, vTable);
 
-    free (ad);
+    compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 }
 
 static Bool
-annoInitScreen (CompPlugin *p,
-		CompScreen *s)
+annoInitScreen (CompScreen *s)
 {
-    AnnoScreen *as;
-
-    as = malloc (sizeof (AnnoScreen));
-    if (!as)
-	return FALSE;
+    ANNO_SCREEN (s);
 
     as->grabIndex = 0;
     as->surface   = NULL;
@@ -816,14 +828,11 @@ annoInitScreen (CompPlugin *p,
 
     WRAP (as, s, paintOutput, annoPaintOutput);
 
-    s->base.base.privates[screenPrivateIndex].ptr = as;
-
     return TRUE;
 }
 
 static void
-annoFiniScreen (CompPlugin *p,
-		CompScreen *s)
+annoFiniScreen (CompScreen *s)
 {
     ANNO_SCREEN (s);
 
@@ -839,64 +848,21 @@ annoFiniScreen (CompPlugin *p,
 	XFreePixmap (s->display->display, as->pixmap);
 
     UNWRAP (as, s, paintOutput);
-
-    free (as);
 }
 
-static CompBool
-annoInitObject (CompPlugin *p,
-		CompObject *o)
-{
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) annoInitDisplay,
-	(InitPluginObjectProc) annoInitScreen
-    };
-
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-annoFiniObject (CompPlugin *p,
-		CompObject *o)
-{
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) annoFiniDisplay,
-	(FiniPluginObjectProc) annoFiniScreen
-    };
-
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
-
-static CompOption *
-annoGetObjectOptions (CompPlugin *plugin,
-		      CompObject *object,
-		      int	 *count)
-{
-    static GetPluginObjectOptionsProc dispTab[] = {
-	(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-	(GetPluginObjectOptionsProc) annoGetDisplayOptions
-    };
-
-    RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-		     (void *) (*count = 0), (plugin, object, count));
-}
-
-static CompBool
-annoSetObjectOption (CompPlugin      *plugin,
-		     CompObject      *object,
-		     const char      *name,
-		     CompOptionValue *value)
-{
-    static SetPluginObjectOptionProc dispTab[] = {
-	(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-	(SetPluginObjectOptionProc) annoSetDisplayOption
-    };
-
-    RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-		     (plugin, object, name, value));
-}
+static CompObjectPrivate annoObj[] = {
+    {
+	"display",
+	&displayPrivateIndex, sizeof (AnnoDisplay), &annoDisplayObjectVTable,
+	(InitObjectProc) annoInitDisplay,
+	(FiniObjectProc) annoFiniDisplay
+    }, {
+	"screen",
+	&screenPrivateIndex, sizeof (AnnoScreen), NULL,
+	(InitObjectProc) annoInitScreen,
+	(FiniObjectProc) annoFiniScreen
+    }
+};
 
 static Bool
 annoInit (CompPlugin *p)
@@ -908,22 +874,13 @@ annoInit (CompPlugin *p)
 					 0, 0))
 	return FALSE;
 
-    displayPrivateIndex = allocateDisplayPrivateIndex ();
-    if (displayPrivateIndex < 0)
-    {
-	compFiniMetadata (&annoMetadata);
-	return FALSE;
-    }
-
-    screenPrivateIndex = allocateScreenPrivateIndex ();
-    if (screenPrivateIndex < 0)
-    {
-	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&annoMetadata);
-	return FALSE;
-    }
-
     compAddMetadataFromFile (&annoMetadata, p->vTable->name);
+
+    if (!compObjectInitPrivates (annoObj, N_ELEMENTS (annoObj)))
+    {
+	compFiniMetadata (&annoMetadata);
+	return FALSE;
+    }
 
     return TRUE;
 }
@@ -931,26 +888,19 @@ annoInit (CompPlugin *p)
 static void
 annoFini (CompPlugin *p)
 {
-    freeScreenPrivateIndex (screenPrivateIndex);
-    freeDisplayPrivateIndex (displayPrivateIndex);
+    compObjectFiniPrivates (annoObj, N_ELEMENTS (annoObj));
     compFiniMetadata (&annoMetadata);
-}
-
-static CompMetadata *
-annoGetMetadata (CompPlugin *plugin)
-{
-    return &annoMetadata;
 }
 
 static CompPluginVTable annoVTable = {
     "annotate",
-    annoGetMetadata,
+    0, /* GetMetadata */
     annoInit,
     annoFini,
-    annoInitObject,
-    annoFiniObject,
-    annoGetObjectOptions,
-    annoSetObjectOption
+    0, /* InitObject */
+    0, /* FiniObject */
+    0, /* GetObjectOptions */
+    0  /* SetObjectOption */
 };
 
 CompPluginVTable *
