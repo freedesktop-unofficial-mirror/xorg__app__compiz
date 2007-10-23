@@ -1,5 +1,5 @@
 /*
- * Copyright © 2006 Novell, Inc.
+ * Copyright © 2007 Novell, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software
  * and its documentation for any purpose is hereby granted without
@@ -24,7 +24,6 @@
  */
 
 #include <string.h>
-#include <stdlib.h>
 #include <poll.h>
 
 #define DBUS_API_SUBJECT_TO_CHANGE
@@ -33,126 +32,76 @@
 
 #include <compiz-core.h>
 
+#define COMPIZ_DBUS_SERVICE_NAME   "org.freedesktop.compiz"
+#define COMPIZ_DBUS_INTERFACE_BASE "org.freedesktop.compiz."
+#define COMPIZ_DBUS_PATH_ROOT	   "/org/freedesktop/compiz"
+
 static CompMetadata dbusMetadata;
-
-#define COMPIZ_DBUS_SERVICE_NAME	            "org.freedesktop.compiz"
-#define COMPIZ_DBUS_INTERFACE			    "org.freedesktop.compiz"
-#define COMPIZ_DBUS_ROOT_PATH			    "/org/freedesktop/compiz"
-
-#define COMPIZ_DBUS_ACTIVATE_MEMBER_NAME            "activate"
-#define COMPIZ_DBUS_DEACTIVATE_MEMBER_NAME          "deactivate"
-#define COMPIZ_DBUS_SET_MEMBER_NAME                 "set"
-#define COMPIZ_DBUS_GET_MEMBER_NAME                 "get"
-#define COMPIZ_DBUS_GET_METADATA_MEMBER_NAME	    "getMetadata"
-#define COMPIZ_DBUS_LIST_MEMBER_NAME		    "list"
-#define COMPIZ_DBUS_GET_PLUGINS_MEMBER_NAME	    "getPlugins"
-#define COMPIZ_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME "getPluginMetadata"
-
-#define COMPIZ_DBUS_CHANGED_SIGNAL_NAME		    "changed"
-#define COMPIZ_DBUS_PLUGINS_CHANGED_SIGNAL_NAME	    "pluginsChanged"
-
-#define DBUS_FILE_WATCH_CURRENT 0
-#define DBUS_FILE_WATCH_PLUGIN  1
-#define DBUS_FILE_WATCH_HOME    2
-#define DBUS_FILE_WATCH_NUM     3
 
 static int corePrivateIndex;
 
-typedef struct _DbusCore {
+typedef struct _DBusCore {
     DBusConnection    *connection;
     CompWatchFdHandle watchFdHandle;
+    int		      signalHandle;
+} DBusCore;
 
-    CompFileWatchHandle fileWatch[DBUS_FILE_WATCH_NUM];
-
-    InitPluginForObjectProc initPluginForObject;
-    SetOptionForPluginProc  setOptionForPlugin;
-} DbusCore;
-
-static DBusHandlerResult dbusHandleMessage (DBusConnection *,
-					    DBusMessage *,
-					    void *);
-
-static DBusObjectPathVTable dbusMessagesVTable = {
-    NULL, dbusHandleMessage, /* handler function */
-    NULL, NULL, NULL, NULL
-};
-
-#define GET_DBUS_CORE(c)				    \
-    ((DbusCore *) (c)->base.privates[corePrivateIndex].ptr)
+#define GET_DBUS_CORE(c)			       \
+    ((DBusCore *) (c)->privates[corePrivateIndex].ptr)
 
 #define DBUS_CORE(c)		     \
-    DbusCore *dc = GET_DBUS_CORE (c)
+    DBusCore *dc = GET_DBUS_CORE (c)
 
 
-static CompOption *
-dbusGetOptionsFromPath (char	     **path,
-			CompObject   **returnObject,
-			CompMetadata **returnMetadata,
-			int	     *nOption)
+static char *
+dbusGetObjectPath (CompObject *object)
 {
-    CompPlugin *p;
-    CompObject *object;
+    char *parentPath, *path;
+    int  parentPathLen;
 
-    object = (*core.base.vTable->findChildObject) (&core.base, "display",
-						   NULL);
-    if (!object)
+    if (object->parent)
+	parentPath = dbusGetObjectPath (object->parent);
+    else
+	parentPath = strdup (COMPIZ_DBUS_PATH_ROOT);
+
+    if (!parentPath)
 	return NULL;
 
-    if (strncmp (path[1], "screen", 6) == 0)
+    if (strcmp (object->name, "core") == 0)
+	return parentPath;
+
+    parentPathLen = strlen (parentPath);
+
+    path = realloc (parentPath, parentPathLen + strlen (object->name) + 2);
+    if (!path)
     {
-	object = (*object->vTable->findChildObject) (object, "screen",
-						     path[1] + 6);
-	if (!object)
-	    return NULL;
-    }
-    else if (strcmp (path[1], "allscreens") != 0)
-    {
+	free (parentPath);
 	return NULL;
-    }
-
-    if (returnObject)
-	*returnObject = object;
-
-    for (p = getPlugins (); p; p = p->next)
-	if (strcmp (p->vTable->name, path[0]) == 0)
-	    break;
-
-    if (returnMetadata)
-    {
-	if (p && p->vTable->getMetadata)
-	    *returnMetadata = (*p->vTable->getMetadata) (p);
-	else
-	    *returnMetadata = NULL;
     }
 
-    if (!p)
-	return NULL;
+    path[parentPathLen] = '/';
+    strcpy (path + parentPathLen + 1, object->name);
 
-    if (!p->vTable->getObjectOptions)
-	return NULL;
-
-    return (*p->vTable->getObjectOptions) (p, object, nOption);
+    return path;
 }
 
-/* functions to create introspection XML */
-static void
-dbusIntrospectStartInterface (xmlTextWriterPtr writer)
+static char *
+dbusGetInterface (const char *name)
 {
-    xmlTextWriterStartElement (writer, BAD_CAST "interface");
-    xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
-				 BAD_CAST COMPIZ_DBUS_SERVICE_NAME);
+    char *interface;
+
+    interface = malloc (strlen (COMPIZ_DBUS_INTERFACE_BASE) +
+			strlen (name) + 1);
+    if (interface)
+	sprintf (interface, "%s%s", COMPIZ_DBUS_INTERFACE_BASE, name);
+
+    return interface;
 }
 
 static void
-dbusIntrospectEndInterface (xmlTextWriterPtr writer)
-{
-    xmlTextWriterEndElement (writer);
-}
-
-static void
-dbusIntrospectAddArgument (xmlTextWriterPtr writer,
-			   char             *type,
-			   char             *direction)
+dbusArgToXml (xmlTextWriterPtr  writer,
+	      const char        *type,
+	      const char        *direction)
 {
     xmlTextWriterStartElement (writer, BAD_CAST "arg");
     xmlTextWriterWriteAttribute (writer, BAD_CAST "type", BAD_CAST type);
@@ -162,1521 +111,473 @@ dbusIntrospectAddArgument (xmlTextWriterPtr writer,
 }
 
 static void
-dbusIntrospectAddMethod (xmlTextWriterPtr writer,
-			 char             *name,
-			 int              nArgs,
-			 ...)
+dbusSignatureToXml (xmlTextWriterPtr  writer,
+		    const char        *signature,
+		    const char        *direction)
 {
-    va_list var_args;
-    char *type, *direction;
+    DBusSignatureIter iter;
+
+    dbus_signature_iter_init (&iter, signature);
+
+    do {
+	char *argSignature;
+
+	argSignature = dbus_signature_iter_get_signature (&iter);
+	if (argSignature)
+	{
+	    dbusArgToXml (writer, argSignature, direction);
+	    dbus_free (argSignature);
+	}
+    } while (dbus_signature_iter_next (&iter));
+}
+
+static void
+dbusMethodToXml (xmlTextWriterPtr writer,
+		 const char	  *name,
+		 const char	  *in,
+		 const char	  *out)
+{
+    if (!dbus_signature_validate (in, NULL))
+	return;
+
+    if (!dbus_signature_validate (out, NULL))
+	return;
 
     xmlTextWriterStartElement (writer, BAD_CAST "method");
     xmlTextWriterWriteAttribute (writer, BAD_CAST "name", BAD_CAST name);
 
-    va_start (var_args, nArgs);
-    while (nArgs)
-    {
-	type = va_arg (var_args, char *);
-	direction = va_arg (var_args, char *);
-	dbusIntrospectAddArgument (writer, type, direction);
-	nArgs--;
-    }
-    va_end (var_args);
+    if (strlen (in))
+	dbusSignatureToXml (writer, in, "in");
+
+    if (strlen (out))
+	dbusSignatureToXml (writer, out, "out");
 
     xmlTextWriterEndElement (writer);
 }
 
-static void
-dbusIntrospectAddSignal (xmlTextWriterPtr writer,
-			 char             *name,
-			 int              nArgs,
-			 ...)
+static CompBool
+dbusObjectMethodToXml (CompObject	 *object,
+		       const char	 *name,
+		       const char	 *in,
+		       const char	 *out,
+		       size_t		 offset,
+		       MethodMarshalProc marshal,
+		       void		 *closure)
 {
-    va_list var_args;
-    char *type;
+    xmlTextWriterPtr writer = (xmlTextWriterPtr) closure;
+
+    dbusMethodToXml (writer, name, in, out);
+
+    return TRUE;
+}
+
+static CompBool
+dbusCheckForObjectMethod (CompObject	    *object,
+			  const char	    *name,
+			  const char	    *in,
+			  const char	    *out,
+			  size_t	    offset,
+			  MethodMarshalProc marshal,
+			  void		    *closure)
+{
+    return FALSE;
+}
+
+static void
+dbusSignalToXml (xmlTextWriterPtr writer,
+		 const char	  *name,
+		 const char	  *out)
+{
+    if (!dbus_signature_validate (out, NULL))
+	return;
 
     xmlTextWriterStartElement (writer, BAD_CAST "signal");
     xmlTextWriterWriteAttribute (writer, BAD_CAST "name", BAD_CAST name);
 
-    va_start (var_args, nArgs);
-    while (nArgs)
-    {
-	type = va_arg (var_args, char *);
-	dbusIntrospectAddArgument (writer, type, "out");
-	nArgs--;
-    }
-    va_end (var_args);
+    if (strlen (out))
+	dbusSignatureToXml (writer, out, "out");
 
     xmlTextWriterEndElement (writer);
 }
 
-static void
-dbusIntrospectAddNode (xmlTextWriterPtr writer,
-		       char             *name)
+static CompBool
+dbusObjectSignalToXml (CompObject *object,
+		       const char *name,
+		       const char *out,
+		       size_t	  offset,
+		       void	  *closure)
 {
-    xmlTextWriterStartElement (writer, BAD_CAST "node");
-    xmlTextWriterWriteAttribute (writer, BAD_CAST "name", BAD_CAST name);
-    xmlTextWriterEndElement (writer);
-}
+    xmlTextWriterPtr writer = (xmlTextWriterPtr) closure;
 
-static void
-dbusIntrospectStartRoot (xmlTextWriterPtr writer)
-{
-    xmlTextWriterStartElement (writer, BAD_CAST "node");
-
-    xmlTextWriterStartElement (writer, BAD_CAST "interface");
-    xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
-				 BAD_CAST "org.freedesktop.DBus.Introspectable");
-
-    dbusIntrospectAddMethod (writer, "Introspect", 1, "s", "out");
-
-    xmlTextWriterEndElement (writer);
-}
-
-static void
-dbusIntrospectEndRoot (xmlTextWriterPtr writer)
-{
-    xmlTextWriterEndDocument (writer);
-}
-
-/* introspection handlers */
-static Bool
-dbusHandleRootIntrospectMessage (DBusConnection *connection,
-				 DBusMessage    *message)
-{
-    char **plugins, **pluginName;
-    int nPlugins;
-
-    xmlTextWriterPtr writer;
-    xmlBufferPtr buf;
-
-    buf = xmlBufferCreate ();
-    writer = xmlNewTextWriterMemory (buf, 0);
-
-    dbusIntrospectStartRoot (writer);
-    dbusIntrospectStartInterface (writer);
-
-    dbusIntrospectAddMethod (writer, COMPIZ_DBUS_GET_PLUGINS_MEMBER_NAME, 1,
-			     "as", "out");
-    dbusIntrospectAddMethod (writer,
-			     COMPIZ_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME, 7,
-			     "s", "in", "s", "out", "s", "out", "s", "out",
-			     "b", "out", "as", "out", "as", "out");
-    dbusIntrospectAddSignal (writer,
-			     COMPIZ_DBUS_PLUGINS_CHANGED_SIGNAL_NAME, 0);
-
-    dbusIntrospectEndInterface (writer);
-
-    plugins = availablePlugins (&nPlugins);
-    if (plugins)
-    {
-	pluginName = plugins;
-
-	while (nPlugins--)
-	{
-	    dbusIntrospectAddNode (writer, *pluginName);
-	    free (*pluginName);
-	    pluginName++;
-	}
-
-	free (plugins);
-    }
-    else
-    {
-	xmlFreeTextWriter (writer);
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    dbusIntrospectEndRoot (writer);
-
-    xmlFreeTextWriter (writer);
-
-    DBusMessage *reply = dbus_message_new_method_return (message);
-    if (!reply)
-    {
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    DBusMessageIter args;
-    dbus_message_iter_init_append (reply, &args);
-
-    if (!dbus_message_iter_append_basic (&args, DBUS_TYPE_STRING,
-					 &buf->content))
-    {
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    xmlBufferFree (buf);
-
-    if (!dbus_connection_send (connection, reply, NULL))
-    {
-	return FALSE;
-    }
-
-    dbus_connection_flush (connection);
-    dbus_message_unref (reply);
+    dbusSignalToXml (writer, name, out);
 
     return TRUE;
 }
 
-/* MULTIDPYERROR: only works with one or less displays present */
-static Bool
-dbusHandlePluginIntrospectMessage (DBusConnection *connection,
-				   DBusMessage    *message,
-				   char           **path)
+static CompBool
+dbusCheckForObjectSignal (CompObject *object,
+			  const char *name,
+			  const char *out,
+			  size_t     offset,
+			  void	     *closure)
 {
-    CompDisplay *d;
-    CompScreen *s;
-    char screenName[256];
-
-    xmlTextWriterPtr writer;
-    xmlBufferPtr buf;
-
-    buf = xmlBufferCreate ();
-    writer = xmlNewTextWriterMemory (buf, 0);
-
-    dbusIntrospectStartRoot (writer);
-
-    for (d = core.displays; d; d = d->next)
-    {
-	dbusIntrospectAddNode (writer, "allscreens");
-
-	for (s = d->screens; s; s = s->next)
-	{
-	    sprintf (screenName, "screen%d", s->screenNum);
-	    dbusIntrospectAddNode (writer, screenName);
-	}
-    }
-
-    dbusIntrospectEndRoot (writer);
-
-    xmlFreeTextWriter (writer);
-
-    DBusMessage *reply = dbus_message_new_method_return (message);
-    if (!reply)
-    {
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    DBusMessageIter args;
-    dbus_message_iter_init_append (reply, &args);
-
-    if (!dbus_message_iter_append_basic (&args, DBUS_TYPE_STRING,
-					 &buf->content))
-    {
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    xmlBufferFree (buf);
-
-    if (!dbus_connection_send (connection, reply, NULL))
-    {
-	return FALSE;
-    }
-
-    dbus_connection_flush (connection);
-    dbus_message_unref (reply);
-
-    return TRUE;
-}
-
-static Bool
-dbusHandleScreenIntrospectMessage (DBusConnection *connection,
-				   DBusMessage    *message,
-				   char           **path)
-{
-    CompOption *option = NULL;
-    int nOptions;
-
-    xmlTextWriterPtr writer;
-    xmlBufferPtr buf;
-
-    buf = xmlBufferCreate ();
-    writer = xmlNewTextWriterMemory (buf, 0);
-
-    dbusIntrospectStartRoot (writer);
-    dbusIntrospectStartInterface (writer);
-
-    dbusIntrospectAddMethod (writer, COMPIZ_DBUS_LIST_MEMBER_NAME, 1,
-			     "as", "out");
-
-    dbusIntrospectEndInterface (writer);
-
-    option = dbusGetOptionsFromPath (path, NULL, NULL, &nOptions);
-    if (option)
-    {
-	while (nOptions--)
-	{
-	    dbusIntrospectAddNode (writer, option->name);
-	    option++;
-	}
-    }
-
-    dbusIntrospectEndRoot (writer);
-
-    xmlFreeTextWriter (writer);
-
-    DBusMessage *reply = dbus_message_new_method_return (message);
-    if (!reply)
-    {
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    DBusMessageIter args;
-    dbus_message_iter_init_append (reply, &args);
-
-    if (!dbus_message_iter_append_basic (&args, DBUS_TYPE_STRING,
-					 &buf->content))
-    {
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    xmlBufferFree (buf);
-
-    if (!dbus_connection_send (connection, reply, NULL))
-    {
-	return FALSE;
-    }
-
-    dbus_connection_flush (connection);
-    dbus_message_unref (reply);
-
-    return TRUE;
-}
-
-static Bool
-dbusHandleOptionIntrospectMessage (DBusConnection *connection,
-				   DBusMessage    *message,
-				   char           **path)
-{
-    CompOption       *option;
-    int              nOptions;
-    CompOptionType   restrictionType;
-    Bool             metadataHandled;
-    char             type[3];
-    xmlTextWriterPtr writer;
-    xmlBufferPtr     buf;
-    Bool             isList = FALSE;
-
-    buf = xmlBufferCreate ();
-    writer = xmlNewTextWriterMemory (buf, 0);
-
-    dbusIntrospectStartRoot (writer);
-    dbusIntrospectStartInterface (writer);
-
-    option = dbusGetOptionsFromPath (path, NULL, NULL, &nOptions);
-    if (!option)
-    {
-	xmlFreeTextWriter (writer);
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    while (nOptions--)
-    {
-	if (strcmp (option->name, path[2]) == 0)
-	{
-	    restrictionType = option->type;
-	    if (restrictionType == CompOptionTypeList)
-	    {
-		restrictionType = option->value.list.type;
-		isList = TRUE;
-	    }
-
-	    metadataHandled = FALSE;
-	    switch (restrictionType)
-	    {
-	    case CompOptionTypeInt:
-		if (isList)
-		    strcpy (type, "ai");
-		else
-		    strcpy (type, "i");
-
-		dbusIntrospectAddMethod (writer,
-					 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME,
-					 6, "s", "out", "s", "out",
-					 "b", "out", "s", "out",
-					 "i", "out", "i", "out");
-		metadataHandled = TRUE;
-		break;
-	    case CompOptionTypeFloat:
-		if (isList)
-		    strcpy (type, "ad");
-		else
-		    strcpy (type, "d");
-
-		dbusIntrospectAddMethod (writer,
-					 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME,
-					 7, "s", "out", "s", "out",
-					 "b", "out", "s", "out",
-					 "d", "out", "d", "out",
-					 "d", "out");
-		metadataHandled = TRUE;
-		break;
-	    case CompOptionTypeString:
-		if (isList)
-		    strcpy (type, "as");
-		else
-		    strcpy (type, "s");
-
-		dbusIntrospectAddMethod (writer,
-					 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME,
-					 5, "s", "out", "s", "out",
-					 "b", "out", "s", "out",
-					 "as", "out");
-		metadataHandled = TRUE;
-		break;
-	    case CompOptionTypeBool:
-	    case CompOptionTypeBell:
-		if (isList)
-		    strcpy (type, "ab");
-		else
-		    strcpy (type, "b");
-
-		break;
-	    case CompOptionTypeColor:
-	    case CompOptionTypeKey:
-	    case CompOptionTypeButton:
-	    case CompOptionTypeEdge:
-	    case CompOptionTypeMatch:
-		if (isList)
-		    strcpy (type, "as");
-		else
-		    strcpy (type, "s");
-		break;
-	    default:
-		continue;
-	    }
-
-	    dbusIntrospectAddMethod (writer,
-				     COMPIZ_DBUS_GET_MEMBER_NAME, 1,
-				     type, "out");
-	    dbusIntrospectAddMethod (writer,
-				     COMPIZ_DBUS_SET_MEMBER_NAME, 1,
-				     type, "in");
-	    dbusIntrospectAddSignal (writer,
-				     COMPIZ_DBUS_CHANGED_SIGNAL_NAME, 1,
-				     type, "out");
-
-	    if (!metadataHandled)
-		dbusIntrospectAddMethod (writer,
-					 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME,
-					 4, "s", "out", "s", "out",
-					 "b", "out", "s", "out");
-	    break;
-	}
-
-	option++;
-    }
-
-    dbusIntrospectEndInterface (writer);
-    dbusIntrospectEndRoot (writer);
-
-    xmlFreeTextWriter (writer);
-
-    DBusMessage *reply = dbus_message_new_method_return (message);
-    if (!reply)
-    {
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    DBusMessageIter args;
-    dbus_message_iter_init_append (reply, &args);
-
-    if (!dbus_message_iter_append_basic (&args, DBUS_TYPE_STRING,
-					 &buf->content))
-    {
-	xmlBufferFree (buf);
-	return FALSE;
-    }
-
-    xmlBufferFree (buf);
-
-    if (!dbus_connection_send (connection, reply, NULL))
-    {
-	return FALSE;
-    }
-
-    dbus_connection_flush (connection);
-    dbus_message_unref (reply);
-
-    return TRUE;
-}
-
-
-/*
- * Activate can be used to trigger any existing action. Arguments
- * should be a pair of { string, bool|int32|double|string }.
- *
- * Example (rotate to face 1):
- *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/rotate/allscreens/rotate_to	      \
- * org.freedesktop.compiz.activate			      \
- * string:'root'					      \
- * int32:`xwininfo -root | grep id: | awk '{ print $4 }'`     \
- * string:'face' int32:1
- *
- *
- * You can also call the terminate function
- *
- * Example unfold and refold cube:
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/cube/allscreens/unfold	      \
- * org.freedesktop.compiz.activate			      \
- * string:'root'					      \
- * int32:`xwininfo -root | grep id: | awk '{ print $4 }'`
- *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/cube/allscreens/unfold	      \
- * org.freedesktop.compiz.deactivate			      \
- * string:'root'					      \
- * int32:`xwininfo -root | grep id: | awk '{ print $4 }'`
- *
- */
-static Bool
-dbusHandleActionMessage (DBusConnection *connection,
-			 DBusMessage    *message,
-			 char	        **path,
-			 Bool           activate)
-{
-    CompObject *object;
-    CompOption *option;
-    int	       nOption;
-
-    option = dbusGetOptionsFromPath (path, &object, NULL, &nOption);
-    if (!option)
-	return FALSE;
-
-    while (nOption--)
-    {
-	if (strcmp (option->name, path[2]) == 0)
-	{
-	    CompOption	    *argument = NULL;
-	    int		    i, nArgument = 0;
-	    DBusMessageIter iter;
-
-	    if (!isActionOption (option))
-		return FALSE;
-
-	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-		object = ((CompChildObject *) object)->parent;
-
-	    if (!object)
-		return FALSE;
-
-	    if (activate)
-	    {
-		if (!option->value.action.initiate)
-		    return FALSE;
-	    }
-	    else
-	    {
-		if (!option->value.action.terminate)
-		    return FALSE;
-	    }
-
-	    if (dbus_message_iter_init (message, &iter))
-	    {
-		CompOptionValue value;
-		CompOptionType  type = 0;
-		char		*name;
-		Bool		hasValue;
-
-		do
-		{
-		    name     = NULL;
-		    hasValue = FALSE;
-
-		    while (!name)
-		    {
-			switch (dbus_message_iter_get_arg_type (&iter)) {
-			case DBUS_TYPE_STRING:
-			    dbus_message_iter_get_basic (&iter, &name);
-			default:
-			    break;
-			}
-
-			if (!dbus_message_iter_next (&iter))
-			    break;
-		    }
-
-		    while (!hasValue)
-		    {
-			double tmp;
-
-			switch (dbus_message_iter_get_arg_type (&iter)) {
-			case DBUS_TYPE_BOOLEAN:
-			    hasValue = TRUE;
-			    type     = CompOptionTypeBool;
-
-			    dbus_message_iter_get_basic (&iter, &value.b);
-			    break;
-			case DBUS_TYPE_INT32:
-			    hasValue = TRUE;
-			    type     = CompOptionTypeInt;
-
-			    dbus_message_iter_get_basic (&iter, &value.i);
-			    break;
-			case DBUS_TYPE_DOUBLE:
-			    hasValue = TRUE;
-			    type     = CompOptionTypeFloat;
-
-			    dbus_message_iter_get_basic (&iter, &tmp);
-
-			    value.f = tmp;
-			    break;
-			case DBUS_TYPE_STRING:
-			    hasValue = TRUE;
-
-			    /* XXX: use match option type if name is "match" */
-			    if (name && strcmp (name, "match") == 0)
-			    {
-				char *s;
-
-				type = CompOptionTypeMatch;
-
-				dbus_message_iter_get_basic (&iter, &s);
-
-				matchInit (&value.match);
-				matchAddFromString (&value.match, s);
-			    }
-			    else
-			    {
-				type = CompOptionTypeString;
-
-				dbus_message_iter_get_basic (&iter, &value.s);
-			    }
-			default:
-			    break;
-			}
-
-			if (!dbus_message_iter_next (&iter))
-			    break;
-		    }
-
-		    if (name && hasValue)
-		    {
-			CompOption *a;
-
-			a = realloc (argument,
-				     sizeof (CompOption) * (nArgument + 1));
-			if (a)
-			{
-			    argument = a;
-
-			    argument[nArgument].name  = name;
-			    argument[nArgument].type  = type;
-			    argument[nArgument].value = value;
-
-			    nArgument++;
-			}
-		    }
-		} while (dbus_message_iter_has_next (&iter));
-	    }
-
-	    if (activate)
-	    {
-		(*option->value.action.initiate) (GET_CORE_DISPLAY (object),
-						  &option->value.action,
-						  0,
-						  argument, nArgument);
-	    }
-	    else
-	    {
-		(*option->value.action.terminate) (GET_CORE_DISPLAY (object),
-						   &option->value.action,
-						   0,
-						   argument, nArgument);
-	    }
-
-	    for (i = 0; i < nArgument; i++)
-		if (argument[i].type == CompOptionTypeMatch)
-		    matchFini (&argument[i].value.match);
-
-	    if (argument)
-		free (argument);
-
-	    if (!dbus_message_get_no_reply (message))
-	    {
-		DBusMessage *reply;
-
-		reply = dbus_message_new_method_return (message);
-
-		dbus_connection_send (connection, reply, NULL);
-		dbus_connection_flush (connection);
-
-		dbus_message_unref (reply);
-	    }
-
-	    return TRUE;
-	}
-
-	option++;
-    }
-
-    return FALSE;
-}
-
-static Bool
-dbusTryGetValueWithType (DBusMessageIter *iter,
-			 int		 type,
-			 void		 *value)
-{
-    if (dbus_message_iter_get_arg_type (iter) == type)
-    {
-	dbus_message_iter_get_basic (iter, value);
-
-	return TRUE;
-    }
-
-    return FALSE;
-}
-
-static Bool
-dbusGetOptionValue (CompObject	    *object,
-		    DBusMessageIter *iter,
-		    CompOptionType  type,
-		    CompOptionValue *value)
-{
-    double d;
-    char   *s;
-
-    switch (type) {
-    case CompOptionTypeBool:
-	return dbusTryGetValueWithType (iter,
-					DBUS_TYPE_BOOLEAN,
-					&value->b);
-	break;
-    case CompOptionTypeInt:
-	return dbusTryGetValueWithType (iter,
-					DBUS_TYPE_INT32,
-					&value->i);
-	break;
-    case CompOptionTypeFloat:
-	if (dbusTryGetValueWithType (iter,
-				     DBUS_TYPE_DOUBLE,
-				     &d))
-	{
-	    value->f = d;
-	    return TRUE;
-	}
-	break;
-    case CompOptionTypeString:
-	return dbusTryGetValueWithType (iter,
-					DBUS_TYPE_STRING,
-					&value->s);
-	break;
-    case CompOptionTypeColor:
-	if (dbusTryGetValueWithType (iter,
-				     DBUS_TYPE_STRING,
-				     &s))
-	{
-	    if (stringToColor (s, value->c))
-		return TRUE;
-	}
-	break;
-    case CompOptionTypeKey:
-	if (dbusTryGetValueWithType (iter,
-				     DBUS_TYPE_STRING,
-				     &s))
-	{
-	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-		object = ((CompChildObject *) object)->parent;
-
-	    if (!object)
-		return FALSE;
-
-	    stringToKeyAction (GET_CORE_DISPLAY (object), s, &value->action);
-	    return TRUE;
-	}
-	break;
-    case CompOptionTypeButton:
-	if (dbusTryGetValueWithType (iter,
-				     DBUS_TYPE_STRING,
-				     &s))
-	{
-	    while (object && object->id != COMP_OBJECT_TYPE_DISPLAY)
-		object = ((CompChildObject *) object)->parent;
-
-	    if (!object)
-		return FALSE;
-
-	    stringToButtonAction (GET_CORE_DISPLAY (object),
-				  s, &value->action);
-	    return TRUE;
-	}
-	break;
-    case CompOptionTypeEdge:
-	if (dbusTryGetValueWithType (iter,
-				     DBUS_TYPE_STRING,
-				     &s))
-	{
-	    value->action.edgeMask = stringToEdgeMask (s);
-	    return TRUE;
-	}
-	break;
-    case CompOptionTypeBell:
-	return dbusTryGetValueWithType (iter,
-					DBUS_TYPE_BOOLEAN,
-					&value->action.bell);
-	break;
-    case CompOptionTypeMatch:
-	if (dbusTryGetValueWithType (iter,
-				     DBUS_TYPE_STRING,
-				     &s))
-	{
-	    matchAddFromString (&value->match, s);
-	    return TRUE;
-	}
-
-    default:
-	break;
-    }
-
-    return FALSE;
-}
-
-/*
- * 'Set' can be used to change any existing option. Argument
- * should be the new value for the option.
- *
- * Example (will set command0 option to firefox):
- *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/core/allscreens/command0	      \
- * org.freedesktop.compiz.set				      \
- * string:'firefox'
- *
- * List and action options can be changed using more than one
- * argument.
- *
- * Example (will set active_plugins option to
- * [dbus,decoration,place]):
- *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/core/allscreens/active_plugins     \
- * org.freedesktop.compiz.set				      \
- * array:string:'dbus','decoration','place'
- *
- * Example (will set run_command0 option to trigger on key
- * binding <Control><Alt>Return and not trigger on any button
- * bindings, screen edges or bell notifications):
- *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/core/allscreens/run_command0	      \
- * org.freedesktop.compiz.set				      \
- * string:'<Control><Alt>Return'			      \
- * string:'Disabled'					      \
- * boolean:'false'					      \
- * string:''						      \
- * int32:'0'
- */
-static Bool
-dbusHandleSetOptionMessage (DBusConnection *connection,
-			    DBusMessage    *message,
-			    char	   **path)
-{
-    CompObject *object;
-    CompOption *option;
-    int	       nOption;
-
-    option = dbusGetOptionsFromPath (path, &object, NULL, &nOption);
-    if (!option)
-	return FALSE;
-
-    while (nOption--)
-    {
-	if (strcmp (option->name, path[2]) == 0)
-	{
-	    DBusMessageIter iter, aiter;
-	    CompOptionValue value, tmpValue;
-	    Bool	    status = FALSE;
-
-	    memset (&value, 0, sizeof (value));
-
-	    if (option->type == CompOptionTypeList)
-	    {
-		if (dbus_message_iter_init (message, &iter) &&
-		    dbus_message_iter_get_arg_type (&iter) == DBUS_TYPE_ARRAY)
-		{
-		    dbus_message_iter_recurse (&iter, &aiter);
-
-		    do
-		    {
-			if (dbusGetOptionValue (object,
-						&aiter,
-						option->value.list.type,
-						&tmpValue))
-			{
-			    CompOptionValue *v;
-
-			    v = realloc (value.list.value,
-					 sizeof (CompOptionValue) *
-					 (value.list.nValue + 1));
-			    if (v)
-			    {
-				v[value.list.nValue++] = tmpValue;
-				value.list.value = v;
-			    }
-			}
-		    } while (dbus_message_iter_next (&aiter));
-
-		    status = TRUE;
-		}
-	    }
-	    else if (dbus_message_iter_init (message, &iter))
-	    {
-		status = dbusGetOptionValue (object, &iter, option->type,
-					     &value);
-	    }
-
-	    if (status)
-	    {
-		(*core.setOptionForPlugin) (object,
-					    path[0],
-					    option->name,
-					    &value);
-
-		if (!dbus_message_get_no_reply (message))
-		{
-		    DBusMessage *reply;
-
-		    reply = dbus_message_new_method_return (message);
-
-		    dbus_connection_send (connection, reply, NULL);
-		    dbus_connection_flush (connection);
-
-		    dbus_message_unref (reply);
-		}
-
-		return TRUE;
-	    }
-	    else
-	    {
-		return FALSE;
-	    }
-	}
-
-	option++;
-    }
-
     return FALSE;
 }
 
 static void
-dbusAppendSimpleOptionValue (CompObject      *object,
-			     DBusMessage     *message,
-			     CompOptionType  type,
-			     CompOptionValue *value)
+dbusPropToXml (xmlTextWriterPtr writer,
+	       const char	*name,
+	       const char	*type)
 {
-    double d;
-    char   *s;
-
-    switch (type) {
-    case CompOptionTypeBool:
-	dbus_message_append_args (message,
-				  DBUS_TYPE_BOOLEAN, &value->b,
-				  DBUS_TYPE_INVALID);
-	break;
-    case CompOptionTypeInt:
-	dbus_message_append_args (message,
-				  DBUS_TYPE_INT32, &value->i,
-				  DBUS_TYPE_INVALID);
-	break;
-    case CompOptionTypeFloat:
-	d = value->f;
-
-	dbus_message_append_args (message,
-				  DBUS_TYPE_DOUBLE, &d,
-				  DBUS_TYPE_INVALID);
-	break;
-    case CompOptionTypeString:
-	dbus_message_append_args (message,
-				  DBUS_TYPE_STRING, &value->s,
-				  DBUS_TYPE_INVALID);
-	break;
-    case CompOptionTypeColor:
-	s = colorToString (value->c);
-	if (s)
-	{
-	    dbus_message_append_args (message,
-				      DBUS_TYPE_STRING, &s,
-				      DBUS_TYPE_INVALID);
-	    free (s);
-	}
-	break;
-    case CompOptionTypeKey:
-	s = keyActionToString ((CompDisplay *) object, &value->action);
-	if (s)
-	{
-	    dbus_message_append_args (message,
-				      DBUS_TYPE_STRING, &s,
-				      DBUS_TYPE_INVALID);
-	    free (s);
-	}
-	break;
-    case CompOptionTypeButton:
-	s = buttonActionToString ((CompDisplay *) object, &value->action);
-	if (s)
-	{
-	    dbus_message_append_args (message,
-				      DBUS_TYPE_STRING, &s,
-				      DBUS_TYPE_INVALID);
-	    free (s);
-	}
-	break;
-    case CompOptionTypeEdge:
-	s = edgeMaskToString (value->action.edgeMask);
-	if (s)
-	{
-	    dbus_message_append_args (message,
-				      DBUS_TYPE_STRING, &s,
-				      DBUS_TYPE_INVALID);
-	    free (s);
-	}
-	break;
-    case CompOptionTypeBell:
-	dbus_message_append_args (message,
-				  DBUS_TYPE_BOOLEAN, &value->action.bell,
-				  DBUS_TYPE_INVALID);
-	break;
-    case CompOptionTypeMatch:
-	s = matchToString (&value->match);
-	if (s)
-	{
-	    dbus_message_append_args (message,
-				      DBUS_TYPE_STRING, &s,
-				      DBUS_TYPE_INVALID);
-	    free (s);
-	}
-    default:
-	break;
-    }
-}
-
-static void
-dbusAppendListOptionValue (CompObject      *object,
-			   DBusMessage     *message,
-			   CompOptionType  type,
-			   CompOptionValue *value)
-{
-    DBusMessageIter iter;
-    DBusMessageIter listIter;
-    char	    sig[2];
-    char	    *s;
-    int		    i;
-
-    switch (value->list.type) {
-    case CompOptionTypeInt:
-	sig[0] = DBUS_TYPE_INT32;
-	break;
-    case CompOptionTypeFloat:
-	sig[0] = DBUS_TYPE_DOUBLE;
-	break;
-    case CompOptionTypeBool:
-    case CompOptionTypeBell:
-	sig[0] = DBUS_TYPE_BOOLEAN;
-	break;
-    default:
-	sig[0] = DBUS_TYPE_STRING;
-	break;
-    }
-    sig[1] = '\0';
-
-    dbus_message_iter_init_append (message, &iter);
-
-    if (!dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY,
-					   sig, &listIter))
+    if (!dbus_signature_validate (type, NULL))
 	return;
 
-    for (i = 0; i < value->list.nValue; i++)
+    xmlTextWriterStartElement (writer, BAD_CAST "property");
+    xmlTextWriterWriteAttribute (writer, BAD_CAST "name", BAD_CAST name);
+    xmlTextWriterWriteAttribute (writer, BAD_CAST "type", BAD_CAST type);
+    xmlTextWriterEndElement (writer);
+}
+
+static CompBool
+dbusObjectPropToXml (CompObject *object,
+		     const char *name,
+		     int	type,
+		     void	*closure)
+{
+    xmlTextWriterPtr writer = (xmlTextWriterPtr) closure;
+    char	     sig[2];
+
+    sig[0] = type;
+    sig[1] = '\0';
+
+    dbusPropToXml (writer, name, sig);
+
+    return TRUE;
+}
+
+static CompBool
+dbusCheckForObjectProp (CompObject *object,
+			const char *name,
+			int	   type,
+			void	   *closure)
+{
+    return FALSE;
+}
+
+static CompBool
+dbusObjectInterfaceToXml (CompObject	       *object,
+			  const char	       *name,
+			  void		       *interface,
+			  size_t	       offset,
+			  const CompObjectType *type,
+			  void		       *closure)
+{
+    xmlTextWriterPtr writer = (xmlTextWriterPtr) closure;
+    char	     *dbusInterface;
+
+    /* avoid interfaces without public members */
+    if ((*object->vTable->forEachMethod) (object,
+					  interface,
+					  dbusCheckForObjectMethod,
+					  NULL) &&
+	(*object->vTable->forEachSignal) (object,
+					  interface,
+					  dbusCheckForObjectSignal,
+					  NULL) &&
+	(*object->vTable->forEachProp) (object,
+					interface,
+					dbusCheckForObjectProp,
+					NULL))
+	return TRUE;
+
+    dbusInterface = dbusGetInterface (name);
+    if (dbusInterface)
     {
-	switch (value->list.type) {
-	case CompOptionTypeInt:
-	    dbus_message_iter_append_basic (&listIter,
-					    sig[0],
-					    &value->list.value[i].i);
-	    break;
-	case CompOptionTypeFloat:
-	    dbus_message_iter_append_basic (&listIter,
-					    sig[0],
-					    &value->list.value[i].f);
-	    break;
-	case CompOptionTypeBool:
-	    dbus_message_iter_append_basic (&listIter,
-					    sig[0],
-					    &value->list.value[i].b);
-	    break;
-	case CompOptionTypeString:
-	    dbus_message_iter_append_basic (&listIter,
-					    sig[0],
-					    &value->list.value[i].s);
-	    break;
-	case CompOptionTypeKey:
-	    s = keyActionToString ((CompDisplay *) object,
-				   &value->list.value[i].action);
-	    if (s)
-	    {
-		dbus_message_iter_append_basic (&listIter, sig[0], &s);
-		free (s);
-	    }
-	    break;
-	case CompOptionTypeButton:
-	    s = buttonActionToString ((CompDisplay *) object,
-				      &value->list.value[i].action);
-	    if (s)
-	    {
-		dbus_message_iter_append_basic (&listIter, sig[0], &s);
-		free (s);
-	    }
-	    break;
-	case CompOptionTypeEdge:
-	    s = edgeMaskToString (value->list.value[i].action.edgeMask);
-	    if (s)
-	    {
-		dbus_message_iter_append_basic (&listIter, sig[0], &s);
-		free (s);
-	    }
-	    break;
-	case CompOptionTypeBell:
-	    dbus_message_iter_append_basic (&listIter,
-					    sig[0],
-					    &value->list.value[i].action.bell);
-	    break;
-	case CompOptionTypeMatch:
-	    s = matchToString (&value->list.value[i].match);
-	    if (s)
-	    {
-		dbus_message_iter_append_basic (&listIter, sig[0], &s);
-		free (s);
-	    }
-	    break;
-	case CompOptionTypeColor:
-	    s = colorToString (value->list.value[i].c);
-	    if (s)
-	    {
-		dbus_message_iter_append_basic (&listIter, sig[0], &s);
-		free (s);
-	    }
-	    break;
-	default:
-	    break;
-	}
+	xmlTextWriterStartElement (writer, BAD_CAST "interface");
+	xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+				     BAD_CAST dbusInterface);
+
+	(*object->vTable->forEachMethod) (object,
+					  interface,
+					  dbusObjectMethodToXml,
+					  closure);
+
+	(*object->vTable->forEachSignal) (object,
+					  interface,
+					  dbusObjectSignalToXml,
+					  closure);
+
+	(*object->vTable->forEachProp) (object,
+					interface,
+					dbusObjectPropToXml,
+					closure);
+
+	xmlTextWriterEndElement (writer);
+
+	free (dbusInterface);
     }
 
-    dbus_message_iter_close_container (&iter, &listIter);
+    return TRUE;
+}
+
+static DBusMessage *
+dbusObjectToXml (DBusConnection *connection,
+		 DBusMessage    *message,
+		 CompObject     *object)
+{
+    DBusMessage     *reply;
+    xmlBufferPtr     buffer;
+    xmlTextWriterPtr writer;
+    char	     *path;
+
+    buffer = xmlBufferCreate ();
+    if (!buffer)
+	return dbus_message_new_error (message,
+				       DBUS_ERROR_FAILED,
+				       "Failed to create XML buffer");
+
+    writer = xmlNewTextWriterMemory (buffer, 0);
+    if (!writer)
+    {
+	xmlBufferFree (buffer);
+	return dbus_message_new_error (message,
+				       DBUS_ERROR_FAILED,
+				       "Failed to create XML text writer");
+    }
+
+    xmlTextWriterSetIndent (writer, TRUE);
+
+    xmlTextWriterStartDTD (writer,
+			   BAD_CAST "node",
+			   BAD_CAST DBUS_INTROSPECT_1_0_XML_PUBLIC_IDENTIFIER,
+			   BAD_CAST DBUS_INTROSPECT_1_0_XML_SYSTEM_IDENTIFIER);
+    xmlTextWriterEndDTD (writer);
+
+    xmlTextWriterStartElement (writer, BAD_CAST "node");
+
+    (*object->vTable->forEachInterface) (object,
+					 dbusObjectInterfaceToXml,
+					 (void *) writer);
+
+    xmlTextWriterStartElement (writer, BAD_CAST "interface");
+    xmlTextWriterWriteAttribute (writer, BAD_CAST "name", BAD_CAST
+				 DBUS_INTERFACE_INTROSPECTABLE);
+
+    dbusMethodToXml (writer, "Introspect", "", "s");
+
+    xmlTextWriterEndElement (writer);
+
+    path = dbusGetObjectPath (object);
+    if (path)
+    {
+	char **childEntries;
+
+	if (dbus_connection_list_registered (connection, path, &childEntries))
+	{
+	    int i;
+
+	    for (i = 0; childEntries[i]; i++)
+	    {
+		xmlTextWriterStartElement (writer, BAD_CAST "node");
+		xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+					     BAD_CAST childEntries[i]);
+		xmlTextWriterEndElement (writer);
+	    }
+
+	    dbus_free_string_array (childEntries);
+	}
+
+	free (path);
+    }
+
+    xmlTextWriterEndElement (writer);
+
+    xmlFreeTextWriter (writer);
+
+    reply = dbus_message_new_method_return (message);
+    if (reply)
+	dbus_message_append_args (reply,
+				  DBUS_TYPE_STRING,
+				  &buffer->content,
+				  DBUS_TYPE_INVALID);
+
+    xmlBufferFree (buffer);
+
+    return reply;
+}
+
+typedef struct _DBusArgs {
+    CompArgs base;
+
+    DBusMessage *message;
+    DBusMessage *reply;
+
+    DBusMessageIter messageIter;
+    DBusMessageIter replyIter;
+} DBusArgs;
+
+static void
+dbusArgsLoad (CompArgs   *args,
+	      const char *type,
+	      void       *value)
+{
+    DBusArgs *dArgs = (DBusArgs *) args;
+
+    switch (type[0]) {
+    case DBUS_TYPE_BOOLEAN:
+    case DBUS_TYPE_INT32:
+    case DBUS_TYPE_DOUBLE:
+    case DBUS_TYPE_STRING:
+	dbus_message_iter_get_basic (&dArgs->messageIter, value);
+	dbus_message_iter_next (&dArgs->messageIter);
+	break;
+    }
 }
 
 static void
-dbusAppendOptionValue (CompObject      *object,
-		       DBusMessage     *message,
-		       CompOptionType  type,
-		       CompOptionValue *value)
+dbusArgsStore (CompArgs   *args,
+	       const char *type,
+	       void       *value)
 {
-    if (type == CompOptionTypeList)
-    {
-	dbusAppendListOptionValue (object, message, type, value);
-    }
-    else
-    {
-	dbusAppendSimpleOptionValue (object, message, type, value);
+    DBusArgs *dArgs = (DBusArgs *) args;
+
+    if (!dArgs->reply)
+	return;
+
+    if (dbus_message_get_type (dArgs->reply) == DBUS_MESSAGE_TYPE_ERROR)
+	return;
+
+    switch (type[0]) {
+    case DBUS_TYPE_BOOLEAN:
+    case DBUS_TYPE_INT32:
+    case DBUS_TYPE_DOUBLE:
+    case DBUS_TYPE_STRING:
+	if (!dbus_message_iter_append_basic (&dArgs->replyIter,
+					     (int) type[0],
+					     value))
+	{
+	    dbus_message_unref (dArgs->reply);
+	    dArgs->reply =
+		dbus_message_new_error (dArgs->message,
+					DBUS_ERROR_NO_MEMORY,
+					"Failed to append output argument");
+	}
+	break;
     }
 }
 
-/*
- * 'Get' can be used to retrieve the value of any existing option.
- *
- * Example (will retrieve the current value of command0 option):
- *
- * dbus-send --print-reply --type=method_call	    \
- * --dest=org.freedesktop.compiz		    \
- * /org/freedesktop/compiz/core/allscreens/command0 \
- * org.freedesktop.compiz.get
- */
-static Bool
-dbusHandleGetOptionMessage (DBusConnection *connection,
-			    DBusMessage    *message,
-			    char	   **path)
+static void
+dbusArgsError (CompArgs *args,
+	       char     *error)
 {
-    CompObject  *object;
-    CompOption  *option;
-    int	        nOption = 0;
+    DBusArgs *dArgs = (DBusArgs *) args;
+
+    if (dArgs->reply)
+	dbus_message_unref (dArgs->reply);
+
+    dArgs->reply = dbus_message_new_error (dArgs->message,
+					   DBUS_ERROR_FAILED,
+					   error);
+
+    free (error);
+}
+
+static CompBool
+dbusInitArgs (DBusArgs	  *dArgs,
+	      DBusMessage *message)
+{
+    dArgs->base.load  = dbusArgsLoad;
+    dArgs->base.store = dbusArgsStore;
+    dArgs->base.error = dbusArgsError;
+
+    dArgs->message = message;
+    dArgs->reply   = dbus_message_new_method_return (message);
+
+    if (!dArgs->reply)
+	return FALSE;
+
+    dbus_message_iter_init (message, &dArgs->messageIter);
+    dbus_message_iter_init_append (dArgs->reply, &dArgs->replyIter);
+
+    return TRUE;
+}
+
+static void
+dbusFiniArgs (DBusArgs *dArgs)
+{
+    if (dArgs->reply)
+	dbus_message_unref (dArgs->reply);
+}
+
+static DBusMessage *
+dbusInvokeMethod (DBusMessage *message,
+		  CompObject  *object,
+		  const char  *interface,
+		  const char  *name,
+		  const char  *in)
+{
     DBusMessage *reply = NULL;
+    DBusArgs	args;
 
-    option = dbusGetOptionsFromPath (path, &object, NULL, &nOption);
+    if (!dbusInitArgs (&args, message))
+	return dbus_message_new_error (message,
+				       DBUS_ERROR_NO_MEMORY,
+				       "Failed to create return message");
 
-    while (nOption--)
-    {
-	if (strcmp (option->name, path[2]) == 0)
-	{
-	    reply = dbus_message_new_method_return (message);
-	    dbusAppendOptionValue (object, reply, option->type,
-				   &option->value);
-	    break;
-	}
+    if (compInvokeMethod (object,
+			  interface,
+			  name,
+			  in,
+			  NULL,
+			  &args.base))
+	reply = dbus_message_ref (args.reply);
 
-	option++;
-    }
+    dbusFiniArgs (&args);
 
-    if (!reply)
-	reply = dbus_message_new_error (message,
-					DBUS_ERROR_FAILED,
-					"No such option");
-
-    dbus_connection_send (connection, reply, NULL);
-    dbus_connection_flush (connection);
-
-    dbus_message_unref (reply);
-
-    return TRUE;
+    return reply;
 }
 
-/*
- * 'List' can be used to retrieve a list of available options.
- *
- * Example:
- *
- * dbus-send --print-reply --type=method_call \
- * --dest=org.freedesktop.compiz	      \
- * /org/freedesktop/compiz/core/allscreens    \
- * org.freedesktop.compiz.list
- */
-static Bool
-dbusHandleListMessage (DBusConnection *connection,
-		       DBusMessage    *message,
-		       char	      **path)
+static DBusMessage *
+dbusHandleMethodCall (DBusConnection *connection,
+		      DBusMessage    *message,
+		      CompObject     *object)
 {
-    CompObject  *object;
-    CompOption  *option;
-    int	        nOption = 0;
-    DBusMessage *reply;
+    static int baseLen = 0;
+    const char *interface, *member, *signature;
 
-    option = dbusGetOptionsFromPath (path, &object, NULL, &nOption);
+    if (!baseLen)
+	baseLen = strlen (COMPIZ_DBUS_INTERFACE_BASE);
 
-    reply = dbus_message_new_method_return (message);
+    interface = dbus_message_get_interface (message);
+    member    = dbus_message_get_member (message);
+    signature = dbus_message_get_signature (message);
 
-    while (nOption--)
+    if (!interface || strncmp (interface,
+			       COMPIZ_DBUS_INTERFACE_BASE,
+			       baseLen) == 0)
     {
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_STRING, &option->name,
-				  DBUS_TYPE_INVALID);
-	option++;
+	DBusMessage *reply;
+	const char  *methodInterface = NULL;
+
+	if (interface)
+	    methodInterface = interface + baseLen;
+
+	reply = dbusInvokeMethod (message,
+				  object,
+				  methodInterface,
+				  member,
+				  signature);
+	if (reply)
+	    return reply;
     }
 
-    dbus_connection_send (connection, reply, NULL);
-    dbus_connection_flush (connection);
-
-    dbus_message_unref (reply);
-
-    return TRUE;
-}
-
-/*
- * 'GetMetadata' can be used to retrieve metadata for an option.
- *
- * Example:
- *
- * dbus-send --print-reply --type=method_call		\
- * --dest=org.freedesktop.compiz			\
- * /org/freedesktop/compiz/core/allscreens/run_command0 \
- * org.freedesktop.compiz.getMetadata
- */
-static Bool
-dbusHandleGetMetadataMessage (DBusConnection *connection,
-			      DBusMessage    *message,
-			      char	     **path)
-{
-    CompObject   *object;
-    CompOption   *option;
-    int	         nOption = 0;
-    DBusMessage  *reply = NULL;
-    CompMetadata *m;
-
-    option = dbusGetOptionsFromPath (path, &object, &m, &nOption);
-
-    while (nOption--)
+    if (!interface || strcmp (interface, DBUS_INTERFACE_INTROSPECTABLE) == 0)
     {
-	if (strcmp (option->name, path[2]) == 0)
-	{
-	    CompOptionType restrictionType = option->type;
-	    const char	   *type;
-	    char	   *shortDesc = NULL;
-	    char	   *longDesc = NULL;
-	    const char     *blankStr = "";
-
-	    reply = dbus_message_new_method_return (message);
-
-	    type = optionTypeToString (option->type);
-
-	    if (m)
-	    {
-		if (object->id == COMP_OBJECT_TYPE_SCREEN)
-		{
-		    shortDesc = compGetShortScreenOptionDescription (m, option);
-		    longDesc  = compGetLongScreenOptionDescription (m, option);
-		}
-		else
-		{
-		    shortDesc =
-			compGetShortDisplayOptionDescription (m, option);
-		    longDesc  = compGetLongDisplayOptionDescription (m, option);
-		}
-	    }
-
-	    if (shortDesc)
-		dbus_message_append_args (reply,
-					  DBUS_TYPE_STRING, &shortDesc,
-					  DBUS_TYPE_INVALID);
-	    else
-		dbus_message_append_args (reply,
-					  DBUS_TYPE_STRING, &blankStr,
-					  DBUS_TYPE_INVALID);
-
-	    if (longDesc)
-		dbus_message_append_args (reply,
-					  DBUS_TYPE_STRING, &longDesc,
-					  DBUS_TYPE_INVALID);
-	    else
-		dbus_message_append_args (reply,
-					  DBUS_TYPE_STRING, &blankStr,
-					  DBUS_TYPE_INVALID);
-
-	    dbus_message_append_args (reply,
-				      DBUS_TYPE_STRING, &type,
-				      DBUS_TYPE_INVALID);
-
-	    if (shortDesc)
-		free (shortDesc);
-	    if (longDesc)
-		free (longDesc);
-
-	    if (restrictionType == CompOptionTypeList)
-	    {
-		type = optionTypeToString (option->value.list.type);
-		restrictionType = option->value.list.type;
-
-		dbus_message_append_args (reply,
-					  DBUS_TYPE_STRING, &type,
-					  DBUS_TYPE_INVALID);
-	    }
-
-	    switch (restrictionType) {
-	    case CompOptionTypeInt:
-		dbus_message_append_args (reply,
-					  DBUS_TYPE_INT32, &option->rest.i.min,
-					  DBUS_TYPE_INT32, &option->rest.i.max,
-					  DBUS_TYPE_INVALID);
-		break;
-	    case CompOptionTypeFloat: {
-		double min, max, precision;
-
-		min	  = option->rest.f.min;
-		max	  = option->rest.f.max;
-		precision = option->rest.f.precision;
-
-		dbus_message_append_args (reply,
-					  DBUS_TYPE_DOUBLE, &min,
-					  DBUS_TYPE_DOUBLE, &max,
-					  DBUS_TYPE_DOUBLE, &precision,
-					  DBUS_TYPE_INVALID);
-	    } break;
-	    default:
-		break;
-	    }
-	    break;
-	}
-
-	option++;
+	if (strcmp (member, "Introspect") == 0 && strcmp (signature, "") == 0)
+	    return dbusObjectToXml (connection, message, object);
     }
 
-    if (!reply)
-	reply = dbus_message_new_error (message,
-					DBUS_ERROR_FAILED,
-					"No such option");
-
-    dbus_connection_send (connection, reply, NULL);
-    dbus_connection_flush (connection);
-
-    dbus_message_unref (reply);
-
-    return TRUE;
-}
-
-/*
- * 'GetPlugins' can be used to retrieve a list of available plugins. There's
- * no guarantee that a plugin in this list can actually be loaded.
- *
- * Example:
- *
- * dbus-send --print-reply --type=method_call \
- * --dest=org.freedesktop.compiz	      \
- * /org/freedesktop/compiz		      \
- * org.freedesktop.compiz.getPlugins
- */
-static Bool
-dbusHandleGetPluginsMessage (DBusConnection *connection,
-			     DBusMessage    *message)
-{
-    DBusMessage *reply;
-    char	**plugins, **p;
-    int		n;
-
-    reply = dbus_message_new_method_return (message);
-
-    plugins = availablePlugins (&n);
-    if (plugins)
-    {
-	p = plugins;
-
-	while (n--)
-	{
-	    dbus_message_append_args (reply,
-				      DBUS_TYPE_STRING, p,
-				      DBUS_TYPE_INVALID);
-	    free (*p);
-
-	    p++;
-	}
-
-	free (plugins);
-    }
-
-    dbus_connection_send (connection, reply, NULL);
-    dbus_connection_flush (connection);
-
-    dbus_message_unref (reply);
-
-    return TRUE;
-}
-
-/*
- * 'GetPluginMetadata' can be used to retrieve metadata for a plugin.
- *
- * Example:
- *
- * dbus-send --print-reply --type=method_call \
- * --dest=org.freedesktop.compiz	      \
- * /org/freedesktop/compiz		      \
- * org.freedesktop.compiz.getPluginMetadata   \
- * string:'png'
- */
-static Bool
-dbusHandleGetPluginMetadataMessage (DBusConnection *connection,
-				    DBusMessage    *message)
-{
-    DBusMessage     *reply;
-    DBusMessageIter iter;
-    char	    *name;
-    CompPlugin	    *p, *loadedPlugin = NULL;
-
-    if (!dbus_message_iter_init (message, &iter))
-	return FALSE;
-
-    if (!dbusTryGetValueWithType (&iter,
-				  DBUS_TYPE_STRING,
-				  &name))
-	return FALSE;
-
-    p = findActivePlugin (name);
-    if (!p)
-	p = loadedPlugin = loadPlugin (name);
-
-    if (p)
-    {
-	Bool	   initializedPlugin = TRUE;
-	char	   *shortDesc = NULL;
-	char	   *longDesc = NULL;
-	const char *blankStr = "";
-
-	reply = dbus_message_new_method_return (message);
-
-	if (loadedPlugin)
-	{
-	    if (!(*p->vTable->init) (p))
-		initializedPlugin = FALSE;
-	}
-
-	if (initializedPlugin && p->vTable->getMetadata)
-	{
-	    CompMetadata *m;
-
-	    m = (*p->vTable->getMetadata) (p);
-	    if (m)
-	    {
-		shortDesc = compGetShortPluginDescription (m);
-		longDesc  = compGetLongPluginDescription (m);
-	    }
-	}
-
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_STRING, &p->vTable->name,
-				  DBUS_TYPE_INVALID);
-
-	if (shortDesc)
-	    dbus_message_append_args (reply,
-				      DBUS_TYPE_STRING, &shortDesc,
-				      DBUS_TYPE_INVALID);
-	else
-	    dbus_message_append_args (reply,
-				      DBUS_TYPE_STRING, &blankStr,
-				      DBUS_TYPE_INVALID);
-
-	if (longDesc)
-	    dbus_message_append_args (reply,
-				      DBUS_TYPE_STRING, &longDesc,
-				      DBUS_TYPE_INVALID);
-	else
-	    dbus_message_append_args (reply,
-				      DBUS_TYPE_STRING, &blankStr,
-				      DBUS_TYPE_INVALID);
-
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_BOOLEAN, &initializedPlugin,
-				  DBUS_TYPE_INVALID);
-
-	if (shortDesc)
-	    free (shortDesc);
-	if (longDesc)
-	    free (longDesc);
-
-	if (loadedPlugin && initializedPlugin)
-	    (*p->vTable->fini) (p);
-    }
-    else
-    {
-	char *str;
-
-	str = malloc (strlen (name) + 256);
-	if (!str)
-	    return FALSE;
-
-	sprintf (str, "Plugin '%s' could not be loaded", name);
-
-	reply = dbus_message_new_error (message,
-					DBUS_ERROR_FAILED,
-					str);
-
-	free (str);
-    }
-
-    if (loadedPlugin)
-	unloadPlugin (loadedPlugin);
-
-    dbus_connection_send (connection, reply, NULL);
-    dbus_connection_flush (connection);
-
-    dbus_message_unref (reply);
-
-    return TRUE;
+    return NULL;
 }
 
 static DBusHandlerResult
@@ -1684,146 +585,243 @@ dbusHandleMessage (DBusConnection *connection,
 		   DBusMessage    *message,
 		   void           *userData)
 {
-    Bool status = FALSE;
-    char **path;
+    CompObject  *object = (CompObject *) userData;
+    DBusMessage *reply;
 
-    if (!dbus_message_get_path_decomposed (message, &path))
+    if (dbus_message_get_type (message) != DBUS_MESSAGE_TYPE_METHOD_CALL)
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-    if (!path[0] || !path[1] || !path[2])
+    reply = dbusHandleMethodCall (connection, message, object);
+    if (reply)
     {
-	dbus_free_string_array (path);
-	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-    }
+	dbus_connection_send (connection, reply, NULL);
+	dbus_connection_flush (connection);
+	dbus_message_unref (reply);
 
-    /* root messages */
-    if (!path[3])
-    {
-	if (dbus_message_is_method_call (message,
-					 DBUS_INTERFACE_INTROSPECTABLE,
-					 "Introspect"))
-	{
-	    if (dbusHandleRootIntrospectMessage (connection, message))
-	    {
-		dbus_free_string_array (path);
-		return DBUS_HANDLER_RESULT_HANDLED;
-	    }
-	}
-	else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-				 COMPIZ_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME))
-	{
-	    if (dbusHandleGetPluginMetadataMessage (connection, message))
-	    {
-		dbus_free_string_array (path);
-		return DBUS_HANDLER_RESULT_HANDLED;
-	    }
-	}
-	else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-					  COMPIZ_DBUS_GET_PLUGINS_MEMBER_NAME))
-	{
-	    if (dbusHandleGetPluginsMessage (connection, message))
-	    {
-		dbus_free_string_array (path);
-		return DBUS_HANDLER_RESULT_HANDLED;
-	    }
-	}
-
-	dbus_free_string_array (path);
-	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-    }
-    /* plugin message */
-    else if (!path[4])
-    {
-	if (dbus_message_is_method_call (message,
-					 DBUS_INTERFACE_INTROSPECTABLE,
-					 "Introspect"))
-	{
-	    if (dbusHandlePluginIntrospectMessage (connection, message,
-						   &path[3]))
-	    {
-		dbus_free_string_array (path);
-		return DBUS_HANDLER_RESULT_HANDLED;
-	    }
-	}
-
-	dbus_free_string_array (path);
-	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-    }
-    /* screen message */
-    else if (!path[5])
-    {
-	if (dbus_message_is_method_call (message,
-					 DBUS_INTERFACE_INTROSPECTABLE,
-					 "Introspect"))
-	{
-	    if (dbusHandleScreenIntrospectMessage (connection, message,
-						   &path[3]))
-	    {
-		dbus_free_string_array (path);
-		return DBUS_HANDLER_RESULT_HANDLED;
-	    }
-	}
-	else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-					      COMPIZ_DBUS_LIST_MEMBER_NAME))
-	{
-	    if (dbusHandleListMessage (connection, message, &path[3]))
-	    {
-		dbus_free_string_array (path);
-		return DBUS_HANDLER_RESULT_HANDLED;
-	    }
-	}
-
-	dbus_free_string_array (path);
-	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-    }
-    /* option message */
-    if (dbus_message_is_method_call (message, DBUS_INTERFACE_INTROSPECTABLE,
-				     "Introspect"))
-    {
-	status = dbusHandleOptionIntrospectMessage (connection, message,
-						    &path[3]);
-    }
-    else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-					  COMPIZ_DBUS_ACTIVATE_MEMBER_NAME))
-    {
-	status = dbusHandleActionMessage (connection, message, &path[3], TRUE);
-    }
-    else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-					  COMPIZ_DBUS_DEACTIVATE_MEMBER_NAME))
-    {
-	status = dbusHandleActionMessage (connection, message, &path[3],
-					  FALSE);
-    }
-    else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-					  COMPIZ_DBUS_SET_MEMBER_NAME))
-    {
-	status = dbusHandleSetOptionMessage (connection, message, &path[3]);
-    }
-    else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-					  COMPIZ_DBUS_GET_MEMBER_NAME))
-    {
-	status = dbusHandleGetOptionMessage (connection, message, &path[3]);
-    }
-    else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-					  COMPIZ_DBUS_GET_METADATA_MEMBER_NAME))
-    {
-	status = dbusHandleGetMetadataMessage (connection, message, &path[3]);
-    }
-
-    dbus_free_string_array (path);
-
-    if (status)
 	return DBUS_HANDLER_RESULT_HANDLED;
+    }
 
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 
-static Bool
+static DBusObjectPathVTable dbusObjectPathVTable = {
+    0, /* unregister */
+    dbusHandleMessage
+};
+
+static void
+dbusRegisterObject (CompCore   *c,
+		    CompObject *object)
+{
+    char *path;
+
+    DBUS_CORE (c);
+
+    path = dbusGetObjectPath (object);
+    if (path)
+    {
+	dbus_connection_register_object_path (dc->connection, path,
+					      &dbusObjectPathVTable,
+					      (void *) object);
+
+	free (path);
+    }
+}
+
+static void
+dbusUnregisterObject (CompCore   *c,
+		      CompObject *object)
+{
+    char *path;
+
+    DBUS_CORE (c);
+
+    path = dbusGetObjectPath (object);
+    if (path)
+    {
+	dbus_connection_unregister_object_path (dc->connection, path);
+	free (path);
+    }
+}
+
+static CompBool
+dbusRegisterObjectTree (CompObject *object,
+			void	   *closure)
+{
+    CORE (closure);
+
+    dbusRegisterObject (c, object);
+
+    (*object->vTable->forEachChildObject) (object,
+					   dbusRegisterObjectTree,
+					   closure);
+
+    return TRUE;
+}
+
+static CompBool
+dbusUnregisterObjectTree (CompObject *object,
+			  void	     *closure)
+{
+    CORE (closure);
+
+    (*object->vTable->forEachChildObject) (object,
+					   dbusUnregisterObjectTree,
+					   closure);
+
+    dbusUnregisterObject (c, object);
+
+    return TRUE;
+}
+
+static void
+dbusPropChanged (CompObject *object,
+		 void	    *data,
+		 ...)
+{
+    CompObject *source;
+    char       *path, *dbusInterface;
+    const char *interface;
+    const char *name;
+    const char *signature;
+    va_list    ap, args;
+
+    CORE (object);
+    DBUS_CORE (c);
+
+    va_start (ap, data);
+
+    source    = va_arg (ap, CompObject *);
+    interface = va_arg (ap, const char *);
+    name      = va_arg (ap, const char *);
+    signature = va_arg (ap, const char *);
+    args      = va_arg (ap, va_list);
+
+    va_end (ap);
+
+    /* register and unregister objects */
+    if (strcmp (interface, "object") == 0 && strcmp (signature, "o") == 0)
+    {
+	va_copy (ap, args);
+
+	if (strcmp (name, "childObjectAdded") == 0)
+	    dbusRegisterObjectTree (va_arg (ap, CompObject *), (void *) c);
+	else if (strcmp (name, "childObjectRemoved") == 0)
+	    dbusUnregisterObjectTree (va_arg (ap, CompObject *), (void *) c);
+
+	va_end (ap);
+    }
+
+    dbusInterface = malloc (strlen (COMPIZ_DBUS_INTERFACE_BASE) +
+			    strlen (interface) + 1);
+    if (!dbusInterface)
+	return;
+
+    sprintf (dbusInterface, "%s%s", COMPIZ_DBUS_INTERFACE_BASE, interface);
+
+    path = dbusGetObjectPath (source);
+    if (path)
+    {
+	DBusMessage *signal;
+
+	signal = dbus_message_new_signal (path, dbusInterface, name);
+	if (signal)
+	{
+	    DBusMessageIter iter;
+	    const char	    *sig = signature;
+	    CompAnyValue    value;
+
+	    dbus_message_iter_init_append (signal, &iter);
+
+	    va_copy (ap, args);
+
+	    while (*sig != COMP_TYPE_INVALID)
+	    {
+		char *objectPath = NULL;
+
+		switch (sig[0]) {
+		case COMP_TYPE_BOOLEAN:
+		    value.b = va_arg (ap, CompBool);
+		    break;
+		case COMP_TYPE_INT32:
+		    value.i = va_arg (ap, int);
+		    break;
+		case COMP_TYPE_DOUBLE:
+		    value.d = va_arg (ap, double);
+		    break;
+		case COMP_TYPE_STRING:
+		    value.s = va_arg (ap, char *);
+		    break;
+		case COMP_TYPE_OBJECT:
+		    objectPath = dbusGetObjectPath (va_arg (ap, CompObject *));
+		    if (objectPath)
+			value.s = objectPath;
+		    else
+			value.s = COMPIZ_DBUS_PATH_ROOT "/unknown";
+		    break;
+		}
+
+		dbus_message_iter_append_basic (&iter, sig[0], &value);
+
+		if (objectPath)
+		    free (objectPath);
+
+		sig = nextPropType (sig);
+	    }
+
+	    va_end (ap);
+
+	    dbus_connection_send (dc->connection, signal, NULL);
+	    dbus_message_unref (signal);
+	}
+
+	free (path);
+    }
+
+    free (dbusInterface);
+}
+
+static CompBool
+dbusRequestName (CompCore   *c,
+		 const char *name)
+{
+    DBusError error;
+
+    DBUS_CORE (c);
+
+    dbus_error_init (&error);
+
+    dbus_bus_request_name (dc->connection, name,
+			   DBUS_NAME_FLAG_REPLACE_EXISTING |
+			   DBUS_NAME_FLAG_ALLOW_REPLACEMENT,
+			   &error);
+
+    if (dbus_error_is_set (&error))
+    {
+	dbus_error_free (&error);
+	return FALSE;
+    }
+
+    dbus_error_free (&error);
+
+    return TRUE;
+}
+
+static void
+dbusReleaseName (CompCore   *c,
+		 const char *name)
+{
+    DBUS_CORE (c);
+
+    dbus_bus_release_name (dc->connection, name, NULL);
+}
+
+static CompBool
 dbusProcessMessages (void *data)
 {
     DBusDispatchStatus status;
 
-    DBUS_CORE (&core);
+    DBUS_CORE (GET_CORE (data));
 
     do
     {
@@ -1835,437 +833,16 @@ dbusProcessMessages (void *data)
     return TRUE;
 }
 
-static void
-dbusSendChangeSignalForOption (CompObject *object,
-			       CompOption *o,
-			       const char *plugin)
-{
-    DBusMessage *signal;
-    char	*name, path[256];
-
-    DBUS_CORE (&core);
-
-    if (!o)
-	return;
-
-    name = (*object->vTable->nameObject) (object);
-    if (name)
-    {
-	sprintf (path, "%s/%s/%s%s/%s", COMPIZ_DBUS_ROOT_PATH,
-		 plugin, object->type->name, name, o->name);
-
-	free (name);
-    }
-    else
-	sprintf (path, "%s/%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
-		 plugin, object->type->name, o->name);
-
-    signal = dbus_message_new_signal (path,
-				      COMPIZ_DBUS_SERVICE_NAME,
-				      COMPIZ_DBUS_CHANGED_SIGNAL_NAME);
-
-    dbusAppendOptionValue (object, signal, o->type, &o->value);
-
-    dbus_connection_send (dc->connection, signal, NULL);
-    dbus_connection_flush (dc->connection);
-
-    dbus_message_unref (signal);
-}
-
-static Bool
-dbusGetPathDecomposed (char *data,
-		       char ***path)
-{
-    char **retval;
-    char *temp;
-    char *token;
-    int nComponents;
-    int i;
-
-    nComponents = 0;
-    if (strlen (data) > 1)
-    {
-	i = 0;
-	while (i < strlen (data))
-	{
-            if (data[i] == '/')
-		nComponents += 1;
-	    ++i;
-	}
-    }
-
-    retval = malloc (sizeof (char*) * (nComponents + 1));
-
-    if (nComponents == 0)
-    {
-	retval[0] = malloc (sizeof (char));
-	retval[0][0] = '\0';
-	*path = retval;
-	return TRUE;
-    }
-
-    temp = strdup (data);
-
-    i = 0;
-    token = strtok (temp, "/");
-    while (token != NULL)
-    {
-	retval[i] = strdup (token);
-	token = strtok (NULL, "/");
-	i++;
-    }
-    retval[i] = malloc (sizeof (char));
-    retval[i][0] = '\0';
-
-    free (temp);
-
-    *path = retval;
-    return TRUE;
-}
-
-/* dbus registration */
-
-static Bool
-dbusRegisterOptions (DBusConnection *connection,
-		     char           *screenPath)
-{
-    CompOption *option = NULL;
-    int        nOptions;
-    char       objectPath[256];
-    char       **path;
-
-    dbusGetPathDecomposed (screenPath, &path);
-
-    option = dbusGetOptionsFromPath (&path[3], NULL, NULL, &nOptions);
-
-    if (!option) {
-        free(path);
-	return FALSE;
-    }
-
-    while (nOptions--)
-    {
-	snprintf (objectPath, 256, "%s/%s", screenPath, option->name);
-
-	dbus_connection_register_object_path (connection, objectPath,
-					      &dbusMessagesVTable, 0);
-	option++;
-    }
-
-    free(path);
-
-    return TRUE;
-}
-
-static Bool
-dbusUnregisterOptions (DBusConnection *connection,
-		       char           *screenPath)
-{
-    CompOption *option = NULL;
-    int nOptions;
-    char objectPath[256];
-    char **path;
-
-    dbusGetPathDecomposed (screenPath, &path);
-
-    option = dbusGetOptionsFromPath (&path[3], NULL, NULL, &nOptions);
-
-    free (path);
-
-    if (!option)
-	return FALSE;
-
-    while (nOptions--)
-    {
-	snprintf (objectPath, 256, "%s/%s", screenPath, option->name);
-
-	dbus_connection_unregister_object_path (connection, objectPath);
-	option++;
-    }
-
-    return TRUE;
-}
-
-static void
-dbusRegisterPluginForDisplay (DBusConnection *connection,
-			      CompDisplay    *d,
-			      char           *pluginName)
-{
-    char       objectPath[256];
-
-    /* register plugin root path */
-    snprintf (objectPath, 256, "%s/%s", COMPIZ_DBUS_ROOT_PATH, pluginName);
-    dbus_connection_register_object_path (connection, objectPath,
-					  &dbusMessagesVTable, d);
-
-    /* register plugin/screen path */
-    snprintf (objectPath, 256, "%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
-	      pluginName, "allscreens");
-    dbus_connection_register_object_path (connection, objectPath,
-					  &dbusMessagesVTable, d);
-}
-
-static void
-dbusRegisterPluginForScreen (DBusConnection *connection,
-			     CompScreen     *s,
-			     char           *pluginName)
-{
-    char       objectPath[256];
-
-    /* register plugin/screen path */
-    snprintf (objectPath, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
-	      pluginName, s->screenNum);
-    dbus_connection_register_object_path (connection, objectPath,
-					  &dbusMessagesVTable, s->display);
-}
-
-static void
-dbusRegisterPluginsForDisplay (DBusConnection *connection,
-			       CompDisplay    *d)
-{
-    CompListValue *pl;
-    int           nPlugins;
-    char          path[256];
-
-    pl = &d->opt[COMP_DISPLAY_OPTION_ACTIVE_PLUGINS].value.list;
-
-    nPlugins = pl->nValue;
-
-    while (nPlugins--)
-    {
-	snprintf (path, 256, "%s/%s/allscreens", COMPIZ_DBUS_ROOT_PATH,
-						 pl->value[nPlugins].s);
-	dbusRegisterPluginForDisplay (connection, d, pl->value[nPlugins].s);
-	dbusRegisterOptions (connection, path);
-    }
-}
-
-static void
-dbusRegisterPluginsForScreen (DBusConnection *connection,
-			      CompScreen    *s)
-{
-    CompListValue *pl;
-    int           nPlugins;
-    char          path[256];
-
-    pl = &s->display->opt[COMP_DISPLAY_OPTION_ACTIVE_PLUGINS].value.list;
-
-    nPlugins = pl->nValue;
-
-    while (nPlugins--)
-    {
-	snprintf (path, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
-						 pl->value[nPlugins].s,
-						 s->screenNum);
-	dbusRegisterPluginForScreen (connection, s, pl->value[nPlugins].s);
-	dbusRegisterOptions (connection, path);
-    }
-}
-
-static void
-dbusUnregisterPluginForDisplay (DBusConnection *connection,
-			        CompDisplay    *d,
-			        char           *pluginName)
-{
-    char objectPath[256];
-
-    snprintf (objectPath, 256, "%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
-	      pluginName, "allscreens");
-
-    dbusUnregisterOptions (connection, objectPath);
-    dbus_connection_unregister_object_path (connection, objectPath);
-
-    snprintf (objectPath, 256, "%s/%s", COMPIZ_DBUS_ROOT_PATH, pluginName);
-    dbus_connection_unregister_object_path (connection, objectPath);
-}
-
-static void
-dbusUnregisterPluginsForDisplay (DBusConnection *connection,
-			         CompDisplay    *d)
-{
-    CompListValue *pl;
-    int           nPlugins;
-
-    pl = &d->opt[COMP_DISPLAY_OPTION_ACTIVE_PLUGINS].value.list;
-
-    nPlugins = pl->nValue;
-
-    while (nPlugins--)
-	dbusUnregisterPluginForDisplay (connection, d, pl->value[nPlugins].s);
-}
-
-static void
-dbusUnregisterPluginForScreen (DBusConnection *connection,
-			       CompScreen     *s,
-			       char           *pluginName)
-{
-    char objectPath[256];
-
-    snprintf (objectPath, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
-	      pluginName, s->screenNum);
-
-    dbusUnregisterOptions (connection, objectPath);
-    dbus_connection_unregister_object_path (connection, objectPath);
-}
-
-static void
-dbusUnregisterPluginsForScreen (DBusConnection *connection,
-			        CompScreen     *s)
-{
-    CompListValue *pl;
-    int           nPlugins;
-
-    pl = &s->display->opt[COMP_DISPLAY_OPTION_ACTIVE_PLUGINS].value.list;
-
-    nPlugins = pl->nValue;
-
-    while (nPlugins--)
-	dbusUnregisterPluginForScreen (connection, s, pl->value[nPlugins].s);
-}
-
 static CompBool
-dbusInitPluginForDisplay (CompPlugin  *p,
-			  CompDisplay *d)
+dbusInitCore (CompCore *c)
 {
-    char objectPath[256];
-
-    DBUS_CORE (&core);
-
-    snprintf (objectPath, 256, "%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
-	      p->vTable->name, "allscreens");
-    dbusRegisterOptions (dc->connection, objectPath);
-
-    return TRUE;
-}
-
-static Bool
-dbusInitPluginForScreen (CompPlugin *p,
-			 CompScreen *s)
-{
-    char objectPath[256];
-
-    DBUS_CORE (&core);
-
-    snprintf (objectPath, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
-	      p->vTable->name, s->screenNum);
-    dbusRegisterOptions (dc->connection, objectPath);
-
-    return TRUE;
-}
-
-static CompBool
-dbusInitPluginForObject (CompPlugin *p,
-			 CompObject *o)
-{
-    CompBool status;
-
-    DBUS_CORE (&core);
-
-    UNWRAP (dc, &core, initPluginForObject);
-    status = (*core.initPluginForObject) (p, o);
-    WRAP (dc, &core, initPluginForObject, dbusInitPluginForObject);
-
-    if (status && p->vTable->getObjectOptions)
-    {
-	static InitPluginForObjectProc dispTab[] = {
-	    (InitPluginForObjectProc) 0, /* InitPluginForCore */
-	    (InitPluginForObjectProc) dbusInitPluginForDisplay,
-	    (InitPluginForObjectProc) dbusInitPluginForScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-    }
-
-    return status;
-}
-
-static CompBool
-dbusSetOptionForPlugin (CompObject      *object,
-			const char      *plugin,
-			const char      *name,
-			CompOptionValue *value)
-{
-    Bool status;
-
-    DBUS_CORE (&core);
-
-    UNWRAP (dc, &core, setOptionForPlugin);
-    status = (*core.setOptionForPlugin) (object, plugin, name, value);
-    WRAP (dc, &core, setOptionForPlugin, dbusSetOptionForPlugin);
-
-    if (status)
-    {
-	CompPlugin *p;
-
-	p = findActivePlugin (plugin);
-	if (p && p->vTable->getObjectOptions)
-	{
-	    CompOption *option;
-	    int	       nOption;
-
-	    option = (*p->vTable->getObjectOptions) (p, object, &nOption);
-	    dbusSendChangeSignalForOption (object,
-					   compFindOption (option,
-							   nOption,
-							   name, 0),
-					   p->vTable->name);
-
-	    if (object->id == COMP_OBJECT_TYPE_DISPLAY &&
-		strcmp (p->vTable->name, "core") == 0 &&
-		strcmp (name, "active_plugins") == 0)
-	    {
-		CompScreen *s;
-
-		CORE_DISPLAY (object);
-
-		dbusUnregisterPluginsForDisplay (dc->connection, d);
-		dbusRegisterPluginsForDisplay (dc->connection, d);
-
-		for (s = d->screens; s; s = s->next)
-		{
-		    dbusUnregisterPluginsForScreen (dc->connection, s);
-		    dbusRegisterPluginsForScreen (dc->connection, s);
-		}
-	    }
-	}
-    }
-
-    return status;
-}
-
-static void
-dbusSendPluginsChangedSignal (const char *name,
-			      void	 *closure)
-{
-    DBusMessage *signal;
-
-    DBUS_CORE (&core);
-
-    signal = dbus_message_new_signal (COMPIZ_DBUS_ROOT_PATH,
-				      COMPIZ_DBUS_SERVICE_NAME,
-				      COMPIZ_DBUS_PLUGINS_CHANGED_SIGNAL_NAME);
-
-    dbus_connection_send (dc->connection, signal, NULL);
-    dbus_connection_flush (dc->connection);
-
-    dbus_message_unref (signal);
-}
-
-static Bool
-dbusInitCore (CompPlugin *p,
-	      CompCore   *c)
-{
-    DbusCore    *dc;
     DBusError   error;
     dbus_bool_t status;
-    int		fd, ret, mask;
-    char        *home, *plugindir;
+    int		fd;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
+    DBUS_CORE (c);
 
-    dc = malloc (sizeof (DbusCore));
-    if (!dc)
+    if (!compObjectCheckVersion (&c->base, "object", CORE_ABIVERSION))
 	return FALSE;
 
     dbus_error_init (&error);
@@ -2277,224 +854,69 @@ dbusInitCore (CompPlugin *p,
 			"dbus_bus_get error: %s", error.message);
 
 	dbus_error_free (&error);
-	free (dc);
-
-	return FALSE;
-    }
-
-    ret = dbus_bus_request_name (dc->connection,
-				 COMPIZ_DBUS_SERVICE_NAME,
-				 DBUS_NAME_FLAG_REPLACE_EXISTING |
-				 DBUS_NAME_FLAG_ALLOW_REPLACEMENT,
-				 &error);
-
-    if (dbus_error_is_set (&error))
-    {
-	compLogMessage (NULL, "dbus", CompLogLevelError,
-			"dbus_bus_request_name error: %s", error.message);
-
-	/* dbus_connection_unref (dc->connection); */
-	dbus_error_free (&error);
-	free (dc);
-
 	return FALSE;
     }
 
     dbus_error_free (&error);
 
-    if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
-    {
-	compLogMessage (NULL, "dbus", CompLogLevelError,
-			"dbus_bus_request_name reply is not primary owner");
-
-	/* dbus_connection_unref (dc->connection); */
-	free (dc);
-
-	return FALSE;
-    }
-
     status = dbus_connection_get_unix_fd (dc->connection, &fd);
     if (!status)
-    {
-	compLogMessage (NULL, "dbus", CompLogLevelError,
-			"dbus_connection_get_unix_fd failed");
-
-	/* dbus_connection_unref (dc->connection); */
-	free (dc);
-
 	return FALSE;
-    }
 
     dc->watchFdHandle = compAddWatchFd (fd,
 					POLLIN | POLLPRI | POLLHUP | POLLERR,
 					dbusProcessMessages,
-					0);
+					c);
 
-    mask = NOTIFY_CREATE_MASK | NOTIFY_DELETE_MASK | NOTIFY_MOVE_MASK;
+    dc->signalHandle =
+	(*c->base.vTable->signal.connect) (&c->base, "signal",
+					   offsetof (CompSignalVTable, signal),
+					   dbusPropChanged,
+					   NULL);
+    if (dc->signalHandle < 0)
+	return FALSE;
 
-    dc->fileWatch[DBUS_FILE_WATCH_CURRENT] =
-	addFileWatch (".",
-		      mask,
-		      dbusSendPluginsChangedSignal,
-		      0);
-    dc->fileWatch[DBUS_FILE_WATCH_PLUGIN]  =
-	addFileWatch (PLUGINDIR,
-		      mask,
-		      dbusSendPluginsChangedSignal,
-		      0);
-    dc->fileWatch[DBUS_FILE_WATCH_HOME] = 0;
+    dbusRequestName (c, COMPIZ_DBUS_SERVICE_NAME);
 
-    home = getenv ("HOME");
-    if (home)
-    {
-	plugindir = malloc (strlen (home) + strlen (HOME_PLUGINDIR) + 3);
-	if (plugindir)
-	{
-	    sprintf (plugindir, "%s/%s", home, HOME_PLUGINDIR);
-
-	    dc->fileWatch[DBUS_FILE_WATCH_HOME]  =
-		addFileWatch (plugindir,
-			      mask,
-			      dbusSendPluginsChangedSignal,
-			      0);
-
-	    free (plugindir);
-	}
-    }
-
-    WRAP (dc, c, initPluginForObject, dbusInitPluginForObject);
-    WRAP (dc, c, setOptionForPlugin, dbusSetOptionForPlugin);
-
-    c->base.privates[corePrivateIndex].ptr = dc;
-
-    /* register the objects */
-    dbus_connection_register_object_path (dc->connection,
-					  COMPIZ_DBUS_ROOT_PATH,
-					  &dbusMessagesVTable, 0);
+    dbusRegisterObjectTree (&c->base, (void *) c);
 
     return TRUE;
 }
 
 static void
-dbusFiniCore (CompPlugin *p,
-	      CompCore   *c)
+dbusFiniCore (CompCore *c)
 {
-    int i;
-
     DBUS_CORE (c);
 
-    for (i = 0; i < DBUS_FILE_WATCH_NUM; i++)
-	removeFileWatch (dc->fileWatch[i]);
+    (*c->base.vTable->signal.disconnect) (&c->base, "signal",
+					  offsetof (CompSignalVTable, signal),
+					  dc->signalHandle);
+
+    dbusUnregisterObjectTree (&c->base, (void *) c);
+
+    dbusReleaseName (c, COMPIZ_DBUS_SERVICE_NAME);
 
     compRemoveWatchFd (dc->watchFdHandle);
-
-    dbus_bus_release_name (dc->connection, COMPIZ_DBUS_SERVICE_NAME, NULL);
-
-    /*
-      can't unref the connection returned by dbus_bus_get as it's
-      shared and we can't know if it's closed or not.
-
-      dbus_connection_unref (dc->connection);
-    */
-
-    UNWRAP (dc, c, initPluginForObject);
-    UNWRAP (dc, c, setOptionForPlugin);
-
-    free (dc);
 }
 
-static Bool
-dbusInitDisplay (CompPlugin  *p,
-		 CompDisplay *d)
-{
-    char objectPath[256];
-
-    DBUS_CORE (&core);
-
-    /* register core 'plugin' */
-    dbusRegisterPluginForDisplay (dc->connection, d, "core");
-    dbusRegisterPluginsForDisplay (dc->connection, d);
-
-    snprintf (objectPath, 256, "%s/core/allscreens", COMPIZ_DBUS_ROOT_PATH);
-
-    dbusRegisterOptions (dc->connection, objectPath);
-
-    return TRUE;
-}
-
-static void
-dbusFiniDisplay (CompPlugin  *p,
-		 CompDisplay *d)
-{
-    DBUS_CORE (&core);
-
-    dbusUnregisterPluginForDisplay (dc->connection, d, "core");
-    dbusUnregisterPluginsForDisplay (dc->connection, d);
-}
-
-static Bool
-dbusInitScreen (CompPlugin *p,
-		CompScreen *s)
-{
-    char objectPath[256];
-
-    DBUS_CORE (&core);
-
-    snprintf (objectPath, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
-	      "core", s->screenNum);
-
-    dbusRegisterPluginForScreen (dc->connection, s, "core");
-    dbusRegisterPluginsForScreen (dc->connection, s);
-    dbusRegisterOptions (dc->connection, objectPath);
-
-    return TRUE;
-}
-
-static void
-dbusFiniScreen (CompPlugin *p,
-		CompScreen *s)
-{
-    DBUS_CORE (&core);
-
-    dbusUnregisterPluginForScreen (dc->connection, s, "core");
-    dbusUnregisterPluginsForScreen (dc->connection, s);
-}
-
-static CompBool
-dbusInitObject (CompPlugin *p,
-		CompObject *o)
-{
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) dbusInitCore,
-	(InitPluginObjectProc) dbusInitDisplay,
-	(InitPluginObjectProc) dbusInitScreen
-    };
-
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-dbusFiniObject (CompPlugin *p,
-		CompObject *o)
-{
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) dbusFiniCore,
-	(FiniPluginObjectProc) dbusFiniDisplay,
-	(FiniPluginObjectProc) dbusFiniScreen
-    };
-
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
+static CompObjectPrivate dbusObj[] = {
+    {
+	"core",
+	&corePrivateIndex, sizeof (DBusCore), NULL,
+	(InitObjectProc) dbusInitCore,
+	(FiniObjectProc) dbusFiniCore
+    }
+};
 
 static Bool
 dbusInit (CompPlugin *p)
 {
-    if (!compInitPluginMetadataFromInfo (&dbusMetadata, p->vTable->name,
-					 0, 0, 0, 0))
+    if (!compInitObjectMetadataFromInfo (&dbusMetadata, p->vTable->name, 0, 0))
 	return FALSE;
 
-    corePrivateIndex = allocateCorePrivateIndex ();
-    if (corePrivateIndex < 0)
+    compAddMetadataFromFile (&dbusMetadata, p->vTable->name);
+
+    if (!compObjectInitPrivates (dbusObj, N_ELEMENTS (dbusObj)))
     {
 	compFiniMetadata (&dbusMetadata);
 	return FALSE;
@@ -2506,23 +928,17 @@ dbusInit (CompPlugin *p)
 static void
 dbusFini (CompPlugin *p)
 {
-    freeCorePrivateIndex (corePrivateIndex);
+    compObjectFiniPrivates (dbusObj, N_ELEMENTS (dbusObj));
     compFiniMetadata (&dbusMetadata);
-}
-
-static CompMetadata *
-dbusGetMetadata (CompPlugin *plugin)
-{
-    return &dbusMetadata;
 }
 
 CompPluginVTable dbusVTable = {
     "dbus",
-    dbusGetMetadata,
+    0, /* GetMetadata */
     dbusInit,
     dbusFini,
-    dbusInitObject,
-    dbusFiniObject,
+    0, /* InitObject */
+    0, /* FiniObject */
     0, /* GetObjectOptions */
     0  /* SetObjectOption */
 };
