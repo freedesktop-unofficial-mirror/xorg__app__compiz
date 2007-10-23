@@ -32,7 +32,8 @@
 
 COMPIZ_BEGIN_DECLS
 
-typedef int CompBool;
+typedef int32_t CompBool;
+
 typedef int CompTimeoutHandle;
 typedef int CompWatchFdHandle;
 
