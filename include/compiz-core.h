@@ -1607,6 +1607,10 @@ struct _CompDisplay {
 
     xcb_connection_t *connection;
 
+    char *hostName;
+    int  displayNum;
+    int  preferredScreen;
+
     Display    *display;
     CompScreen *screens;
 
@@ -1768,7 +1772,6 @@ struct _CompDisplay {
     Window activeWindow;
 
     Window below;
-    char   displayString[256];
 
     XModifierKeymap *modMap;
     unsigned int    modMask[CompModNum];

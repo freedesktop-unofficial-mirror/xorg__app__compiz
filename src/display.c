@@ -1934,6 +1934,8 @@ addScreenToDisplay (CompDisplay *display,
 static void
 freeDisplay (CompDisplay *d)
 {
+    free (d->hostName);
+
     compObjectFini (&d->base, getDisplayObjectType ());
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
@@ -2121,8 +2123,6 @@ addDisplay (const char *name)
     int		xkbOpcode;
     int		firstScreen, lastScreen;
     char	objectName[256];
-    char	*hostName;
-    int		displayNum;
 
     d = malloc (sizeof (CompDisplay));
     if (!d)
@@ -2130,6 +2130,16 @@ addDisplay (const char *name)
 
     if (!compObjectInit (&d->base, getDisplayObjectType ()))
     {
+	free (d);
+	return FALSE;
+    }
+
+    if (!xcb_parse_display (name,
+			    &d->hostName,
+			    &d->displayNum,
+			    &d->preferredScreen))
+    {
+	compObjectFini (&d->base, getDisplayObjectType ());
 	free (d);
 	return FALSE;
     }
@@ -2173,8 +2183,6 @@ addDisplay (const char *name)
     d->filter	    = COMP_TEXTURE_FILTER_GOOD;
 
     d->opt[COMP_DISPLAY_OPTION_ABI].value.i = CORE_ABIVERSION;
-
-    snprintf (d->displayString, 255, "DISPLAY=%s", DisplayString (dpy));
 
 #ifdef DEBUG
     XSynchronize (dpy, TRUE);
@@ -2453,18 +2461,9 @@ addDisplay (const char *name)
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->base));
 
-    if (xcb_parse_display (name, &hostName, &displayNum, NULL))
-    {
-	snprintf (objectName, 256, "%s_%d",
-		  *hostName == '\0' ? "localhost" : hostName,
-		  displayNum);
-
-	free (hostName);
-    }
-    else
-    {
-	strcpy (objectName, "localhost_0");
-    }
+    snprintf (objectName, 256, "%s_%d",
+	      *d->hostName == '\0' ? "localhost" : d->hostName,
+	      d->displayNum);
 
     (*core.objectAdd) (&core.displayContainer.base, &d->base, objectName);
 
