@@ -23,254 +23,271 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <string.h>
 #include <glib.h>
 
 #include <compiz-core.h>
 
 static CompMetadata glibMetadata;
 
-static int displayPrivateIndex;
+static int corePrivateIndex;
 
 typedef struct _GLibWatch {
     CompWatchFdHandle handle;
     int		      index;
-    CompDisplay	      *display;
+    CompCore	      *core;
 } GLibWatch;
 
-typedef struct _GConfDisplay {
-    HandleEventProc   handleEvent;
+typedef struct _GLibCore {
+    CompObjectVTableVec object;
+
     CompTimeoutHandle timeoutHandle;
     gint	      maxPriority;
     GPollFD	      *fds;
     gint	      fdsSize;
     gint	      nFds;
     GLibWatch	      *watch;
-    Atom	      notifyAtom;
-} GLibDisplay;
+} GLibCore;
 
-#define GET_GLIB_DISPLAY(d)					       \
-    ((GLibDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
+typedef void (*WakeUpProc) (CompCore *c);
 
-#define GLIB_DISPLAY(d)			   \
-    GLibDisplay *gd = GET_GLIB_DISPLAY (d)
+typedef struct _GLibCoreVTable {
+    CompObjectVTable base;
+    WakeUpProc       wakeUp;
+} GLibCoreVTable;
+
+#define GET_GLIB_CORE(c)			       \
+    ((GLibCore *) (c)->privates[corePrivateIndex].ptr)
+
+#define GLIB_CORE(c)		     \
+    GLibCore *gc = GET_GLIB_CORE (c)
+
 
 static void
-glibDispatch (CompDisplay  *display,
+marshal____ (CompObject *object,
+	     void       (*method) (CompObject *),
+	     CompArgs   *args)
+{
+    (*method) (object);
+}
+
+static CommonMethod glibCoreMethod[] = {
+    C_METHOD (wakeUp, "", "", GLibCoreVTable, marshal____)
+};
+#define INTERFACE_VERSION_glibCore 20071011
+
+static const CommonInterface glibCoreInterface[] = {
+    C_INTERFACE (glib, Core, GLibCoreVTable, _, _, X, _, _, _, _, _)
+};
+
+static void
+glibDispatch (CompCore     *c,
 	      GMainContext *context)
 {
     int i;
 
-    GLIB_DISPLAY (display);
+    GLIB_CORE (c);
 
-    g_main_context_check (context, gd->maxPriority, gd->fds, gd->nFds);
+    g_main_context_check (context, gc->maxPriority, gc->fds, gc->nFds);
     g_main_context_dispatch (context);
 
-    for (i = 0; i < gd->nFds; i++)
-	compRemoveWatchFd (gd->watch[i].handle);
+    for (i = 0; i < gc->nFds; i++)
+	compRemoveWatchFd (gc->watch[i].handle);
 }
 
 static void
-glibPrepare (CompDisplay  *display,
+glibPrepare (CompCore     *c,
 	     GMainContext *context);
 
 static Bool
 glibDispatchAndPrepare (void *closure)
 {
-    CompDisplay  *display = (CompDisplay *) closure;
+    CompCore     *c = (CompCore *) closure;
     GMainContext *context = g_main_context_default ();
 
-    glibDispatch (display, context);
-    glibPrepare (display, context);
+    glibDispatch (c, context);
+    glibPrepare (c, context);
 
     return FALSE;
 }
 
 static void
-glibWakeup (CompDisplay *display)
+glibWakeup (CompCore *c)
 {
-    GLIB_DISPLAY (display);
+    GLIB_CORE (c);
 
-    if (gd->timeoutHandle)
+    if (gc->timeoutHandle)
     {
-	compRemoveTimeout (gd->timeoutHandle);
-	compAddTimeout (0, glibDispatchAndPrepare, (void *) display);
+	compRemoveTimeout (gc->timeoutHandle);
+	compAddTimeout (0, glibDispatchAndPrepare, (void *) c);
 
-	gd->timeoutHandle = 0;
+	gc->timeoutHandle = 0;
     }
 }
 
 static Bool
 glibCollectEvents (void *closure)
 {
-    GLibWatch   *watch = (GLibWatch *) closure;
-    CompDisplay *display = watch->display;
+    GLibWatch *watch = (GLibWatch *) closure;
+    CompCore  *c = watch->core;
 
-    GLIB_DISPLAY (display);
+    GLIB_CORE (c);
 
-    gd->fds[watch->index].revents |= compWatchFdEvents (watch->handle);
+    gc->fds[watch->index].revents |= compWatchFdEvents (watch->handle);
 
-    glibWakeup (display);
+    glibWakeup (c);
 
     return TRUE;
 }
 
 static void
-glibPrepare (CompDisplay  *display,
+glibPrepare (CompCore     *c,
 	     GMainContext *context)
 {
     int nFds = 0;
     int timeout = -1;
     int i;
 
-    GLIB_DISPLAY (display);
+    GLIB_CORE (c);
 
-    g_main_context_prepare (context, &gd->maxPriority);
+    g_main_context_prepare (context, &gc->maxPriority);
 
     do
     {
-	if (nFds > gd->fdsSize)
+	if (nFds > gc->fdsSize)
 	{
-	    if (gd->fds)
-		free (gd->fds);
+	    if (gc->fds)
+		free (gc->fds);
 
-	    gd->fds = malloc ((sizeof (GPollFD) + sizeof (GLibWatch)) * nFds);
-	    if (!gd->fds)
+	    gc->fds = malloc ((sizeof (GPollFD) + sizeof (GLibWatch)) * nFds);
+	    if (!gc->fds)
 	    {
 		nFds = 0;
 		break;
 	    }
 
-	    gd->watch   = (GLibWatch *) (gd->fds + nFds);
-	    gd->fdsSize = nFds;
+	    gc->watch   = (GLibWatch *) (gc->fds + nFds);
+	    gc->fdsSize = nFds;
 	}
 
 	nFds = g_main_context_query (context,
-				     gd->maxPriority,
+				     gc->maxPriority,
 				     &timeout,
-				     gd->fds,
-				     gd->fdsSize);
-    } while (nFds > gd->fdsSize);
+				     gc->fds,
+				     gc->fdsSize);
+    } while (nFds > gc->fdsSize);
 
     if (timeout < 0)
 	timeout = INT_MAX;
 
     for (i = 0; i < nFds; i++)
     {
-	gd->watch[i].display = display;
-	gd->watch[i].index   = i;
-	gd->watch[i].handle  = compAddWatchFd (gd->fds[i].fd,
-					       gd->fds[i].events,
+	gc->watch[i].core    = c;
+	gc->watch[i].index   = i;
+	gc->watch[i].handle  = compAddWatchFd (gc->fds[i].fd,
+					       gc->fds[i].events,
 					       glibCollectEvents,
-					       &gd->watch[i]);
+					       &gc->watch[i]);
     }
 
-    gd->nFds	      = nFds;
-    gd->timeoutHandle =
-	compAddTimeout (timeout, glibDispatchAndPrepare, display);
+    gc->nFds	      = nFds;
+    gc->timeoutHandle =
+	compAddTimeout (timeout, glibDispatchAndPrepare, c);
 }
 
-static void
-glibHandleEvent (CompDisplay *d,
-		 XEvent      *event)
+static CompBool
+glibCoreForBaseObject (CompObject	      *object,
+		       BaseObjectCallBackProc proc,
+		       void		      *closure)
 {
-    GLIB_DISPLAY (d);
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
 
-    if (event->type == ClientMessage)
-    {
-	if (event->xclient.message_type == gd->notifyAtom)
-	    glibWakeup (d);
-    }
+    GLIB_CORE (GET_CORE (object));
 
-    UNWRAP (gd, d, handleEvent);
-    (*d->handleEvent) (d, event);
-    WRAP (gd, d, handleEvent, glibHandleEvent);
+    UNWRAP (&gc->object, object, vTable);
+    status = (*proc) (object, closure);
+    WRAP (&gc->object, object, vTable, v.vTable);
+
+    return status;
 }
 
-static Bool
-glibInitDisplay (CompPlugin  *p,
-		 CompDisplay *d)
+static CompBool
+glibCoreForEachInterface (CompObject		*object,
+			  InterfaceCallBackProc proc,
+			  void			*closure)
 {
-    GLibDisplay *gd;
+    return handleForEachInterface (object,
+				   glibCoreInterface,
+				   N_ELEMENTS (glibCoreInterface),
+				   NULL, proc, closure);
+}
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
+static GLibCoreVTable glibCoreObjectVTable = {
+    .base.forBaseObject    = glibCoreForBaseObject,
+    .base.forEachInterface = glibCoreForEachInterface,
+    .base.forEachMethod    = commonForEachMethod,
+    .base.version.get      = commonGetVersion,
+    .wakeUp		   = glibWakeup
+};
+
+static CompBool
+glibInitCore (CompCore *c)
+{
+    GLIB_CORE (c);
+
+    if (!compObjectCheckVersion (&c->base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    gd = malloc (sizeof (GLibDisplay));
-    if (!gd)
-	return FALSE;
+    gc->fds	      = NULL;
+    gc->fdsSize	      = 0;
+    gc->timeoutHandle = 0;
 
-    gd->fds	      = NULL;
-    gd->fdsSize	      = 0;
-    gd->timeoutHandle = 0;
-    gd->notifyAtom    = XInternAtom (d->display, "_COMPIZ_GLIB_NOTIFY", 0);
+    WRAP (&gc->object, &c->base, vTable, &glibCoreObjectVTable.base);
 
-    WRAP (gd, d, handleEvent, glibHandleEvent);
-
-    d->base.base.privates[displayPrivateIndex].ptr = gd;
-
-    glibPrepare (d, g_main_context_default ());
+    glibPrepare (c, g_main_context_default ());
 
     return TRUE;
 }
 
 static void
-glibFiniDisplay (CompPlugin  *p,
-		 CompDisplay *d)
+glibFiniCore (CompCore *c)
 {
-    GLIB_DISPLAY (d);
+    GLIB_CORE (c);
 
-    if (gd->timeoutHandle)
-	compRemoveTimeout (gd->timeoutHandle);
+    if (gc->timeoutHandle)
+	compRemoveTimeout (gc->timeoutHandle);
 
-    glibDispatch (d, g_main_context_default ());
+    glibDispatch (c, g_main_context_default ());
 
-    UNWRAP (gd, d, handleEvent);
+    if (gc->fds)
+	free (gc->fds);
 
-    if (gd->fds)
-	free (gd->fds);
-
-    free (gd);
+    UNWRAP (&gc->object, &c->base, vTable);
 }
 
-static CompBool
-glibInitObject (CompPlugin *p,
-		CompObject *o)
-{
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) glibInitDisplay
-    };
-
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-glibFiniObject (CompPlugin *p,
-		CompObject *o)
-{
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) glibFiniDisplay
-    };
-
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
+static CompObjectPrivate glibObj[] = {
+    {
+	"core",
+	&corePrivateIndex, sizeof (GLibCore), &glibCoreObjectVTable.base,
+	(InitObjectProc) glibInitCore,
+	(FiniObjectProc) glibFiniCore
+    }
+};
 
 static Bool
 glibInit (CompPlugin *p)
 {
-    if (!compInitPluginMetadataFromInfo (&glibMetadata, p->vTable->name,
-					 0, 0, 0, 0))
+    if (!compInitObjectMetadataFromInfo (&glibMetadata, p->vTable->name, 0, 0))
 	return FALSE;
 
-    displayPrivateIndex = allocateDisplayPrivateIndex ();
-    if (displayPrivateIndex < 0)
+    compAddMetadataFromFile (&glibMetadata, p->vTable->name);
+
+    if (!compObjectInitPrivates (glibObj, N_ELEMENTS (glibObj)))
     {
 	compFiniMetadata (&glibMetadata);
 	return FALSE;
     }
-
-    compAddMetadataFromFile (&glibMetadata, p->vTable->name);
 
     return TRUE;
 }
@@ -278,23 +295,17 @@ glibInit (CompPlugin *p)
 static void
 glibFini (CompPlugin *p)
 {
-    freeDisplayPrivateIndex (displayPrivateIndex);
+    compObjectFiniPrivates (glibObj, N_ELEMENTS (glibObj));
     compFiniMetadata (&glibMetadata);
-}
-
-static CompMetadata *
-glibGetMetadata (CompPlugin *plugin)
-{
-    return &glibMetadata;
 }
 
 CompPluginVTable glibVTable = {
     "glib",
-    glibGetMetadata,
+    0, /* GetMetadata */
     glibInit,
     glibFini,
-    glibInitObject,
-    glibFiniObject,
+    0, /* InitObject */
+    0, /* FiniObject */
     0, /* GetObjectOptions */
     0  /* SetObjectOption */
 };
