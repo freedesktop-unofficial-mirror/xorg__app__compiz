@@ -2000,7 +2000,7 @@ scaleInitDisplay (CompPlugin  *p,
 
     WRAP (sd, d, handleEvent, scaleHandleEvent);
 
-    d->base.base.privates[scaleDisplayPrivateIndex].ptr = sd;
+    d->privates[scaleDisplayPrivateIndex].ptr = sd;
 
     return TRUE;
 }
@@ -2095,7 +2095,7 @@ scaleInitScreen (CompPlugin *p,
 
     ss->cursor = XCreateFontCursor (s->display->display, XC_left_ptr);
 
-    s->base.base.privates[sd->screenPrivateIndex].ptr = ss;
+    s->privates[sd->screenPrivateIndex].ptr = ss;
 
     return TRUE;
 }
@@ -2151,7 +2151,7 @@ scaleInitWindow (CompPlugin *p,
     sw->delta = 1.0f;
     sw->lastThumbOpacity = 0.0f;
 
-    w->base.base.privates[ss->windowPrivateIndex].ptr = sw;
+    w->privates[ss->windowPrivateIndex].ptr = sw;
 
     return TRUE;
 }

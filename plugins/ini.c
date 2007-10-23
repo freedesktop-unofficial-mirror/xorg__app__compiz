@@ -41,7 +41,7 @@
 #define FILE_SUFFIX         ".conf"
 
 #define GET_INI_CORE(c) \
-	((IniCore *) (c)->base.privates[corePrivateIndex].ptr)
+	((IniCore *) (c)->privates[corePrivateIndex].ptr)
 #define INI_CORE(c) \
 	IniCore *ic = GET_INI_CORE (c)
 
@@ -260,7 +260,7 @@ iniGetFilename (CompObject *object,
 
     if (object->id == COMP_OBJECT_TYPE_SCREEN)
     {
-	CORE_SCREEN (object);
+	SCREEN (object);
 
 	snprintf (screenStr, 12, "screen%d", s->screenNum);
     }
@@ -521,12 +521,12 @@ iniLoadOptionsFromFile (FILE       *optionFile,
 			break;
 		case CompOptionTypeKey:
 		    hasValue = TRUE;
-		    stringToKeyAction (GET_CORE_DISPLAY (object),
+		    stringToKeyAction (GET_DISPLAY (object),
 				       optionValue, &value.action);
 		    break;
 		case CompOptionTypeButton:
 		    hasValue = TRUE;
-		    stringToButtonAction (GET_CORE_DISPLAY (object),
+		    stringToButtonAction (GET_DISPLAY (object),
 					  optionValue, &value.action);
 		    break;
 		case CompOptionTypeEdge:
@@ -538,8 +538,7 @@ iniLoadOptionsFromFile (FILE       *optionFile,
 		    value.action.bell = (Bool) atoi (optionValue);
 		    break;
 		case CompOptionTypeList:
-		    hasValue = csvToList (GET_CORE_DISPLAY (object),
-					  optionValue,
+		    hasValue = csvToList (GET_DISPLAY (object), optionValue,
 					  &value.list, value.list.type);
 			break;
 		case CompOptionTypeMatch:
@@ -669,7 +668,7 @@ iniSaveOptions (CompObject *object,
 	case CompOptionTypeEdge:
 	case CompOptionTypeBell:
 	case CompOptionTypeMatch:
-	    strVal = iniOptionValueToString (GET_CORE_DISPLAY (object),
+	    strVal = iniOptionValueToString (GET_DISPLAY (object),
 					     &option->value, option->type);
 		if (strVal)
 		{
@@ -705,7 +704,7 @@ iniSaveOptions (CompObject *object,
 		for (i = 0; i < option->value.list.nValue; i++)
 		{
 		    itemVal =
-			iniOptionValueToString (GET_CORE_DISPLAY (object),
+			iniOptionValueToString (GET_DISPLAY (object),
 						&option->value.list.value[i],
 						option->value.list.type);
 		    if (!firstInList)
@@ -807,7 +806,7 @@ iniLoadOptions (CompObject *object,
 		return FALSE;
 	    }
 
-	    if (!csvToList (GET_CORE_DISPLAY (object), DEFAULT_PLUGINS,
+	    if (!csvToList (GET_DISPLAY (object), DEFAULT_PLUGINS,
 		            &value.list,
 		            CompOptionTypeString))
 	    {
@@ -904,7 +903,7 @@ iniFileModified (const char *name,
     {
 	if (fd->screen < 0)
 	{
-	    iniLoadOptions (&core.displays->base.base, fd->plugin);
+	    iniLoadOptions (&core.displays->base, fd->plugin);
 	}
 	else
 	{
@@ -915,7 +914,7 @@ iniFileModified (const char *name,
 		    break;
 
 	    if (s)
-		iniLoadOptions (&s->base.base, fd->plugin);
+		iniLoadOptions (&s->base, fd->plugin);
 	}
     }
 }
@@ -945,7 +944,7 @@ static Bool
 iniInitPluginForDisplay (CompPlugin  *p,
 			 CompDisplay *d)
 {
-    iniLoadOptions (&d->base.base, p->vTable->name);
+    iniLoadOptions (&d->base, p->vTable->name);
 
     return TRUE;
 }
@@ -954,7 +953,7 @@ static Bool
 iniInitPluginForScreen (CompPlugin *p,
 			CompScreen *s)
 {
-    iniLoadOptions (&s->base.base, p->vTable->name);
+    iniLoadOptions (&s->base, p->vTable->name);
 
     return TRUE;
 }
@@ -1041,7 +1040,7 @@ iniInitCore (CompPlugin *p,
     WRAP (ic, c, initPluginForObject, iniInitPluginForObject);
     WRAP (ic, c, setOptionForPlugin, iniSetOptionForPlugin);
 
-    c->base.privates[corePrivateIndex].ptr = ic;
+    c->privates[corePrivateIndex].ptr = ic;
 
     return TRUE;
 }
@@ -1066,7 +1065,7 @@ iniFiniCore (CompPlugin *p,
 static Bool
 iniInitDisplay (CompPlugin *p, CompDisplay *d)
 {
-    iniLoadOptions (&d->base.base, NULL);
+    iniLoadOptions (&d->base, NULL);
 
     return TRUE;
 }
@@ -1074,7 +1073,7 @@ iniInitDisplay (CompPlugin *p, CompDisplay *d)
 static Bool
 iniInitScreen (CompPlugin *p, CompScreen *s)
 {
-    iniLoadOptions (&s->base.base, NULL);
+    iniLoadOptions (&s->base, NULL);
 
     return TRUE;
 }

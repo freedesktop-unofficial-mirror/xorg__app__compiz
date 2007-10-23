@@ -42,8 +42,8 @@ typedef struct _PngDisplay {
     ImageToFileProc imageToFile;
 } PngDisplay;
 
-#define GET_PNG_DISPLAY(d)					 \
-    ((PngDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
+#define GET_PNG_DISPLAY(d)				    \
+    ((PngDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define PNG_DISPLAY(d)			 \
     PngDisplay *pd = GET_PNG_DISPLAY (d)
@@ -476,7 +476,7 @@ pngInitDisplay (CompPlugin  *p,
     WRAP (pd, d, fileToImage, pngFileToImage);
     WRAP (pd, d, imageToFile, pngImageToFile);
 
-    d->base.base.privates[displayPrivateIndex].ptr = pd;
+    d->privates[displayPrivateIndex].ptr = pd;
 
     for (s = d->screens; s; s = s->next)
 	updateDefaultIcon (s);

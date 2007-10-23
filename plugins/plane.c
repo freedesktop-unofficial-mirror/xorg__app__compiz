@@ -81,14 +81,14 @@ typedef struct _PlaneScreen {
     double				dest_y;
 } PlaneScreen;
 
-#define GET_PLANE_DISPLAY(d)					   \
-    ((PlaneDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
+#define GET_PLANE_DISPLAY(d)				      \
+    ((PlaneDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define PLANE_DISPLAY(d)		       \
     PlaneDisplay *pd = GET_PLANE_DISPLAY (d)
 
-#define GET_PLANE_SCREEN(s, pd)					       \
-    ((PlaneScreen *) (s)->base.base.privates[(pd)->screenPrivateIndex].ptr)
+#define GET_PLANE_SCREEN(s, pd)					  \
+    ((PlaneScreen *) (s)->privates[(pd)->screenPrivateIndex].ptr)
 
 #define PLANE_SCREEN(s)						      \
     PlaneScreen *ps = GET_PLANE_SCREEN (s, GET_PLANE_DISPLAY (s->display))
@@ -596,7 +596,7 @@ planeInitDisplay (CompPlugin  *p,
 
     WRAP (pd, d, handleEvent, planeHandleEvent);
 
-    d->base.base.privates[displayPrivateIndex].ptr = pd;
+    d->privates[displayPrivateIndex].ptr = pd;
 
     return TRUE;
 }
@@ -635,7 +635,7 @@ planeInitScreen (CompPlugin *p,
     WRAP (ps, s, donePaintScreen, planeDonePaintScreen);
     WRAP (ps, s, paintOutput, planePaintOutput);
 
-    s->base.base.privates[pd->screenPrivateIndex].ptr = ps;
+    s->privates[pd->screenPrivateIndex].ptr = ps;
 
     return TRUE;
 }

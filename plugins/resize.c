@@ -121,14 +121,14 @@ typedef struct _ResizeScreen {
     Cursor cursor[NUM_KEYS];
 } ResizeScreen;
 
-#define GET_RESIZE_DISPLAY(d)					    \
-    ((ResizeDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
+#define GET_RESIZE_DISPLAY(d)				       \
+    ((ResizeDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define RESIZE_DISPLAY(d)		       \
     ResizeDisplay *rd = GET_RESIZE_DISPLAY (d)
 
-#define GET_RESIZE_SCREEN(s, rd)					\
-    ((ResizeScreen *) (s)->base.base.privates[(rd)->screenPrivateIndex].ptr)
+#define GET_RESIZE_SCREEN(s, rd)				   \
+    ((ResizeScreen *) (s)->privates[(rd)->screenPrivateIndex].ptr)
 
 #define RESIZE_SCREEN(s)						      \
     ResizeScreen *rs = GET_RESIZE_SCREEN (s, GET_RESIZE_DISPLAY (s->display))
@@ -1263,7 +1263,7 @@ resizeInitDisplay (CompPlugin  *p,
 
     WRAP (rd, d, handleEvent, resizeHandleEvent);
 
-    d->base.base.privates[displayPrivateIndex].ptr = rd;
+    d->privates[displayPrivateIndex].ptr = rd;
 
     return TRUE;
 }
@@ -1323,7 +1323,7 @@ resizeInitScreen (CompPlugin *p,
     WRAP (rs, s, paintWindow, resizePaintWindow);
     WRAP (rs, s, damageWindowRect, resizeDamageWindowRect);
 
-    s->base.base.privates[rd->screenPrivateIndex].ptr = rs;
+    s->privates[rd->screenPrivateIndex].ptr = rs;
 
     return TRUE;
 }

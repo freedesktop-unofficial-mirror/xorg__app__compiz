@@ -175,20 +175,20 @@ typedef struct _WobblyWindow {
     unsigned int state;
 } WobblyWindow;
 
-#define GET_WOBBLY_DISPLAY(d)						 \
-    ((WobblyDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
+#define GET_WOBBLY_DISPLAY(d)				       \
+    ((WobblyDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define WOBBLY_DISPLAY(d)		       \
     WobblyDisplay *wd = GET_WOBBLY_DISPLAY (d)
 
-#define GET_WOBBLY_SCREEN(s, wd)					\
-    ((WobblyScreen *) (s)->base.base.privates[(wd)->screenPrivateIndex].ptr)
+#define GET_WOBBLY_SCREEN(s, wd)				   \
+    ((WobblyScreen *) (s)->privates[(wd)->screenPrivateIndex].ptr)
 
 #define WOBBLY_SCREEN(s)						      \
     WobblyScreen *ws = GET_WOBBLY_SCREEN (s, GET_WOBBLY_DISPLAY (s->display))
 
-#define GET_WOBBLY_WINDOW(w, ws)					\
-    ((WobblyWindow *) (w)->base.base.privates[(ws)->windowPrivateIndex].ptr)
+#define GET_WOBBLY_WINDOW(w, ws)				   \
+    ((WobblyWindow *) (w)->privates[(ws)->windowPrivateIndex].ptr)
 
 #define WOBBLY_WINDOW(w)				         \
     WobblyWindow *ww = GET_WOBBLY_WINDOW  (w,		         \
@@ -2704,7 +2704,7 @@ wobblyInitDisplay (CompPlugin  *p,
 
     wd->snapping = FALSE;
 
-    d->base.base.privates[displayPrivateIndex].ptr = wd;
+    d->privates[displayPrivateIndex].ptr = wd;
 
     return TRUE;
 }
@@ -2771,7 +2771,7 @@ wobblyInitScreen (CompPlugin *p,
     WRAP (ws, s, windowGrabNotify, wobblyWindowGrabNotify);
     WRAP (ws, s, windowUngrabNotify, wobblyWindowUngrabNotify);
 
-    s->base.base.privates[wd->screenPrivateIndex].ptr = ws;
+    s->privates[wd->screenPrivateIndex].ptr = ws;
 
     return TRUE;
 }
@@ -2817,7 +2817,7 @@ wobblyInitWindow (CompPlugin *p,
     ww->grabbed = FALSE;
     ww->state   = w->state;
 
-    w->base.base.privates[ws->windowPrivateIndex].ptr = ww;
+    w->privates[ws->windowPrivateIndex].ptr = ww;
 
     if (w->mapNum && ws->opt[WOBBLY_SCREEN_OPTION_MAXIMIZE_EFFECT].value.b)
     {

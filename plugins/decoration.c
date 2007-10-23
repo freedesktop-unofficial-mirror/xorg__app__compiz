@@ -142,26 +142,26 @@ typedef struct _DecorWindow {
     CompTimeoutHandle resizeUpdateHandle;
 } DecorWindow;
 
-#define GET_DECOR_CORE(c)				     \
-    ((DecorCore *) (c)->base.privates[corePrivateIndex].ptr)
+#define GET_DECOR_CORE(c)				\
+    ((DecorCore *) (c)->privates[corePrivateIndex].ptr)
 
 #define DECOR_CORE(c)		       \
     DecorCore *dc = GET_DECOR_CORE (c)
 
-#define GET_DECOR_DISPLAY(d)						\
-    ((DecorDisplay *) (d)->base.base.privates[displayPrivateIndex].ptr)
+#define GET_DECOR_DISPLAY(d)				      \
+    ((DecorDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define DECOR_DISPLAY(d)		     \
     DecorDisplay *dd = GET_DECOR_DISPLAY (d)
 
-#define GET_DECOR_SCREEN(s, dd)					       \
-    ((DecorScreen *) (s)->base.base.privates[(dd)->screenPrivateIndex].ptr)
+#define GET_DECOR_SCREEN(s, dd)					  \
+    ((DecorScreen *) (s)->privates[(dd)->screenPrivateIndex].ptr)
 
 #define DECOR_SCREEN(s)							   \
     DecorScreen *ds = GET_DECOR_SCREEN (s, GET_DECOR_DISPLAY (s->display))
 
-#define GET_DECOR_WINDOW(w, ds)					       \
-    ((DecorWindow *) (w)->base.base.privates[(ds)->windowPrivateIndex].ptr)
+#define GET_DECOR_WINDOW(w, ds)					  \
+    ((DecorWindow *) (w)->privates[(ds)->windowPrivateIndex].ptr)
 
 #define DECOR_WINDOW(w)					       \
     DecorWindow *dw = GET_DECOR_WINDOW  (w,		       \
@@ -1292,7 +1292,8 @@ decorMatchPropertyChanged (CompDisplay *d,
 
 static void
 decorWindowAdd (CompScreen *s,
-		CompWindow *w)
+		CompWindow *w,
+		const char *name)
 {
     if (w->shaded || w->attrib.map_state == IsViewable)
 	decorWindowUpdate (w, TRUE);
@@ -1307,8 +1308,9 @@ decorWindowRemove (CompScreen *s,
 }
 
 static void
-decorObjectAdd (CompObject	*parent,
-		CompChildObject *object)
+decorObjectAdd (CompObject *parent,
+		CompObject *object,
+		const char *name)
 {
     static ObjectAddProc dispTab[] = {
 	(ObjectAddProc) 0, /* CoreAdd */
@@ -1320,15 +1322,15 @@ decorObjectAdd (CompObject	*parent,
     DECOR_CORE (&core);
 
     UNWRAP (dc, &core, objectAdd);
-    (*core.objectAdd) (parent, object);
+    (*core.objectAdd) (parent, object, name);
     WRAP (dc, &core, objectAdd, decorObjectAdd);
 
-    DISPATCH (&object->base, dispTab, ARRAY_SIZE (dispTab), (parent, object));
+    DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), (parent, object, name));
 }
 
 static void
-decorObjectRemove (CompObject	   *parent,
-		   CompChildObject *object)
+decorObjectRemove (CompObject *parent,
+		   CompObject *object)
 {
     static ObjectRemoveProc dispTab[] = {
 	(ObjectRemoveProc) 0, /* CoreRemove */
@@ -1339,7 +1341,7 @@ decorObjectRemove (CompObject	   *parent,
 
     DECOR_CORE (&core);
 
-    DISPATCH (&object->base, dispTab, ARRAY_SIZE (dispTab), (parent, object));
+    DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), (parent, object));
 
     UNWRAP (dc, &core, objectRemove);
     (*core.objectRemove) (parent, object);
@@ -1369,7 +1371,7 @@ decorInitCore (CompPlugin *p,
     WRAP (dc, c, objectAdd, decorObjectAdd);
     WRAP (dc, c, objectRemove, decorObjectRemove);
 
-    c->base.privates[corePrivateIndex].ptr = dc;
+    c->privates[corePrivateIndex].ptr = dc;
 
     return TRUE;
 }
@@ -1444,7 +1446,7 @@ decorInitDisplay (CompPlugin  *p,
     WRAP (dd, d, handleEvent, decorHandleEvent);
     WRAP (dd, d, matchPropertyChanged, decorMatchPropertyChanged);
 
-    d->base.base.privates[displayPrivateIndex].ptr = dd;
+    d->privates[displayPrivateIndex].ptr = dd;
 
     return TRUE;
 }
@@ -1495,7 +1497,7 @@ decorInitScreen (CompPlugin *p,
     WRAP (ds, s, windowResizeNotify, decorWindowResizeNotify);
     WRAP (ds, s, windowStateChangeNotify, decorWindowStateChangeNotify);
 
-    s->base.base.privates[dd->screenPrivateIndex].ptr = ds;
+    s->privates[dd->screenPrivateIndex].ptr = ds;
 
     decorCheckForDmOnScreen (s, FALSE);
 
@@ -1543,13 +1545,13 @@ decorInitWindow (CompPlugin *p,
 
     dw->resizeUpdateHandle = 0;
 
-    w->base.base.privates[ds->windowPrivateIndex].ptr = dw;
+    w->privates[ds->windowPrivateIndex].ptr = dw;
 
     if (!w->attrib.override_redirect)
 	decorWindowUpdateDecoration (w);
 
     if (w->base.parent)
-	decorWindowAdd (w->screen, w);
+	decorWindowAdd (w->screen, w, w->base.name);
 
     return TRUE;
 }

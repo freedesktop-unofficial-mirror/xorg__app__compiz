@@ -202,20 +202,20 @@ typedef struct _CubeScreen {
     Bool recalcOutput;
 } CubeScreen;
 
-#define GET_CUBE_CORE(c)					\
-    ((CubeCore *) (c)->base.privates[cubeCorePrivateIndex].ptr)
+#define GET_CUBE_CORE(c)				   \
+    ((CubeCore *) (c)->privates[cubeCorePrivateIndex].ptr)
 
 #define CUBE_CORE(c)		     \
     CubeCore *cc = GET_CUBE_CORE (c)
 
-#define GET_CUBE_DISPLAY(d)					      \
-    ((CubeDisplay *) (d)->base.base.privates[cubeDisplayPrivateIndex].ptr)
+#define GET_CUBE_DISPLAY(d)					 \
+    ((CubeDisplay *) (d)->privates[cubeDisplayPrivateIndex].ptr)
 
 #define CUBE_DISPLAY(d)			   \
     CubeDisplay *cd = GET_CUBE_DISPLAY (d)
 
-#define GET_CUBE_SCREEN(s, cd)					      \
-    ((CubeScreen *) (s)->base.base.privates[(cd)->screenPrivateIndex].ptr)
+#define GET_CUBE_SCREEN(s, cd)					 \
+    ((CubeScreen *) (s)->privates[(cd)->screenPrivateIndex].ptr)
 
 #define CUBE_SCREEN(s)							\
     CubeScreen *cs = GET_CUBE_SCREEN (s, GET_CUBE_DISPLAY (s->display))
