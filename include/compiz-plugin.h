@@ -33,7 +33,7 @@ COMPIZ_BEGIN_DECLS
 typedef CompBool (*InitPluginProc) (CompPlugin *plugin);
 typedef void (*FiniPluginProc) (CompPlugin *plugin);
 
-typedef CompMetadata *(*GetMetadataProc) (CompPlugin *plugin);
+typedef CompMetadata *(*GetPluginMetadataProc) (CompPlugin *plugin);
 
 typedef CompBool (*InitPluginObjectProc) (CompPlugin *plugin,
 					  CompObject *object);
@@ -51,7 +51,7 @@ typedef CompBool (*SetPluginObjectOptionProc) (CompPlugin      *plugin,
 typedef struct _CompPluginVTable {
     const char *name;
 
-    GetMetadataProc getMetadata;
+    GetPluginMetadataProc getMetadata;
 
     InitPluginProc init;
     FiniPluginProc fini;
