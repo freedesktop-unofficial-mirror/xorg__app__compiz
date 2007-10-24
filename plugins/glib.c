@@ -239,6 +239,10 @@ glibInitCore (CompCore *c)
 
     glibPrepare (c, g_main_context_default ());
 
+    commonInterfacesAdded (&c->base,
+			   glibCoreInterface,
+			   N_ELEMENTS (glibCoreInterface));
+
     return TRUE;
 }
 
@@ -256,6 +260,10 @@ glibFiniCore (CompCore *c)
 	free (gc->fds);
 
     UNWRAP (&gc->object, &c->base, vTable);
+
+    commonInterfacesRemoved (&c->base,
+			     glibCoreInterface,
+			     N_ELEMENTS (glibCoreInterface));
 }
 
 static CompObjectPrivate glibObj[] = {

@@ -1115,6 +1115,10 @@ fuseInitCore (CompCore *c)
     fc->channel	      = NULL;
     fc->buffer	      = NULL;
 
+    commonInterfacesAdded (&c->base,
+			   fuseCoreInterface,
+			   N_ELEMENTS (fuseCoreInterface));
+
     fuseMount (c);
 
     return TRUE;
@@ -1132,6 +1136,10 @@ fuseFiniCore (CompCore *c)
     fuse_session_destroy (fc->session);
 
     free (fc->mountPoint);
+
+    commonInterfacesRemoved (&c->base,
+			     fuseCoreInterface,
+			     N_ELEMENTS (fuseCoreInterface));
 }
 
 static CompObjectPrivate fuseObj[] = {

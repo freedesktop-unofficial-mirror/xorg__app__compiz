@@ -798,6 +798,10 @@ annoInitDisplay (CompDisplay *d)
 
     WRAP (ad, d, handleEvent, annoHandleEvent);
 
+    commonInterfacesAdded (&d->base,
+			   annoDisplayInterface,
+			   N_ELEMENTS (annoDisplayInterface));
+
     return TRUE;
 }
 
@@ -809,6 +813,10 @@ annoFiniDisplay (CompDisplay *d)
     UNWRAP (ad, d, handleEvent);
 
     UNWRAP (&ad->object, &d->base, vTable);
+
+    commonInterfacesRemoved (&d->base,
+			     annoDisplayInterface,
+			     N_ELEMENTS (annoDisplayInterface));
 
     compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 }
