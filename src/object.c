@@ -1276,6 +1276,19 @@ interfaceAdded (CompObject *object,
 		     "object", "interfaceAdded", "s", interface);
 }
 
+void
+commonInterfacesAdded (CompObject	     *object,
+		       const CommonInterface *interface,
+		       int		     nInterface)
+{
+    while (nInterface--)
+    {
+	(*object->vTable->interfaceAdded) (object, interface->name);
+
+	interface++;
+    }
+}
+
 static void
 interfaceRemoved (CompObject *object,
 		  const char *interface)
@@ -1283,6 +1296,21 @@ interfaceRemoved (CompObject *object,
     EMIT_EXT_SIGNAL (object,
 		     object->signal[COMP_OBJECT_SIGNAL_INTERFACE_REMOVED],
 		     "object", "interfaceRemoved", "s", interface);
+}
+
+void
+commonInterfacesRemoved (CompObject	       *object,
+			 const CommonInterface *interface,
+			 int		       nInterface)
+{
+    interface += (nInterface - 1);
+
+    while (nInterface--)
+    {
+	(*object->vTable->interfaceAdded) (object, interface->name);
+
+	interface--;
+    }
 }
 
 static CompBool

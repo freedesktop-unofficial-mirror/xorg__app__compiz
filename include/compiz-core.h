@@ -900,6 +900,15 @@ commonForEachProp (CompObject	    *object,
 		   PropCallBackProc proc,
 		   void		    *closure);
 
+void
+commonInterfacesAdded (CompObject	     *object,
+		       const CommonInterface *interface,
+		       int		     nInterface);
+void
+commonInterfacesRemoved (CompObject	       *object,
+			 const CommonInterface *interface,
+			 int		       nInterface);
+
 CompBool
 commonGetBoolProp (CompObject *object,
 		   const char *interface,
