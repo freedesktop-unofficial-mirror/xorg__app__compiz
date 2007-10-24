@@ -63,14 +63,6 @@ typedef struct _GLibCoreVTable {
     GLibCore *gc = GET_GLIB_CORE (c)
 
 
-static void
-marshal____ (CompObject *object,
-	     void       (*method) (CompObject *),
-	     CompArgs   *args)
-{
-    (*method) (object);
-}
-
 static CommonMethod glibCoreMethod[] = {
     C_METHOD (wakeUp, "", "", GLibCoreVTable, marshal____)
 };

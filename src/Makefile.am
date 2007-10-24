@@ -30,4 +30,5 @@ compiz_SOURCES =    \
 	matrix.c    \
 	cursor.c    \
 	match.c     \
-	metadata.c
+	metadata.c  \
+	marshal.c

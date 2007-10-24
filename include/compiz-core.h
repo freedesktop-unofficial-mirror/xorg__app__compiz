@@ -4150,6 +4150,99 @@ compReadXmlChunkFromMetadataOptionInfo (const CompMetadataOptionInfo *info,
 					int			     length);
 
 
+/* marshal.c */
+
+void
+marshal____ (CompObject *object,
+	     void       (*method) (CompObject *),
+	     CompArgs   *args);
+
+void
+marshal_I_S (CompObject *object,
+	     CompBool   (*method) (CompObject *,
+				   char       *),
+	     CompArgs   *args);
+
+void
+marshal__SSB__E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       CompBool    ,
+				       char       **),
+		 CompArgs   *args);
+
+void
+marshal__SS_B_E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       CompBool   *,
+				       char       **),
+		 CompArgs   *args);
+
+void
+marshal__SSI__E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       int32_t     ,
+				       char       **),
+		 CompArgs   *args);
+
+void
+marshal__SS_I_E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       int32_t    *,
+				       char       **),
+		 CompArgs   *args);
+
+void
+marshal__SSD__E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       double      ,
+				       char       **),
+		 CompArgs   *args);
+
+void
+marshal__SS_D_E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       double     *,
+				       char       **),
+		 CompArgs   *args);
+
+void
+marshal__SSS__E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       char       *,
+				       char       **),
+		 CompArgs   *args);
+
+void
+marshal__SS_S_E (CompObject *object,
+		 CompBool   (*method) (CompObject *,
+				       char       *,
+				       char       *,
+				       char	  **,
+				       char       **),
+		 CompArgs   *args);
+
+void
+marshal__S_S_E (CompObject *object,
+		CompBool   (*method) (CompObject *,
+				      char	 *,
+				      char	 **,
+				      char       **),
+		CompArgs   *args);
+
 COMPIZ_END_DECLS
 
 #endif
