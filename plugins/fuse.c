@@ -1006,6 +1006,9 @@ setMountPoint (CompObject *object,
     CORE (object);
     FUSE_CORE (c);
 
+    if (strcmp (value, fc->mountPoint) == 0)
+	return TRUE;
+
     mountPoint = strdup (value);
     if (!mountPoint)
     {
