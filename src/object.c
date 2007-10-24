@@ -28,6 +28,8 @@
 #include <compiz-core.h>
 
 static const CommonSignal objectTypeSignal[] = {
+    C_SIGNAL (interfaceAdded,     "s", CompObjectVTable),
+    C_SIGNAL (interfaceRemoved,   "s", CompObjectVTable),
     C_SIGNAL (childObjectAdded,   "o", CompObjectVTable),
     C_SIGNAL (childObjectRemoved, "o", CompObjectVTable)
 };
@@ -172,6 +174,40 @@ noopForEachProp (CompObject	  *object,
 		 void		  *closure)
 {
     return TRUE;
+}
+
+static CompBool
+baseObjectInterfaceAdded (CompObject *object,
+			  void       *closure)
+{
+    (*object->vTable->interfaceAdded) (object, (const char *) closure);
+    return TRUE;
+}
+
+static void
+noopInterfaceAdded (CompObject *object,
+		    const char *interface)
+{
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectInterfaceAdded,
+				      (void *) interface);
+}
+
+static CompBool
+baseObjectInterfaceRemoved (CompObject *object,
+			  void       *closure)
+{
+    (*object->vTable->interfaceRemoved) (object, (const char *) closure);
+    return TRUE;
+}
+
+static void
+noopInterfaceRemoved (CompObject *object,
+		    const char *interface)
+{
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectInterfaceRemoved,
+				      (void *) interface);
 }
 
 typedef struct _ForEachTypeContext {
@@ -1231,6 +1267,24 @@ forEachInterface (CompObject		*object,
 				   proc, closure);
 }
 
+static void
+interfaceAdded (CompObject *object,
+		const char *interface)
+{
+    EMIT_EXT_SIGNAL (object,
+		     object->signal[COMP_OBJECT_SIGNAL_INTERFACE_ADDED],
+		     "object", "interfaceAdded", "s", interface);
+}
+
+static void
+interfaceRemoved (CompObject *object,
+		  const char *interface)
+{
+    EMIT_EXT_SIGNAL (object,
+		     object->signal[COMP_OBJECT_SIGNAL_INTERFACE_REMOVED],
+		     "object", "interfaceRemoved", "s", interface);
+}
+
 static CompBool
 forEachType (CompObject	      *object,
 	     TypeCallBackProc proc,
@@ -2272,6 +2326,8 @@ static CompObjectVTable objectVTable = {
     commonForEachMethod,
     commonForEachSignal,
     commonForEachProp,
+    interfaceAdded,
+    interfaceRemoved,
     forEachType,
     forEachChildObject,
     childObjectAdded,
@@ -2341,6 +2397,8 @@ initObjectVTable (CompObjectVTable *vTable)
     ENSURE (vTable, forEachMethod,    noopForEachMethod);
     ENSURE (vTable, forEachSignal,    noopForEachSignal);
     ENSURE (vTable, forEachProp,      noopForEachProp);
+    ENSURE (vTable, interfaceAdded,   noopInterfaceAdded);
+    ENSURE (vTable, interfaceRemoved, noopInterfaceRemoved);
 
     ENSURE (vTable, forEachType, noopForEachType);
 

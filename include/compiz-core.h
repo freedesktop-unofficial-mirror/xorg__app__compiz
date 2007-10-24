@@ -442,6 +442,12 @@ typedef CompBool (*ForEachPropProc) (CompObject	      *object,
 				     PropCallBackProc proc,
 				     void	      *closure);
 
+typedef void (*InterfaceAddedProc) (CompObject *object,
+				    const char *interface);
+
+typedef void (*InterfaceRemovedProc) (CompObject *object,
+				      const char *interface);
+
 typedef CompBool (*TypeCallBackProc) (CompObject	   *object,
 				      const CompObjectType *type,
 				      void		   *closure);
@@ -615,6 +621,8 @@ typedef struct _CompObjectVTable {
     ForEachMethodProc    forEachMethod;
     ForEachSignalProc    forEachSignal;
     ForEachPropProc      forEachProp;
+    InterfaceAddedProc   interfaceAdded;
+    InterfaceRemovedProc interfaceRemoved;
 
     /* type function
 
@@ -655,14 +663,16 @@ typedef struct _CompSignalHandler {
     void		      *data;
 } CompSignalHandler;
 
-#define COMP_OBJECT_SIGNAL_CHILD_ADDED    0
-#define COMP_OBJECT_SIGNAL_CHILD_REMOVED  1
-#define COMP_OBJECT_SIGNAL_SIGNAL         2
-#define COMP_OBJECT_SIGNAL_BOOL_CHANGED   3
-#define COMP_OBJECT_SIGNAL_INT_CHANGED    4
-#define COMP_OBJECT_SIGNAL_DOUBLE_CHANGED 5
-#define COMP_OBJECT_SIGNAL_STRING_CHANGED 6
-#define COMP_OBJECT_SIGNAL_NUM            7
+#define COMP_OBJECT_SIGNAL_INTERFACE_ADDED   0
+#define COMP_OBJECT_SIGNAL_INTERFACE_REMOVED 1
+#define COMP_OBJECT_SIGNAL_CHILD_ADDED       2
+#define COMP_OBJECT_SIGNAL_CHILD_REMOVED     3
+#define COMP_OBJECT_SIGNAL_SIGNAL            4
+#define COMP_OBJECT_SIGNAL_BOOL_CHANGED      5
+#define COMP_OBJECT_SIGNAL_INT_CHANGED       6
+#define COMP_OBJECT_SIGNAL_DOUBLE_CHANGED    7
+#define COMP_OBJECT_SIGNAL_STRING_CHANGED    8
+#define COMP_OBJECT_SIGNAL_NUM               9
 
 struct _CompObject {
     CompObjectVTable *vTable;
