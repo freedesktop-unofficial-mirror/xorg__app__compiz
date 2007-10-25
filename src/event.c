@@ -2034,7 +2034,7 @@ handleEvent (CompDisplay *d,
 	    {
 		d->below = w->id;
 
-		if (!d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b)
+		if (!d->clickToFocus)
 		{
 		    if (d->autoRaiseHandle &&
 			d->autoRaiseWindow != w->id)
