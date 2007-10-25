@@ -2462,6 +2462,8 @@ removeScreenOld (CompScreen *s)
 	XCompositeReleaseOverlayWindow (s->display->display, s->root);
 #endif
 
+    XSetSelectionOwner (s->display->display, s->wmSnAtom, None, CurrentTime);
+
     freeScreen (s);
 }
 

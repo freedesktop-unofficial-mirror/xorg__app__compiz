@@ -204,14 +204,216 @@ noopAddScreen (CompDisplay *display,
 }
 
 static CompBool
+validScreenOnDisplay (CompDisplay *display,
+		      int32_t     number,
+		      char	  **error)
+{
+    if (number < 0 || number >= ScreenCount (display->display))
+    {
+	esprintf (error,
+		  "Screen %d doesn't exist on display \"%s\"",
+		  number, DisplayString (display->display));
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+static Window
+createDummyXWindow (CompDisplay *display,
+		    Window      parent)
+{
+    XSetWindowAttributes attr;
+
+    attr.override_redirect = TRUE;
+    attr.event_mask	   = PropertyChangeMask;
+
+    return XCreateWindow (display->display, parent,
+			  -100, -100, 1, 1, 0,
+			  CopyFromParent, CopyFromParent, CopyFromParent,
+			  CWOverrideRedirect | CWEventMask,
+			  &attr);
+}
+
+static CompBool
 addScreen (CompDisplay *display,
 	   int32_t     number,
 	   char	       **error)
 {
-    if (error)
-	*error = strdup ("NYI");
+    Display    *dpy = display->display;
+    Window     newWmSnOwner = None, newCmSnOwner = None;
+    Atom       wmSnAtom = 0, cmSnAtom = 0;
+    Time       wmSnTimestamp = 0;
+    XEvent     event;
+    Window     currentWmSnOwner, currentCmSnOwner;
+    char       buf[128];
+    CompScreen *s;
 
-    return FALSE;
+    if (!validScreenOnDisplay (display, number, error))
+	return FALSE;
+
+    for (s = display->screens; s; s = s->next)
+    {
+	if (s->screenNum == number)
+	{
+	    esprintf (error,
+		      "Already managing screen %d on display \"%s\"",
+		      number, DisplayString (dpy));
+
+	    return FALSE;
+	}
+    }
+
+    sprintf (buf, "WM_S%d", number);
+    wmSnAtom = XInternAtom (dpy, buf, 0);
+
+    currentWmSnOwner = XGetSelectionOwner (dpy, wmSnAtom);
+
+    if (currentWmSnOwner != None)
+    {
+	if (!replaceCurrentWm)
+	{
+	    esprintf (error,
+		      "Screen %d on display \"%s\" already has a window manager",
+		      number, DisplayString (dpy));
+
+	    return FALSE;
+	}
+
+	XSelectInput (dpy, currentWmSnOwner, StructureNotifyMask);
+    }
+
+    sprintf (buf, "_NET_WM_CM_S%d", number);
+    cmSnAtom = XInternAtom (dpy, buf, 0);
+
+    currentCmSnOwner = XGetSelectionOwner (dpy, cmSnAtom);
+
+    if (currentCmSnOwner != None)
+    {
+	if (!replaceCurrentWm)
+	{
+	    esprintf (error,
+		      "Screen %d on display \"%s\" already has a compositing "
+		      "manager", number, DisplayString (dpy));
+
+	    return FALSE;
+	}
+    }
+
+    newCmSnOwner = newWmSnOwner =
+	createDummyXWindow (display, XRootWindow (dpy, number));
+
+    XChangeProperty (dpy,
+		     newWmSnOwner,
+		     display->wmNameAtom,
+		     display->utf8StringAtom, 8,
+		     PropModeReplace,
+		     (unsigned char *) PACKAGE,
+		     strlen (PACKAGE));
+
+    XWindowEvent (dpy,
+		  newWmSnOwner,
+		  PropertyChangeMask,
+		  &event);
+
+    wmSnTimestamp = event.xproperty.time;
+
+    XSetSelectionOwner (dpy, wmSnAtom, newWmSnOwner, wmSnTimestamp);
+
+    if (XGetSelectionOwner (dpy, wmSnAtom) != newWmSnOwner)
+    {
+	esprintf (error,
+		  "Could not acquire window/compositing manager selection for "
+		  "screen %d on display \"%s\"", number, DisplayString (dpy));
+
+	XDestroyWindow (dpy, newWmSnOwner);
+
+	return FALSE;
+    }
+
+    /* Send client message indicating that we are now the WM */
+    event.xclient.type	       = ClientMessage;
+    event.xclient.window       = XRootWindow (dpy, number);
+    event.xclient.message_type = display->managerAtom;
+    event.xclient.format       = 32;
+    event.xclient.data.l[0]    = wmSnTimestamp;
+    event.xclient.data.l[1]    = wmSnAtom;
+    event.xclient.data.l[2]    = 0;
+    event.xclient.data.l[3]    = 0;
+    event.xclient.data.l[4]    = 0;
+
+    XSendEvent (dpy, XRootWindow (dpy, number), FALSE,
+		StructureNotifyMask, &event);
+
+    /* Wait for old window manager to go away */
+    if (currentWmSnOwner != None)
+    {
+	do {
+	    XWindowEvent (dpy, currentWmSnOwner, StructureNotifyMask, &event);
+	} while (event.type != DestroyNotify);
+    }
+
+    compCheckForError (dpy);
+
+    XCompositeRedirectSubwindows (dpy, XRootWindow (dpy, number),
+				  CompositeRedirectManual);
+
+    if (compCheckForError (dpy))
+    {
+	esprintf (error,
+		  "Another composite manager is already running on screen "
+		  "%d", number);
+
+	XSetSelectionOwner (dpy, wmSnAtom, None, CurrentTime);
+	XDestroyWindow (dpy, newWmSnOwner);
+
+	return FALSE;
+    }
+
+    XGrabServer (dpy);
+
+    XSelectInput (dpy, XRootWindow (dpy, number),
+		  SubstructureRedirectMask |
+		  SubstructureNotifyMask   |
+		  StructureNotifyMask      |
+		  PropertyChangeMask       |
+		  LeaveWindowMask	   |
+		  EnterWindowMask	   |
+		  KeyPressMask		   |
+		  KeyReleaseMask	   |
+		  ButtonPressMask	   |
+		  ButtonReleaseMask	   |
+		  FocusChangeMask	   |
+		  ExposureMask);
+
+    if (compCheckForError (dpy))
+    {
+	esprintf (error,
+		  "Another window manager is already running on screen %d",
+		  number);
+
+	XSetSelectionOwner (dpy, wmSnAtom, None, CurrentTime);
+	XDestroyWindow (dpy, newWmSnOwner);
+	XUngrabServer (dpy);
+
+	return FALSE;
+    }
+
+    if (!addScreenOld (display, number, newWmSnOwner, wmSnAtom, wmSnTimestamp))
+    {
+	esprintf (error, "Failed to manage screen %d", number);
+
+	XSetSelectionOwner (dpy, wmSnAtom, None, CurrentTime);
+	XDestroyWindow (dpy, newWmSnOwner);
+	XUngrabServer (dpy);
+
+	return FALSE;
+    }
+
+    XUngrabServer (dpy);
+
+    return TRUE;
 }
 
 static CompBool
@@ -245,10 +447,32 @@ removeScreen (CompDisplay *display,
 	      int32_t     number,
 	      char	  **error)
 {
-    if (error)
-	*error = strdup ("NYI");
+    Display    *dpy = display->display;
+    CompScreen *s;
 
-    return FALSE;
+    if (!validScreenOnDisplay (display, number, error))
+	return FALSE;
+
+    for (s = display->screens; s; s = s->next)
+	if (s->screenNum == number)
+	    break;
+
+    if (!s)
+    {
+	esprintf (error,
+		  "Screen %d on display \"%s\" is not currently managed",
+		  number, DisplayString (dpy));
+
+	return FALSE;
+    }
+
+    XSelectInput (dpy, XRootWindow (dpy, number), NoEventMask);
+    XCompositeUnredirectSubwindows (dpy, XRootWindow (dpy, number),
+				    CompositeRedirectManual);
+
+    removeScreenOld (s);
+
+    return TRUE;
 }
 
 static Bool
@@ -2279,6 +2503,8 @@ addDisplay (const char *name)
 
     XSetErrorHandler (errorHandler);
 
+    d->dummyWindow = createDummyXWindow (d, DefaultRootWindow (dpy));
+
     updateModifierMappings (d);
 
     d->supportedAtom	     = XInternAtom (dpy, "_NET_SUPPORTED", 0);
@@ -2569,179 +2795,17 @@ addDisplay (const char *name)
 
     for (i = firstScreen; i <= lastScreen; i++)
     {
-	Window		     newWmSnOwner = None, newCmSnOwner = None;
-	Atom		     wmSnAtom = 0, cmSnAtom = 0;
-	Time		     wmSnTimestamp = 0;
-	XEvent		     event;
-	XSetWindowAttributes attr;
-	Window		     currentWmSnOwner, currentCmSnOwner;
-	char		     buf[128];
-	Window		     rootDummy, childDummy;
-	unsigned int	     uDummy;
-	int		     x, y, dummy;
+	Window	     rootDummy, childDummy;
+	unsigned int uDummy;
+	int	     x, y, dummy;
+	char	     *error;
 
-	sprintf (buf, "WM_S%d", i);
-	wmSnAtom = XInternAtom (dpy, buf, 0);
-
-	currentWmSnOwner = XGetSelectionOwner (dpy, wmSnAtom);
-
-	if (currentWmSnOwner != None)
+	if (!(d->u.vTable->addScreen) (d, i, &error))
 	{
-	    if (!replaceCurrentWm)
-	    {
-		compLogMessage (d, "core", CompLogLevelError,
-				"Screen %d on display \"%s\" already "
-				"has a window manager; try using the "
-				"--replace option to replace the current "
-				"window manager.",
-				i, DisplayString (dpy));
-
-		continue;
-	    }
-
-	    XSelectInput (dpy, currentWmSnOwner,
-			  StructureNotifyMask);
-	}
-
-	sprintf (buf, "_NET_WM_CM_S%d", i);
-	cmSnAtom = XInternAtom (dpy, buf, 0);
-
-	currentCmSnOwner = XGetSelectionOwner (dpy, cmSnAtom);
-
-	if (currentCmSnOwner != None)
-	{
-	    if (!replaceCurrentWm)
-	    {
-		compLogMessage (d, "core", CompLogLevelError,
-				"Screen %d on display \"%s\" already "
-				"has a compositing manager; try using the "
-				"--replace option to replace the current "
-				"compositing manager.",
-				i, DisplayString (dpy));
-
-		continue;
-	    }
-	}
-
-	attr.override_redirect = TRUE;
-	attr.event_mask	       = PropertyChangeMask;
-
-	newCmSnOwner = newWmSnOwner =
-	    XCreateWindow (dpy, XRootWindow (dpy, i),
-			   -100, -100, 1, 1, 0,
-			   CopyFromParent, CopyFromParent,
-			   CopyFromParent,
-			   CWOverrideRedirect | CWEventMask,
-			   &attr);
-
-	XChangeProperty (dpy,
-			 newWmSnOwner,
-			 d->wmNameAtom,
-			 d->utf8StringAtom, 8,
-			 PropModeReplace,
-			 (unsigned char *) PACKAGE,
-			 strlen (PACKAGE));
-
-	XWindowEvent (dpy,
-		      newWmSnOwner,
-		      PropertyChangeMask,
-		      &event);
-
-	wmSnTimestamp = event.xproperty.time;
-
-	XSetSelectionOwner (dpy, wmSnAtom, newWmSnOwner, wmSnTimestamp);
-
-	if (XGetSelectionOwner (dpy, wmSnAtom) != newWmSnOwner)
-	{
-	    compLogMessage (d, "core", CompLogLevelError,
-			    "Could not acquire window manager "
-			    "selection on screen %d display \"%s\"",
-			    i, DisplayString (dpy));
-
-	    XDestroyWindow (dpy, newWmSnOwner);
+	    compLogMessage (d, "core", CompLogLevelError, "%s", error);
+	    free (error);
 
 	    continue;
-	}
-
-	/* Send client message indicating that we are now the WM */
-	event.xclient.type	   = ClientMessage;
-	event.xclient.window       = XRootWindow (dpy, i);
-	event.xclient.message_type = d->managerAtom;
-	event.xclient.format       = 32;
-	event.xclient.data.l[0]    = wmSnTimestamp;
-	event.xclient.data.l[1]    = wmSnAtom;
-	event.xclient.data.l[2]    = 0;
-	event.xclient.data.l[3]    = 0;
-	event.xclient.data.l[4]    = 0;
-
-	XSendEvent (dpy, XRootWindow (dpy, i), FALSE,
-		    StructureNotifyMask, &event);
-
-	/* Wait for old window manager to go away */
-	if (currentWmSnOwner != None)
-	{
-	    do {
-		XWindowEvent (dpy, currentWmSnOwner,
-			      StructureNotifyMask, &event);
-	    } while (event.type != DestroyNotify);
-	}
-
-	compCheckForError (dpy);
-
-	XCompositeRedirectSubwindows (dpy, XRootWindow (dpy, i),
-				      CompositeRedirectManual);
-
-	if (compCheckForError (dpy))
-	{
-	    compLogMessage (d, "core", CompLogLevelError,
-			    "Another composite manager is already "
-			    "running on screen: %d", i);
-
-	    continue;
-	}
-
-	XSetSelectionOwner (dpy, cmSnAtom, newCmSnOwner, wmSnTimestamp);
-
-	if (XGetSelectionOwner (dpy, cmSnAtom) != newCmSnOwner)
-	{
-	    compLogMessage (d, "core", CompLogLevelError,
-			    "Could not acquire compositing manager "
-			    "selection on screen %d display \"%s\"",
-			    i, DisplayString (dpy));
-
-	    continue;
-	}
-
-	XGrabServer (dpy);
-
-	XSelectInput (dpy, XRootWindow (dpy, i),
-		      SubstructureRedirectMask |
-		      SubstructureNotifyMask   |
-		      StructureNotifyMask      |
-		      PropertyChangeMask       |
-		      LeaveWindowMask	       |
-		      EnterWindowMask	       |
-		      KeyPressMask	       |
-		      KeyReleaseMask	       |
-		      ButtonPressMask	       |
-		      ButtonReleaseMask	       |
-		      FocusChangeMask	       |
-		      ExposureMask);
-
-	if (compCheckForError (dpy))
-	{
-	    compLogMessage (d, "core", CompLogLevelError,
-			    "Another window manager is "
-			    "already running on screen: %d", i);
-
-	    XUngrabServer (dpy);
-	    continue;
-	}
-
-	if (!addScreenOld (d, i, newWmSnOwner, wmSnAtom, wmSnTimestamp))
-	{
-	    compLogMessage (d, "core", CompLogLevelError,
-			    "Failed to manage screen: %d", i);
 	}
 
 	if (XQueryPointer (dpy, XRootWindow (dpy, i),
@@ -2751,8 +2815,6 @@ addDisplay (const char *name)
 	    lastPointerX = pointerX = x;
 	    lastPointerY = pointerY = y;
 	}
-
-	XUngrabServer (dpy);
     }
 
     if (!d->screens)
@@ -2821,6 +2883,8 @@ removeDisplay (CompDisplay *d)
     if (d->snDisplay)
 	sn_display_unref (d->snDisplay);
 
+    XDestroyWindow (d->display, d->dummyWindow);
+
     XSync (d->display, False);
     XCloseDisplay (d->display);
 
@@ -2832,10 +2896,10 @@ getCurrentTimeFromDisplay (CompDisplay *d)
 {
     XEvent event;
 
-    XChangeProperty (d->display, d->screens->grabWindow,
+    XChangeProperty (d->display, d->dummyWindow,
 		     XA_PRIMARY, XA_STRING, 8,
 		     PropModeAppend, NULL, 0);
-    XWindowEvent (d->display, d->screens->grabWindow,
+    XWindowEvent (d->display, d->dummyWindow,
 		  PropertyChangeMask,
 		  &event);
 
@@ -2893,7 +2957,7 @@ focusDefaultWindow (CompDisplay *d)
 	if (focus->id != d->activeWindow)
 	    moveInputFocusToWindow (focus);
     }
-    else
+    else if (d->screens)
     {
 	XSetInputFocus (d->display, d->screens->root, RevertToPointerRoot,
 			CurrentTime);

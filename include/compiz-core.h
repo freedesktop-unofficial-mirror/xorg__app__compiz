@@ -255,6 +255,15 @@ extern CompMetadata coreMetadata;
     if (!(table)->func) (table)->func = (ensureFunc)
 
 
+/* error.c */
+
+/* similar to asprintf except that 'strp' can be NULL */
+int
+esprintf (char	     **strp,
+	  const char *fmt,
+	  ...);
+
+
 /* privates.c */
 
 typedef union _CompPrivate {
@@ -1649,6 +1658,8 @@ struct _CompDisplay {
 
     Display    *display;
     CompScreen *screens;
+
+    Window dummyWindow;
 
     CompContainer screenContainer;
 
