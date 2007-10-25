@@ -1128,7 +1128,11 @@ handleEvent (CompDisplay *d,
 
     if (handleActionEvent (d, event))
     {
-	if (!d->screens->maxGrab)
+	for (s = d->screens; s; s = s->next)
+	    if (s->maxGrab)
+		break;
+
+	if (!s)
 	    XAllowEvents (d->display, AsyncPointer, event->xbutton.time);
 
 	return;
@@ -2011,8 +2015,7 @@ handleEvent (CompDisplay *d,
 	}
 	break;
     case EnterNotify:
-	if (!d->screens->maxGrab		    &&
-	    event->xcrossing.mode   != NotifyGrab   &&
+	if (event->xcrossing.mode   != NotifyGrab   &&
 	    event->xcrossing.mode   != NotifyUngrab &&
 	    event->xcrossing.detail != NotifyInferior)
 	{
@@ -2023,48 +2026,46 @@ handleEvent (CompDisplay *d,
 	    delay = d->opt[COMP_DISPLAY_OPTION_AUTORAISE_DELAY].value.i;
 
 	    s = findScreenAtDisplay (d, event->xcrossing.root);
-	    if (s)
+	    if (!s)
+		break;
+
+	    if (s->maxGrab)
+		break;
+
+	    w = findTopLevelWindowAtScreen (s, event->xcrossing.window);
+	    if (!w)
+		break;
+
+	    if (w->id == d->below)
+		break;
+
+	    d->below = w->id;
+
+	    if (d->clickToFocus)
+		break;
+
+	    if (d->autoRaiseHandle && d->autoRaiseWindow != w->id)
 	    {
-		w = findTopLevelWindowAtScreen (s, event->xcrossing.window);
+		compRemoveTimeout (d->autoRaiseHandle);
+		d->autoRaiseHandle = 0;
 	    }
-	    else
-		w = NULL;
 
-	    if (w && w->id != d->below)
+	    if (w->type & (CompWindowTypeDockMask | CompWindowTypeDesktopMask))
+		break;
+
+	    moveInputFocusToWindow (w);
+
+	    if (raise)
 	    {
-		d->below = w->id;
-
-		if (!d->clickToFocus)
+		if (delay > 0)
 		{
-		    if (d->autoRaiseHandle &&
-			d->autoRaiseWindow != w->id)
-		    {
-			compRemoveTimeout (d->autoRaiseHandle);
-			d->autoRaiseHandle = 0;
-		    }
-
-		    if (w->type & ~(CompWindowTypeDockMask |
-				    CompWindowTypeDesktopMask))
-		    {
-			moveInputFocusToWindow (w);
-
-			if (raise)
-			{
-			    if (delay > 0)
-			    {
-				d->autoRaiseWindow = w->id;
-				d->autoRaiseHandle =
-				    compAddTimeout (delay, autoRaiseTimeout, d);
-			    }
-			    else
-			    {
-				CompStackingUpdateMode mode =
-				    CompStackingUpdateModeNormal;
-
-				updateWindowAttributes (w, mode);
-			    }
-			}
-		    }
+		    d->autoRaiseWindow = w->id;
+		    d->autoRaiseHandle =
+			compAddTimeout (delay, autoRaiseTimeout, d);
+		}
+		else
+		{
+		    updateWindowAttributes (w, CompStackingUpdateModeNormal);
 		}
 	    }
 	}
