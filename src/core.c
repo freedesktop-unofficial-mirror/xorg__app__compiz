@@ -274,7 +274,7 @@ forEachDisplayObject (CompObject	      *object,
     CORE (object->parent);
 
     for (d = c->displays; d; d = d->next)
-	if (!(*proc) (&d->base, closure))
+	if (!(*proc) (&d->u.base, closure))
 	    return FALSE;
 
     return TRUE;

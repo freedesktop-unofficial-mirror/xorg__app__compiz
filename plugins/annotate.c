@@ -781,7 +781,7 @@ annoInitDisplay (CompDisplay *d)
 {
     ANNO_DISPLAY (d);
 
-    if (!compObjectCheckVersion (&d->base, "display", CORE_ABIVERSION))
+    if (!compObjectCheckVersion (&d->u.base, "display", CORE_ABIVERSION))
 	return FALSE;
 
     if (!compInitDisplayOptionsFromMetadata (d,
@@ -794,11 +794,11 @@ annoInitDisplay (CompDisplay *d)
     ad->lineWidth   = 3.0;
     ad->strokeWidth = 1.0;
 
-    WRAP (&ad->object, &d->base, vTable, &annoDisplayObjectVTable);
+    WRAP (&ad->object, &d->u.base, vTable, &annoDisplayObjectVTable);
 
     WRAP (ad, d, handleEvent, annoHandleEvent);
 
-    commonInterfacesAdded (&d->base,
+    commonInterfacesAdded (&d->u.base,
 			   annoDisplayInterface,
 			   N_ELEMENTS (annoDisplayInterface));
 
@@ -812,9 +812,9 @@ annoFiniDisplay (CompDisplay *d)
 
     UNWRAP (ad, d, handleEvent);
 
-    UNWRAP (&ad->object, &d->base, vTable);
+    UNWRAP (&ad->object, &d->u.base, vTable);
 
-    commonInterfacesRemoved (&d->base,
+    commonInterfacesRemoved (&d->u.base,
 			     annoDisplayInterface,
 			     N_ELEMENTS (annoDisplayInterface));
 

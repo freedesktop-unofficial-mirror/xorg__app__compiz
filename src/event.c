@@ -692,7 +692,7 @@ static Bool
 handleActionEvent (CompDisplay *d,
 		   XEvent      *event)
 {
-    CompObject *obj = &d->base;
+    CompObject *obj = &d->u.base;
     CompOption *option;
     int	       nOption;
     CompPlugin *p;

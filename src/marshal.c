@@ -50,6 +50,24 @@ marshal_I_S (CompObject *object,
 }
 
 void
+marshal__I__E (CompObject *object,
+	       CompBool   (*method) (CompObject *,
+				     int32_t     ,
+				     char       **),
+	       CompArgs   *args)
+{
+    int32_t in0;
+    char    *error;
+
+    (*args->load) (args, "i", &in0);
+
+    if (!(*method) (object, in0, &error))
+    {
+	(*args->error) (args, error);
+    }
+}
+
+void
 marshal__SSB__E (CompObject *object,
 		 CompBool   (*method) (CompObject *,
 				       char       *,

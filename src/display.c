@@ -87,6 +87,10 @@ filterChanged (CompObject *object,
 	d->textureFilter = GL_LINEAR;
 }
 
+static const CommonMethod displayTypeMethod[] = {
+    C_METHOD (addScreen,    "i", "", CompDisplayVTable, marshal__I__E),
+    C_METHOD (removeScreen, "i", "", CompDisplayVTable, marshal__I__E)
+};
 static const CommonBoolProp displayTypeBoolProp[] = {
     C_PROP (clickToFocus, CompDisplay)
 };
@@ -96,7 +100,7 @@ static const CommonIntProp displayTypeIntProp[] = {
 #define INTERFACE_VERSION_displayType CORE_ABIVERSION
 
 static const CommonInterface displayInterface[] = {
-    C_INTERFACE (display, Type, CompObjectVTable, _, _, _, _, X, X, _, _)
+    C_INTERFACE (display, Type, CompObjectVTable, _, _, X, _, X, X, _, _)
 };
 
 static CompBool
@@ -166,6 +170,85 @@ displayForEachChildObject (CompObject		   *object,
     WRAP (&d->object, object, vTable, v.vTable);
 
     return status;
+}
+
+typedef struct _AddRemoveScreenContext {
+    int  number;
+    char **error;
+} AddRemoveScreenContext;
+
+static CompBool
+baseObjectAddScreen (CompObject *object,
+		     void       *closure)
+{
+    AddRemoveScreenContext *pCtx = (AddRemoveScreenContext *) closure;
+
+    DISPLAY (object);
+
+    return (*d->u.vTable->addScreen) (d, pCtx->number, pCtx->error);
+}
+
+static CompBool
+noopAddScreen (CompDisplay *display,
+	       int32_t	   number,
+	       char	   **error)
+{
+    AddRemoveScreenContext ctx;
+
+    ctx.number = number;
+    ctx.error  = error;
+
+    return (*display->u.base.vTable->forBaseObject) (&display->u.base,
+						     baseObjectAddScreen,
+						     (void *) &ctx);
+}
+
+static CompBool
+addScreen (CompDisplay *display,
+	   int32_t     number,
+	   char	       **error)
+{
+    if (error)
+	*error = strdup ("NYI");
+
+    return FALSE;
+}
+
+static CompBool
+baseObjectRemoveScreen (CompObject *object,
+			void       *closure)
+{
+    AddRemoveScreenContext *pCtx = (AddRemoveScreenContext *) closure;
+
+    DISPLAY (object);
+
+    return (*d->u.vTable->removeScreen) (d, pCtx->number, pCtx->error);
+}
+
+static CompBool
+noopRemoveScreen (CompDisplay *display,
+		  int32_t     number,
+		  char	      **error)
+{
+    AddRemoveScreenContext ctx;
+
+    ctx.number = number;
+    ctx.error  = error;
+
+    return (*display->u.base.vTable->forBaseObject) (&display->u.base,
+						     baseObjectRemoveScreen,
+						     (void *) &ctx);
+}
+
+static CompBool
+removeScreen (CompDisplay *display,
+	      int32_t     number,
+	      char	  **error)
+{
+    if (error)
+	*error = strdup ("NYI");
+
+    return FALSE;
 }
 
 static Bool
@@ -935,7 +1018,7 @@ updatePlugins (CompDisplay *d)
 	pop = malloc (sizeof (CompPlugin *) * nPop);
 	if (!pop)
 	{
-	    (*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
+	    (*core.setOptionForPlugin) (&d->u.base, "core", o->name, &d->plugin);
 	    return;
 	}
     }
@@ -1007,7 +1090,7 @@ updatePlugins (CompDisplay *d)
     if (nPop)
 	free (pop);
 
-    (*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
+    (*core.setOptionForPlugin) (&d->u.base, "core", o->name, &d->plugin);
 }
 
 static void
@@ -1936,7 +2019,7 @@ freeDisplay (CompDisplay *d)
 {
     free (d->hostName);
 
-    compObjectFini (&d->base, getDisplayObjectType ());
+    compObjectFini (&d->u.base, getDisplayObjectType ());
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 
@@ -1946,18 +2029,21 @@ freeDisplay (CompDisplay *d)
     free (d);
 }
 
-static CompObjectVTable displayObjectVTable = {
-    .forBaseObject	   = displayForBaseObject,
-    .forEachInterface      = displayForEachInterface,
-    .forEachProp	   = commonForEachProp,
-    .forEachType	   = displayForEachType,
-    .forEachChildObject    = displayForEachChildObject,
-    .version.get	   = commonGetVersion,
-    .properties.getBool	   = commonGetBoolProp,
-    .properties.setBool	   = commonSetBoolProp,
-    .properties.getInt	   = commonGetIntProp,
-    .properties.setInt	   = commonSetIntProp,
-    .properties.intChanged = commonIntPropChanged,
+static CompDisplayVTable displayObjectVTable = {
+    .base.forBaseObject		= displayForBaseObject,
+    .base.forEachInterface	= displayForEachInterface,
+    .base.forEachMethod		= commonForEachMethod,
+    .base.forEachProp		= commonForEachProp,
+    .base.forEachType		= displayForEachType,
+    .base.forEachChildObject	= displayForEachChildObject,
+    .base.version.get		= commonGetVersion,
+    .base.properties.getBool	= commonGetBoolProp,
+    .base.properties.setBool	= commonSetBoolProp,
+    .base.properties.getInt	= commonGetIntProp,
+    .base.properties.setInt	= commonSetIntProp,
+    .base.properties.intChanged	= commonIntPropChanged,
+    .addScreen			= addScreen,
+    .removeScreen		= removeScreen
 };
 
 static CompObjectPrivates displayObjectPrivates = {
@@ -1992,29 +2078,29 @@ displayInitObject (CompObject *object)
 
     DISPLAY (object);
 
-    if (!compObjectInit (&d->base, getObjectType ()))
+    if (!compObjectInit (&d->u.base, getObjectType ()))
 	return FALSE;
 
     if (!compObjectInit (&d->screenContainer.base, getContainerObjectType ()))
     {
-	compObjectFini (&d->base, getObjectType ());
+	compObjectFini (&d->u.base, getObjectType ());
 	return FALSE;
     }
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
-    d->screenContainer.base.parent	  = &d->base;
+    d->screenContainer.base.parent	  = &d->u.base;
     d->screenContainer.base.name	  = "screens";
 
-    d->base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */
+    d->u.base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
 	compObjectFini (&d->screenContainer.base, getContainerObjectType ());
-	compObjectFini (&d->base, getObjectType ());
+	compObjectFini (&d->u.base, getObjectType ());
 	return FALSE;
     }
 
-    WRAP (&d->object, &d->base, vTable, &displayObjectVTable);
+    WRAP (&d->object, &d->u.base, vTable, &displayObjectVTable.base);
 
     d->next    = NULL;
     d->screens = NULL;
@@ -2060,19 +2146,22 @@ displayFiniObject (CompObject *object)
 
     compFiniOptionValue (&d->plugin, CompOptionTypeList);
 
-    UNWRAP (&d->object, &d->base, vTable);
+    UNWRAP (&d->object, &d->u.base, vTable);
 
     if (d->privates)
 	free (d->privates);
 
     compObjectFini (&d->screenContainer.base, getContainerObjectType ());
-    compObjectFini (&d->base, getObjectType ());
+    compObjectFini (&d->u.base, getObjectType ());
 }
 
 static void
-displayInitVTable (void *vTable)
+displayInitVTable (CompDisplayVTable *vTable)
 {
-    (*getObjectType ()->initVTable) (vTable);
+    (*getObjectType ()->initVTable) (&vTable->base);
+
+    ENSURE (vTable, addScreen,    noopAddScreen);
+    ENSURE (vTable, removeScreen, noopRemoveScreen);
 }
 
 static CompObjectType displayObjectType = {
@@ -2082,7 +2171,7 @@ static CompObjectType displayObjectType = {
 	displayFiniObject
     },
     &displayObjectPrivates,
-    displayInitVTable
+    (InitVTableProc) displayInitVTable
 };
 
 CompObjectType *
@@ -2128,7 +2217,7 @@ addDisplay (const char *name)
     if (!d)
 	return FALSE;
 
-    if (!compObjectInit (&d->base, getDisplayObjectType ()))
+    if (!compObjectInit (&d->u.base, getDisplayObjectType ()))
     {
 	free (d);
 	return FALSE;
@@ -2139,7 +2228,7 @@ addDisplay (const char *name)
 			    &d->displayNum,
 			    &d->preferredScreen))
     {
-	compObjectFini (&d->base, getDisplayObjectType ());
+	compObjectFini (&d->u.base, getDisplayObjectType ());
 	free (d);
 	return FALSE;
     }
@@ -2459,13 +2548,13 @@ addDisplay (const char *name)
     addDisplayToCore (d);
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&d->base));
+    assert (objectInitPlugins (&d->u.base));
 
     snprintf (objectName, 256, "%s_%d",
 	      *d->hostName == '\0' ? "localhost" : d->hostName,
 	      d->displayNum);
 
-    (*core.objectAdd) (&core.displayContainer.base, &d->base, objectName);
+    (*core.objectAdd) (&core.displayContainer.base, &d->u.base, objectName);
 
     if (onlyCurrentScreen)
     {
@@ -2649,7 +2738,7 @@ addDisplay (const char *name)
 	    continue;
 	}
 
-	if (!addScreen (d, i, newWmSnOwner, wmSnAtom, wmSnTimestamp))
+	if (!addScreenOld (d, i, newWmSnOwner, wmSnAtom, wmSnTimestamp))
 	{
 	    compLogMessage (d, "core", CompLogLevelError,
 			    "Failed to manage screen: %d", i);
@@ -2721,11 +2810,11 @@ removeDisplay (CompDisplay *d)
 	core.displays = NULL;
 
     while (d->screens)
-	removeScreen (d->screens);
+	removeScreenOld (d->screens);
 
-    (*core.objectRemove) (&core.displayContainer.base, &d->base);
+    (*core.objectRemove) (&core.displayContainer.base, &d->u.base);
 
-    objectFiniPlugins (&d->base);
+    objectFiniPlugins (&d->u.base);
 
     compRemoveTimeout (d->pingHandle);
 

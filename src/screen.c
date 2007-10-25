@@ -1827,11 +1827,11 @@ freeScreenPrivateIndex (int index)
 }
 
 Bool
-addScreen (CompDisplay *display,
-	   int	       screenNum,
-	   Window      wmSnSelectionWindow,
-	   Atom	       wmSnAtom,
-	   Time	       wmSnTimestamp)
+addScreenOld (CompDisplay *display,
+	      int	  screenNum,
+	      Window      wmSnSelectionWindow,
+	      Atom	  wmSnAtom,
+	      Time	  wmSnTimestamp)
 {
     CompScreen		 *s;
     Display		 *dpy = display->display;
@@ -2416,7 +2416,7 @@ addScreen (CompDisplay *display,
 }
 
 void
-removeScreen (CompScreen *s)
+removeScreenOld (CompScreen *s)
 {
     CompDisplay *d = s->display;
     CompScreen  *p;

@@ -1314,7 +1314,7 @@ compInitDisplayOptionsFromMetadata (CompDisplay			 *d,
 				    CompOption			 *opt,
 				    int				 n)
 {
-    return compInitObjectPropsFromMetadata (&d->base, m, info, opt, n);
+    return compInitObjectPropsFromMetadata (&d->u.base, m, info, opt, n);
 }
 
 void
@@ -1322,7 +1322,7 @@ compFiniDisplayOptions (CompDisplay *d,
 			CompOption  *opt,
 			int	    n)
 {
-    compFiniObjectProps (&d->base, opt, n);
+    compFiniObjectProps (&d->u.base, opt, n);
 }
 
 Bool
@@ -1330,7 +1330,7 @@ compSetDisplayOption (CompDisplay	    *d,
 		      CompOption	    *o,
 		      const CompOptionValue *value)
 {
-   return compSetObjectProp (&d->base, o, value);
+   return compSetObjectProp (&d->u.base, o, value);
 }
 
 char *

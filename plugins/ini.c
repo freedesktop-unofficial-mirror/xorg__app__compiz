@@ -903,7 +903,7 @@ iniFileModified (const char *name,
     {
 	if (fd->screen < 0)
 	{
-	    iniLoadOptions (&core.displays->base, fd->plugin);
+	    iniLoadOptions (&core.displays->u.base, fd->plugin);
 	}
 	else
 	{
@@ -944,7 +944,7 @@ static Bool
 iniInitPluginForDisplay (CompPlugin  *p,
 			 CompDisplay *d)
 {
-    iniLoadOptions (&d->base, p->vTable->name);
+    iniLoadOptions (&d->u.base, p->vTable->name);
 
     return TRUE;
 }
@@ -1065,7 +1065,7 @@ iniFiniCore (CompPlugin *p,
 static Bool
 iniInitDisplay (CompPlugin *p, CompDisplay *d)
 {
-    iniLoadOptions (&d->base, NULL);
+    iniLoadOptions (&d->u.base, NULL);
 
     return TRUE;
 }

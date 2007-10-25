@@ -1612,8 +1612,25 @@ typedef void (*LogMessageProc) (CompDisplay  *d,
 				CompLogLevel level,
 				const char   *message);
 
+typedef CompBool (*AddScreenProc) (CompDisplay *display,
+				   int32_t     number,
+				   char	       **error);
+
+typedef CompBool (*RemoveScreenProc) (CompDisplay *display,
+				      int32_t	  number,
+				      char	  **error);
+
+typedef struct _CompDisplayVTable {
+    CompObjectVTable base;
+    AddScreenProc    addScreen;
+    RemoveScreenProc removeScreen;
+} CompDisplayVTable;
+
 struct _CompDisplay {
-    CompObject base;
+    union {
+	CompObject	  base;
+	CompDisplayVTable *vTable;
+    } u;
 
     CompObjectVTableVec object;
 
@@ -2961,14 +2978,14 @@ void
 hideOutputWindow (CompScreen *s);
 
 Bool
-addScreen (CompDisplay *display,
-	   int	       screenNum,
-	   Window      wmSnSelectionWindow,
-	   Atom	       wmSnAtom,
-	   Time	       wmSnTimestamp);
+addScreenOld (CompDisplay *display,
+	      int	  screenNum,
+	      Window      wmSnSelectionWindow,
+	      Atom	  wmSnAtom,
+	      Time	  wmSnTimestamp);
 
 void
-removeScreen (CompScreen *s);
+removeScreenOld (CompScreen *s);
 
 void
 damageScreenRegion (CompScreen *screen,
@@ -4181,6 +4198,13 @@ marshal_I_S (CompObject *object,
 	     CompBool   (*method) (CompObject *,
 				   char       *),
 	     CompArgs   *args);
+
+void
+marshal__I__E (CompObject *object,
+	       CompBool   (*method) (CompObject *,
+				     int32_t     ,
+				     char       **),
+	       CompArgs   *args);
 
 void
 marshal__SSB__E (CompObject *object,
