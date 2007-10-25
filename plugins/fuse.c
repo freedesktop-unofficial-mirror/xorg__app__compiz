@@ -36,14 +36,6 @@
 
 static CompMetadata fuseMetadata;
 
-#define FUSE_INODE_FLAG_TRUNC (1 << 0)
-
-typedef struct _FuseWriteBuffer {
-    char *data;
-    int  size;
-    Bool dirty;
-} FuseWriteBuffer;
-
 static int corePrivateIndex;
 
 typedef struct _FuseCore {
@@ -58,14 +50,11 @@ typedef struct _FuseCore {
 
 static int objectPrivateIndex;
 
-#define FUSE_PROP_FLAG_TRUNC (1 << 0)
-
 typedef struct _FuseProp {
     struct _FuseProp *next;
 
     fuse_ino_t ino;
     int	       type;
-    int	       flags;
     char       *interface;
     char       *member;
     char       *name;
@@ -75,6 +64,18 @@ typedef struct _FuseObject {
     fuse_ino_t ino;
     FuseProp   *prop;
 } FuseObject;
+
+typedef struct _FuseDirEntry {
+    struct _FuseDirEntry *next;
+
+    fuse_ino_t ino;
+    char       *name;
+} FuseDirEntry;
+
+typedef struct _FuseFile {
+    char *data;
+    int  size;
+} FuseFile;
 
 #define GET_FUSE_CORE(c)			       \
     ((FuseCore *) (c)->privates[corePrivateIndex].ptr)
@@ -381,7 +382,6 @@ fuseForEachProp (CompObject *object,
     fo->prop = prop;
 
     prop->type	    = type;
-    prop->flags     = 0;
     prop->interface = (char *) (prop + 1);
     prop->name      = prop->interface + pCtx->length + 1;
     prop->member    = prop->name + pCtx->length + 1;
@@ -418,6 +418,44 @@ fuseForEachInterfaceProp (CompObject	       *object,
     (*object->vTable->forEachProp) (object, interface,
 				    fuseForEachProp,
 				    (void *) &ctx);
+
+    return TRUE;
+}
+
+static void
+fuseAddDirEntry (FuseDirEntry **entry,
+		 const char   *name,
+		 fuse_ino_t   ino)
+{
+    FuseDirEntry *e;
+
+    e = malloc (sizeof (FuseDirEntry) + strlen (name) + 1);
+    if (e)
+    {
+	e->ino = ino;
+	e->name = (char *) (e + 1);
+	strcpy (e->name, name);
+
+	e->next = *entry;
+	*entry = e;
+    }
+}
+
+static void
+fuseAddDirEntryObject (FuseDirEntry **entry,
+		       const char   *name,
+		       CompObject   *object)
+{
+    fuseAddDirEntry (entry, name, GET_FUSE_OBJECT (object)->ino);
+}
+
+static CompBool
+fuseForEachChildObject (CompObject *object,
+			void	   *closure)
+{
+    FuseDirEntry **entry = (FuseDirEntry **) closure;
+
+    fuseAddDirEntryObject (entry, object->name, object);
 
     return TRUE;
 }
@@ -493,8 +531,6 @@ compiz_setattr (fuse_req_t	      req,
 	    return;
 	}
 
-	prop->flags |= FUSE_INODE_FLAG_TRUNC;
-
 	memset (&stbuf, 0, sizeof (stbuf));
 
 	fuseForPropString (object, prop, propStringLength, (void *) &length);
@@ -539,6 +575,7 @@ compiz_lookup (fuse_req_t req,
     memset (&e, 0, sizeof (e));
 
     e.ino	    = stbuf.st_ino;
+    e.generation    = 1;
     e.attr_timeout  = 1.0;
     e.entry_timeout = 1.0;
     e.attr	    = stbuf;
@@ -547,36 +584,27 @@ compiz_lookup (fuse_req_t req,
 }
 
 struct dirbuf {
-    fuse_req_t req;
-    char       *p;
-    size_t     size;
+    char   *p;
+    size_t size;
 };
 
 static void
-dirbuf_add (struct dirbuf *b,
-	    const char	  *name,
-	    fuse_ino_t	  ino)
+dirbuf_add (fuse_req_t	  req,
+	    struct dirbuf *b,
+	    FuseDirEntry  *e)
 {
     struct stat stbuf;
     size_t	oldSize = b->size;
 
-    b->size += fuse_add_direntry (b->req, NULL, 0, name, NULL, 0);
+    b->size += fuse_add_direntry (req, NULL, 0, e->name, NULL, 0);
     b->p     = (char *) realloc (b->p, b->size);
 
     memset (&stbuf, 0, sizeof (stbuf));
 
-    stbuf.st_ino = ino;
+    stbuf.st_ino = e->ino;
 
-    fuse_add_direntry (b->req, b->p + oldSize, b->size - oldSize, name, &stbuf,
-		       b->size);
-}
-
-static void
-dirbuf_add_object (struct dirbuf *b,
-		   const char    *name,
-		   CompObject    *object)
-{
-    dirbuf_add (b, name, GET_FUSE_OBJECT (object)->ino);
+    fuse_add_direntry (req, b->p + oldSize, b->size - oldSize, e->name,
+		       &stbuf, b->size);
 }
 
 static int
@@ -592,15 +620,49 @@ reply_buf_limited (fuse_req_t req,
 	return fuse_reply_buf (req, NULL, 0);
 }
 
-static CompBool
-fuseForEachChildObject (CompObject *object,
-			void	   *closure)
+static void
+compiz_opendir (fuse_req_t	      req,
+		fuse_ino_t	      ino,
+		struct fuse_file_info *fi)
 {
-    struct dirbuf *b = (struct dirbuf *) closure;
+    CompCore   *c = (CompCore *) fuse_req_userdata (req);
+    CompObject *object;
 
-    dirbuf_add_object (b, object->name, object);
+    object = fuseLookupInode (&c->base, ino, NULL);
+    if (object)
+    {
+	FuseProp     *prop;
+	FuseDirEntry *entry = NULL;
 
-    return TRUE;
+	FUSE_OBJECT (object);
+
+	fuseAddDirEntryObject (&entry, ".", object);
+	if (object->parent)
+	    fuseAddDirEntryObject (&entry, "..", object->parent);
+
+	(*object->vTable->forEachChildObject) (object,
+					       fuseForEachChildObject,
+					       (void *) &entry);
+
+	(*object->vTable->forEachInterface) (object,
+					     fuseForEachInterfaceProp,
+					     NULL);
+
+	prop = fo->prop;
+	while (prop)
+	{
+	    fuseAddDirEntry (&entry, prop->name, prop->ino);
+	    prop = prop->next;
+	}
+
+	fi->fh = (unsigned long) entry;
+
+	fuse_reply_open (req, fi);
+    }
+    else
+    {
+	fuse_reply_err (req, ENOTDIR);
+    }
 }
 
 static void
@@ -610,49 +672,38 @@ compiz_readdir (fuse_req_t	      req,
 		off_t		      off,
 		struct fuse_file_info *fi)
 {
-    CompCore   *c = (CompCore *) fuse_req_userdata (req);
-    CompObject *object;
+    FuseDirEntry  *entry = (FuseDirEntry *) (uintptr_t) fi->fh;
+    struct dirbuf b;
 
-    object = fuseLookupInode (&c->base, ino, NULL);
-    if (object)
+    b.p    = NULL;
+    b.size = 0;
+
+    while (entry)
     {
-	FuseProp      *prop;
-	struct dirbuf b;
-
-	FUSE_OBJECT (object);
-
-	b.req  = req;
-	b.p    = NULL;
-	b.size = 0;
-
-	dirbuf_add_object (&b, ".", object);
-	if (object->parent)
-	    dirbuf_add_object (&b, "..", object->parent);
-
-	(*object->vTable->forEachChildObject) (object,
-					       fuseForEachChildObject,
-					       (void *) &b);
-
-	(*object->vTable->forEachInterface) (object,
-					     fuseForEachInterfaceProp,
-					     NULL);
-
-	prop = fo->prop;
-	while (prop)
-	{
-	    dirbuf_add (&b, prop->name, prop->ino);
-
-	    prop = prop->next;
-	}
-
-	reply_buf_limited (b.req, b.p, b.size, off, size);
-
-	free (b.p);
+	dirbuf_add (req, &b, entry);
+	entry = entry->next;
     }
-    else
+
+    reply_buf_limited (req, b.p, b.size, off, size);
+
+    free (b.p);
+}
+
+static void
+compiz_releasedir (fuse_req_t		 req,
+		   fuse_ino_t		 ino,
+		   struct fuse_file_info *fi)
+{
+    FuseDirEntry *next, *entry = (FuseDirEntry *) (uintptr_t) fi->fh;
+
+    while (entry)
     {
-	fuse_reply_err (req, ENOTDIR);
+	next = entry->next;
+	free (entry);
+	entry = next;
     }
+
+    fuse_reply_err (req, 0);
 }
 
 static void
@@ -663,6 +714,8 @@ compiz_open (fuse_req_t		   req,
     CompCore   *c = (CompCore *) fuse_req_userdata (req);
     CompObject *object;
     FuseProp   *prop;
+    FuseFile   *file;
+    char       *data = NULL;
 
     object = fuseLookupInode (&c->base, ino, &prop);
     if (!object)
@@ -671,66 +724,37 @@ compiz_open (fuse_req_t		   req,
 	return;
     }
 
-    fi->fh = 0;
-
-    if (prop)
-    {
-	if ((fi->flags & 3) != O_RDONLY)
-	{
-	    char *data = NULL;
-
-	    if (fi->flags & O_TRUNC)
-	    {
-		data = strdup ("");
-	    }
-	    else
-	    {
-		fuseForPropString (object, prop,
-				   copyPropString,
-				   (void *) &data);
-	    }
-
-	    if (data)
-	    {
-		FuseWriteBuffer *wb;
-
-		wb = malloc (sizeof (FuseWriteBuffer));
-		if (wb)
-		{
-		    wb->data  = data;
-		    wb->size  = strlen (wb->data);
-		    wb->dirty = TRUE;
-
-		    fi->fh = (unsigned long) wb;
-		}
-		else
-		{
-		    free (data);
-		}
-	    }
-	}
-
-	fuse_reply_open (req, fi);
-    }
-    else
+    if (!prop)
     {
 	fuse_reply_err (req, EISDIR);
+	return;
     }
-}
 
-typedef struct _ReadPropContext {
-    fuse_req_t req;
-    size_t     size;
-    off_t	off;
-} ReadPropContext;
+    if ((fi->flags & 3) != O_RDONLY && (fi->flags & O_TRUNC))
+	data = strdup ("");
+    else
+	fuseForPropString (object, prop, copyPropString, (void *) &data);
 
-static void
-readPropString (const char *str,
-		void	   *closure)
-{
-    ReadPropContext *pCtx = (ReadPropContext *) closure;
+    if (!data)
+    {
+	fuse_reply_err (req, ENOBUFS);
+	return;
+    }
 
-    reply_buf_limited (pCtx->req, str, strlen (str), pCtx->off, pCtx->size);
+    file = malloc (sizeof (FuseFile));
+    if (!file)
+    {
+	free (data);
+	fuse_reply_err (req, ENOBUFS);
+	return;
+    }
+
+    file->size  = strlen (data);
+    file->data  = data;
+
+    fi->fh = (unsigned long) file;
+
+    fuse_reply_open (req, fi);
 }
 
 static void
@@ -740,25 +764,9 @@ compiz_read (fuse_req_t		   req,
 	     off_t		   off,
 	     struct fuse_file_info *fi)
 {
-    CompCore   *c = (CompCore *) fuse_req_userdata (req);
-    CompObject *object;
-    FuseProp   *prop;
+    FuseFile *file = (FuseFile *) (uintptr_t) fi->fh;
 
-    object = fuseLookupInode (&c->base, ino, &prop);
-    if (object)
-    {
-	ReadPropContext ctx;
-
-	ctx.req  = req;
-	ctx.size = size;
-	ctx.off  = off;
-
-	fuseForPropString (object, prop, readPropString, (void *) &ctx);
-    }
-    else
-    {
-	reply_buf_limited (req, NULL, 0, off, size);
-    }
+    reply_buf_limited (req, file->data, file->size, off, size);
 }
 
 static void
@@ -769,42 +777,28 @@ compiz_write (fuse_req_t	    req,
 	      off_t		    off,
 	      struct fuse_file_info *fi)
 {
-    CompCore   *c = (CompCore *) fuse_req_userdata (req);
-    CompObject *object;
-    FuseProp   *prop;
+    FuseFile *file = (FuseFile *) (uintptr_t) fi->fh;
 
-    object = fuseLookupInode (&c->base, ino, &prop);
-    if (object && fi->fh)
+    if (off + size > file->size)
     {
-	FuseWriteBuffer *wb = (FuseWriteBuffer *) (uintptr_t) fi->fh;
+	char *data;
 
-	if (off + size > wb->size)
+	data = realloc (file->data, off + size + 1);
+	if (!data)
 	{
-	    char *data;
-
-	    data = realloc (wb->data, off + size + 1);
-	    if (!data)
-	    {
-		fuse_reply_err (req, ENOBUFS);
-		return;
-	    }
-
-	    data[off + size] = '\0';
-
-	    wb->data = data;
-	    wb->size = off + size;
+	    fuse_reply_err (req, ENOBUFS);
+	    return;
 	}
 
-	memcpy (wb->data + off, buf, size);
+	data[off + size] = '\0';
 
-	wb->dirty = TRUE;
+	file->data = data;
+	file->size = off + size;
+    }
 
-	fuse_reply_write (req, size);
-    }
-    else
-    {
-	fuse_reply_err (req, ENOENT);
-    }
+    memcpy (file->data + off, buf, size);
+
+    fuse_reply_write (req, size);
 }
 
 static void
@@ -812,25 +806,17 @@ compiz_release (fuse_req_t	      req,
 		fuse_ino_t	      ino,
 		struct fuse_file_info *fi)
 {
-    CompCore *c = (CompCore *) fuse_req_userdata (req);
+    CompCore   *c = (CompCore *) fuse_req_userdata (req);
+    FuseFile   *file = (FuseFile *) (uintptr_t) fi->fh;
+    CompObject *object;
+    FuseProp   *prop;
 
-    if (fi->fh)
-    {
-	FuseWriteBuffer *wb = (FuseWriteBuffer *) (uintptr_t) fi->fh;
-	CompObject	*object;
-	FuseProp	*prop;
+    object = fuseLookupInode (&c->base, ino, &prop);
+    if (object && prop)
+	fuseStringToProp (object, prop, file->data);
 
-	object = fuseLookupInode (&c->base, ino, &prop);
-	if (object && prop && wb->dirty)
-	{
-	    fuseStringToProp (object, prop, wb->data);
-
-	    prop->flags &= ~FUSE_INODE_FLAG_TRUNC;
-	}
-
-	free (wb->data);
-	free (wb);
-    }
+    free (file->data);
+    free (file);
 
     fuse_reply_err (req, 0);
 }
@@ -841,38 +827,30 @@ compiz_fsync (fuse_req_t	    req,
 	      int		    datasync,
 	      struct fuse_file_info *fi)
 {
-    CompCore *c = (CompCore *) fuse_req_userdata (req);
+    CompCore   *c = (CompCore *) fuse_req_userdata (req);
+    FuseFile   *file = (FuseFile *) (uintptr_t) fi->fh;
+    CompObject *object;
+    FuseProp   *prop;
 
-    if (fi->fh)
-    {
-	FuseWriteBuffer *wb = (FuseWriteBuffer *) (uintptr_t) fi->fh;
-	CompObject	*object;
-	FuseProp	*prop;
-
-	object = fuseLookupInode (&c->base, ino, &prop);
-	if (object && prop && wb->dirty)
-	{
-	    fuseStringToProp (object, prop, wb->data);
-
-	    prop->flags &= ~FUSE_INODE_FLAG_TRUNC;
-
-	    wb->dirty = FALSE;
-	}
-    }
+    object = fuseLookupInode (&c->base, ino, &prop);
+    if (object && prop)
+	fuseStringToProp (object, prop, file->data);
 
     fuse_reply_err (req, 0);
 }
 
 static struct fuse_lowlevel_ops compiz_ll_oper = {
-    .lookup  = compiz_lookup,
-    .getattr = compiz_getattr,
-    .setattr = compiz_setattr,
-    .readdir = compiz_readdir,
-    .open    = compiz_open,
-    .read    = compiz_read,
-    .write   = compiz_write,
-    .release = compiz_release,
-    .fsync   = compiz_fsync
+    .lookup     = compiz_lookup,
+    .getattr    = compiz_getattr,
+    .setattr    = compiz_setattr,
+    .opendir    = compiz_opendir,
+    .readdir    = compiz_readdir,
+    .releasedir = compiz_releasedir,
+    .open       = compiz_open,
+    .read       = compiz_read,
+    .write      = compiz_write,
+    .release    = compiz_release,
+    .fsync      = compiz_fsync
 };
 
 static CompBool
