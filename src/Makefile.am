@@ -13,6 +13,7 @@ compiz_LDADD = @COMPIZ_LIBS@ @GL_LIBS@ -lm
 compiz_LDFLAGS = -export-dynamic
 compiz_SOURCES =    \
 	main.c	    \
+	error.c     \
 	privates.c  \
 	object.c    \
 	container.c \
