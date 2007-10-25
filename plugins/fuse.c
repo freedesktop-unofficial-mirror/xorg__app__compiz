@@ -273,77 +273,6 @@ fuseLookupInode (CompObject *root,
     return ctx.object;
 }
 
-typedef struct _StatContext {
-    const char  *name;
-    struct stat *stbuf;
-} StatContext;
-
-static CompBool
-statObject (CompObject *object,
-	    void       *closure)
-{
-    StatContext *pCtx = (StatContext *) closure;
-
-    if (strcmp (object->name, pCtx->name) == 0)
-    {
-	FUSE_OBJECT (object);
-
-	pCtx->stbuf->st_ino   = fo->ino;
-	pCtx->stbuf->st_mode  = S_IFDIR | 0755;
-	pCtx->stbuf->st_nlink = 2;
-
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
-static CompBool
-fuseStatChild (CompObject  *object,
-	       const char  *name,
-	       struct stat *stbuf)
-{
-    StatContext ctx;
-
-    ctx.name  = name;
-    ctx.stbuf = stbuf;
-
-    if ((*object->vTable->forEachChildObject) (object,
-					       statObject,
-					       (void *) &ctx))
-    {
-	FuseProp *prop;
-
-	FUSE_OBJECT (object);
-
-	prop = fo->prop;
-	while (prop)
-	{
-	    if (strcmp (name, prop->name) == 0)
-	    {
-		int length = 0;
-
-		fuseForPropString (object, prop,
-				   propStringLength,
-				   (void *) &length);
-
-		stbuf->st_ino   = prop->ino;
-		stbuf->st_mode  = S_IFREG | 0666;
-		stbuf->st_nlink = 1;
-		stbuf->st_size  = length;
-
-		return TRUE;
-	    }
-
-	    prop = prop->next;
-	}
-
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
 typedef struct _ForEachPropContext {
     const char *interface;
     int	       length;
@@ -422,6 +351,96 @@ fuseForEachInterfaceProp (CompObject	       *object,
     return TRUE;
 }
 
+static CompBool
+incHardLinks (CompObject *object,
+	      void       *closure)
+{
+    struct stat *stbuf = (struct stat *) closure;
+
+    stbuf->st_nlink++;
+
+    return TRUE;
+}
+
+typedef struct _StatContext {
+    const char  *name;
+    struct stat *stbuf;
+} StatContext;
+
+static CompBool
+statObject (CompObject *object,
+	    void       *closure)
+{
+    StatContext *pCtx = (StatContext *) closure;
+
+    if (strcmp (object->name, pCtx->name) == 0)
+    {
+	FUSE_OBJECT (object);
+
+	pCtx->stbuf->st_ino   = fo->ino;
+	pCtx->stbuf->st_mode  = S_IFDIR | 0555;
+	pCtx->stbuf->st_nlink = 2;
+
+	(*object->vTable->forEachChildObject) (object,
+					       incHardLinks,
+					       (void *) pCtx->stbuf);
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+static CompBool
+fuseStatChild (CompObject  *object,
+	       const char  *name,
+	       struct stat *stbuf)
+{
+    StatContext ctx;
+
+    ctx.name  = name;
+    ctx.stbuf = stbuf;
+
+    if ((*object->vTable->forEachChildObject) (object,
+					       statObject,
+					       (void *) &ctx))
+    {
+	FuseProp *prop;
+
+	FUSE_OBJECT (object);
+
+	(*object->vTable->forEachInterface) (object,
+					     fuseForEachInterfaceProp,
+					     NULL);
+
+	prop = fo->prop;
+	while (prop)
+	{
+	    if (strcmp (name, prop->name) == 0)
+	    {
+		int length = 0;
+
+		fuseForPropString (object, prop,
+				   propStringLength,
+				   (void *) &length);
+
+		stbuf->st_ino   = prop->ino;
+		stbuf->st_mode  = S_IFREG | 0666;
+		stbuf->st_nlink = 1;
+		stbuf->st_size  = length;
+
+		return TRUE;
+	    }
+
+	    prop = prop->next;
+	}
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
 static void
 fuseAddDirEntry (FuseDirEntry **entry,
 		 const char   *name,
@@ -432,11 +451,15 @@ fuseAddDirEntry (FuseDirEntry **entry,
     e = malloc (sizeof (FuseDirEntry) + strlen (name) + 1);
     if (e)
     {
-	e->ino = ino;
+	e->next = NULL;
+	e->ino  = ino;
 	e->name = (char *) (e + 1);
+
 	strcpy (e->name, name);
 
-	e->next = *entry;
+	while (*entry)
+	    entry = &(*entry)->next;
+
 	*entry = e;
     }
 }
@@ -490,8 +513,12 @@ compiz_getattr (fuse_req_t	      req,
 	}
 	else
 	{
-	    stbuf.st_mode  = S_IFDIR | 0755;
+	    stbuf.st_mode  = S_IFDIR | 0555;
 	    stbuf.st_nlink = 2;
+
+	    (*object->vTable->forEachChildObject) (object,
+						   incHardLinks,
+						   (void *) &stbuf);
 	}
 
 	fuse_reply_attr (req, &stbuf, 1.0);
