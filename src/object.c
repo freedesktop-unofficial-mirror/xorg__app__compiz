@@ -2544,14 +2544,14 @@ forEachObjectPrivates (PrivatesCallBackProc proc,
     ctx.proc = proc;
     ctx.data = data;
 
-    if (!(*core.base.vTable->forEachType) (&core.base,
-					   forEachTypePrivates,
-					   (void *) &ctx))
+    if (!(*core.u.base.vTable->forEachType) (&core.u.base,
+					     forEachTypePrivates,
+					     (void *) &ctx))
 	return FALSE;
 
-    return (*core.base.vTable->forEachChildObject) (&core.base,
-						    forEachObjectPrivatesTree,
-						    (void *) &ctx);
+    return (*core.u.base.vTable->forEachChildObject) (&core.u.base,
+						      forEachObjectPrivatesTree,
+						      (void *) &ctx);
 }
 
 int
@@ -2777,7 +2777,7 @@ compObjectInitPrivate (CompObjectPrivate *private)
     funcs[type->privates->nFuncs].fini = private->fini;
 
     /* initialize all objects of this type */
-    if (!initTypedObjects (&core.base, type, &funcs[type->privates->nFuncs]))
+    if (!initTypedObjects (&core.u.base, type, &funcs[type->privates->nFuncs]))
     {
 	compObjectFreePrivateIndex (type, index);
 	return FALSE;
@@ -2804,7 +2804,7 @@ compObjectFiniPrivate (CompObjectPrivate *private)
     type->privates->nFuncs--;
 
     /* finalize all objects of this type */
-    finiTypedObjects (&core.base, type,
+    finiTypedObjects (&core.u.base, type,
 		      &type->privates->funcs[type->privates->nFuncs]);
 
     compObjectFreePrivateIndex (type, index);

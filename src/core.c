@@ -29,10 +29,14 @@
 
 CompCore core;
 
+static const CommonMethod coreTypeMethod[] = {
+    C_METHOD (addDisplay,    "si", "", CompCoreVTable, marshal__SI__E),
+    C_METHOD (removeDisplay, "si", "", CompCoreVTable, marshal__SI__E)
+};
 #define INTERFACE_VERSION_coreType CORE_ABIVERSION
 
 static const CommonInterface coreInterface[] = {
-    C_INTERFACE (core, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
+    C_INTERFACE (core, Type, CompObjectVTable, _, _, X, _, _, _, _, _)
 };
 
 static CompBool
@@ -156,6 +160,94 @@ coreGetMetadata (CompObject *object,
     return status;
 }
 
+typedef struct _AddRemoveDisplayContext {
+    const char *hostName;
+    int	       displayNum;
+    char       **error;
+} AddRemoveDisplayContext;
+
+static CompBool
+baseObjectAddDisplay (CompObject *object,
+		      void       *closure)
+{
+    AddRemoveDisplayContext *pCtx = (AddRemoveDisplayContext *) closure;
+
+    CORE (object);
+
+    return (*c->u.vTable->addDisplay) (c,
+				       pCtx->hostName,
+				       pCtx->displayNum,
+				       pCtx->error);
+}
+
+static CompBool
+noopAddDisplay (CompCore   *c,
+		const char *hostName,
+		int32_t	   displayNum,
+		char	   **error)
+{
+    AddRemoveDisplayContext ctx;
+
+    ctx.hostName   = hostName;
+    ctx.displayNum = displayNum;
+    ctx.error	   = error;
+
+    return (*c->u.base.vTable->forBaseObject) (&c->u.base,
+					       baseObjectAddDisplay,
+					       (void *) &ctx);
+}
+
+static CompBool
+addDisplay (CompCore   *c,
+	    const char *hostName,
+	    int32_t    displayNum,
+	    char       **error)
+{
+    esprintf (error, "NYI: %s:%d", hostName, displayNum);
+    return FALSE;
+}
+
+static CompBool
+baseObjectRemoveDisplay (CompObject *object,
+			 void       *closure)
+{
+    AddRemoveDisplayContext *pCtx = (AddRemoveDisplayContext *) closure;
+
+    CORE (object);
+
+    return (*c->u.vTable->removeDisplay) (c,
+					  pCtx->hostName,
+					  pCtx->displayNum,
+					  pCtx->error);
+}
+
+static CompBool
+noopRemoveDisplay (CompCore   *c,
+		   const char *hostName,
+		   int32_t    displayNum,
+		   char	      **error)
+{
+    AddRemoveDisplayContext ctx;
+
+    ctx.hostName   = hostName;
+    ctx.displayNum = displayNum;
+    ctx.error	   = error;
+
+    return (*c->u.base.vTable->forBaseObject) (&c->u.base,
+					       baseObjectRemoveDisplay,
+					       (void *) &ctx);
+}
+
+static CompBool
+removeDisplay (CompCore   *c,
+	       const char *hostName,
+	       int32_t    displayNum,
+	       char       **error)
+{
+    esprintf (error, "NYI: %s:%d", hostName, displayNum);
+    return FALSE;
+}
+
 static CompBool
 initCorePluginForObject (CompPlugin *p,
 			 CompObject *o)
@@ -246,13 +338,16 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
     return TRUE;
 }
 
-static CompObjectVTable coreObjectVTable = {
-    .forBaseObject	= coreForBaseObject,
-    .forEachInterface   = coreForEachInterface,
-    .forEachType	= coreForEachType,
-    .forEachChildObject = coreForEachChildObject,
-    .version.get	= commonGetVersion,
-    .metadata.get	= coreGetMetadata
+static CompCoreVTable coreObjectVTable = {
+    .base.forBaseObject	     = coreForBaseObject,
+    .base.forEachInterface   = coreForEachInterface,
+    .base.forEachMethod      = commonForEachMethod,
+    .base.forEachType	     = coreForEachType,
+    .base.forEachChildObject = coreForEachChildObject,
+    .base.version.get	     = commonGetVersion,
+    .base.metadata.get	     = coreGetMetadata,
+    .addDisplay		     = addDisplay,
+    .removeDisplay	     = removeDisplay
 };
 
 static CompObjectPrivates coreObjectPrivates = {
@@ -290,20 +385,20 @@ coreInitObject (CompObject *object)
 
     if (!compObjectInit (&c->displayContainer.base, getContainerObjectType ()))
     {
-	compObjectFini (&c->base, getObjectType ());
+	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
-    c->displayContainer.base.parent	   = &c->base;
+    c->displayContainer.base.parent	   = &c->u.base;
     c->displayContainer.base.name	   = "displays";
 
-    c->base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
+    c->u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &coreObjectPrivates))
     {
 	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
-	compObjectFini (&c->base, getObjectType ());
+	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -311,7 +406,7 @@ coreInitObject (CompObject *object)
     if (!c->tmpRegion)
     {
 	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
-	compObjectFini (&c->base, getObjectType ());
+	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -320,11 +415,11 @@ coreInitObject (CompObject *object)
     {
 	XDestroyRegion (c->tmpRegion);
 	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
-	compObjectFini (&c->base, getObjectType ());
+	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
-    WRAP (&c->object, &c->base, vTable, &coreObjectVTable);
+    WRAP (&c->object, &c->u.base, vTable, &coreObjectVTable.base);
 
     c->displays = NULL;
 
@@ -358,7 +453,7 @@ coreInitObject (CompObject *object)
     c->sessionFini  = sessionFini;
     c->sessionEvent = sessionEvent;
 
-    (*c->objectAdd) (NULL, &c->base, "core");
+    (*c->objectAdd) (NULL, &c->u.base, "core");
 
     return TRUE;
 }
@@ -371,19 +466,22 @@ coreFiniObject (CompObject *object)
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);
 
-    UNWRAP (&c->object, &c->base, vTable);
+    UNWRAP (&c->object, &c->u.base, vTable);
 
     if (c->privates)
 	free (c->privates);
 
     compObjectFini (&c->displayContainer.base, getContainerObjectType ());
-    compObjectFini (&c->base, getObjectType ());
+    compObjectFini (&c->u.base, getObjectType ());
 }
 
 static void
-coreInitVTable (void *vTable)
+coreInitVTable (CompCoreVTable *vTable)
 {
-    (*getObjectType ()->initVTable) (vTable);
+    (*getObjectType ()->initVTable) (&vTable->base);
+
+    ENSURE (vTable, addDisplay,    noopAddDisplay);
+    ENSURE (vTable, removeDisplay, noopRemoveDisplay);
 }
 
 static CompObjectType coreObjectType = {
@@ -393,7 +491,7 @@ static CompObjectType coreObjectType = {
 	coreFiniObject
     },
     &coreObjectPrivates,
-    coreInitVTable
+    (InitVTableProc) coreInitVTable
 };
 
 CompObjectType *
@@ -427,7 +525,7 @@ initCore (void)
 {
     CompPlugin *corePlugin;
 
-    if (!compObjectInit (&core.base, getCoreObjectType ()))
+    if (!compObjectInit (&core.u.base, getCoreObjectType ()))
 	return FALSE;
 
     corePlugin = loadPlugin ("core");
@@ -435,7 +533,7 @@ initCore (void)
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't load core plugin");
-	compObjectFini (&core.base, getCoreObjectType ());
+	compObjectFini (&core.u.base, getCoreObjectType ());
 	return FALSE;
     }
 
@@ -444,7 +542,7 @@ initCore (void)
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
 	unloadPlugin (corePlugin);
-	compObjectFini (&core.base, getCoreObjectType ());
+	compObjectFini (&core.u.base, getCoreObjectType ());
 	return FALSE;
     }
 
@@ -455,11 +553,11 @@ void
 finiCore (void)
 {
     while (core.displays)
-	removeDisplay (core.displays);
+	removeDisplayOld (core.displays);
 
     while (popPlugin ());
 
-    compObjectFini (&core.base, getCoreObjectType ());
+    compObjectFini (&core.u.base, getCoreObjectType ());
 }
 
 void

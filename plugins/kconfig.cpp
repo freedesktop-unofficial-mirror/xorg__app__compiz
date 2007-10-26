@@ -188,7 +188,7 @@ kconfigRcReload (void *closure)
 
     kc->config->reparseConfiguration ();
 
-    kconfigReloadObjectTree (&c->base, closure);
+    kconfigReloadObjectTree (&c->u.base, closure);
 
     kc->reloadHandle = 0;
 
@@ -302,7 +302,7 @@ kconfigInitCore (CompCore *c)
 
     KCONFIG_CORE (c);
 
-    if (!compObjectCheckVersion (&c->base, "object", CORE_ABIVERSION))
+    if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
     kc->config = new KConfig (COMPIZ_KCONFIG_RC);
@@ -310,10 +310,10 @@ kconfigInitCore (CompCore *c)
 	return FALSE;
 
     kc->signalHandle =
-	(*c->base.vTable->signal.connect) (&c->base, "signal",
-					   offsetof (CompSignalVTable, signal),
-					   kconfigHandleSignal,
-					   NULL);
+	(*c->u.base.vTable->signal.connect) (&c->u.base, "signal",
+					     offsetof (CompSignalVTable, signal),
+					     kconfigHandleSignal,
+					     NULL);
     if (kc->signalHandle < 0)
     {
 	delete kc->config;
@@ -356,9 +356,9 @@ kconfigFiniCore (CompCore *c)
     if (kc->fileWatch)
 	removeFileWatch (kc->fileWatch);
 
-    (*c->base.vTable->signal.disconnect) (&c->base, "signal",
-					  offsetof (CompSignalVTable, signal),
-					  kc->signalHandle);
+    (*c->u.base.vTable->signal.disconnect) (&c->u.base, "signal",
+					    offsetof (CompSignalVTable, signal),
+					    kc->signalHandle);
 
     delete kc->config;
 }

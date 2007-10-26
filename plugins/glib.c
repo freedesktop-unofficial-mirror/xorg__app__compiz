@@ -52,8 +52,8 @@ typedef struct _GLibCore {
 typedef void (*WakeUpProc) (CompCore *c);
 
 typedef struct _GLibCoreVTable {
-    CompObjectVTable base;
-    WakeUpProc       wakeUp;
+    CompCoreVTable base;
+    WakeUpProc     wakeUp;
 } GLibCoreVTable;
 
 #define GET_GLIB_CORE(c)			       \
@@ -216,11 +216,11 @@ glibCoreForEachInterface (CompObject		*object,
 }
 
 static GLibCoreVTable glibCoreObjectVTable = {
-    .base.forBaseObject    = glibCoreForBaseObject,
-    .base.forEachInterface = glibCoreForEachInterface,
-    .base.forEachMethod    = commonForEachMethod,
-    .base.version.get      = commonGetVersion,
-    .wakeUp		   = glibWakeup
+    .base.base.forBaseObject    = glibCoreForBaseObject,
+    .base.base.forEachInterface = glibCoreForEachInterface,
+    .base.base.forEachMethod    = commonForEachMethod,
+    .base.base.version.get      = commonGetVersion,
+    .wakeUp			= glibWakeup
 };
 
 static CompBool
@@ -228,18 +228,18 @@ glibInitCore (CompCore *c)
 {
     GLIB_CORE (c);
 
-    if (!compObjectCheckVersion (&c->base, "object", CORE_ABIVERSION))
+    if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
     gc->fds	      = NULL;
     gc->fdsSize	      = 0;
     gc->timeoutHandle = 0;
 
-    WRAP (&gc->object, &c->base, vTable, &glibCoreObjectVTable.base);
+    WRAP (&gc->object, &c->u.base, vTable, &glibCoreObjectVTable.base.base);
 
     glibPrepare (c, g_main_context_default ());
 
-    commonInterfacesAdded (&c->base,
+    commonInterfacesAdded (&c->u.base,
 			   glibCoreInterface,
 			   N_ELEMENTS (glibCoreInterface));
 
@@ -259,9 +259,9 @@ glibFiniCore (CompCore *c)
     if (gc->fds)
 	free (gc->fds);
 
-    UNWRAP (&gc->object, &c->base, vTable);
+    UNWRAP (&gc->object, &c->u.base, vTable);
 
-    commonInterfacesRemoved (&c->base,
+    commonInterfacesRemoved (&c->u.base,
 			     glibCoreInterface,
 			     N_ELEMENTS (glibCoreInterface));
 }

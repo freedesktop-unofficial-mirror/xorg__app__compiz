@@ -842,7 +842,7 @@ dbusInitCore (CompCore *c)
 
     DBUS_CORE (c);
 
-    if (!compObjectCheckVersion (&c->base, "object", CORE_ABIVERSION))
+    if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
     dbus_error_init (&error);
@@ -869,16 +869,16 @@ dbusInitCore (CompCore *c)
 					c);
 
     dc->signalHandle =
-	(*c->base.vTable->signal.connect) (&c->base, "signal",
-					   offsetof (CompSignalVTable, signal),
-					   dbusPropChanged,
-					   NULL);
+	(*c->u.base.vTable->signal.connect) (&c->u.base, "signal",
+					     offsetof (CompSignalVTable, signal),
+					     dbusPropChanged,
+					     NULL);
     if (dc->signalHandle < 0)
 	return FALSE;
 
     dbusRequestName (c, COMPIZ_DBUS_SERVICE_NAME);
 
-    dbusRegisterObjectTree (&c->base, (void *) c);
+    dbusRegisterObjectTree (&c->u.base, (void *) c);
 
     return TRUE;
 }
@@ -888,11 +888,11 @@ dbusFiniCore (CompCore *c)
 {
     DBUS_CORE (c);
 
-    (*c->base.vTable->signal.disconnect) (&c->base, "signal",
-					  offsetof (CompSignalVTable, signal),
-					  dc->signalHandle);
+    (*c->u.base.vTable->signal.disconnect) (&c->u.base, "signal",
+					    offsetof (CompSignalVTable, signal),
+					    dc->signalHandle);
 
-    dbusUnregisterObjectTree (&c->base, (void *) c);
+    dbusUnregisterObjectTree (&c->u.base, (void *) c);
 
     dbusReleaseName (c, COMPIZ_DBUS_SERVICE_NAME);
 

@@ -767,13 +767,13 @@ static const CompMetadataOptionInfo annoDisplayOptionInfo[] = {
     { "stroke_color", "color", 0, 0, 0 }
 };
 
-static CompObjectVTable annoDisplayObjectVTable = {
-    .forBaseObject        = annoDisplayForBaseObject,
-    .forEachInterface     = annoDisplayForEachInterface,
-    .forEachProp          = commonForEachProp,
-    .version.get          = commonGetVersion,
-    .properties.getDouble = commonGetDoubleProp,
-    .properties.setDouble = commonSetDoubleProp
+static CompDisplayVTable annoDisplayObjectVTable = {
+    .base.forBaseObject        = annoDisplayForBaseObject,
+    .base.forEachInterface     = annoDisplayForEachInterface,
+    .base.forEachProp          = commonForEachProp,
+    .base.version.get          = commonGetVersion,
+    .base.properties.getDouble = commonGetDoubleProp,
+    .base.properties.setDouble = commonSetDoubleProp
 };
 
 static CompBool
@@ -794,7 +794,7 @@ annoInitDisplay (CompDisplay *d)
     ad->lineWidth   = 3.0;
     ad->strokeWidth = 1.0;
 
-    WRAP (&ad->object, &d->u.base, vTable, &annoDisplayObjectVTable);
+    WRAP (&ad->object, &d->u.base, vTable, &annoDisplayObjectVTable.base);
 
     WRAP (ad, d, handleEvent, annoHandleEvent);
 

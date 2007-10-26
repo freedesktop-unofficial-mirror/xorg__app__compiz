@@ -399,7 +399,7 @@ initPlugin (CompPlugin *p)
 
     if (p->vTable->initObject)
     {
-	if (!(*p->vTable->initObject) (p, &core.base))
+	if (!(*p->vTable->initObject) (p, &core.u.base))
 	{
 	    compLogMessage (NULL, p->vTable->name, CompLogLevelError,
 			    "InitObject failed");
@@ -407,16 +407,16 @@ initPlugin (CompPlugin *p)
 	}
     }
 
-    if (!(*core.base.vTable->forEachChildObject) (&core.base,
-						  initObjectTree,
-						  (void *) &ctx))
+    if (!(*core.u.base.vTable->forEachChildObject) (&core.u.base,
+						    initObjectTree,
+						    (void *) &ctx))
     {
-	(*core.base.vTable->forEachChildObject) (&core.base,
-						 finiObjectTree,
-						 (void *) &ctx);
+	(*core.u.base.vTable->forEachChildObject) (&core.u.base,
+						   finiObjectTree,
+						   (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, &core.base);
+	    (*p->vTable->finiObject) (p, &core.u.base);
 
 	(*p->vTable->fini) (p);
 
@@ -434,12 +434,12 @@ finiPlugin (CompPlugin *p)
     ctx.plugin = p;
     ctx.object = NULL;
 
-    (*core.base.vTable->forEachChildObject) (&core.base,
-					     finiObjectTree,
-					     (void *) &ctx);
+    (*core.u.base.vTable->forEachChildObject) (&core.u.base,
+					       finiObjectTree,
+					       (void *) &ctx);
 
     if (p->vTable->initObject && p->vTable->finiObject)
-	(*p->vTable->finiObject) (p, &core.base);
+	(*p->vTable->finiObject) (p, &core.u.base);
 
     (*p->vTable->fini) (p);
 }

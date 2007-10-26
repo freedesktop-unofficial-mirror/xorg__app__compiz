@@ -1385,8 +1385,27 @@ typedef struct _CompWatchFd {
     CompWatchFdHandle   handle;
 } CompWatchFd;
 
+typedef CompBool (*AddDisplayProc) (CompCore   *c,
+				    const char *hostName,
+				    int32_t    displayNum,
+				    char       **error);
+
+typedef CompBool (*RemoveDisplayProc) (CompCore   *c,
+				       const char *hostName,
+				       int32_t    displayNum,
+				       char	  **error);
+
+typedef struct _CompCoreVTable {
+    CompObjectVTable  base;
+    AddDisplayProc    addDisplay;
+    RemoveDisplayProc removeDisplay;
+} CompCoreVTable;
+
 struct _CompCore {
-    CompObject base;
+    union {
+	CompObject     base;
+	CompCoreVTable *vTable;
+    } u;
 
     CompObjectVTableVec object;
 
@@ -1895,10 +1914,10 @@ addScreenToDisplay (CompDisplay *display,
 		    CompScreen *s);
 
 Bool
-addDisplay (const char *name);
+addDisplayOld (const char *name);
 
 void
-removeDisplay (CompDisplay *d);
+removeDisplayOld (CompDisplay *d);
 
 Time
 getCurrentTimeFromDisplay (CompDisplay *d);
@@ -4209,6 +4228,14 @@ marshal_I_S (CompObject *object,
 	     CompBool   (*method) (CompObject *,
 				   char       *),
 	     CompArgs   *args);
+
+void
+marshal__SI__E (CompObject *object,
+		CompBool   (*method) (CompObject *,
+				      char       *,
+				      int32_t     ,
+				      char       **),
+		CompArgs   *args);
 
 void
 marshal__I__E (CompObject *object,

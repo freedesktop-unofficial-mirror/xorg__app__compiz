@@ -389,7 +389,7 @@ main (int argc, char **argv)
     if (!disableSm)
 	initSession (clientId);
 
-    if (!addDisplay (displayName))
+    if (!addDisplayOld (displayName))
 	return 1;
 
     eventLoop ();

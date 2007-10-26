@@ -226,7 +226,7 @@ gconfReload (void *closure)
 
     GCONF_CORE (c);
 
-    gconfReloadObjectTree (&c->base, closure);
+    gconfReloadObjectTree (&c->u.base, closure);
 
     gc->reloadHandle = 0;
 
@@ -270,7 +270,7 @@ gconfKeyChanged (GConfClient *client,
     prop = token[nToken - 1];
     token[nToken - 1] = NULL;
 
-    object = compLookupObject (&c->base, &token[3]);
+    object = compLookupObject (&c->u.base, &token[3]);
     if (object)
     {
 	LoadPropContext ctx;
@@ -397,14 +397,14 @@ gconfInitCore (CompCore *c)
 
     GCONF_CORE (c);
 
-    if (!compObjectCheckVersion (&c->base, "object", CORE_ABIVERSION))
+    if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
     gc->signalHandle =
-	(*c->base.vTable->signal.connect) (&c->base, "signal",
-					   offsetof (CompSignalVTable, signal),
-					   gconfHandleSignal,
-					   NULL);
+	(*c->u.base.vTable->signal.connect) (&c->u.base, "signal",
+					     offsetof (CompSignalVTable, signal),
+					     gconfHandleSignal,
+					     NULL);
     if (gc->signalHandle < 0)
 	return FALSE;
 
@@ -421,7 +421,7 @@ gconfInitCore (CompCore *c)
 					gconfKeyChanged, c, NULL, NULL);
 
     compInitBasicArgs (&args, NULL, NULL);
-    compInvokeMethod (&c->base, "glib", "wakeUp", "", "", &args.base);
+    compInvokeMethod (&c->u.base, "glib", "wakeUp", "", "", &args.base);
     compFiniBasicArgs (&args);
 
     return TRUE;
@@ -432,9 +432,9 @@ gconfFiniCore (CompCore *c)
 {
     GCONF_CORE (c);
 
-    (*c->base.vTable->signal.disconnect) (&c->base, "signal",
-					  offsetof (CompSignalVTable, signal),
-					  gc->signalHandle);
+    (*c->u.base.vTable->signal.disconnect) (&c->u.base, "signal",
+					    offsetof (CompSignalVTable, signal),
+					    gc->signalHandle);
 
     if (gc->reloadHandle)
 	compRemoveTimeout (gc->reloadHandle);

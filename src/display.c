@@ -2425,7 +2425,7 @@ freeDisplayPrivateIndex (int index)
 }
 
 Bool
-addDisplay (const char *name)
+addDisplayOld (const char *name)
 {
     CompDisplay *d;
     Display     *dpy;
@@ -2858,7 +2858,7 @@ addDisplay (const char *name)
 }
 
 void
-removeDisplay (CompDisplay *d)
+removeDisplayOld (CompDisplay *d)
 {
     CompDisplay *p;
 
