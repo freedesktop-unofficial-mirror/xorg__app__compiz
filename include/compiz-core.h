@@ -2751,6 +2751,8 @@ typedef struct _CompActiveWindowHistory {
     int    activeNum;
 } CompActiveWindowHistory;
 
+#define N_SELECTIONS 2
+
 struct _CompScreen {
     CompObject base;
 
@@ -2838,9 +2840,9 @@ struct _CompScreen {
     Bool canDoSaturated;
     Bool canDoSlightlySaturated;
 
-    Window wmSnSelectionWindow;
-    Atom   wmSnAtom;
-    Time   wmSnTimestamp;
+    Window snSelectionWindow;
+    Atom   snAtom[N_SELECTIONS];
+    Time   snTimestamp;
 
     Cursor normalCursor;
     Cursor busyCursor;
@@ -3010,9 +3012,9 @@ hideOutputWindow (CompScreen *s);
 Bool
 addScreenOld (CompDisplay *display,
 	      int	  screenNum,
-	      Window      wmSnSelectionWindow,
-	      Atom	  wmSnAtom,
-	      Time	  wmSnTimestamp);
+	      Window      snSelectionWindow,
+	      Atom	  *snAtom,
+	      Time	  snTimestamp);
 
 void
 removeScreenOld (CompScreen *s);

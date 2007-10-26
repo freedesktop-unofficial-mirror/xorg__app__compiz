@@ -1613,9 +1613,10 @@ screenInitObject (CompObject *object)
     s->startupSequences		    = NULL;
     s->startupSequenceTimeoutHandle = 0;
 
-    s->wmSnSelectionWindow = None;
-    s->wmSnAtom		   = None;
-    s->wmSnTimestamp	   = None;
+    s->snSelectionWindow = None;
+    s->snTimestamp	 = None;
+
+    memset (s->snAtom, 0, sizeof (s->snAtom));
 
     s->damageMask  = COMP_SCREEN_DAMAGE_ALL_MASK;
     s->next	   = 0;
@@ -1829,9 +1830,9 @@ freeScreenPrivateIndex (int index)
 Bool
 addScreenOld (CompDisplay *display,
 	      int	  screenNum,
-	      Window      wmSnSelectionWindow,
-	      Atom	  wmSnAtom,
-	      Time	  wmSnTimestamp)
+	      Window      snSelectionWindow,
+	      Atom	  *snAtom,
+	      Time	  snTimestamp)
 {
     CompScreen		 *s;
     Display		 *dpy = display->display;
@@ -1890,9 +1891,11 @@ addScreenOld (CompDisplay *display,
     s->colormap  = DefaultColormap (dpy, screenNum);
     s->root	 = XRootWindow (dpy, screenNum);
 
-    s->wmSnSelectionWindow = wmSnSelectionWindow;
-    s->wmSnAtom		   = wmSnAtom;
-    s->wmSnTimestamp	   = wmSnTimestamp;
+    s->snSelectionWindow = snSelectionWindow;
+    s->snTimestamp	 = snTimestamp;
+
+    for (i = 0; i < N_SELECTIONS; i++)
+	s->snAtom[i] = snAtom[i];
 
     s->snContext = sn_monitor_context_new (display->snDisplay,
 					   screenNum,
@@ -2462,7 +2465,7 @@ removeScreenOld (CompScreen *s)
 	XCompositeReleaseOverlayWindow (s->display->display, s->root);
 #endif
 
-    XSetSelectionOwner (s->display->display, s->wmSnAtom, None, CurrentTime);
+    XDestroyWindow (d->display, s->snSelectionWindow);
 
     freeScreen (s);
 }

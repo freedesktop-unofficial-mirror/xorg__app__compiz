@@ -242,13 +242,15 @@ addScreen (CompDisplay *display,
 	   char	       **error)
 {
     Display    *dpy = display->display;
-    Window     newWmSnOwner = None, newCmSnOwner = None;
-    Atom       wmSnAtom = 0, cmSnAtom = 0;
-    Time       wmSnTimestamp = 0;
+    const char *snName[N_SELECTIONS] = { "window", "compositing" };
+    const char *snFormat[N_SELECTIONS] = { "WM_S%d", "_NET_WM_CM_S%d" };
+    Atom       snAtom[N_SELECTIONS];
+    Window     currentSnOwner[N_SELECTIONS];
+    Window     newSnOwner;
+    Time       snTimestamp;
     XEvent     event;
-    Window     currentWmSnOwner, currentCmSnOwner;
-    char       buf[128];
     CompScreen *s;
+    int	       i;
 
     if (!validScreenOnDisplay (display, number, error))
 	return FALSE;
@@ -265,47 +267,37 @@ addScreen (CompDisplay *display,
 	}
     }
 
-    sprintf (buf, "WM_S%d", number);
-    wmSnAtom = XInternAtom (dpy, buf, 0);
-
-    currentWmSnOwner = XGetSelectionOwner (dpy, wmSnAtom);
-
-    if (currentWmSnOwner != None)
+    for (i = 0; i < N_SELECTIONS; i++)
     {
-	if (!replaceCurrentWm)
-	{
-	    esprintf (error,
-		      "Screen %d on display \"%s\" already has a window manager",
-		      number, DisplayString (dpy));
+	char tmp[256];
 
-	    return FALSE;
-	}
-
-	XSelectInput (dpy, currentWmSnOwner, StructureNotifyMask);
+	sprintf (tmp, snFormat[i], number);
+	snAtom[i] = XInternAtom (dpy, tmp, 0);
     }
 
-    sprintf (buf, "_NET_WM_CM_S%d", number);
-    cmSnAtom = XInternAtom (dpy, buf, 0);
-
-    currentCmSnOwner = XGetSelectionOwner (dpy, cmSnAtom);
-
-    if (currentCmSnOwner != None)
+    for (i = 0; i < N_SELECTIONS; i++)
     {
-	if (!replaceCurrentWm)
-	{
-	    esprintf (error,
-		      "Screen %d on display \"%s\" already has a compositing "
-		      "manager", number, DisplayString (dpy));
+	currentSnOwner[i] = XGetSelectionOwner (dpy, snAtom[i]);
 
-	    return FALSE;
+	if (currentSnOwner[i] != None)
+	{
+	    if (!replaceCurrentWm)
+	    {
+		esprintf (error,
+			  "Screen %d on display \"%s\" already has a %s "
+			  "manager", number, DisplayString (dpy), snName[i]);
+
+		return FALSE;
+	    }
+
+	    XSelectInput (dpy, currentSnOwner[i], StructureNotifyMask);
 	}
     }
 
-    newCmSnOwner = newWmSnOwner =
-	createDummyXWindow (display, XRootWindow (dpy, number));
+    newSnOwner = createDummyXWindow (display, XRootWindow (dpy, number));
 
     XChangeProperty (dpy,
-		     newWmSnOwner,
+		     newSnOwner,
 		     display->wmNameAtom,
 		     display->utf8StringAtom, 8,
 		     PropModeReplace,
@@ -313,45 +305,66 @@ addScreen (CompDisplay *display,
 		     strlen (PACKAGE));
 
     XWindowEvent (dpy,
-		  newWmSnOwner,
+		  newSnOwner,
 		  PropertyChangeMask,
 		  &event);
 
-    wmSnTimestamp = event.xproperty.time;
+    snTimestamp = event.xproperty.time;
 
-    XSetSelectionOwner (dpy, wmSnAtom, newWmSnOwner, wmSnTimestamp);
-
-    if (XGetSelectionOwner (dpy, wmSnAtom) != newWmSnOwner)
+    for (i = 0; i < N_SELECTIONS; i++)
     {
-	esprintf (error,
-		  "Could not acquire window/compositing manager selection for "
-		  "screen %d on display \"%s\"", number, DisplayString (dpy));
+	XSetSelectionOwner (dpy, snAtom[i], newSnOwner, snTimestamp);
 
-	XDestroyWindow (dpy, newWmSnOwner);
+	if (XGetSelectionOwner (dpy, snAtom[i]) != newSnOwner)
+	{
+	    esprintf (error,
+		      "Could not acquire %s manager selection for "
+		      "screen %d on display \"%s\"",
+		      snName[i], number, DisplayString (dpy));
 
-	return FALSE;
+	    while (i--)
+		XSetSelectionOwner (dpy, snAtom[i], None, CurrentTime);
+
+	    XDestroyWindow (dpy, newSnOwner);
+
+	    return FALSE;
+	}
     }
 
-    /* Send client message indicating that we are now the WM */
-    event.xclient.type	       = ClientMessage;
-    event.xclient.window       = XRootWindow (dpy, number);
-    event.xclient.message_type = display->managerAtom;
-    event.xclient.format       = 32;
-    event.xclient.data.l[0]    = wmSnTimestamp;
-    event.xclient.data.l[1]    = wmSnAtom;
-    event.xclient.data.l[2]    = 0;
-    event.xclient.data.l[3]    = 0;
-    event.xclient.data.l[4]    = 0;
-
-    XSendEvent (dpy, XRootWindow (dpy, number), FALSE,
-		StructureNotifyMask, &event);
-
-    /* Wait for old window manager to go away */
-    if (currentWmSnOwner != None)
+    for (i = 0; i < N_SELECTIONS; i++)
     {
-	do {
-	    XWindowEvent (dpy, currentWmSnOwner, StructureNotifyMask, &event);
-	} while (event.type != DestroyNotify);
+	/* Send client message indicating that we are now the manager */
+	event.xclient.type	   = ClientMessage;
+	event.xclient.window       = XRootWindow (dpy, number);
+	event.xclient.message_type = display->managerAtom;
+	event.xclient.format       = 32;
+	event.xclient.data.l[0]    = snTimestamp;
+	event.xclient.data.l[1]    = snAtom[i];
+	event.xclient.data.l[2]    = 0;
+	event.xclient.data.l[3]    = 0;
+	event.xclient.data.l[4]    = 0;
+
+	XSendEvent (dpy, XRootWindow (dpy, number), FALSE,
+		    StructureNotifyMask, &event);
+
+	/* Wait for old manager to go away */
+	if (currentSnOwner[i] != None)
+	{
+	    int j;
+
+	    for (j = 0; j < i; i++)
+		if (currentSnOwner[j] == currentSnOwner[i])
+		    break;
+
+	    if (j == i)
+	    {
+		do {
+		    XWindowEvent (dpy,
+				  currentSnOwner[i], StructureNotifyMask,
+				  &event);
+		} while (event.type != DestroyNotify);
+	    }
+	}
     }
 
     compCheckForError (dpy);
@@ -365,8 +378,10 @@ addScreen (CompDisplay *display,
 		  "Another composite manager is already running on screen "
 		  "%d", number);
 
-	XSetSelectionOwner (dpy, wmSnAtom, None, CurrentTime);
-	XDestroyWindow (dpy, newWmSnOwner);
+	for (i = 0; i < N_SELECTIONS; i++)
+	    XSetSelectionOwner (dpy, snAtom[i], None, CurrentTime);
+
+	XDestroyWindow (dpy, newSnOwner);
 
 	return FALSE;
     }
@@ -393,19 +408,23 @@ addScreen (CompDisplay *display,
 		  "Another window manager is already running on screen %d",
 		  number);
 
-	XSetSelectionOwner (dpy, wmSnAtom, None, CurrentTime);
-	XDestroyWindow (dpy, newWmSnOwner);
+	for (i = 0; i < N_SELECTIONS; i++)
+	    XSetSelectionOwner (dpy, snAtom[i], None, CurrentTime);
+
+	XDestroyWindow (dpy, newSnOwner);
 	XUngrabServer (dpy);
 
 	return FALSE;
     }
 
-    if (!addScreenOld (display, number, newWmSnOwner, wmSnAtom, wmSnTimestamp))
+    if (!addScreenOld (display, number, newSnOwner, snAtom, snTimestamp))
     {
 	esprintf (error, "Failed to manage screen %d", number);
 
-	XSetSelectionOwner (dpy, wmSnAtom, None, CurrentTime);
-	XDestroyWindow (dpy, newWmSnOwner);
+	for (i = 0; i < N_SELECTIONS; i++)
+	    XSetSelectionOwner (dpy, snAtom[i], None, CurrentTime);
+
+	XDestroyWindow (dpy, newSnOwner);
 	XUngrabServer (dpy);
 
 	return FALSE;
@@ -3033,8 +3052,14 @@ findScreenForSelection (CompDisplay *display,
 
     for (s = display->screens; s; s = s->next)
     {
-	if (s->wmSnSelectionWindow == owner && s->wmSnAtom == selection)
-	    return s;
+	if (s->snSelectionWindow == owner)
+	{
+	    int i;
+
+	    for (i = 0; i < N_SELECTIONS; i++)
+		if (s->snAtom[i] == selection)
+		    return s;
+	}
     }
 
     return NULL;
@@ -3066,7 +3091,7 @@ convertProperty (CompDisplay *display,
     else if (target == display->timestampAtom)
 	XChangeProperty (display->display, w, property,
 			 XA_INTEGER, 32, PropModeReplace,
-			 (unsigned char *) &screen->wmSnTimestamp, 1);
+			 (unsigned char *) &screen->snTimestamp, 1);
     else if (target == display->versionAtom)
 	XChangeProperty (display->display, w, property,
 			 XA_INTEGER, 32, PropModeReplace,
@@ -3174,7 +3199,17 @@ handleSelectionClear (CompDisplay *display,
 				     event->xselectionclear.selection);
 
     if (screen)
+    {
+	int i;
+
+	for (i = 0; i < N_SELECTIONS; i++)
+	    if (screen->snAtom[i] == event->xselectionclear.selection)
+		screen->snAtom[i] = None;
+
+	printf ("shut down sc %d\n", event->xselectionclear.window);
+
 	shutDown = TRUE;
+    }
 }
 
 void
