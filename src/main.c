@@ -239,6 +239,8 @@ main (int argc, char **argv)
     int	      i, nPlugin = 0;
     Bool      disableSm = FALSE;
     char      *clientId = NULL;
+    char      *hostName;
+    int	      displayNum;
 
     programName = argv[0];
     programArgc = argc;
@@ -389,8 +391,20 @@ main (int argc, char **argv)
     if (!disableSm)
 	initSession (clientId);
 
-    if (!addDisplayOld (displayName))
-	return 1;
+    if (xcb_parse_display (displayName, &hostName, &displayNum, NULL))
+    {
+	char *error;
+
+	if (!(*core.u.vTable->addDisplay) (&core,
+					   hostName, displayNum,
+					   &error))
+	{
+	    compLogMessage (NULL, "core", CompLogLevelWarn, error);
+	    free (error);
+	}
+
+	free (hostName);
+    }
 
     eventLoop ();
 

@@ -2444,7 +2444,9 @@ freeDisplayPrivateIndex (int index)
 }
 
 Bool
-addDisplayOld (const char *name)
+addDisplayOld (CompCore   *c,
+	       const char *hostName,
+	       int	  displayNum)
 {
     CompDisplay *d;
     Display     *dpy;
@@ -2454,6 +2456,7 @@ addDisplayOld (const char *name)
     int		fixesMinor;
     int		xkbOpcode;
     int		firstScreen, lastScreen;
+    char	displayName[256];
     char	objectName[256];
 
     d = malloc (sizeof (CompDisplay));
@@ -2466,15 +2469,15 @@ addDisplayOld (const char *name)
 	return FALSE;
     }
 
-    if (!xcb_parse_display (name,
-			    &d->hostName,
-			    &d->displayNum,
-			    &d->preferredScreen))
+    d->hostName = strdup (hostName);
+    if (!d->hostName)
     {
 	compObjectFini (&d->u.base, getDisplayObjectType ());
 	free (d);
 	return FALSE;
     }
+
+    d->displayNum = displayNum;
 
     d->plugin.list.type   = CompOptionTypeString;
     d->plugin.list.nValue = 1;
@@ -2494,11 +2497,15 @@ addDisplayOld (const char *name)
 
     d->dirtyPluginList = TRUE;
 
-    d->display = dpy = XOpenDisplay (name);
+    snprintf (displayName, sizeof (displayName), "%s:%d",
+	      hostName, displayNum);
+
+    d->display = dpy = XOpenDisplay (displayName);
     if (!d->display)
     {
-	compLogMessage (d, "core", CompLogLevelFatal,
-			"Couldn't open display %s", XDisplayName (name));
+	compLogMessage (d, "core", CompLogLevelWarn,
+			"Couldn't open display %d on host %s",
+			displayNum, hostName);
 	return FALSE;
     }
 
@@ -2790,7 +2797,7 @@ addDisplayOld (const char *name)
     d->escapeKeyCode = XKeysymToKeycode (dpy, XStringToKeysym ("Escape"));
     d->returnKeyCode = XKeysymToKeycode (dpy, XStringToKeysym ("Return"));
 
-    addDisplayToCore (d);
+    addDisplayToCore (c, d);
 
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->u.base));
@@ -2799,7 +2806,7 @@ addDisplayOld (const char *name)
 	      *d->hostName == '\0' ? "localhost" : d->hostName,
 	      d->displayNum);
 
-    (*core.objectAdd) (&core.displayContainer.base, &d->u.base, objectName);
+    (*c->objectAdd) (&c->displayContainer.base, &d->u.base, objectName);
 
     if (onlyCurrentScreen)
     {
@@ -2837,12 +2844,9 @@ addDisplayOld (const char *name)
     }
 
     if (!d->screens)
-    {
-	compLogMessage (d, "core", CompLogLevelFatal,
-			"No manageable screens found on display %s",
-			XDisplayName (name));
-	return FALSE;
-    }
+	compLogMessage (d, "core", CompLogLevelWarn,
+			"No manageable screens found for display %d on "
+			"host %s", displayNum, hostName);
 
     setAudibleBell (d, d->opt[COMP_DISPLAY_OPTION_AUDIBLE_BELL].value.b);
 
@@ -2850,7 +2854,9 @@ addDisplayOld (const char *name)
 
     /* move input focus to root window so that we get a FocusIn event when
        moving it to the default window */
-    XSetInputFocus (dpy, d->screens->root, RevertToPointerRoot, CurrentTime);
+    if (d->screens)
+	XSetInputFocus (dpy, d->screens->root, RevertToPointerRoot,
+			CurrentTime);
 
     if (focus == None || focus == PointerRoot)
     {
@@ -2877,23 +2883,24 @@ addDisplayOld (const char *name)
 }
 
 void
-removeDisplayOld (CompDisplay *d)
+removeDisplayOld (CompCore    *c,
+		  CompDisplay *d)
 {
     CompDisplay *p;
 
-    for (p = core.displays; p; p = p->next)
+    for (p = c->displays; p; p = p->next)
 	if (p->next == d)
 	    break;
 
     if (p)
 	p->next = d->next;
     else
-	core.displays = NULL;
+	c->displays = NULL;
 
     while (d->screens)
 	removeScreenOld (d->screens);
 
-    (*core.objectRemove) (&core.displayContainer.base, &d->u.base);
+    (*c->objectRemove) (&c->displayContainer.base, &d->u.base);
 
     objectFiniPlugins (&d->u.base);
 
@@ -3199,17 +3206,7 @@ handleSelectionClear (CompDisplay *display,
 				     event->xselectionclear.selection);
 
     if (screen)
-    {
-	int i;
-
-	for (i = 0; i < N_SELECTIONS; i++)
-	    if (screen->snAtom[i] == event->xselectionclear.selection)
-		screen->snAtom[i] = None;
-
-	printf ("shut down sc %d\n", event->xselectionclear.window);
-
 	shutDown = TRUE;
-    }
 }
 
 void

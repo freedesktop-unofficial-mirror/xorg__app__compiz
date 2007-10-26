@@ -203,8 +203,29 @@ addDisplay (CompCore   *c,
 	    int32_t    displayNum,
 	    char       **error)
 {
-    esprintf (error, "NYI: %s:%d", hostName, displayNum);
-    return FALSE;
+    CompDisplay *d;
+
+    for (d = c->displays; d; d = d->next)
+    {
+	if (d->displayNum == displayNum && strcmp (d->hostName, hostName) == 0)
+	{
+	    esprintf (error,
+		      "Already connected to display %d on host \"%s\"",
+		      displayNum, hostName);
+
+	    return FALSE;
+	}
+    }
+
+    if (!addDisplayOld (c, hostName, displayNum))
+    {
+	esprintf (error, "Failed to add display %d on host %s",
+		  displayNum, hostName);
+
+	return FALSE;
+    }
+
+    return TRUE;
 }
 
 static CompBool
@@ -244,8 +265,24 @@ removeDisplay (CompCore   *c,
 	       int32_t    displayNum,
 	       char       **error)
 {
-    esprintf (error, "NYI: %s:%d", hostName, displayNum);
-    return FALSE;
+    CompDisplay *d;
+
+    for (d = c->displays; d; d = d->next)
+	if (d->displayNum == displayNum && strcmp (d->hostName, hostName) == 0)
+	    break;
+
+    if (!d)
+    {
+	esprintf (error,
+		  "No connection to display %d on host \"%s\" present",
+		  displayNum, hostName);
+
+	return FALSE;
+    }
+
+    removeDisplayOld (c, d);
+
+    return TRUE;
 }
 
 static CompBool
@@ -553,7 +590,10 @@ void
 finiCore (void)
 {
     while (core.displays)
-	removeDisplayOld (core.displays);
+	(*core.u.vTable->removeDisplay) (&core,
+					 core.displays->hostName,
+					 core.displays->displayNum,
+					 NULL);
 
     while (popPlugin ());
 
@@ -561,16 +601,17 @@ finiCore (void)
 }
 
 void
-addDisplayToCore (CompDisplay *d)
+addDisplayToCore (CompCore    *c,
+		  CompDisplay *d)
 {
     CompDisplay *prev;
 
-    for (prev = core.displays; prev && prev->next; prev = prev->next);
+    for (prev = c->displays; prev && prev->next; prev = prev->next);
 
     if (prev)
 	prev->next = d;
     else
-	core.displays = d;
+	c->displays = d;
 }
 
 CompFileWatchHandle

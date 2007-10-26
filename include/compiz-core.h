@@ -1467,7 +1467,8 @@ void
 freeCorePrivateIndex (int index);
 
 void
-addDisplayToCore (CompDisplay *d);
+addDisplayToCore (CompCore    *c,
+		  CompDisplay *d);
 
 CompFileWatchHandle
 addFileWatch (const char	    *path,
@@ -1914,10 +1915,13 @@ addScreenToDisplay (CompDisplay *display,
 		    CompScreen *s);
 
 Bool
-addDisplayOld (const char *name);
+addDisplayOld (CompCore   *c,
+	       const char *hostName,
+	       int	  displayNum);
 
 void
-removeDisplayOld (CompDisplay *d);
+removeDisplayOld (CompCore    *c,
+		  CompDisplay *d);
 
 Time
 getCurrentTimeFromDisplay (CompDisplay *d);
