@@ -1202,10 +1202,7 @@ setDisplayOption (CompPlugin		*plugin,
 	break;
     case COMP_DISPLAY_OPTION_ACTIVE_PLUGINS:
 	if (compSetOptionList (o, value))
-	{
-	    display->dirtyPluginList = TRUE;
 	    return TRUE;
-	}
 	break;
     case COMP_DISPLAY_OPTION_PING_DELAY:
 	if (compSetIntOption (o, value))
@@ -1241,27 +1238,30 @@ updatePlugins (CompDisplay *d)
     CompPlugin *p, **pop = 0;
     int	       nPop, i, j;
 
-    d->dirtyPluginList = FALSE;
+    CORE (d->u.base.parent->parent);
+
+    c->dirtyPluginList = FALSE;
 
     o = &d->opt[COMP_DISPLAY_OPTION_ACTIVE_PLUGINS];
-    for (i = 0; i < d->plugin.list.nValue && i < o->value.list.nValue; i++)
+    for (i = 0; i < c->plugin.list.nValue && i < o->value.list.nValue; i++)
     {
-	if (strcmp (d->plugin.list.value[i].s, o->value.list.value[i].s))
+	if (strcmp (c->plugin.list.value[i].s, o->value.list.value[i].s))
 	    break;
     }
 
     /* never pop the core plugin */
     if (i)
-	nPop = d->plugin.list.nValue - i;
+	nPop = c->plugin.list.nValue - i;
     else
-	nPop = d->plugin.list.nValue - 1;
+	nPop = c->plugin.list.nValue - 1;
 
     if (nPop)
     {
 	pop = malloc (sizeof (CompPlugin *) * nPop);
 	if (!pop)
 	{
-	    (*core.setOptionForPlugin) (&d->u.base, "core", o->name, &d->plugin);
+	    (*core.setOptionForPlugin) (&d->u.base, "core", o->name,
+					&c->plugin);
 	    return;
 	}
     }
@@ -1269,8 +1269,8 @@ updatePlugins (CompDisplay *d)
     for (j = 0; j < nPop; j++)
     {
 	pop[j] = popPlugin ();
-	d->plugin.list.nValue--;
-	free (d->plugin.list.value[d->plugin.list.nValue].s);
+	c->plugin.list.nValue--;
+	free (c->plugin.list.value[c->plugin.list.nValue].s);
     }
 
     for (; i < o->value.list.nValue; i++)
@@ -1307,14 +1307,14 @@ updatePlugins (CompDisplay *d)
 	{
 	    CompOptionValue *value;
 
-	    value = realloc (d->plugin.list.value, sizeof (CompOptionValue) *
-			     (d->plugin.list.nValue + 1));
+	    value = realloc (c->plugin.list.value, sizeof (CompOptionValue) *
+			     (c->plugin.list.nValue + 1));
 	    if (value)
 	    {
-		value[d->plugin.list.nValue].s = strdup (p->vTable->name);
+		value[c->plugin.list.nValue].s = strdup (p->vTable->name);
 
-		d->plugin.list.value = value;
-		d->plugin.list.nValue++;
+		c->plugin.list.value = value;
+		c->plugin.list.nValue++;
 	    }
 	    else
 	    {
@@ -1333,7 +1333,7 @@ updatePlugins (CompDisplay *d)
     if (nPop)
 	free (pop);
 
-    (*core.setOptionForPlugin) (&d->u.base, "core", o->name, &d->plugin);
+    (*core.setOptionForPlugin) (&d->u.base, "core", o->name, &c->plugin);
 }
 
 static void
@@ -1417,73 +1417,103 @@ compAddWatchFd (int	     fd,
 		CallBackProc callBack,
 		void	     *closure)
 {
-    CompWatchFd *watchFd;
+    CompWatchFd	      *watchFds;
+    struct pollfd     *watchPollFds;
+    CompWatchFdHandle handle;
+    int		      n = core.nWatchFds + 1;
 
-    watchFd = malloc (sizeof (CompWatchFd));
-    if (!watchFd)
+    watchFds = realloc (core.watchFds, n * sizeof (CompWatchFd));
+    if (!watchFds)
 	return 0;
 
-    watchFd->fd	      = fd;
-    watchFd->callBack = callBack;
-    watchFd->closure  = closure;
-    watchFd->handle   = core.lastWatchFdHandle++;
+    core.watchFds = watchFds;
 
+    watchPollFds = realloc (core.watchPollFds, n * sizeof (struct pollfd));
+    if (!watchPollFds)
+	return 0;
+
+    core.watchPollFds = watchPollFds;
+
+    handle = core.lastWatchFdHandle++;
     if (core.lastWatchFdHandle == MAXSHORT)
 	core.lastWatchFdHandle = 1;
 
-    watchFd->next = core.watchFds;
-    core.watchFds = watchFd;
+    watchFds[core.nWatchFds].fd	      = fd;
+    watchFds[core.nWatchFds].callBack = callBack;
+    watchFds[core.nWatchFds].closure  = closure;
+    watchFds[core.nWatchFds].handle   = handle;
 
-    core.nWatchFds++;
+    watchPollFds[core.nWatchFds].fd      = fd;
+    watchPollFds[core.nWatchFds].events  = events;
+    watchPollFds[core.nWatchFds].revents = 0;
 
-    core.watchPollFds = realloc (core.watchPollFds,
-				 core.nWatchFds * sizeof (struct pollfd));
+    core.nWatchFds = n;
 
-    core.watchPollFds[core.nWatchFds - 1].fd     = fd;
-    core.watchPollFds[core.nWatchFds - 1].events = events;
-
-    return watchFd->handle;
+    return handle;
 }
 
 void
 compRemoveWatchFd (CompWatchFdHandle handle)
 {
-    CompWatchFd *p = 0, *w;
-    int i;
+    int	i;
 
-    for (i = core.nWatchFds - 1, w = core.watchFds; w; i--, w = w->next)
+    for (i = 0; i < core.nWatchFds; i++)
     {
-	if (w->handle == handle)
+	if (core.watchFds[i].handle == handle)
+	{
+	    core.watchFds[i].handle      = 0;
+	    core.watchPollFds[i].revents = 0;
 	    break;
+	}
+    }
+}
 
-	p = w;
+static void
+cleanupWatchFds (void)
+{
+    int	n = core.nWatchFds;
+    int	i = n;
+
+    while (i--)
+    {
+	if (core.watchFds[i].handle == 0)
+	{
+	    n--;
+
+	    if (i < n)
+	    {
+		memmove (&core.watchFds[i], &core.watchFds[i + 1],
+			 (n - i) * sizeof (CompWatchFd));
+		memmove (&core.watchPollFds[i], &core.watchPollFds[i + 1],
+			 (n - i) * sizeof (struct pollfd));
+	    }
+	}
     }
 
-    if (w)
+    if (n != core.nWatchFds)
     {
-	if (p)
-	    p->next = w->next;
-	else
-	    core.watchFds = w->next;
+	CompWatchFd   *watchFds;
+	struct pollfd *watchPollFds;
 
-	core.nWatchFds--;
+	watchFds = realloc (core.watchFds, n * sizeof (CompWatchFd));
+	if (!n || watchFds)
+	    core.watchFds = watchFds;
 
-	if (i < core.nWatchFds)
-	    memmove (&core.watchPollFds[i], &core.watchPollFds[i + 1],
-		     (core.nWatchFds - i) * sizeof (struct pollfd));
+	watchPollFds = realloc (core.watchPollFds, n * sizeof (struct pollfd));
+	if (!n || watchPollFds)
+	    core.watchPollFds = watchPollFds;
 
-	free (w);
+	core.nWatchFds = n;
     }
 }
 
 short int
 compWatchFdEvents (CompWatchFdHandle handle)
 {
-    CompWatchFd *w;
-    int		i;
+    int i;
 
-    for (i = core.nWatchFds - 1, w = core.watchFds; w; i--, w = w->next)
-	if (w->handle == handle)
+    for (i = 0; i < core.nWatchFds; i++)
+	if (core.watchFds[i].handle == handle)
 	    return core.watchPollFds[i].revents;
 
     return 0;
@@ -1720,14 +1750,13 @@ doPoll (int timeout)
     rv = poll (core.watchPollFds, core.nWatchFds, timeout);
     if (rv)
     {
-	CompWatchFd *w;
-	int	    i;
+	int i;
 
-	for (i = core.nWatchFds - 1, w = core.watchFds; w; i--, w = w->next)
-	{
-	    if (core.watchPollFds[i].revents != 0 && w->callBack)
-		(*w->callBack) (w->closure);
-	}
+	for (i = 0; i < core.nWatchFds; i++)
+	    if (core.watchPollFds[i].revents && core.watchFds[i].callBack)
+		(*core.watchFds[i].callBack) (core.watchFds[i].closure);
+
+	cleanupWatchFds ();
     }
 
     return rv;
@@ -1867,7 +1896,7 @@ eventLoop (void)
 
 	for (d = core.displays; d; d = d->next)
 	{
-	    if (d->dirtyPluginList)
+	    if (core.dirtyPluginList)
 		updatePlugins (d);
 
 	    while (XPending (d->display))
@@ -2159,9 +2188,6 @@ eventLoop (void)
 	    }
 	}
     }
-
-    for (d = core.displays; d; d = d->next)
-	compRemoveWatchFd (d->watchFdHandle);
 }
 
 static int errors = 0;
@@ -2225,7 +2251,8 @@ compCheckForError (Display *dpy)
 static void
 addScreenActions (CompScreen *s)
 {
-    int i;
+    CompPlugin *p;
+    int	       i;
 
     for (i = 0; i < COMP_DISPLAY_OPTION_NUM; i++)
     {
@@ -2234,6 +2261,28 @@ addScreenActions (CompScreen *s)
 
 	if (s->display->opt[i].value.action.state & CompActionStateAutoGrab)
 	    addScreenAction (s, &s->display->opt[i].value.action);
+    }
+
+    for (p = getPlugins (); p; p = p->next)
+    {
+	CompOption *option;
+	int	   nOption;
+
+	if (!p->vTable->getObjectOptions)
+	    continue;
+
+	option = (*p->vTable->getObjectOptions) (p, s->display, &nOption);
+	if (!option)
+	    continue;
+
+	for (i = 0; i < nOption; i++)
+	{
+	    if (!isActionOption (&option[i]))
+		continue;
+
+	    if (option[i].value.action.state & CompActionStateAutoGrab)
+		addScreenAction (s, &option[i].value.action);
+	}
     }
 }
 
@@ -2355,8 +2404,6 @@ displayInitObject (CompObject *object)
 
     d->ignoredModMask = LockMask;
 
-    compInitOptionValue (&d->plugin);
-
     d->textureFilter = GL_LINEAR;
     d->below	     = None;
 
@@ -2382,8 +2429,6 @@ static void
 displayFiniObject (CompObject *object)
 {
     DISPLAY (object);
-
-    compFiniOptionValue (&d->plugin, CompOptionTypeList);
 
     UNWRAP (&d->object, &d->u.base, vTable);
 
@@ -2474,24 +2519,6 @@ addDisplayOld (CompCore   *c,
     }
 
     d->displayNum = displayNum;
-
-    d->plugin.list.type   = CompOptionTypeString;
-    d->plugin.list.nValue = 1;
-    d->plugin.list.value  = malloc (sizeof (CompOptionValue));
-
-    if (!d->plugin.list.value) {
-	free (d);
-	return FALSE;
-    }
-
-    d->plugin.list.value->s = strdup ("core");
-    if (!d->plugin.list.value->s) {
-        free (d->plugin.list.value);
-	free (d);
-	return FALSE;
-    }
-
-    d->dirtyPluginList = TRUE;
 
     snprintf (displayName, sizeof (displayName), "%s:%d",
 	      hostName, displayNum);

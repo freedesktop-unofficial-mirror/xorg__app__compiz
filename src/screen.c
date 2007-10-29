@@ -2344,12 +2344,12 @@ addScreenOld (CompDisplay *display,
 
     glNormal3f (0.0f, 0.0f, -1.0f);
 
-    addScreenToDisplay (display, s);
-
     getDesktopHints (s);
 
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&s->base));
+
+    addScreenToDisplay (display, s);
 
     snprintf (objectName, 256, "%d", s->screenNum);
 

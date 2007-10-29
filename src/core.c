@@ -458,6 +458,15 @@ coreInitObject (CompObject *object)
 
     WRAP (&c->object, &c->u.base, vTable, &coreObjectVTable.base);
 
+    compInitOptionValue (&c->plugin);
+
+    c->plugin.list.type     = CompOptionTypeString;
+    c->plugin.list.nValue   = 1;
+    c->plugin.list.value    = malloc (sizeof (CompOptionValue));
+    c->plugin.list.value->s = strdup ("core");
+
+    c->dirtyPluginList = TRUE;
+
     c->displays = NULL;
 
     c->fileWatch	   = NULL;
@@ -499,6 +508,8 @@ static void
 coreFiniObject (CompObject *object)
 {
     CORE (object);
+
+    compFiniOptionValue (&c->plugin, CompOptionTypeList);
 
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);

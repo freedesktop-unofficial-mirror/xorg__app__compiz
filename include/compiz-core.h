@@ -1378,11 +1378,10 @@ typedef struct _CompTimeout {
 } CompTimeout;
 
 typedef struct _CompWatchFd {
-    struct _CompWatchFd *next;
-    int			fd;
-    CallBackProc	callBack;
-    void		*closure;
-    CompWatchFdHandle   handle;
+    int		      fd;
+    CallBackProc      callBack;
+    void	      *closure;
+    CompWatchFdHandle handle;
 } CompWatchFd;
 
 typedef CompBool (*AddDisplayProc) (CompCore   *c,
@@ -1414,6 +1413,9 @@ struct _CompCore {
     CompDisplay *displays;
 
     CompContainer displayContainer;
+
+    CompOptionValue plugin;
+    Bool	    dirtyPluginList;
 
     Region tmpRegion;
     Region outputRegion;
@@ -1851,9 +1853,6 @@ struct _CompDisplay {
 
     CompTimeoutHandle autoRaiseHandle;
     Window	      autoRaiseWindow;
-
-    CompOptionValue plugin;
-    Bool	    dirtyPluginList;
 
     HandleEventProc       handleEvent;
     HandleCompizEventProc handleCompizEvent;
