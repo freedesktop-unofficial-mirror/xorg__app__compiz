@@ -1860,10 +1860,6 @@ eventLoop (void)
     int		   time, timeToNextRedraw = 0;
     unsigned int   damageMask, mask;
 
-    for (d = core.displays; d; d = d->next)
-	d->watchFdHandle =
-	    compAddWatchFd (ConnectionNumber (d->display), POLLIN, NULL, NULL);
-
     for (;;)
     {
 	if (restartSignal || shutDown)
@@ -2875,6 +2871,9 @@ addDisplayOld (CompCore   *c,
 	    focusDefaultWindow (d->screens);
     }
 
+    d->watchFdHandle = compAddWatchFd (ConnectionNumber (d->display), POLLIN,
+				       NULL, NULL);
+
     d->pingHandle =
 	compAddTimeout (d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i,
 			pingTimeout, d);
@@ -2896,6 +2895,8 @@ removeDisplayOld (CompCore    *c,
 	p->next = d->next;
     else
 	c->displays = NULL;
+
+    compRemoveWatchFd (d->watchFdHandle);
 
     while (d->screens)
 	removeScreenOld (d->screens);
