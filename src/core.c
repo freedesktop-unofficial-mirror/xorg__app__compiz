@@ -413,6 +413,22 @@ forEachDisplayObject (CompObject	      *object,
 }
 
 static CompBool
+forEachPluginObject (CompObject		     *object,
+		     ChildObjectCallBackProc proc,
+		     void		     *closure)
+{
+    CompPlugin *p;
+
+    CORE (object->parent);
+
+    for (p = c->plugins; p; p = p->next)
+	if (!(*proc) (&p->u.base, closure))
+	    return FALSE;
+
+    return TRUE;
+}
+
+static CompBool
 coreInitObject (CompObject *object)
 {
     CORE (object);
@@ -430,10 +446,22 @@ coreInitObject (CompObject *object)
     c->displayContainer.base.parent	   = &c->u.base;
     c->displayContainer.base.name	   = "displays";
 
+    if (!compObjectInit (&c->pluginContainer.base, getContainerObjectType ()))
+    {
+	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
+	compObjectFini (&c->u.base, getObjectType ());
+	return FALSE;
+    }
+
+    c->pluginContainer.forEachChildObject = forEachPluginObject;
+    c->pluginContainer.base.parent	  = &c->u.base;
+    c->pluginContainer.base.name	  = "plugins";
+
     c->u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
     if (!allocateObjectPrivates (object, &coreObjectPrivates))
     {
+	compObjectFini (&c->pluginContainer.base, getContainerObjectType ());
 	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
 	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
@@ -442,6 +470,7 @@ coreInitObject (CompObject *object)
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
+	compObjectFini (&c->pluginContainer.base, getContainerObjectType ());
 	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
 	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
@@ -451,6 +480,7 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
+	compObjectFini (&c->pluginContainer.base, getContainerObjectType ());
 	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
 	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
@@ -468,6 +498,7 @@ coreInitObject (CompObject *object)
     c->dirtyPluginList = TRUE;
 
     c->displays = NULL;
+    c->plugins  = NULL;
 
     c->fileWatch	   = NULL;
     c->lastFileWatchHandle = 1;

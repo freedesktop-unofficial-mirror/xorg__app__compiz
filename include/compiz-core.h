@@ -1411,8 +1411,10 @@ struct _CompCore {
     CompPrivate	*privates;
 
     CompDisplay *displays;
+    CompPlugin  *plugins;
 
     CompContainer displayContainer;
+    CompContainer pluginContainer;
 
     CompOptionValue plugin;
     Bool	    dirtyPluginList;
@@ -3812,6 +3814,10 @@ extern UnloadPluginProc loaderUnloadPlugin;
 extern ListPluginsProc  loaderListPlugins;
 
 struct _CompPlugin {
+    union {
+	CompObject base;
+    } u;
+
     CompPlugin       *next;
     CompPrivate	     devPrivate;
     char	     *devType;
