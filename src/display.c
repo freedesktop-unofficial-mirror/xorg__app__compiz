@@ -2271,7 +2271,8 @@ addScreenActions (CompScreen *s)
 	if (!p->vTable->getObjectOptions)
 	    continue;
 
-	option = (*p->vTable->getObjectOptions) (p, s->display, &nOption);
+	option = (*p->vTable->getObjectOptions) (p, (CompObject *) s->display,
+						 &nOption);
 	if (!option)
 	    continue;
 
