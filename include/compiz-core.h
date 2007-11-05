@@ -844,7 +844,6 @@ typedef struct _CommonStringProp {
 typedef struct _CommonInterface {
     const char	           *name;
     int		           version;
-    CompMetadata           metadata;
     size_t	           offset;
     GetPropDataProc        data;
     const CommonMethod     *method;
@@ -873,7 +872,7 @@ typedef struct _CommonInterface {
 
 #define C_INTERFACE(name, type, vtable, offset, data, method, signal,	\
 		    bool, int, double, string)				\
-    { # name, INTERFACE_VERSION_ ## name ## type, { NULL, NULL, 0 },	\
+    { # name, INTERFACE_VERSION_ ## name ## type,			\
 	    C_OFFSET_ ## offset (vtable, name),				\
 		C_DATA_   ## data   (type),				\
 		C_MEMBER_ ## method (name, type, Method),		\
