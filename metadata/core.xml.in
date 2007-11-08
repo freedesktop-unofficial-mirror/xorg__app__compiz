@@ -1,4 +1,49 @@
 <compiz>
+  <interface name="display">
+    <property name="clickToFocus" type="b">
+      <_short>Click To Focus</_short>
+      <_long>Click on window moves input focus to it</_long>
+      <default>true</default>
+    </property>
+    <property name="filter" type="i">
+      <_short>Texture Filter</_short>
+      <_long>Texture filtering</_long>
+      <default>1</default>
+      <min>0</min>
+      <max>2</max>
+      <desc>
+	<value>0</value>
+	<_name>Fast</_name>
+      </desc>
+      <desc>
+	<value>1</value>
+	<_name>Good</_name>
+      </desc>
+      <desc>
+	<value>2</value>
+	<_name>Best</_name>
+      </desc>
+    </property>
+  </interface>
+  <interface name="screen">
+    <property name="detectRefreshRate" type="b">
+      <_short>Detect Refresh Rate</_short>
+      <_long>Automatic detection of refresh rate</_long>
+      <default>true</default>
+    </property>
+    <property name="refreshRate" type="i">
+      <_short>Refresh Rate</_short>
+      <_long>The rate at which the screen is redrawn (times/second)</_long>
+      <default>50</default>
+      <min>1</min>
+      <max>200</max>
+    </property>
+    <property name="defaultIconImage" type="s">
+      <_short>Default Icon</_short>
+      <_long>Default window icon image</_long>
+      <default>icon</default>
+    </property>
+  </interface>
     <core>
 	<_short>General Options</_short>
 	<_long>General compiz options</_long>
