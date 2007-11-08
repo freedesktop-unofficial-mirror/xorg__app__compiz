@@ -91,15 +91,15 @@ static const CommonMethod displayTypeMethod[] = {
     C_METHOD (addScreen,    "i", "", CompDisplayVTable, marshal__I__E),
     C_METHOD (removeScreen, "i", "", CompDisplayVTable, marshal__I__E)
 };
-static const CommonBoolProp displayTypeBoolProp[] = {
+static CommonBoolProp displayTypeBoolProp[] = {
     C_PROP (clickToFocus, CompDisplay)
 };
-static const CommonIntProp displayTypeIntProp[] = {
+static CommonIntProp displayTypeIntProp[] = {
     C_INT_PROP (filter, CompDisplay, 0, 2, .changed = filterChanged)
 };
 #define INTERFACE_VERSION_displayType CORE_ABIVERSION
 
-static const CommonInterface displayInterface[] = {
+static CommonInterface displayInterface[] = {
     C_INTERFACE (display, Type, CompObjectVTable, _, _, X, _, X, X, _, _)
 };
 
@@ -2370,8 +2370,19 @@ displayInitObject (CompObject *object)
     if (!compObjectInit (&d->u.base, getObjectType ()))
 	return FALSE;
 
+    if (!initCommonObjectProperties (&d->u.base,
+				     displayInterface,
+				     N_ELEMENTS (displayInterface)))
+    {
+	compObjectFini (&d->u.base, getObjectType ());
+	return FALSE;
+    }
+
     if (!compObjectInit (&d->screenContainer.base, getContainerObjectType ()))
     {
+	finiCommonObjectProperties (&d->u.base,
+				    displayInterface,
+				    N_ELEMENTS (displayInterface));
 	compObjectFini (&d->u.base, getObjectType ());
 	return FALSE;
     }
@@ -2385,6 +2396,9 @@ displayInitObject (CompObject *object)
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
 	compObjectFini (&d->screenContainer.base, getContainerObjectType ());
+	finiCommonObjectProperties (&d->u.base,
+				    displayInterface,
+				    N_ELEMENTS (displayInterface));
 	compObjectFini (&d->u.base, getObjectType ());
 	return FALSE;
     }
@@ -2466,6 +2480,9 @@ getDisplayObjectType (void)
 
     if (!init)
     {
+	commonDefaultValuesFromFile (displayInterface,
+				     N_ELEMENTS (displayInterface),
+				     "core");
 	displayInitVTable (&displayObjectVTable);
 	init = TRUE;
     }
@@ -2543,7 +2560,6 @@ addDisplayOld (CompCore   *c,
 	return FALSE;
 
     d->clickToFocus = TRUE;
-    d->filter	    = COMP_TEXTURE_FILTER_GOOD;
 
     d->opt[COMP_DISPLAY_OPTION_ABI].value.i = CORE_ABIVERSION;
 

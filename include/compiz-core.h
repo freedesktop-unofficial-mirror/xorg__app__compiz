@@ -800,6 +800,8 @@ typedef struct _CommonProp {
 typedef struct _CommonBoolProp {
     CommonProp base;
 
+    CompBool defaultValue;
+
     SetBoolPropProc     set;
     BoolPropChangedProc changed;
 } CommonBoolProp;
@@ -810,6 +812,8 @@ typedef struct _CommonIntProp {
     CompBool restriction;
     int32_t  min;
     int32_t  max;
+
+    int32_t defaultValue;
 
     SetIntPropProc     set;
     IntPropChangedProc changed;
@@ -826,6 +830,8 @@ typedef struct _CommonDoubleProp {
     double   max;
     double   precision;
 
+    double defaultValue;
+
     SetDoublePropProc     set;
     DoublePropChangedProc changed;
 } CommonDoubleProp;
@@ -837,27 +843,30 @@ typedef struct _CommonDoubleProp {
 typedef struct _CommonStringProp {
     CommonProp base;
 
+    const char *defaultValue;
+    char       *data;
+
     SetStringPropProc     set;
     StringPropChangedProc changed;
 } CommonStringProp;
 
 typedef struct _CommonInterface {
-    const char	           *name;
-    int		           version;
-    size_t	           offset;
-    GetPropDataProc        data;
-    const CommonMethod     *method;
-    int		           nMethod;
-    const CommonSignal     *signal;
-    int		           nSignal;
-    const CommonBoolProp   *boolProp;
-    int			   nBoolProp;
-    const CommonIntProp    *intProp;
-    int			   nIntProp;
-    const CommonDoubleProp *doubleProp;
-    int			   nDoubleProp;
-    const CommonStringProp *stringProp;
-    int			   nStringProp;
+    const char	       *name;
+    int		       version;
+    size_t	       offset;
+    GetPropDataProc    data;
+    const CommonMethod *method;
+    int		       nMethod;
+    const CommonSignal *signal;
+    int		       nSignal;
+    CommonBoolProp     *boolProp;
+    int		       nBoolProp;
+    CommonIntProp      *intProp;
+    int		       nIntProp;
+    CommonDoubleProp   *doubleProp;
+    int		       nDoubleProp;
+    CommonStringProp   *stringProp;
+    int		       nStringProp;
 } CommonInterface;
 
 #define C_OFFSET__(vtable, name) 0
@@ -1028,6 +1037,26 @@ compInvokeMethod (CompObject *object,
 		  const char *in,
 		  const char *out,
 		  CompArgs   *args);
+
+void
+commonDefaultValuesFromString (CommonInterface *interface,
+			       int	       nInterface,
+			       const char      *str);
+
+void
+commonDefaultValuesFromFile (CommonInterface *interface,
+			     int	     nInterface,
+			     const char      *name);
+
+CompBool
+initCommonObjectProperties (CompObject		  *object,
+			    const CommonInterface *interface,
+			    int			  nInterface);
+
+void
+finiCommonObjectProperties (CompObject		  *object,
+			    const CommonInterface *interface,
+			    int			  nInterface);
 
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))

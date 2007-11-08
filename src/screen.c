@@ -74,18 +74,18 @@ defaultIconChanged (CompObject *object,
     updateDefaultIcon (GET_SCREEN (object));
 }
 
-static const CommonBoolProp screenTypeBoolProp[] = {
+static CommonBoolProp screenTypeBoolProp[] = {
     C_PROP (detectRefreshRate, CompScreen, .changed = detectRefreshRateChanged)
 };
-static const CommonIntProp screenTypeIntProp[] = {
+static CommonIntProp screenTypeIntProp[] = {
     C_PROP (refreshRate, CompScreen, .changed = refreshRateChanged)
 };
-static const CommonStringProp screenTypeStringProp[] = {
+static CommonStringProp screenTypeStringProp[] = {
     C_PROP (defaultIconImage, CompScreen, .changed = defaultIconChanged)
 };
 #define INTERFACE_VERSION_screenType CORE_ABIVERSION
 
-static const CommonInterface screenInterface[] = {
+static CommonInterface screenInterface[] = {
     C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, _, X, X, _, X)
 };
 
@@ -1543,8 +1543,19 @@ screenInitObject (CompObject *object)
     if (!compObjectInit (&s->base, getObjectType ()))
 	return FALSE;
 
+    if (!initCommonObjectProperties (&s->base,
+				     screenInterface,
+				     N_ELEMENTS (screenInterface)))
+    {
+	compObjectFini (&s->base, getObjectType ());
+	return FALSE;
+    }
+
     if (!compObjectInit (&s->windowContainer.base, getContainerObjectType ()))
     {
+	finiCommonObjectProperties (&s->base,
+				    screenInterface,
+				    N_ELEMENTS (screenInterface));
 	compObjectFini (&s->base, getObjectType ());
 	return FALSE;
     }
@@ -1558,6 +1569,9 @@ screenInitObject (CompObject *object)
     if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
 	compObjectFini (&s->windowContainer.base, getContainerObjectType ());
+	finiCommonObjectProperties (&s->base,
+				    screenInterface,
+				    N_ELEMENTS (screenInterface));
 	compObjectFini (&s->base, getObjectType ());
 	return FALSE;
     }
@@ -1782,6 +1796,11 @@ screenFiniObject (CompObject *object)
 	free (s->privates);
 
     compObjectFini (&s->windowContainer.base, getContainerObjectType ());
+
+    finiCommonObjectProperties (&s->base,
+				screenInterface,
+				N_ELEMENTS (screenInterface));
+
     compObjectFini (&s->base, getObjectType ());
 }
 
@@ -1808,6 +1827,9 @@ getScreenObjectType (void)
 
     if (!init)
     {
+	commonDefaultValuesFromFile (screenInterface,
+				     N_ELEMENTS (screenInterface),
+				     "core");
 	screenInitVTable (&screenObjectVTable);
 	init = TRUE;
     }
@@ -1873,10 +1895,6 @@ addScreenOld (CompDisplay *display,
 					    s->opt,
 					    COMP_SCREEN_OPTION_NUM))
 	return FALSE;
-
-    s->detectRefreshRate = TRUE;
-    s->refreshRate       = 60;
-    s->defaultIconImage  = strdup ("icon");
 
     s->damage = XCreateRegion ();
     if (!s->damage)

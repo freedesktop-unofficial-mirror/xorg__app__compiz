@@ -3171,3 +3171,389 @@ compInvokeMethod (CompObject *object,
 
     return TRUE;
 }
+
+static CompBool
+setIndex (int *index,
+	  int value)
+{
+    *index = value;
+    return TRUE;
+}
+
+static CompBool
+propertyIndex (CommonInterface *interface,
+	       const char      *name,
+	       int	       type,
+	       int	       *index)
+{
+    int i;
+
+    switch (type) {
+    case COMP_TYPE_BOOLEAN:
+	for (i = 0; i < interface->nBoolProp; i++)
+	    if (strcmp (name, interface->boolProp[i].base.name) == 0)
+		return setIndex (index, i);
+	break;
+    case COMP_TYPE_INT32:
+	for (i = 0; i < interface->nIntProp; i++)
+	    if (strcmp (name, interface->intProp[i].base.name) == 0)
+		return setIndex (index, i);
+	break;
+    case COMP_TYPE_DOUBLE:
+	for (i = 0; i < interface->nDoubleProp; i++)
+	    if (strcmp (name, interface->doubleProp[i].base.name) == 0)
+		return setIndex (index, i);
+	break;
+    case COMP_TYPE_STRING:
+	for (i = 0; i < interface->nStringProp; i++)
+	    if (strcmp (name, interface->stringProp[i].base.name) == 0)
+		return setIndex (index, i);
+	break;
+    }
+
+    return FALSE;
+}
+
+static const char *
+attrValue (const xmlChar **atts,
+	   const char    *name)
+{
+    int i;
+
+    for (i = 0; atts[i]; i += 2)
+	if (strcmp ((const char *) atts[i], name) == 0)
+	    return (const char *) atts[i + 1];
+
+    return NULL;
+}
+
+typedef struct _DefaultValuesContext {
+    CommonInterface *interface;
+    int		    nInterface;
+    int		    depth;
+    int		    validDepth;
+    CommonInterface *currentInterface;
+    int		    propType;
+    int		    propIndex;
+} DefaultValuesContext;
+
+static void
+handleStartElement (void	  *data,
+		    const xmlChar *name,
+		    const xmlChar **atts)
+{
+    DefaultValuesContext *pCtx = (DefaultValuesContext *) data;
+
+    if (pCtx->validDepth == pCtx->depth++)
+    {
+	switch (pCtx->validDepth) {
+	case 0:
+	    if (strcmp ((const char *) name, "compiz") == 0)
+		pCtx->validDepth = pCtx->depth;
+	    break;
+	case 1:
+	    if (strcmp ((const char *) name, "interface") == 0)
+	    {
+		const char *nameAttr = attrValue (atts, "name");
+
+		if (nameAttr)
+		{
+		    int i;
+
+		    for (i = 0; i < pCtx->nInterface; i++)
+		    {
+			if (strcmp (nameAttr, pCtx->interface[i].name) == 0)
+			{
+			    pCtx->validDepth       = pCtx->depth;
+			    pCtx->currentInterface = &pCtx->interface[i];
+			    break;
+			}
+		    }
+		}
+	    }
+	    break;
+	case 2:
+	    if (strcmp ((const char *) name, "property") == 0)
+	    {
+		const char *typeAttr = attrValue (atts, "type");
+
+		if (typeAttr && typeAttr[1] == '\0')
+		{
+		    static int types[] = {
+			COMP_TYPE_BOOLEAN,
+			COMP_TYPE_INT32,
+			COMP_TYPE_DOUBLE,
+			COMP_TYPE_STRING
+		    };
+		    int i;
+
+		    for (i = 0; i < N_ELEMENTS (types); i++)
+			if (typeAttr[0] == types[i])
+			    break;
+
+		    if (i < N_ELEMENTS (types))
+		    {
+			const char *nameAttr = attrValue (atts, "name");
+
+			if (nameAttr)
+			{
+			    if (propertyIndex (pCtx->currentInterface,
+					       nameAttr, types[i],
+					       &pCtx->propIndex))
+			    {
+				pCtx->propType	 = types[i];
+				pCtx->validDepth = pCtx->depth;
+			    }
+			}
+		    }
+		}
+	    }
+	    break;
+	case 3:
+	    if (strcmp ((const char *) name, "default") == 0)
+		pCtx->validDepth = pCtx->depth;
+	    break;
+	}
+    }
+}
+
+static void
+handleEndElement (void		*data,
+		  const xmlChar *name)
+{
+    DefaultValuesContext *pCtx = (DefaultValuesContext *) data;
+
+    if (pCtx->validDepth == pCtx->depth--)
+	pCtx->validDepth = pCtx->depth;
+}
+
+static void
+handleCharacters (void		*data,
+		  const xmlChar *ch,
+		  int		len)
+{
+    DefaultValuesContext *pCtx = (DefaultValuesContext *) data;
+
+    if (pCtx->validDepth == 4)
+    {
+	switch (pCtx->propType) {
+	case COMP_TYPE_BOOLEAN: {
+	    CommonBoolProp *prop =
+		&pCtx->currentInterface->boolProp[pCtx->propIndex];
+
+	    if (len == 4 && strncmp ((const char *) ch, "true", 4) == 1)
+		prop->defaultValue = TRUE;
+	    else
+		prop->defaultValue = FALSE;
+	} break;
+	case COMP_TYPE_INT32: {
+	    char tmp[256];
+
+	    if (len < sizeof (tmp))
+	    {
+		CommonIntProp *prop =
+		    &pCtx->currentInterface->intProp[pCtx->propIndex];
+
+		strncpy (tmp, (const char *) ch, len);
+		tmp[len] = '\0';
+
+		prop->defaultValue = strtol (tmp, NULL, 0);
+	    }
+	} break;
+	case COMP_TYPE_DOUBLE: {
+	    char tmp[256];
+
+	    if (len < sizeof (tmp))
+	    {
+		CommonDoubleProp *prop =
+		    &pCtx->currentInterface->doubleProp[pCtx->propIndex];
+
+		strncpy (tmp, (const char *) ch, len);
+		tmp[len] = '\0';
+
+		prop->defaultValue = strtod (tmp, NULL);
+	    }
+	} break;
+	case COMP_TYPE_STRING: {
+	    char *value;
+
+	    value = malloc (len + 1);
+	    if (value)
+	    {
+		CommonStringProp *prop =
+		    &pCtx->currentInterface->stringProp[pCtx->propIndex];
+
+		strncpy (value, (const char *) ch, len);
+		value[len] = '\0';
+
+		if (prop->data)
+		    free (prop->data);
+
+		prop->defaultValue = prop->data	= value;
+	    }
+	} break;
+	}
+    }
+}
+
+#define HOME_DATADIR   ".compiz/data"
+#define XML_EXTENSION ".xml"
+
+static CompBool
+defaultValuesFromFile (CommonInterface *interface,
+		       int	       nInterface,
+		       const char      *path,
+		       const char      *name)
+{
+    xmlSAXHandler saxHandler = {
+	.initialized  = XML_SAX2_MAGIC,
+	.startElement = handleStartElement,
+	.endElement   = handleEndElement,
+	.characters   = handleCharacters
+    };
+    DefaultValuesContext ctx = {
+	.interface  = interface,
+	.nInterface = nInterface
+    };
+    char *file;
+    int  length = strlen (name) + strlen (XML_EXTENSION) + 1;
+    FILE *fp;
+    int  status;
+
+    if (path)
+	length += strlen (path) + 1;
+
+    file = malloc (length);
+    if (!file)
+	return FALSE;
+
+    if (path)
+	sprintf (file, "%s/%s%s", path, name, XML_EXTENSION);
+    else
+	sprintf (file, "%s%s", name, XML_EXTENSION);
+
+    fp = fopen (file, "r");
+    if (!fp)
+    {
+	free (file);
+	return FALSE;
+    }
+
+    fclose (fp);
+
+    status = xmlSAXUserParseFile (&saxHandler, &ctx, file);
+
+    free (file);
+
+    return (status == 0) ? TRUE : FALSE;
+}
+
+void
+commonDefaultValuesFromFile (CommonInterface *interface,
+			     int	     nInterface,
+			     const char      *name)
+{
+    CompBool status = FALSE;
+    char     *home;
+
+    home = getenv ("HOME");
+    if (home)
+    {
+	char *path;
+
+	path = malloc (strlen (home) + strlen (HOME_DATADIR) + 2);
+	if (path)
+	{
+	    sprintf (path, "%s/%s", home, HOME_DATADIR);
+	    status = defaultValuesFromFile (interface, nInterface, path, name);
+	    free (path);
+	}
+    }
+
+    if (!status)
+	defaultValuesFromFile (interface, nInterface, METADATADIR, name);
+}
+
+#define PROP_VALUE(data, prop, type)	       \
+    (*((type *) (data + (prop)->base.offset)))
+
+#define SET_DEFAULT_VALUE(data, prop, type)		 \
+    PROP_VALUE (data, prop, type) = (prop)->defaultValue
+
+CompBool
+initCommonObjectProperties (CompObject		  *object,
+			    const CommonInterface *interface,
+			    int			  nInterface)
+{
+    char *data;
+    int  i, j;
+
+    for (i = 0; i < nInterface; i++)
+    {
+	data = INTERFACE_DATA (object, &interface[i]);
+
+	for (j = 0; j < interface[i].nBoolProp; j++)
+	    SET_DEFAULT_VALUE (data, &interface[i].boolProp[j], CompBool);
+
+	for (j = 0; j < interface[i].nIntProp; j++)
+	    SET_DEFAULT_VALUE (data, &interface[i].intProp[j], int32_t);
+
+	for (j = 0; j < interface[i].nDoubleProp; j++)
+	    SET_DEFAULT_VALUE (data, &interface[i].doubleProp[j], double);
+
+	for (j = 0; j < interface[i].nStringProp; j++)
+	{
+	    if (interface[i].stringProp[j].defaultValue)
+	    {
+		char *str;
+
+		str = strdup (interface[i].stringProp[j].defaultValue);
+		if (!str)
+		{
+		    while (j--)
+		    {
+			str = PROP_VALUE (data,
+					  &interface[i].stringProp[j],
+					  char *);
+			if (str)
+			    free (str);
+		    }
+
+		    while (i--)
+			finiCommonObjectProperties (object, &interface[i], 1);
+		}
+
+		PROP_VALUE (data, &interface[i].stringProp[j], char *) = str;
+	    }
+	    else
+	    {
+		PROP_VALUE (data, &interface[i].stringProp[j], char *) = NULL;
+	    }
+	}
+    }
+
+    return TRUE;
+}
+
+void
+finiCommonObjectProperties (CompObject		  *object,
+			    const CommonInterface *interface,
+			    int			  nInterface)
+{
+    char *data;
+    int  i, j;
+
+    for (i = 0; i < nInterface; i++)
+    {
+	data = INTERFACE_DATA (object, &interface[i]);
+
+	for (j = 0; j < interface[i].nStringProp; j++)
+	{
+	    char *str;
+
+	    str = PROP_VALUE (data, &interface[i].stringProp[j], char *);
+	    if (str)
+		free (str);
+	}
+    }
+}
