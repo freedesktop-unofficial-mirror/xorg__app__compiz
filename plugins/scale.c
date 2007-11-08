@@ -1734,7 +1734,7 @@ scaleHandleEvent (CompDisplay *d,
 	    {
 		Bool focus;
 
-		focus = !d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b;
+		focus = !d->clickToFocus;
 
 		scaleSelectWindowAt (s,
 				     event->xmotion.x_root,
@@ -1757,7 +1757,7 @@ scaleHandleEvent (CompDisplay *d,
 
 		s = w->screen;
 
-		focus = !d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b;
+		focus = !d->clickToFocus;
 
 		if (w->id == ss->dndTarget)
 		    sendDndStatusMessage (w->screen, event->xclient.data.l[0]);

@@ -4326,7 +4326,7 @@ constrainNewWindowSize (CompWindow *w,
     long	     flags = hints->flags;
     long	     resizeIncFlags = (flags & PResizeInc) ? ~0 : 0;
 
-    if (d->opt[COMP_DISPLAY_OPTION_IGNORE_HINTS_WHEN_MAXIMIZED].value.b)
+    if (d->ignoreHintsWhenMaximized)
     {
 	if (w->state & MAXIMIZE_STATE)
 	{

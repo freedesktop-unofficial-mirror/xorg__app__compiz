@@ -69,6 +69,100 @@ int pointerX     = 0;
 int pointerY     = 0;
 
 static void
+setAudibleBell (CompDisplay *display,
+		Bool	    audible)
+{
+    if (display->xkbExtension)
+	XkbChangeEnabledControls (display->display,
+				  XkbUseCoreKbd,
+				  XkbAudibleBellMask,
+				  audible ? XkbAudibleBellMask : 0);
+}
+
+static Bool
+pingTimeout (void *closure)
+{
+    CompDisplay *d = closure;
+    CompScreen  *s;
+    CompWindow  *w;
+    XEvent      ev;
+    int		ping = d->lastPing + 1;
+
+    ev.type		    = ClientMessage;
+    ev.xclient.window	    = 0;
+    ev.xclient.message_type = d->wmProtocolsAtom;
+    ev.xclient.format	    = 32;
+    ev.xclient.data.l[0]    = d->wmPingAtom;
+    ev.xclient.data.l[1]    = ping;
+    ev.xclient.data.l[2]    = 0;
+    ev.xclient.data.l[3]    = 0;
+    ev.xclient.data.l[4]    = 0;
+
+    for (s = d->screens; s; s = s->next)
+    {
+	for (w = s->windows; w; w = w->next)
+	{
+	    if (w->attrib.map_state != IsViewable)
+		continue;
+
+	    if (!(w->type & CompWindowTypeNormalMask))
+		continue;
+
+	    if (w->protocols & CompWindowProtocolPingMask)
+	    {
+		if (w->transientFor)
+		    continue;
+
+		if (w->lastPong < d->lastPing)
+		{
+		    if (w->alive)
+		    {
+			w->alive	    = FALSE;
+			w->paint.brightness = 0xa8a8;
+			w->paint.saturation = 0;
+
+			if (w->closeRequests)
+			{
+			    toolkitAction (s,
+					   d->toolkitActionForceQuitDialogAtom,
+					   w->lastCloseRequestTime,
+					   w->id,
+					   TRUE,
+					   0,
+					   0);
+
+			    w->closeRequests = 0;
+			}
+
+			addWindowDamage (w);
+		    }
+		}
+
+		ev.xclient.window    = w->id;
+		ev.xclient.data.l[2] = w->id;
+
+		XSendEvent (d->display, w->id, FALSE, NoEventMask, &ev);
+	    }
+	}
+    }
+
+    d->lastPing = ping;
+
+    return TRUE;
+}
+
+static void
+audibleBellChanged (CompObject *object,
+		    const char *interface,
+		    const char *name,
+		    CompBool   value)
+{
+    DISPLAY (object);
+
+    setAudibleBell (d, value);
+}
+
+static void
 filterChanged (CompObject *object,
 	       const char *interface,
 	       const char *name,
@@ -87,15 +181,36 @@ filterChanged (CompObject *object,
 	d->textureFilter = GL_LINEAR;
 }
 
+static void
+pingChanged (CompObject *object,
+	     const char *interface,
+	     const char *name,
+	     int32_t    value)
+{
+    DISPLAY (object);
+
+    if (d->pingHandle)
+	compRemoveTimeout (d->pingHandle);
+
+    d->pingHandle = compAddTimeout (value, pingTimeout, d);
+}
+
 static const CommonMethod displayTypeMethod[] = {
     C_METHOD (addScreen,    "i", "", CompDisplayVTable, marshal__I__E),
     C_METHOD (removeScreen, "i", "", CompDisplayVTable, marshal__I__E)
 };
 static CommonBoolProp displayTypeBoolProp[] = {
-    C_PROP (clickToFocus, CompDisplay)
+    C_PROP (audibleBell, CompDisplay, .changed = audibleBellChanged),
+    C_PROP (autoRaise, CompDisplay),
+    C_PROP (clickToFocus, CompDisplay),
+    C_PROP (hideSkipTaskbarWindows, CompDisplay),
+    C_PROP (ignoreHintsWhenMaximized, CompDisplay),
+    C_PROP (raiseOnClick, CompDisplay)
 };
 static CommonIntProp displayTypeIntProp[] = {
-    C_INT_PROP (filter, CompDisplay, 0, 2, .changed = filterChanged)
+    C_INT_PROP (autoRaiseDelay, CompDisplay, 0, 10000),
+    C_INT_PROP (filter, CompDisplay, 0, 2, .changed = filterChanged),
+    C_INT_PROP (pingDelay, CompDisplay, 1000, 60000, .changed = pingChanged)
 };
 #define INTERFACE_VERSION_displayType CORE_ABIVERSION
 
@@ -748,7 +863,7 @@ changeWindowOpacity (CompWindow *w,
     if (w->type & CompWindowTypeDesktopMask)
 	return;
 
-    step = (0xff * s->opt[COMP_SCREEN_OPTION_OPACITY_STEP].value.i) / 100;
+    step = (0xff * s->opacityStep) / 100;
 
     w->opacityFactor = w->opacityFactor + step * direction;
     if (w->opacityFactor > 0xff)
@@ -1022,10 +1137,6 @@ shade (CompDisplay     *d,
 const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "abi", "int", 0, 0, 0 },
     { "active_plugins", "list", "<type>string</type>", 0, 0 },
-    { "texture_filter", "int", RESTOSTRING (0, 2), 0, 0 },
-    { "click_to_focus", "bool", 0, 0, 0 },
-    { "autoraise", "bool", 0, 0, 0 },
-    { "autoraise_delay", "int", 0, 0, 0 },
     { "close_window_key", "key", 0, closeWin, 0 },
     { "close_window_button", "button", 0, closeWin, 0 },
     { "main_menu_key", "key", 0, mainMenu, 0 },
@@ -1076,20 +1187,15 @@ const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "window_menu_key", "key", 0, windowMenu, 0 },
     { "show_desktop_key", "key", 0, showDesktop, 0 },
     { "show_desktop_edge", "edge", 0, showDesktop, 0 },
-    { "raise_on_click", "bool", 0, 0, 0 },
-    { "audible_bell", "bool", 0, 0, 0 },
     { "toggle_window_maximized_key", "key", 0, toggleMaximized, 0 },
     { "toggle_window_maximized_button", "button", 0, toggleMaximized, 0 },
     { "toggle_window_maximized_horizontally_key", "key", 0,
       toggleMaximizedHorizontally, 0 },
     { "toggle_window_maximized_vertically_key", "key", 0,
       toggleMaximizedVertically, 0 },
-    { "hide_skip_taskbar_windows", "bool", 0, 0, 0 },
     { "toggle_window_shaded_key", "key", 0, shade, 0 },
-    { "ignore_hints_when_maximized", "bool", 0, 0, 0 },
     { "command_terminal", "string", 0, 0, 0 },
-    { "run_command_terminal_key", "key", 0, runCommandTerminal, 0 },
-    { "ping_delay", "int", "<min>1000</min>", 0, 0 }
+    { "run_command_terminal_key", "key", 0, runCommandTerminal, 0 }
 };
 
 CompOption *
@@ -1099,89 +1205,6 @@ getDisplayOptions (CompPlugin  *plugin,
 {
     *count = N_ELEMENTS (display->opt);
     return display->opt;
-}
-
-static void
-setAudibleBell (CompDisplay *display,
-		Bool	    audible)
-{
-    if (display->xkbExtension)
-	XkbChangeEnabledControls (display->display,
-				  XkbUseCoreKbd,
-				  XkbAudibleBellMask,
-				  audible ? XkbAudibleBellMask : 0);
-}
-
-static Bool
-pingTimeout (void *closure)
-{
-    CompDisplay *d = closure;
-    CompScreen  *s;
-    CompWindow  *w;
-    XEvent      ev;
-    int		ping = d->lastPing + 1;
-
-    ev.type		    = ClientMessage;
-    ev.xclient.window	    = 0;
-    ev.xclient.message_type = d->wmProtocolsAtom;
-    ev.xclient.format	    = 32;
-    ev.xclient.data.l[0]    = d->wmPingAtom;
-    ev.xclient.data.l[1]    = ping;
-    ev.xclient.data.l[2]    = 0;
-    ev.xclient.data.l[3]    = 0;
-    ev.xclient.data.l[4]    = 0;
-
-    for (s = d->screens; s; s = s->next)
-    {
-	for (w = s->windows; w; w = w->next)
-	{
-	    if (w->attrib.map_state != IsViewable)
-		continue;
-
-	    if (!(w->type & CompWindowTypeNormalMask))
-		continue;
-
-	    if (w->protocols & CompWindowProtocolPingMask)
-	    {
-		if (w->transientFor)
-		    continue;
-
-		if (w->lastPong < d->lastPing)
-		{
-		    if (w->alive)
-		    {
-			w->alive	    = FALSE;
-			w->paint.brightness = 0xa8a8;
-			w->paint.saturation = 0;
-
-			if (w->closeRequests)
-			{
-			    toolkitAction (s,
-					   d->toolkitActionForceQuitDialogAtom,
-					   w->lastCloseRequestTime,
-					   w->id,
-					   TRUE,
-					   0,
-					   0);
-
-			    w->closeRequests = 0;
-			}
-
-			addWindowDamage (w);
-		    }
-		}
-
-		ev.xclient.window    = w->id;
-		ev.xclient.data.l[2] = w->id;
-
-		XSendEvent (d->display, w->id, FALSE, NoEventMask, &ev);
-	    }
-	}
-    }
-
-    d->lastPing = ping;
-
-    return TRUE;
 }
 
 Bool
@@ -1203,24 +1226,6 @@ setDisplayOption (CompPlugin		*plugin,
     case COMP_DISPLAY_OPTION_ACTIVE_PLUGINS:
 	if (compSetOptionList (o, value))
 	    return TRUE;
-	break;
-    case COMP_DISPLAY_OPTION_PING_DELAY:
-	if (compSetIntOption (o, value))
-	{
-	    if (display->pingHandle)
-		compRemoveTimeout (display->pingHandle);
-
-	    display->pingHandle =
-		compAddTimeout (o->value.i, pingTimeout, display);
-	    return TRUE;
-	}
-	break;
-    case COMP_DISPLAY_OPTION_AUDIBLE_BELL:
-	if (compSetBoolOption (o, value))
-	{
-	    setAudibleBell (display, o->value.b);
-	    return TRUE;
-	}
 	break;
     default:
 	if (compSetDisplayOption (display, o, value))
@@ -1540,8 +1545,7 @@ getTimeToNextRedraw (CompScreen     *s,
     if (diff < 0)
 	diff = 0;
 
-    if (idle ||
-	(s->getVideoSync && s->opt[COMP_SCREEN_OPTION_SYNC_TO_VBLANK].value.b))
+    if (idle || (s->getVideoSync && s->syncToVBlank))
     {
 	if (s->timeMult > 1)
 	{
@@ -1800,7 +1804,7 @@ waitForVideoSync (CompScreen *s)
 {
     unsigned int sync;
 
-    if (!s->opt[COMP_SCREEN_OPTION_SYNC_TO_VBLANK].value.b)
+    if (!s->syncToVBlank)
 	return;
 
     if (s->getVideoSync)
@@ -2886,7 +2890,7 @@ addDisplayOld (CompCore   *c,
 			"No manageable screens found for display %d on "
 			"host %s", displayNum, hostName);
 
-    setAudibleBell (d, d->opt[COMP_DISPLAY_OPTION_AUDIBLE_BELL].value.b);
+    setAudibleBell (d, d->audibleBell);
 
     XGetInputFocus (dpy, &focus, &revertTo);
 
@@ -2916,9 +2920,7 @@ addDisplayOld (CompCore   *c,
     d->watchFdHandle = compAddWatchFd (ConnectionNumber (d->display), POLLIN,
 				       NULL, NULL);
 
-    d->pingHandle =
-	compAddTimeout (d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i,
-			pingTimeout, d);
+    d->pingHandle = compAddTimeout (d->pingDelay, pingTimeout, d);
 
     return TRUE;
 }

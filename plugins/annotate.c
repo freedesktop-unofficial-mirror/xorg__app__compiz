@@ -91,7 +91,7 @@ getDisplayPropData (CompObject *object)
     return (char *) GET_ANNO_DISPLAY (GET_DISPLAY (object));
 }
 
-static const CommonDoubleProp annotateDisplayDoubleProp[] = {
+static CommonDoubleProp annotateDisplayDoubleProp[] = {
     C_PROP (lineWidth, AnnoDisplay),
     C_PROP (strokeWidth, AnnoDisplay)
 };

@@ -1318,7 +1318,7 @@ handleEvent (CompDisplay *d,
 		w = findTopLevelWindowAtScreen (s, event->xbutton.window);
 		if (w)
 		{
-		    if (d->opt[COMP_DISPLAY_OPTION_RAISE_ON_CLICK].value.b)
+		    if (d->raiseOnClick)
 			updateWindowAttributes (w,
 					CompStackingUpdateModeAboveFullscreen);
 
@@ -2019,12 +2019,6 @@ handleEvent (CompDisplay *d,
 	    event->xcrossing.mode   != NotifyUngrab &&
 	    event->xcrossing.detail != NotifyInferior)
 	{
-	    Bool raise;
-	    int  delay;
-
-	    raise = d->opt[COMP_DISPLAY_OPTION_AUTORAISE].value.b;
-	    delay = d->opt[COMP_DISPLAY_OPTION_AUTORAISE_DELAY].value.i;
-
 	    s = findScreenAtDisplay (d, event->xcrossing.root);
 	    if (!s)
 		break;
@@ -2055,13 +2049,13 @@ handleEvent (CompDisplay *d,
 
 	    moveInputFocusToWindow (w);
 
-	    if (raise)
+	    if (d->autoRaise)
 	    {
-		if (delay > 0)
+		if (d->autoRaiseDelay > 0)
 		{
 		    d->autoRaiseWindow = w->id;
-		    d->autoRaiseHandle =
-			compAddTimeout (delay, autoRaiseTimeout, d);
+		    d->autoRaiseHandle = compAddTimeout (d->autoRaiseDelay,
+							 autoRaiseTimeout, d);
 		}
 		else
 		{
