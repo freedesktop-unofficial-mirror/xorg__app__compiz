@@ -850,6 +850,16 @@ typedef struct _CommonStringProp {
     StringPropChangedProc changed;
 } CommonStringProp;
 
+typedef struct _CommonChildObject {
+    const char		 *name;
+    size_t		 offset;
+    const char		 *type;
+    const CompObjectType *objectType;
+} CommonChildObject;
+
+#define C_CHILD(name, object, type)	      \
+    { # name, offsetof (object, name), type }
+
 typedef struct _CommonInterface {
     const char	       *name;
     int		       version;
@@ -867,6 +877,8 @@ typedef struct _CommonInterface {
     int		       nDoubleProp;
     CommonStringProp   *stringProp;
     int		       nStringProp;
+    CommonChildObject  *child;
+    int		       nChild;
 } CommonInterface;
 
 #define C_OFFSET__(vtable, name) 0
@@ -883,13 +895,14 @@ typedef struct _CommonInterface {
 		    bool, int, double, string)				\
     { # name, INTERFACE_VERSION_ ## name ## type,			\
 	    C_OFFSET_ ## offset (vtable, name),				\
-		C_DATA_   ## data   (type),				\
-		C_MEMBER_ ## method (name, type, Method),		\
-		C_MEMBER_ ## signal (name, type, Signal),		\
-		C_MEMBER_ ## bool   (name, type, BoolProp),		\
-		C_MEMBER_ ## int    (name, type, IntProp),		\
-		C_MEMBER_ ## double (name, type, DoubleProp),		\
-		C_MEMBER_ ## string (name, type, StringProp) }
+	    C_DATA_   ## data   (type),					\
+	    C_MEMBER_ ## method (name, type, Method),			\
+	    C_MEMBER_ ## signal (name, type, Signal),			\
+	    C_MEMBER_ ## bool   (name, type, BoolProp),			\
+	    C_MEMBER_ ## int    (name, type, IntProp),			\
+	    C_MEMBER_ ## double (name, type, DoubleProp),		\
+	    C_MEMBER_ ## string (name, type, StringProp),		\
+	    NULL, 0 }
 
 CompBool
 handleForEachInterface (CompObject	      *object,
