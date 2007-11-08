@@ -2559,8 +2559,6 @@ addDisplayOld (CompCore   *c,
 					     COMP_DISPLAY_OPTION_NUM))
 	return FALSE;
 
-    d->clickToFocus = TRUE;
-
     d->opt[COMP_DISPLAY_OPTION_ABI].value.i = CORE_ABIVERSION;
 
 #ifdef DEBUG
