@@ -3341,7 +3341,7 @@ handleCharacters (void		*data,
 	    CommonBoolProp *prop =
 		&pCtx->currentInterface->boolProp[pCtx->propIndex];
 
-	    if (len == 4 && strncmp ((const char *) ch, "true", 4) == 1)
+	    if (len == 4 && strncmp ((const char *) ch, "true", 4) == 0)
 		prop->defaultValue = TRUE;
 	    else
 		prop->defaultValue = FALSE;
