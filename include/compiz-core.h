@@ -892,7 +892,7 @@ typedef struct _CommonInterface {
     name ## type ## member, N_ELEMENTS (name ## type ## member)
 
 #define C_INTERFACE(name, type, vtable, offset, data, method, signal,	\
-		    bool, int, double, string)				\
+		    bool, int, double, string, child)			\
     { # name, INTERFACE_VERSION_ ## name ## type,			\
 	    C_OFFSET_ ## offset (vtable, name),				\
 	    C_DATA_   ## data   (type),					\
@@ -902,7 +902,7 @@ typedef struct _CommonInterface {
 	    C_MEMBER_ ## int    (name, type, IntProp),			\
 	    C_MEMBER_ ## double (name, type, DoubleProp),		\
 	    C_MEMBER_ ## string (name, type, StringProp),		\
-	    NULL, 0 }
+	    C_MEMBER_ ## child  (name, type, ChildObject) }
 
 CompBool
 handleForEachInterface (CompObject	      *object,

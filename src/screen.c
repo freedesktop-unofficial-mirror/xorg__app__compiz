@@ -446,7 +446,7 @@ static CommonBoolProp screenTypeBoolProp[] = {
 };
 static CommonIntProp screenTypeIntProp[] = {
     C_PROP (hSize, CompScreen, .changed = virtualSizeChanged),
-    C_PROP (numberOfDesktops, CompScreen,.changed = numberOfDesktopsChanged),
+    C_PROP (numberOfDesktops, CompScreen, .changed = numberOfDesktopsChanged),
     C_PROP (opacityStep, CompScreen),
     C_PROP (refreshRate, CompScreen, .changed = refreshRateChanged),
     C_PROP (vSize, CompScreen, .changed = virtualSizeChanged)
@@ -454,10 +454,13 @@ static CommonIntProp screenTypeIntProp[] = {
 static CommonStringProp screenTypeStringProp[] = {
     C_PROP (defaultIconImage, CompScreen, .changed = defaultIconChanged)
 };
+static CommonChildObject screenTypeChildObject[] = {
+    C_CHILD (windows, CompScreen, "container")
+};
 #define INTERFACE_VERSION_screenType CORE_ABIVERSION
 
 static CommonInterface screenInterface[] = {
-    C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, _, X, X, _, X)
+    C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, _, X, X, _, X, X)
 };
 
 static CompBool

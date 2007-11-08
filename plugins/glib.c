@@ -69,7 +69,7 @@ static CommonMethod glibCoreMethod[] = {
 #define INTERFACE_VERSION_glibCore 20071011
 
 static const CommonInterface glibCoreInterface[] = {
-    C_INTERFACE (glib, Core, GLibCoreVTable, _, _, X, _, _, _, _, _)
+    C_INTERFACE (glib, Core, GLibCoreVTable, _, _, X, _, _, _, _, _, _)
 };
 
 static void

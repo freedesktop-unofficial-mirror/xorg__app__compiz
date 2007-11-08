@@ -1039,13 +1039,13 @@ getCorePropData (CompObject *object)
     return (char *) GET_FUSE_CORE (GET_CORE (object));
 }
 
-static const CommonStringProp fuseCoreStringProp[] = {
+static CommonStringProp fuseCoreStringProp[] = {
     C_PROP (mountPoint, FuseCore, .set = setMountPoint)
 };
 #define INTERFACE_VERSION_fuseCore 20071011
 
 static const CommonInterface fuseCoreInterface[] = {
-    C_INTERFACE (fuse, Core, CompObjectVTable, _, X, _, _, _, _, _, X)
+    C_INTERFACE (fuse, Core, CompObjectVTable, _, X, _, _, _, _, _, X, _)
 };
 
 static CompBool

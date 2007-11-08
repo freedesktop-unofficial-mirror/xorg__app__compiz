@@ -98,7 +98,8 @@ static CommonDoubleProp annotateDisplayDoubleProp[] = {
 #define INTERFACE_VERSION_annotateDisplay 20071011
 
 static const CommonInterface annoDisplayInterface[] = {
-    C_INTERFACE (annotate, Display, CompObjectVTable, _, X, _, _, _, _, X, _)
+    C_INTERFACE (annotate, Display, CompObjectVTable,
+		 _, X, _, _, _, _, X, _, _)
 };
 
 static void

@@ -69,11 +69,13 @@ static const CommonMethod versionObjectMethod[] = {
 #define INTERFACE_VERSION_versionObject CORE_ABIVERSION
 
 static const CommonInterface objectInterface[] = {
-    C_INTERFACE (object,     Type,   CompObjectVTable, _, _, _, X, _, _, _, _),
-    C_INTERFACE (signal,     Object, CompObjectVTable, X, _, _, X, _, _, _, _),
-    C_INTERFACE (properties, Object, CompObjectVTable, X, _, X, X, _, _, _, _),
-    C_INTERFACE (metadata,   Object, CompObjectVTable, X, _, X, _, _, _, _, _),
-    C_INTERFACE (version,    Object, CompObjectVTable, X, _, X, _, _, _, _, _)
+    C_INTERFACE (object, Type, CompObjectVTable, _, _, _, X, _, _, _, _, _),
+    C_INTERFACE (signal, Object, CompObjectVTable, X, _, _, X, _, _, _, _, _),
+    C_INTERFACE (properties, Object, CompObjectVTable,
+		 X, _, X, X, _, _, _, _, _),
+    C_INTERFACE (metadata, Object, CompObjectVTable,
+		 X, _, X, _, _, _, _, _, _),
+    C_INTERFACE (version, Object, CompObjectVTable, X, _, X, _, _, _, _, _, _)
 };
 
 CompBool

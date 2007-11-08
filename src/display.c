@@ -212,10 +212,13 @@ static CommonIntProp displayTypeIntProp[] = {
     C_INT_PROP (filter, CompDisplay, 0, 2, .changed = filterChanged),
     C_INT_PROP (pingDelay, CompDisplay, 1000, 60000, .changed = pingChanged)
 };
+static CommonChildObject displayTypeChildObject[] = {
+    C_CHILD (screens, CompDisplay, "container")
+};
 #define INTERFACE_VERSION_displayType CORE_ABIVERSION
 
 static CommonInterface displayInterface[] = {
-    C_INTERFACE (display, Type, CompObjectVTable, _, _, X, _, X, X, _, _)
+    C_INTERFACE (display, Type, CompObjectVTable, _, _, X, _, X, X, _, _, X)
 };
 
 static CompBool
