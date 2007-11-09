@@ -440,7 +440,9 @@ coreInitObject (CompObject *object)
     if (!compObjectInit (object, getObjectType ()))
 	return FALSE;
 
-    if (!compObjectInit (&c->displayContainer.base, getContainerObjectType ()))
+    if (!commonObjectInterfaceInit (&c->u.base,
+				    coreInterface,
+				    N_ELEMENTS (coreInterface)))
     {
 	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
@@ -450,13 +452,6 @@ coreInitObject (CompObject *object)
     c->displayContainer.base.parent	   = &c->u.base;
     c->displayContainer.base.name	   = "displays";
 
-    if (!compObjectInit (&c->pluginContainer.base, getContainerObjectType ()))
-    {
-	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
-	compObjectFini (&c->u.base, getObjectType ());
-	return FALSE;
-    }
-
     c->pluginContainer.forEachChildObject = forEachPluginObject;
     c->pluginContainer.base.parent	  = &c->u.base;
     c->pluginContainer.base.name	  = "plugins";
@@ -465,8 +460,9 @@ coreInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &coreObjectPrivates))
     {
-	compObjectFini (&c->pluginContainer.base, getContainerObjectType ());
-	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
+	commonObjectInterfaceFini (&c->u.base,
+				   coreInterface,
+				   N_ELEMENTS (coreInterface));
 	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
@@ -474,8 +470,9 @@ coreInitObject (CompObject *object)
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	compObjectFini (&c->pluginContainer.base, getContainerObjectType ());
-	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
+	commonObjectInterfaceFini (&c->u.base,
+				   coreInterface,
+				   N_ELEMENTS (coreInterface));
 	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
@@ -484,8 +481,9 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	compObjectFini (&c->pluginContainer.base, getContainerObjectType ());
-	compObjectFini (&c->displayContainer.base, getContainerObjectType ());
+	commonObjectInterfaceFini (&c->u.base,
+				   coreInterface,
+				   N_ELEMENTS (coreInterface));
 	compObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
@@ -554,7 +552,9 @@ coreFiniObject (CompObject *object)
     if (c->privates)
 	free (c->privates);
 
-    compObjectFini (&c->displayContainer.base, getContainerObjectType ());
+    commonObjectInterfaceFini (&c->u.base,
+			       coreInterface,
+			       N_ELEMENTS (coreInterface));
     compObjectFini (&c->u.base, getObjectType ());
 }
 

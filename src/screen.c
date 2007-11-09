@@ -1536,19 +1536,10 @@ screenInitObject (CompObject *object)
     if (!compObjectInit (&s->base, getObjectType ()))
 	return FALSE;
 
-    if (!commonObjectPropertiesInit (&s->base,
-				     screenInterface,
-				     N_ELEMENTS (screenInterface)))
-    {
-	compObjectFini (&s->base, getObjectType ());
-	return FALSE;
-    }
-
-    if (!compObjectInit (&s->windowContainer.base, getContainerObjectType ()))
-    {
-	commonObjectPropertiesFini (&s->base,
+    if (!commonObjectInterfaceInit (&s->base,
 				    screenInterface,
-				    N_ELEMENTS (screenInterface));
+				    N_ELEMENTS (screenInterface)))
+    {
 	compObjectFini (&s->base, getObjectType ());
 	return FALSE;
     }
@@ -1561,10 +1552,9 @@ screenInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
-	compObjectFini (&s->windowContainer.base, getContainerObjectType ());
-	commonObjectPropertiesFini (&s->base,
-				    screenInterface,
-				    N_ELEMENTS (screenInterface));
+	commonObjectInterfaceFini (&s->base,
+				   screenInterface,
+				   N_ELEMENTS (screenInterface));
 	compObjectFini (&s->base, getObjectType ());
 	return FALSE;
     }
@@ -1788,11 +1778,9 @@ screenFiniObject (CompObject *object)
     if (s->privates)
 	free (s->privates);
 
-    compObjectFini (&s->windowContainer.base, getContainerObjectType ());
-
-    commonObjectPropertiesFini (&s->base,
-				screenInterface,
-				N_ELEMENTS (screenInterface));
+    commonObjectInterfaceFini (&s->base,
+			       screenInterface,
+			       N_ELEMENTS (screenInterface));
 
     compObjectFini (&s->base, getObjectType ());
 }

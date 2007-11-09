@@ -3706,3 +3706,31 @@ commonObjectChildrenFini (CompObject	        *object,
 				interface[i].child[j].objectType);
     }
 }
+
+CompBool
+commonObjectInterfaceInit (CompObject	         *object,
+			   const CommonInterface *interface,
+			   int		         nInterface)
+{
+
+    if (!commonObjectPropertiesInit (object, interface, nInterface))
+	return FALSE;
+
+    if (!commonObjectChildrenInit (object, interface, nInterface))
+    {
+	commonObjectPropertiesFini (object, interface, nInterface);
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+void
+commonObjectInterfaceFini (CompObject	         *object,
+			   const CommonInterface *interface,
+			   int		         nInterface)
+{
+    commonObjectChildrenFini (object, interface, nInterface);
+    commonObjectPropertiesFini (object, interface, nInterface);
+}
+

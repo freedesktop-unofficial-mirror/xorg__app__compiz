@@ -2377,19 +2377,10 @@ displayInitObject (CompObject *object)
     if (!compObjectInit (&d->u.base, getObjectType ()))
 	return FALSE;
 
-    if (!commonObjectPropertiesInit (&d->u.base,
-				     displayInterface,
-				     N_ELEMENTS (displayInterface)))
-    {
-	compObjectFini (&d->u.base, getObjectType ());
-	return FALSE;
-    }
-
-    if (!compObjectInit (&d->screenContainer.base, getContainerObjectType ()))
-    {
-	commonObjectPropertiesFini (&d->u.base,
+    if (!commonObjectInterfaceInit (&d->u.base,
 				    displayInterface,
-				    N_ELEMENTS (displayInterface));
+				    N_ELEMENTS (displayInterface)))
+    {
 	compObjectFini (&d->u.base, getObjectType ());
 	return FALSE;
     }
@@ -2402,10 +2393,9 @@ displayInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
-	compObjectFini (&d->screenContainer.base, getContainerObjectType ());
-	commonObjectPropertiesFini (&d->u.base,
-				    displayInterface,
-				    N_ELEMENTS (displayInterface));
+	commonObjectInterfaceFini (&d->u.base,
+				   displayInterface,
+				   N_ELEMENTS (displayInterface));
 	compObjectFini (&d->u.base, getObjectType ());
 	return FALSE;
     }
@@ -2457,7 +2447,10 @@ displayFiniObject (CompObject *object)
     if (d->privates)
 	free (d->privates);
 
-    compObjectFini (&d->screenContainer.base, getContainerObjectType ());
+    commonObjectInterfaceFini (&d->u.base,
+			       displayInterface,
+			       N_ELEMENTS (displayInterface));
+
     compObjectFini (&d->u.base, getObjectType ());
 }
 
