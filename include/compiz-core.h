@@ -658,12 +658,12 @@ typedef struct _CompObjectVTableVec {
 } CompObjectVTableVec;
 
 CompBool
-compObjectInit (CompObject     *object,
-		CompObjectType *type);
+compObjectInit (CompObject           *object,
+		const CompObjectType *type);
 
 void
-compObjectFini (CompObject     *object,
-		CompObjectType *type);
+compObjectFini (CompObject           *object,
+		const CompObjectType *type);
 
 typedef struct _CompSignalHandler {
     struct _CompSignalHandler *next;

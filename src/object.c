@@ -79,8 +79,8 @@ static const CommonInterface objectInterface[] = {
 };
 
 CompBool
-compObjectInit (CompObject     *object,
-		CompObjectType *type)
+compObjectInit (CompObject           *object,
+		const CompObjectType *type)
 {
     int i;
 
@@ -106,8 +106,8 @@ compObjectInit (CompObject     *object,
 }
 
 void
-compObjectFini (CompObject     *object,
-		CompObjectType *type)
+compObjectFini (CompObject           *object,
+		const CompObjectType *type)
 {
     if (type->privates)
     {
