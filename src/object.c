@@ -3545,14 +3545,10 @@ commonEnsureChildObjectTypes (CommonInterface *interface,
 
 	    if (interface[i].child[j].type)
 	    {
-		interface[i].child[i].objectType =
-		    compObjectFindType (interface[i].child[i].type);
-		if (!interface[i].child[i].objectType)
-		{
-		    printf ("missing child type: %s\n",
-			    interface[i].child[i].type);
+		interface[i].child[j].objectType =
+		    compObjectFindType (interface[i].child[j].type);
+		if (!interface[i].child[j].objectType)
 		    return FALSE;
-		}
 	    }
 	}
     }
