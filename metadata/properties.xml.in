@@ -1,0 +1,64 @@
+<compiz>
+  <interface name="properties">
+    <method name="getBool">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="b" direction="out"/>
+    </method>
+    <method name="setBool">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="b" direction="in"/>
+    </method>
+    <method name="getInt">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="i" direction="out"/>
+    </method>
+    <method name="setInt">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="i" direction="in"/>
+    </method>
+    <method name="getDouble">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="d" direction="out"/>
+    </method>
+    <method name="setDouble">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="d" direction="in"/>
+    </method>
+    <method name="getString">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="s" direction="out"/>
+    </method>
+    <method name="setString">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="s" direction="in"/>
+    </method>
+    <signal name="boolChanged">
+      <arg name="interface" type="s" direction="out"/>
+      <arg name="name" type="s" direction="out"/>
+      <arg name="value" type="b" direction="out"/>
+    </signal>
+    <signal name="intChanged">
+      <arg name="interface" type="s" direction="out"/>
+      <arg name="name" type="s" direction="out"/>
+      <arg name="value" type="i" direction="out"/>
+    </signal>
+    <signal name="doubleChanged">
+      <arg name="interface" type="s" direction="out"/>
+      <arg name="name" type="s" direction="out"/>
+      <arg name="value" type="d" direction="out"/>
+    </signal>
+    <signal name="stringChanged">
+      <arg name="interface" type="s" direction="out"/>
+      <arg name="name" type="s" direction="out"/>
+      <arg name="value" type="s" direction="out"/>
+    </signal>
+  </interface>
+</compiz>

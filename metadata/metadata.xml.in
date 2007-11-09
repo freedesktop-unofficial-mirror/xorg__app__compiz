@@ -1,0 +1,8 @@
+<compiz>
+  <interface name="metadata">
+    <method name="get">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="data" type="s" direction="out"/>
+    </method>
+  </interface>
+</compiz>

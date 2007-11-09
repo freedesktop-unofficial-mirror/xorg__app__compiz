@@ -1,0 +1,16 @@
+<compiz>
+  <interface name="object">
+    <signal name="interfaceAdded">
+      <arg name="name" type="s" direction="out"/>
+    </signal>
+    <signal name="interfaceRemoved">
+      <arg name="name" type="s" direction="out"/>
+    </signal>
+    <signal name="childObjectAdded">
+      <arg name="object" type="o" direction="out"/>
+    </signal>
+    <signal name="childObjectRemoved">
+      <arg name="object" type="o" direction="out"/>
+    </signal>
+  </interface>
+</compiz>

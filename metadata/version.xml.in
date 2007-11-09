@@ -1,0 +1,8 @@
+<compiz>
+  <interface name="version">
+    <method name="get">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="version" type="i" direction="out"/>
+    </method>
+  </interface>
+</compiz>
