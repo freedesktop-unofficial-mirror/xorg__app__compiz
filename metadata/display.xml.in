@@ -1,10 +1,10 @@
 <compiz>
   <interface name="display">
     <method name="addScreen">
-      <arg type="i" name="number" direction="in"/>
+      <arg name="number" type="i" direction="in"/>
     </method>
     <method name="removeScreen">
-      <arg type="i" name="number" direction="in"/>
+      <arg name="number" type="i" direction="in"/>
     </method>
     <property name="audibleBell" type="b">
       <_short>Audible Bell</_short>
