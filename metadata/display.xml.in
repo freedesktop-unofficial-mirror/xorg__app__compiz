@@ -1,5 +1,11 @@
 <compiz>
   <interface name="display">
+    <method name="addScreen">
+      <arg type="i" name="number" direction="in"/>
+    </method>
+    <method name="removeScreen">
+      <arg type="i" name="number" direction="in"/>
+    </method>
     <property name="audibleBell" type="b">
       <_short>Audible Bell</_short>
       <_long>Audible system beep</_long>
