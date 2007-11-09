@@ -3609,6 +3609,8 @@ commonObjectPropertiesInit (CompObject		  *object,
 
 		    while (i--)
 			commonObjectPropertiesFini (object, &interface[i], 1);
+
+		    return FALSE;
 		}
 
 		PROP_VALUE (data, &interface[i].stringProp[j], char *) = str;
@@ -3643,5 +3645,64 @@ commonObjectPropertiesFini (CompObject		  *object,
 	    if (str)
 		free (str);
 	}
+    }
+}
+
+#define CHILD(data, child)		      \
+    ((CompObject *) (data + (child)->offset))
+
+CompBool
+commonObjectChildrenInit (CompObject	        *object,
+			  const CommonInterface *interface,
+			  int		        nInterface)
+{
+    char *data;
+    int  i, j;
+
+    for (i = 0; i < nInterface; i++)
+    {
+	data = INTERFACE_DATA (object, &interface[i]);
+
+	for (j = 0; j < interface[i].nChild; j++)
+	{
+	    if (interface[i].child[j].objectType)
+	    {
+		if (!compObjectInit (CHILD (data, &interface[i].child[j]),
+				     interface[i].child[j].objectType))
+		{
+		    while (j--)
+			if (interface[i].child[j].objectType)
+			    compObjectFini (CHILD (data,
+						   &interface[i].child[j]),
+					    interface[i].child[j].objectType);
+
+		    while (i--)
+			commonObjectChildrenFini (object, &interface[i], 1);
+
+		    return FALSE;
+		}
+	    }
+	}
+    }
+
+    return TRUE;
+}
+
+void
+commonObjectChildrenFini (CompObject	        *object,
+			  const CommonInterface *interface,
+			  int		        nInterface)
+{
+    char *data;
+    int  i, j;
+
+    for (i = 0; i < nInterface; i++)
+    {
+	data = INTERFACE_DATA (object, &interface[i]);
+
+	for (j = 0; j < interface[i].nChild; j++)
+	    if (interface[i].child[j].objectType)
+		compObjectFini (CHILD (data, &interface[i].child[j]),
+				interface[i].child[j].objectType);
     }
 }
