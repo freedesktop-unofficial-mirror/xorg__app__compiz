@@ -1533,16 +1533,9 @@ screenInitObject (CompObject *object)
 
     SCREEN (object);
 
-    if (!compObjectInit (&s->base, getObjectType ()))
+    if (!commonObjectInit (&s->base, getObjectType (),
+			   screenInterface, N_ELEMENTS (screenInterface)))
 	return FALSE;
-
-    if (!commonObjectInterfaceInit (&s->base,
-				    screenInterface,
-				    N_ELEMENTS (screenInterface)))
-    {
-	compObjectFini (&s->base, getObjectType ());
-	return FALSE;
-    }
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
     s->windowContainer.base.parent	  = &s->base;
@@ -1552,10 +1545,8 @@ screenInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
-	commonObjectInterfaceFini (&s->base,
-				   screenInterface,
-				   N_ELEMENTS (screenInterface));
-	compObjectFini (&s->base, getObjectType ());
+	commonObjectFini (&s->base, getObjectType (),
+			  screenInterface, N_ELEMENTS (screenInterface));
 	return FALSE;
     }
 
@@ -1778,11 +1769,8 @@ screenFiniObject (CompObject *object)
     if (s->privates)
 	free (s->privates);
 
-    commonObjectInterfaceFini (&s->base,
-			       screenInterface,
-			       N_ELEMENTS (screenInterface));
-
-    compObjectFini (&s->base, getObjectType ());
+    commonObjectFini (&s->base, getObjectType (),
+		      screenInterface, N_ELEMENTS (screenInterface));
 }
 
 static void

@@ -437,16 +437,9 @@ coreInitObject (CompObject *object)
 {
     CORE (object);
 
-    if (!compObjectInit (object, getObjectType ()))
+    if (!commonObjectInit (&c->u.base, getObjectType (),
+			   coreInterface, N_ELEMENTS (coreInterface)))
 	return FALSE;
-
-    if (!commonObjectInterfaceInit (&c->u.base,
-				    coreInterface,
-				    N_ELEMENTS (coreInterface)))
-    {
-	compObjectFini (&c->u.base, getObjectType ());
-	return FALSE;
-    }
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
     c->displayContainer.base.parent	   = &c->u.base;
@@ -458,22 +451,11 @@ coreInitObject (CompObject *object)
 
     c->u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
-    if (!allocateObjectPrivates (object, &coreObjectPrivates))
-    {
-	commonObjectInterfaceFini (&c->u.base,
-				   coreInterface,
-				   N_ELEMENTS (coreInterface));
-	compObjectFini (&c->u.base, getObjectType ());
-	return FALSE;
-    }
-
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	commonObjectInterfaceFini (&c->u.base,
-				   coreInterface,
-				   N_ELEMENTS (coreInterface));
-	compObjectFini (&c->u.base, getObjectType ());
+	commonObjectFini (&c->u.base, getObjectType (),
+			  coreInterface, N_ELEMENTS (coreInterface));
 	return FALSE;
     }
 
@@ -481,10 +463,17 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	commonObjectInterfaceFini (&c->u.base,
-				   coreInterface,
-				   N_ELEMENTS (coreInterface));
-	compObjectFini (&c->u.base, getObjectType ());
+	commonObjectFini (&c->u.base, getObjectType (),
+			  coreInterface, N_ELEMENTS (coreInterface));
+	return FALSE;
+    }
+
+    if (!allocateObjectPrivates (object, &coreObjectPrivates))
+    {
+	XDestroyRegion (c->outputRegion);
+	XDestroyRegion (c->tmpRegion);
+	commonObjectFini (&c->u.base, getObjectType (),
+			  coreInterface, N_ELEMENTS (coreInterface));
 	return FALSE;
     }
 
@@ -552,10 +541,8 @@ coreFiniObject (CompObject *object)
     if (c->privates)
 	free (c->privates);
 
-    commonObjectInterfaceFini (&c->u.base,
-			       coreInterface,
-			       N_ELEMENTS (coreInterface));
-    compObjectFini (&c->u.base, getObjectType ());
+    commonObjectFini (&c->u.base, getObjectType (),
+		      coreInterface, N_ELEMENTS (coreInterface));
 }
 
 static void

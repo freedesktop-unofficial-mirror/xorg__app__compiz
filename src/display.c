@@ -2374,16 +2374,9 @@ displayInitObject (CompObject *object)
 
     DISPLAY (object);
 
-    if (!compObjectInit (&d->u.base, getObjectType ()))
+    if (!commonObjectInit (&d->u.base, getObjectType (),
+			   displayInterface, N_ELEMENTS (displayInterface)))
 	return FALSE;
-
-    if (!commonObjectInterfaceInit (&d->u.base,
-				    displayInterface,
-				    N_ELEMENTS (displayInterface)))
-    {
-	compObjectFini (&d->u.base, getObjectType ());
-	return FALSE;
-    }
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
     d->screenContainer.base.parent	  = &d->u.base;
@@ -2393,10 +2386,8 @@ displayInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
-	commonObjectInterfaceFini (&d->u.base,
-				   displayInterface,
-				   N_ELEMENTS (displayInterface));
-	compObjectFini (&d->u.base, getObjectType ());
+	commonObjectFini (&d->u.base, getObjectType (),
+			  displayInterface, N_ELEMENTS (displayInterface));
 	return FALSE;
     }
 
@@ -2447,11 +2438,8 @@ displayFiniObject (CompObject *object)
     if (d->privates)
 	free (d->privates);
 
-    commonObjectInterfaceFini (&d->u.base,
-			       displayInterface,
-			       N_ELEMENTS (displayInterface));
-
-    compObjectFini (&d->u.base, getObjectType ());
+    commonObjectFini (&d->u.base, getObjectType (),
+		      displayInterface, N_ELEMENTS (displayInterface));
 }
 
 static void

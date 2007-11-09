@@ -1094,6 +1094,18 @@ commonObjectInterfaceFini (CompObject	         *object,
 			   const CommonInterface *interface,
 			   int		         nInterface);
 
+CompBool
+commonObjectInit (CompObject	        *object,
+		  const CompObjectType  *baseType,
+		  const CommonInterface *interface,
+		  int		        nInterface);
+
+void
+commonObjectFini (CompObject	        *object,
+		  const CompObjectType  *baseType,
+		  const CommonInterface *interface,
+		  int		        nInterface);
+
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))
 

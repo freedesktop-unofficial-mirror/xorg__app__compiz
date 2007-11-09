@@ -3734,3 +3734,30 @@ commonObjectInterfaceFini (CompObject	         *object,
     commonObjectPropertiesFini (object, interface, nInterface);
 }
 
+CompBool
+commonObjectInit (CompObject	        *object,
+		  const CompObjectType  *baseType,
+		  const CommonInterface *interface,
+		  int		        nInterface)
+{
+    if (!compObjectInit (object, baseType))
+	return FALSE;
+
+    if (!commonObjectInterfaceInit (object, interface, nInterface))
+    {
+	compObjectFini (object, baseType);
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+void
+commonObjectFini (CompObject	        *object,
+		  const CompObjectType  *baseType,
+		  const CommonInterface *interface,
+		  int		        nInterface)
+{
+    commonObjectInterfaceFini (object, interface, nInterface);
+    compObjectFini (object, baseType);
+}
