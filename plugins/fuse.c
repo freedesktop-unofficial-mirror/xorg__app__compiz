@@ -947,6 +947,9 @@ fuseMount (CompCore *c)
     fuse_opt_add_arg (&args, "-o");
     fuse_opt_add_arg (&args, "allow_root");
 
+    if (!fc->mountPoint)
+	return;
+
     fc->channel = fuse_mount (fc->mountPoint, &args);
     if (!fc->channel)
     {
@@ -1093,8 +1096,9 @@ fuseInitCore (CompCore *c)
     if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    fc->mountPoint = strdup ("compiz");
-    if (!fc->mountPoint)
+    if (!commonObjectInterfaceInit (&c->u.base,
+				    fuseCoreInterface,
+				    N_ELEMENTS (fuseCoreInterface)))
 	return FALSE;
 
     memset (&sa, 0, sizeof (struct sigaction));
@@ -1104,14 +1108,21 @@ fuseInitCore (CompCore *c)
     sa.sa_flags = 0;
 
     if (sigaction (SIGPIPE, &sa, NULL) == -1)
+    {
+	commonObjectInterfaceFini (&c->u.base,
+				   fuseCoreInterface,
+				   N_ELEMENTS (fuseCoreInterface));
 	return FALSE;
+    }
 
     fc->session = fuse_lowlevel_new (NULL,
 				     &compiz_ll_oper, sizeof (compiz_ll_oper),
 				     (void *) c);
     if (!fc->session)
     {
-	free (fc->mountPoint);
+	commonObjectInterfaceFini (&c->u.base,
+				   fuseCoreInterface,
+				   N_ELEMENTS (fuseCoreInterface));
 	return FALSE;
     }
 
@@ -1141,11 +1152,12 @@ fuseFiniCore (CompCore *c)
 
     fuse_session_destroy (fc->session);
 
-    free (fc->mountPoint);
-
     commonInterfacesRemoved (&c->u.base,
 			     fuseCoreInterface,
 			     N_ELEMENTS (fuseCoreInterface));
+    commonObjectInterfaceFini (&c->u.base,
+			       fuseCoreInterface,
+			       N_ELEMENTS (fuseCoreInterface));
 }
 
 static CompObjectPrivate fuseObj[] = {

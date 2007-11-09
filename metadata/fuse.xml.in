@@ -1,0 +1,11 @@
+<compiz>
+  <interface name="fuse">
+    <_short>Userspace File System</_short>
+    <_long>Userspace file system</_long>
+    <property name="mountPoint" type="s">
+      <_short>Mount Point</_short>
+      <_long>Mount point</_long>
+      <default>compiz</default>
+    </property>
+  </interface>
+</compiz>

@@ -10,7 +10,7 @@ xml_in_files =		  \
 	dbus.xml.in	  \
 	decoration.xml.in \
 	fade.xml.in	  \
-	fs.xml.in	  \
+	fuse.xml.in	  \
 	gconf.xml.in	  \
 	glib.xml.in	  \
 	ini.xml.in	  \
