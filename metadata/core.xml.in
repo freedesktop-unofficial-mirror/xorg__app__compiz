@@ -1,4 +1,14 @@
 <compiz>
+  <interface name="core">
+    <method name="addDisplay">
+      <arg name="hostName" type="s" direction="in"/>
+      <arg name="displayNum" type="i" direction="in"/>
+    </method>
+    <method name="removeDisplay">
+      <arg name="hostName" type="s" direction="in"/>
+      <arg name="displayNum" type="i" direction="in"/>
+    </method>
+  </interface>
     <core>
 	<_short>General Options</_short>
 	<_long>General compiz options</_long>
