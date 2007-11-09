@@ -519,19 +519,10 @@ screenForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
 			  void			  *closure)
 {
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    SCREEN (object);
-
-    if (!(*proc) (&s->windowContainer.base, closure))
-	return FALSE;
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->forEachChildObject) (object, proc, closure);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
+    return handleForEachChildObject (object,
+				     screenInterface,
+				     N_ELEMENTS (screenInterface),
+				     proc, closure);
 }
 
 CompOption *

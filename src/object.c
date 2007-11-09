@@ -980,6 +980,34 @@ handleForEachInterface (CompObject	      *object,
     return noopForEachInterface (object, proc, closure);
 }
 
+#define INTERFACE_DATA(object, interface) \
+    ((interface)->data ? (*(interface)->data) (object) : (char *) object)
+
+#define CHILD(data, child)		      \
+    ((CompObject *) (data + (child)->offset))
+
+CompBool
+handleForEachChildObject (CompObject		  *object,
+			  const CommonInterface   *interface,
+			  int		          nInterface,
+			  ChildObjectCallBackProc proc,
+			  void			  *closure)
+{
+    char *data;
+    int  i, j;
+
+    for (i = 0; i < nInterface; i++)
+    {
+	data = INTERFACE_DATA (object, interface);
+
+	for (j = 0; j < interface[i].nChild; j++)
+	    if (!(*proc) (CHILD (data, &interface[i].child[j]), closure))
+		return FALSE;
+    }
+
+    return noopForEachChildObject (object, proc, closure);
+}
+
 typedef struct _IsCommonInterfaceContext {
     CompObjectVTable *vTable;
     const char	     *name;
@@ -1535,9 +1563,6 @@ emitSignalSignal (CompObject *object,
 
     va_end (args);
 }
-
-#define INTERFACE_DATA(object, interface) \
-    ((interface)->data ? (*(interface)->data) (object) : (char *) object)
 
 static CompBool
 handleGetBoolProp (CompObject		*object,
@@ -3647,9 +3672,6 @@ commonObjectPropertiesFini (CompObject		  *object,
 	}
     }
 }
-
-#define CHILD(data, child)		      \
-    ((CompObject *) (data + (child)->offset))
 
 CompBool
 commonObjectChildrenInit (CompObject	        *object,

@@ -275,19 +275,10 @@ displayForEachChildObject (CompObject		   *object,
 			   ChildObjectCallBackProc proc,
 			   void			   *closure)
 {
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    DISPLAY (object);
-
-    if (!(*proc) (&d->screenContainer.base, closure))
-	return FALSE;
-
-    UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->forEachChildObject) (object, proc, closure);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return status;
+    return handleForEachChildObject (object,
+				     displayInterface,
+				     N_ELEMENTS (displayInterface),
+				     proc, closure);
 }
 
 typedef struct _AddRemoveScreenContext {

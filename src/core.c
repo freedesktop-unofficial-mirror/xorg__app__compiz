@@ -97,19 +97,10 @@ coreForEachChildObject (CompObject		*object,
 			ChildObjectCallBackProc proc,
 			void			*closure)
 {
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE (object);
-
-    if (!(*proc) (&c->displayContainer.base, closure))
-	return FALSE;
-
-    UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->forEachChildObject) (object, proc, closure);
-    WRAP (&c->object, object, vTable, v.vTable);
-
-    return status;
+    return handleForEachChildObject (object,
+				     coreInterface,
+				     N_ELEMENTS (coreInterface),
+				     proc, closure);
 }
 
 static CompBool

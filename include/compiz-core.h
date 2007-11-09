@@ -913,6 +913,13 @@ handleForEachInterface (CompObject	      *object,
 			void		      *closure);
 
 CompBool
+handleForEachChildObject (CompObject		  *object,
+			  const CommonInterface   *interface,
+			  int		          nInterface,
+			  ChildObjectCallBackProc proc,
+			  void			  *closure);
+
+CompBool
 commonForEachMethod (CompObject		*object,
 		     void		*key,
 		     MethodCallBackProc proc,
