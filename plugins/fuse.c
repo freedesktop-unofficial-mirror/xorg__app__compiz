@@ -34,8 +34,6 @@
 
 #include <compiz-core.h>
 
-static CompMetadata fuseMetadata;
-
 static int corePrivateIndex;
 
 typedef struct _FuseCore {
@@ -1034,7 +1032,7 @@ setMountPoint (CompObject *object,
 }
 
 static char *
-getCorePropData (CompObject *object)
+getCoreData (CompObject *object)
 {
     return (char *) GET_FUSE_CORE (GET_CORE (object));
 }
@@ -1044,7 +1042,7 @@ static CommonStringProp fuseCoreStringProp[] = {
 };
 #define INTERFACE_VERSION_fuseCore 20071011
 
-static const CommonInterface fuseCoreInterface[] = {
+static CommonInterface fuseCoreInterface[] = {
     C_INTERFACE (fuse, Core, CompObjectVTable, _, X, _, _, _, _, _, X, _)
 };
 
@@ -1167,14 +1165,14 @@ static CompObjectPrivate fuseObj[] = {
 static Bool
 fuseInit (CompPlugin *p)
 {
-    if (!compInitObjectMetadataFromInfo (&fuseMetadata, p->vTable->name, 0, 0))
+    if (!commonInterfaceInit (fuseCoreInterface,
+			      N_ELEMENTS (fuseCoreInterface)))
 	return FALSE;
-
-    compAddMetadataFromFile (&fuseMetadata, p->vTable->name);
 
     if (!compObjectInitPrivates (fuseObj, N_ELEMENTS (fuseObj)))
     {
-	compFiniMetadata (&fuseMetadata);
+	commonInterfaceFini (fuseCoreInterface,
+			     N_ELEMENTS (fuseCoreInterface));
 	return FALSE;
     }
 
@@ -1185,7 +1183,8 @@ static void
 fuseFini (CompPlugin *p)
 {
     compObjectFiniPrivates (fuseObj, N_ELEMENTS (fuseObj));
-    compFiniMetadata (&fuseMetadata);
+    commonInterfaceFini (fuseCoreInterface,
+			 N_ELEMENTS (fuseCoreInterface));
 }
 
 CompPluginVTable fuseVTable = {

@@ -86,7 +86,7 @@ typedef struct _AnnoScreen {
     AnnoScreen *as = GET_ANNO_SCREEN (s)
 
 static char *
-getDisplayPropData (CompObject *object)
+getDisplayData (CompObject *object)
 {
     return (char *) GET_ANNO_DISPLAY (GET_DISPLAY (object));
 }

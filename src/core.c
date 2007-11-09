@@ -34,12 +34,12 @@ static const CommonMethod coreTypeMethod[] = {
     C_METHOD (removeDisplay, "si", "", CompCoreVTable, marshal__SI__E)
 };
 static CommonChildObject coreTypeChildObject[] = {
-    C_CHILD (displays, CompCore, "container"),
-    C_CHILD (plugins, CompCore, "container")
+    C_CHILD (displayContainer, CompCore, "container"),
+    C_CHILD (pluginContainer, CompCore, "container")
 };
 #define INTERFACE_VERSION_coreType CORE_ABIVERSION
 
-static const CommonInterface coreInterface[] = {
+static CommonInterface coreInterface[] = {
     C_INTERFACE (core, Type, CompObjectVTable, _, _, X, _, _, _, _, _, X)
 };
 
@@ -584,6 +584,7 @@ getCoreObjectType (void)
 
     if (!init)
     {
+	commonInterfaceInit (coreInterface, N_ELEMENTS (coreInterface));
 	coreInitVTable (&coreObjectVTable);
 	init = TRUE;
     }

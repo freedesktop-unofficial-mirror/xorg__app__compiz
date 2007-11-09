@@ -36,8 +36,6 @@
 #define COMPIZ_DBUS_INTERFACE_BASE "org.freedesktop.compiz."
 #define COMPIZ_DBUS_PATH_ROOT	   "/org/freedesktop/compiz"
 
-static CompMetadata dbusMetadata;
-
 static int corePrivateIndex;
 
 typedef struct _DBusCore {
@@ -911,16 +909,8 @@ static CompObjectPrivate dbusObj[] = {
 static Bool
 dbusInit (CompPlugin *p)
 {
-    if (!compInitObjectMetadataFromInfo (&dbusMetadata, p->vTable->name, 0, 0))
-	return FALSE;
-
-    compAddMetadataFromFile (&dbusMetadata, p->vTable->name);
-
     if (!compObjectInitPrivates (dbusObj, N_ELEMENTS (dbusObj)))
-    {
-	compFiniMetadata (&dbusMetadata);
 	return FALSE;
-    }
 
     return TRUE;
 }
@@ -929,7 +919,6 @@ static void
 dbusFini (CompPlugin *p)
 {
     compObjectFiniPrivates (dbusObj, N_ELEMENTS (dbusObj));
-    compFiniMetadata (&dbusMetadata);
 }
 
 CompPluginVTable dbusVTable = {

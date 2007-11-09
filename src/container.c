@@ -71,7 +71,7 @@ containerForEachType (CompObject       *object,
     CompObjectVTableVec v = { object->vTable };
     CompBool		status;
 
-    CORE (object);
+    CONTAINER (object);
 
     if (!(*proc) (object, getContainerObjectType (), closure))
 	return FALSE;

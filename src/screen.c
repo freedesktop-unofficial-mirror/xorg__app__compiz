@@ -445,17 +445,19 @@ static CommonBoolProp screenTypeBoolProp[] = {
     C_PROP (unredirectFullscreenWindows, CompScreen)
 };
 static CommonIntProp screenTypeIntProp[] = {
-    C_PROP (hSize, CompScreen, .changed = virtualSizeChanged),
-    C_PROP (numberOfDesktops, CompScreen, .changed = numberOfDesktopsChanged),
-    C_PROP (opacityStep, CompScreen),
-    C_PROP (refreshRate, CompScreen, .changed = refreshRateChanged),
-    C_PROP (vSize, CompScreen, .changed = virtualSizeChanged)
+    C_INT_PROP (hSize, CompScreen, 1, 32, .changed = virtualSizeChanged),
+    C_INT_PROP (numberOfDesktops, CompScreen, 1, 36,
+		.changed = numberOfDesktopsChanged),
+    C_INT_PROP (opacityStep, CompScreen, 1, 50),
+    C_INT_PROP (refreshRate, CompScreen, 1, 200,
+		.changed = refreshRateChanged),
+    C_INT_PROP (vSize, CompScreen, 1, 32, .changed = virtualSizeChanged)
 };
 static CommonStringProp screenTypeStringProp[] = {
     C_PROP (defaultIconImage, CompScreen, .changed = defaultIconChanged)
 };
 static CommonChildObject screenTypeChildObject[] = {
-    C_CHILD (windows, CompScreen, "container")
+    C_CHILD (windowContainer, CompScreen, "container")
 };
 #define INTERFACE_VERSION_screenType CORE_ABIVERSION
 
@@ -1534,7 +1536,7 @@ screenInitObject (CompObject *object)
     if (!compObjectInit (&s->base, getObjectType ()))
 	return FALSE;
 
-    if (!initCommonObjectProperties (&s->base,
+    if (!commonObjectPropertiesInit (&s->base,
 				     screenInterface,
 				     N_ELEMENTS (screenInterface)))
     {
@@ -1544,7 +1546,7 @@ screenInitObject (CompObject *object)
 
     if (!compObjectInit (&s->windowContainer.base, getContainerObjectType ()))
     {
-	finiCommonObjectProperties (&s->base,
+	commonObjectPropertiesFini (&s->base,
 				    screenInterface,
 				    N_ELEMENTS (screenInterface));
 	compObjectFini (&s->base, getObjectType ());
@@ -1560,7 +1562,7 @@ screenInitObject (CompObject *object)
     if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
 	compObjectFini (&s->windowContainer.base, getContainerObjectType ());
-	finiCommonObjectProperties (&s->base,
+	commonObjectPropertiesFini (&s->base,
 				    screenInterface,
 				    N_ELEMENTS (screenInterface));
 	compObjectFini (&s->base, getObjectType ());
@@ -1788,7 +1790,7 @@ screenFiniObject (CompObject *object)
 
     compObjectFini (&s->windowContainer.base, getContainerObjectType ());
 
-    finiCommonObjectProperties (&s->base,
+    commonObjectPropertiesFini (&s->base,
 				screenInterface,
 				N_ELEMENTS (screenInterface));
 
@@ -1818,9 +1820,7 @@ getScreenObjectType (void)
 
     if (!init)
     {
-	commonDefaultValuesFromFile (screenInterface,
-				     N_ELEMENTS (screenInterface),
-				     "core");
+	commonInterfaceInit (screenInterface, N_ELEMENTS (screenInterface));
 	screenInitVTable (&screenObjectVTable);
 	init = TRUE;
     }
@@ -4212,6 +4212,9 @@ updateDefaultIcon (CompScreen *screen)
 	free (screen->defaultIcon);
 	screen->defaultIcon = NULL;
     }
+
+    if (!file)
+	return FALSE;
 
     if (!readImageFromFile (screen->display, file, &width, &height, &data))
 	return FALSE;

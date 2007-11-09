@@ -1,0 +1,69 @@
+<compiz>
+  <interface name="screen">
+    <property name="detectOutputs" type="b">
+      <_short>Detect Outputs</_short>
+      <_long>Automatic detection of output devices</_long>
+      <default>true</default>
+    </property>
+    <property name="detectRefreshRate" type="b">
+      <_short>Detect Refresh Rate</_short>
+      <_long>Automatic detection of refresh rate</_long>
+      <default>true</default>
+    </property>
+    <property name="lighting" type="b">
+      <_short>Lighting</_short>
+      <_long>Use diffuse light when screen is transformed</_long>
+      <default>true</default>
+    </property>
+    <property name="syncToVBlank" type="b">
+      <_short>Sync To VBlank</_short>
+      <_long>Only perform screen updates during vertical blanking period</_long>
+      <default>true</default>
+    </property>
+    <property name="unredirectFullscreenWindows" type="b">
+      <_short>Unredirect Fullscreen Windows</_short>
+      <_long>Allow drawing of fullscreen windows to not be redirected to offscreen pixmaps</_long>
+      <default>false</default>
+    </property>
+    <property name="hSize" type="i">
+      <_short>Horizontal Virtual Size</_short>
+      <_long>Screen size multiplier for horizontal virtual size</_long>
+      <default>4</default>
+      <min>1</min>
+      <max>32</max>
+    </property>
+    <property name="numberOfDesktops" type="i">
+      <_short>Number of Desktops</_short>
+      <_long>Number of virtual desktops</_long>
+      <default>1</default>
+      <min>1</min>
+      <max>36</max>
+    </property>
+    <property name="opacityStep" type="i">
+      <_short>Opacity Step</_short>
+      <_long>Opacity change step</_long>
+      <default>10</default>
+      <min>1</min>
+      <max>50</max>
+    </property>
+    <property name="refreshRate" type="i">
+      <_short>Refresh Rate</_short>
+      <_long>The rate at which the screen is redrawn (times/second)</_long>
+      <default>50</default>
+      <min>1</min>
+      <max>200</max>
+    </property>
+    <property name="vSize" type="i">
+      <_short>Vertical Virtual Size</_short>
+      <_long>Screen size multiplier for vertical virtual size</_long>
+      <default>1</default>
+      <min>1</min>
+      <max>32</max>
+    </property>
+    <property name="defaultIconImage" type="s">
+      <_short>Default Icon</_short>
+      <_long>Default window icon image</_long>
+      <default>icon</default>
+    </property>
+  </interface>
+</compiz>

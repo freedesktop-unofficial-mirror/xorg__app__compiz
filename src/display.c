@@ -213,7 +213,7 @@ static CommonIntProp displayTypeIntProp[] = {
     C_INT_PROP (pingDelay, CompDisplay, 1000, 60000, .changed = pingChanged)
 };
 static CommonChildObject displayTypeChildObject[] = {
-    C_CHILD (screens, CompDisplay, "container")
+    C_CHILD (screenContainer, CompDisplay, "container")
 };
 #define INTERFACE_VERSION_displayType CORE_ABIVERSION
 
@@ -2377,7 +2377,7 @@ displayInitObject (CompObject *object)
     if (!compObjectInit (&d->u.base, getObjectType ()))
 	return FALSE;
 
-    if (!initCommonObjectProperties (&d->u.base,
+    if (!commonObjectPropertiesInit (&d->u.base,
 				     displayInterface,
 				     N_ELEMENTS (displayInterface)))
     {
@@ -2387,7 +2387,7 @@ displayInitObject (CompObject *object)
 
     if (!compObjectInit (&d->screenContainer.base, getContainerObjectType ()))
     {
-	finiCommonObjectProperties (&d->u.base,
+	commonObjectPropertiesFini (&d->u.base,
 				    displayInterface,
 				    N_ELEMENTS (displayInterface));
 	compObjectFini (&d->u.base, getObjectType ());
@@ -2403,7 +2403,7 @@ displayInitObject (CompObject *object)
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
 	compObjectFini (&d->screenContainer.base, getContainerObjectType ());
-	finiCommonObjectProperties (&d->u.base,
+	commonObjectPropertiesFini (&d->u.base,
 				    displayInterface,
 				    N_ELEMENTS (displayInterface));
 	compObjectFini (&d->u.base, getObjectType ());
@@ -2487,9 +2487,7 @@ getDisplayObjectType (void)
 
     if (!init)
     {
-	commonDefaultValuesFromFile (displayInterface,
-				     N_ELEMENTS (displayInterface),
-				     "core");
+	commonInterfaceInit (displayInterface, N_ELEMENTS (displayInterface));
 	displayInitVTable (&displayObjectVTable);
 	init = TRUE;
     }

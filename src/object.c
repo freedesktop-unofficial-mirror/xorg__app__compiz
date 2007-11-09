@@ -2607,6 +2607,12 @@ compObjectFindType (const char *name)
     ctx.name = name;
     ctx.type = NULL;
 
+    if (!checkType (getObjectType (), (void *) &ctx))
+	return ctx.type;
+
+    if (!checkType (getContainerObjectType (), (void *) &ctx))
+	return ctx.type;
+
     (*core.forEachObjectType) (checkType, (void *) &ctx);
 
     return ctx.type;
@@ -3450,6 +3456,27 @@ defaultValuesFromFile (CommonInterface *interface,
     return (status == 0) ? TRUE : FALSE;
 }
 
+static void
+commonVerfiyDefaultValues (CommonInterface *interface,
+			   int		   nInterface)
+{
+    int i, j;
+
+    for (i = 0; i < nInterface; i++)
+    {
+	for (j = 0; j < interface[i].nIntProp; j++)
+	    interface[i].intProp[j].defaultValue =
+		MAX (MIN (interface[i].intProp[j].defaultValue,
+			  interface[i].intProp[j].max),
+		     interface[i].intProp[j].min);
+	for (j = 0; j < interface[i].nDoubleProp; j++)
+	    interface[i].doubleProp[j].defaultValue =
+		MAX (MIN (interface[i].doubleProp[j].defaultValue,
+			  interface[i].doubleProp[j].max),
+		     interface[i].doubleProp[j].min);
+    }
+}
+
 void
 commonDefaultValuesFromFile (CommonInterface *interface,
 			     int	     nInterface,
@@ -3474,6 +3501,65 @@ commonDefaultValuesFromFile (CommonInterface *interface,
 
     if (!status)
 	defaultValuesFromFile (interface, nInterface, METADATADIR, name);
+
+    commonVerfiyDefaultValues (interface, nInterface);
+}
+
+static CompBool
+commonEnsureChildObjectTypes (CommonInterface *interface,
+			      int	      nInterface)
+{
+    int i, j;
+
+    for (i = 0; i < nInterface; i++)
+    {
+	for (j = 0; j < interface[i].nChild; j++)
+	{
+	    if (interface[i].child[j].objectType)
+		continue;
+
+	    if (interface[i].child[j].type)
+	    {
+		interface[i].child[i].objectType =
+		    compObjectFindType (interface[i].child[i].type);
+		if (!interface[i].child[i].objectType)
+		{
+		    printf ("missing child type: %s\n",
+			    interface[i].child[i].type);
+		    return FALSE;
+		}
+	    }
+	}
+    }
+
+    return TRUE;
+}
+
+CompBool
+commonInterfaceInit (CommonInterface *interface,
+		     int	     nInterface)
+{
+    int i;
+
+    if (!commonEnsureChildObjectTypes (interface, nInterface))
+	return FALSE;
+
+    for (i = 0; i < nInterface; i++)
+	commonDefaultValuesFromFile (&interface[i], 1, interface->name);
+
+    return TRUE;
+}
+
+void
+commonInterfaceFini (CommonInterface *interface,
+		     int	     nInterface)
+{
+    int i, j;
+
+    for (i = 0; i < nInterface; i++)
+	for (j = 0; j < interface[i].nStringProp; j++)
+	    if (interface[i].stringProp[j].data)
+		free (interface[i].stringProp[j].data);
 }
 
 #define PROP_VALUE(data, prop, type)	       \
@@ -3483,7 +3569,7 @@ commonDefaultValuesFromFile (CommonInterface *interface,
     PROP_VALUE (data, prop, type) = (prop)->defaultValue
 
 CompBool
-initCommonObjectProperties (CompObject		  *object,
+commonObjectPropertiesInit (CompObject		  *object,
 			    const CommonInterface *interface,
 			    int			  nInterface)
 {
@@ -3522,7 +3608,7 @@ initCommonObjectProperties (CompObject		  *object,
 		    }
 
 		    while (i--)
-			finiCommonObjectProperties (object, &interface[i], 1);
+			commonObjectPropertiesFini (object, &interface[i], 1);
 		}
 
 		PROP_VALUE (data, &interface[i].stringProp[j], char *) = str;
@@ -3538,7 +3624,7 @@ initCommonObjectProperties (CompObject		  *object,
 }
 
 void
-finiCommonObjectProperties (CompObject		  *object,
+commonObjectPropertiesFini (CompObject		  *object,
 			    const CommonInterface *interface,
 			    int			  nInterface)
 {

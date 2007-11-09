@@ -767,7 +767,7 @@ compObjectCheckVersion (CompObject *object,
 			const char *interface,
 			int	   version);
 
-typedef char *(*GetPropDataProc) (CompObject *object);
+typedef char *(*GetDataProc) (CompObject *object);
 
 typedef struct _CommonMethod {
     const char	      *name;
@@ -864,7 +864,7 @@ typedef struct _CommonInterface {
     const char	       *name;
     int		       version;
     size_t	       offset;
-    GetPropDataProc    data;
+    GetDataProc	       data;
     const CommonMethod *method;
     int		       nMethod;
     const CommonSignal *signal;
@@ -885,7 +885,7 @@ typedef struct _CommonInterface {
 #define C_OFFSET_X(vtable, name) offsetof (vtable, name)
 
 #define C_DATA__(type) NULL
-#define C_DATA_X(type) get ## type ## PropData
+#define C_DATA_X(type) get ## type ## Data
 
 #define C_MEMBER__(name, type, member) NULL, 0
 #define C_MEMBER_X(name, type, member)				\
@@ -1052,22 +1052,25 @@ compInvokeMethod (CompObject *object,
 		  CompArgs   *args);
 
 void
-commonDefaultValuesFromString (CommonInterface *interface,
-			       int	       nInterface,
-			       const char      *str);
-
-void
 commonDefaultValuesFromFile (CommonInterface *interface,
 			     int	     nInterface,
 			     const char      *name);
 
 CompBool
-initCommonObjectProperties (CompObject		  *object,
+commonInterfaceInit (CommonInterface *interface,
+		     int	     nInterface);
+
+void
+commonInterfaceFini (CommonInterface *interface,
+		     int	     nInterface);
+
+CompBool
+commonObjectPropertiesInit (CompObject		  *object,
 			    const CommonInterface *interface,
 			    int			  nInterface);
 
 void
-finiCommonObjectProperties (CompObject		  *object,
+commonObjectPropertiesFini (CompObject		  *object,
 			    const CommonInterface *interface,
 			    int			  nInterface);
 
