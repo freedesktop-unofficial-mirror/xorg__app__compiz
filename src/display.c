@@ -213,7 +213,7 @@ static CommonIntProp displayTypeIntProp[] = {
     C_INT_PROP (pingDelay, CompDisplay, 1000, 60000, .changed = pingChanged)
 };
 static CommonChildObject displayTypeChildObject[] = {
-    C_CHILD (screenContainer, CompDisplay, "container")
+    C_CHILD (screenContainer, CompDisplay, CONTAINER_TYPE_NAME)
 };
 #define INTERFACE_VERSION_displayType CORE_ABIVERSION
 

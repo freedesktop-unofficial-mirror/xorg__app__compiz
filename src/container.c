@@ -121,7 +121,7 @@ containerInitVTable (void *vTable)
 }
 
 static CompObjectType containerObjectType = {
-    "container",
+    CONTAINER_TYPE_NAME,
     {
 	containerInitObject,
 	containerFiniObject

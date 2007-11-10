@@ -1182,6 +1182,8 @@ typedef struct _CompContainer {
 #define GET_CONTAINER(object) ((CompContainer *) (object))
 #define CONTAINER(object) CompContainer *c = GET_CONTAINER (object)
 
+#define CONTAINER_TYPE_NAME "container"
+
 CompObjectType *
 getContainerObjectType (void);
 

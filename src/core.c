@@ -34,8 +34,8 @@ static const CommonMethod coreTypeMethod[] = {
     C_METHOD (removeDisplay, "si", "", CompCoreVTable, marshal__SI__E)
 };
 static CommonChildObject coreTypeChildObject[] = {
-    C_CHILD (displayContainer, CompCore, "container"),
-    C_CHILD (pluginContainer, CompCore, "container")
+    C_CHILD (displayContainer, CompCore, CONTAINER_TYPE_NAME),
+    C_CHILD (pluginContainer, CompCore, CONTAINER_TYPE_NAME)
 };
 #define INTERFACE_VERSION_coreType CORE_ABIVERSION
 
