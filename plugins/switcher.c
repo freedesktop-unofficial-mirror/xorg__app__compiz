@@ -417,7 +417,7 @@ switchToWindow (CompScreen *s,
 
     SWITCH_SCREEN (s);
 
-    if (!ss->grabIndex)
+    if (!ss->switching)
 	return;
 
     for (cur = 0; cur < ss->nWindows; cur++)
@@ -700,7 +700,7 @@ switchTerminate (CompDisplay     *d,
 	if (xid && s->root != xid)
 	    continue;
 
-	if (ss->grabIndex)
+	if (ss->switching)
 	{
 	    CompWindow *w;
 
@@ -733,8 +733,11 @@ switchTerminate (CompDisplay     *d,
 		    sendWindowActivationRequest (w->screen, w->id);
 	    }
 
-	    removeScreenGrab (s, ss->grabIndex, 0);
-	    ss->grabIndex = 0;
+	    if (ss->grabIndex)
+	    {
+		removeScreenGrab (s, ss->grabIndex, 0);
+		ss->grabIndex = 0;
+	    }
 
 	    if (!ss->zooming)
 	    {
@@ -1059,7 +1062,7 @@ switchWindowRemove (CompDisplay *d,
 	    return;
 	}
 
-	if (!ss->grabIndex)
+	if (!ss->switching)
 	    return;
 
 	switchUpdateWindowList (w->screen, count);
@@ -1351,7 +1354,7 @@ switchPaintOutput (CompScreen		   *s,
 
     ss->zoomMask = ZOOMED_WINDOW_MASK | NORMAL_WINDOW_MASK;
 
-    if (ss->grabIndex || (ss->zooming && ss->translate > 0.001f))
+    if (ss->switching || (ss->zooming && ss->translate > 0.001f))
     {
 	CompTransform sTransform = *transform;
 	CompWindow    *zoomed;
@@ -1461,7 +1464,7 @@ switchDonePaintScreen (CompScreen *s)
 {
     SWITCH_SCREEN (s);
 
-    if ((ss->grabIndex || ss->zooming) && ss->moreAdjust)
+    if ((ss->switching || ss->zooming) && ss->moreAdjust)
     {
 	if (ss->zooming)
 	{
@@ -1841,7 +1844,7 @@ switchDamageWindowRect (CompWindow *w,
 
     SWITCH_SCREEN (w->screen);
 
-    if (ss->grabIndex)
+    if (ss->switching)
     {
 	CompWindow *popup;
 	int	   i;
