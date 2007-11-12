@@ -1083,7 +1083,8 @@ static CompCoreVTable fuseCoreObjectVTable = {
     .base.forEachProp          = commonForEachProp,
     .base.version.get          = commonGetVersion,
     .base.properties.getString = commonGetStringProp,
-    .base.properties.setString = commonSetStringProp
+    .base.properties.setString = commonSetStringProp,
+    .base.metadata.get	       = commonGetMetadata
 };
 
 static CompBool

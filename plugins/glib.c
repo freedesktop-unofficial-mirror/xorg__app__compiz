@@ -220,6 +220,7 @@ static GLibCoreVTable glibCoreObjectVTable = {
     .base.base.forEachInterface = glibCoreForEachInterface,
     .base.base.forEachMethod    = commonForEachMethod,
     .base.base.version.get      = commonGetVersion,
+    .base.base.metadata.get     = commonGetMetadata,
     .wakeUp			= glibWakeup
 };
 
