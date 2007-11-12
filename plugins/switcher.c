@@ -643,42 +643,39 @@ switchInitiate (CompScreen *s,
     if (!ss->grabIndex)
 	ss->grabIndex = pushScreenGrab (s, s->invisibleCursor, "switcher");
 
-    if (ss->grabIndex)
+    if (!ss->switching)
     {
-	if (!ss->switching)
+	ss->lastActiveNum = s->activeNum;
+
+	switchCreateWindowList (s, count);
+
+	ss->sTranslate = ss->zoom;
+
+	if (ss->popupWindow && showPopup)
 	{
-	    ss->lastActiveNum = s->activeNum;
+	    CompWindow *w;
 
-	    switchCreateWindowList (s, count);
-
-	    ss->sTranslate = ss->zoom;
-
-	    if (ss->popupWindow && showPopup)
+	    w = findWindowAtScreen (s, ss->popupWindow);
+	    if (w && (w->state & CompWindowStateHiddenMask))
 	    {
-		CompWindow *w;
-
-		w = findWindowAtScreen (s, ss->popupWindow);
-		if (w && (w->state & CompWindowStateHiddenMask))
-		{
-		    w->hidden = FALSE;
-		    showWindow (w);
-		}
-		else
-		{
-		    XMapWindow (s->display->display, ss->popupWindow);
-		}
+		w->hidden = FALSE;
+		showWindow (w);
 	    }
-
-	    setSelectedWindowHint (s);
-
-	    switchActivateEvent (s, TRUE);
+	    else
+	    {
+		XMapWindow (s->display->display, ss->popupWindow);
+	    }
 	}
 
-	damageScreen (s);
+	setSelectedWindowHint (s);
 
-	ss->switching  = TRUE;
-	ss->moreAdjust = 1;
+	switchActivateEvent (s, TRUE);
     }
+
+    damageScreen (s);
+
+    ss->switching  = TRUE;
+    ss->moreAdjust = 1;
 }
 
 static Bool
