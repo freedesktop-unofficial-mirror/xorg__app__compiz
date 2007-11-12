@@ -2398,6 +2398,10 @@ displayInitObject (CompObject *object)
 
     d->ignoredModMask = LockMask;
 
+    d->modState		   = 0;
+    d->lastKeyEventTime	   = 0;
+    d->lastButtonEventTime = 0;
+
     d->textureFilter = GL_LINEAR;
     d->below	     = None;
 
@@ -2836,10 +2840,9 @@ addDisplayOld (CompCore   *c,
 
     for (i = firstScreen; i <= lastScreen; i++)
     {
-	Window	     rootDummy, childDummy;
-	unsigned int uDummy;
-	int	     x, y, dummy;
-	char	     *error;
+	Window rootDummy, childDummy;
+	int    x, y, dummy;
+	char   *error;
 
 	if (!(d->u.vTable->addScreen) (d, i, &error))
 	{
@@ -2851,7 +2854,7 @@ addDisplayOld (CompCore   *c,
 
 	if (XQueryPointer (dpy, XRootWindow (dpy, i),
 			   &rootDummy, &childDummy,
-			   &x, &y, &dummy, &dummy, &uDummy))
+			   &x, &y, &dummy, &dummy, &d->modState))
 	{
 	    lastPointerX = pointerX = x;
 	    lastPointerY = pointerY = y;

@@ -1943,6 +1943,10 @@ struct _CompDisplay {
     KeyCode escapeKeyCode;
     KeyCode returnKeyCode;
 
+    unsigned int modState;
+    Time         lastKeyEventTime;
+    Time         lastButtonEventTime;
+
     CompOption opt[COMP_DISPLAY_OPTION_NUM];
 
     CompTimeoutHandle autoRaiseHandle;

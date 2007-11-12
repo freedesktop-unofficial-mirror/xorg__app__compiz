@@ -733,6 +733,8 @@ handleActionEvent (CompDisplay *d,
 	o[7].name    = "time";
 	o[7].value.i = event->xbutton.time;
 
+	d->lastButtonEventTime = event->xbutton.time;
+
 	for (p = getPlugins (); p; p = p->next)
 	{
 	    if (!p->vTable->getObjectOptions)
@@ -758,6 +760,8 @@ handleActionEvent (CompDisplay *d,
 	o[7].type    = CompOptionTypeInt;
 	o[7].name    = "time";
 	o[7].value.i = event->xbutton.time;
+
+	d->lastButtonEventTime = event->xbutton.time;
 
 	for (p = getPlugins (); p; p = p->next)
 	{
@@ -785,6 +789,8 @@ handleActionEvent (CompDisplay *d,
 	o[7].name    = "time";
 	o[7].value.i = event->xkey.time;
 
+	d->lastKeyEventTime = event->xkey.time;
+
 	for (p = getPlugins (); p; p = p->next)
 	{
 	    if (!p->vTable->getObjectOptions)
@@ -810,6 +816,8 @@ handleActionEvent (CompDisplay *d,
 	o[7].type    = CompOptionTypeInt;
 	o[7].name    = "time";
 	o[7].value.i = event->xkey.time;
+
+	d->lastKeyEventTime = event->xkey.time;
 
 	for (p = getPlugins (); p; p = p->next)
 	{
@@ -1040,7 +1048,10 @@ handleActionEvent (CompDisplay *d,
 
 	    if (xkbEvent->xkb_type == XkbStateNotify)
 	    {
-		XkbStateNotifyEvent *stateEvent = (XkbStateNotifyEvent *) event;
+		unsigned int	    mods = d->modState;
+		XEvent		    kb;
+		XkbStateNotifyEvent *stateEvent =
+		    (XkbStateNotifyEvent *) event;
 
 		o[0].value.i = d->activeWindow;
 		o[1].value.i = d->activeWindow;
@@ -1049,6 +1060,8 @@ handleActionEvent (CompDisplay *d,
 		o[3].type    = CompOptionTypeInt;
 		o[3].name    = "time";
 		o[3].value.i = xkbEvent->time;
+
+		d->modState = stateEvent->mods;
 
 		for (p = getPlugins (); p; p = p->next)
 		{
@@ -1059,6 +1072,64 @@ handleActionEvent (CompDisplay *d,
 		    if (triggerStateNotifyBindings (d, option, nOption,
 						    stateEvent, o, 4))
 			return TRUE;
+		}
+
+		if (stateEvent->event_type == KeyPress ||
+		    stateEvent->event_type == KeyRelease)
+		{
+		    /* make sure we didn't received a core key event
+		       for this state change */
+		    if (d->lastKeyEventTime != xkbEvent->time)
+		    {
+			CompWindow *w;
+
+			kb.xkey.state   = mods;
+			kb.xkey.keycode = stateEvent->keycode;
+
+			o[2].value.i = kb.xkey.state;
+			o[3].type    = CompOptionTypeInt;
+			o[3].name    = "x";
+			o[3].value.i = pointerX;
+			o[4].value.i = pointerY;
+
+			w = findWindowAtDisplay (d, d->activeWindow);
+			if (w)
+			    o[5].value.i = w->screen->root;
+			else
+			    o[5].value.i = 0;
+
+			o[6].type    = CompOptionTypeInt;
+			o[6].name    = "keycode";
+			o[6].value.i = kb.xkey.keycode;
+
+			o[7].type    = CompOptionTypeInt;
+			o[7].name    = "time";
+			o[7].value.i = xkbEvent->time;
+
+			for (p = getPlugins (); p; p = p->next)
+			{
+			    if (!p->vTable->getObjectOptions)
+				continue;
+
+			    option = (*p->vTable->getObjectOptions) (p, obj,
+								     &nOption);
+
+			    if (stateEvent->event_type == KeyPress)
+			    {
+				if (triggerKeyPressBindings (d,
+							     option, nOption,
+							     &kb, o, 8))
+				    return TRUE;
+			    }
+			    else
+			    {
+				if (triggerKeyReleaseBindings (d,
+							       option, nOption,
+							       &kb, o, 8))
+				    return TRUE;
+			    }
+			}
+		    }
 		}
 	    }
 	    else if (xkbEvent->xkb_type == XkbBellNotify)
