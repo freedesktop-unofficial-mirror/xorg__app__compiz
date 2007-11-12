@@ -1740,6 +1740,106 @@ keycodeToModifiers (CompDisplay *d,
     return mods;
 }
 
+#define EXTRA_MOD_ENTRY_MODIFIER 5
+
+void
+updateModifierEntries (CompDisplay *d)
+{
+    CompModEntry *entry;
+    KeyCode	 keycode;
+    int		 k;
+    CompBool	 changed = FALSE;
+
+    entry = d->modEntries;
+    while (entry)
+    {
+	if (keycodeToModifiers (d, entry->keycode) == 0)
+	{
+	    d->modMap =
+		XInsertModifiermapEntry (d->modMap, entry->keycode,
+					 EXTRA_MOD_ENTRY_MODIFIER);
+	    changed = TRUE;
+	}
+
+	entry = entry->next;
+    }
+
+    for (k = 0; k < d->modMap->max_keypermod; k++)
+    {
+	keycode = d->modMap->modifiermap[EXTRA_MOD_ENTRY_MODIFIER *
+					 d->modMap->max_keypermod + k];
+	if (!keycode)
+	    continue;
+
+	entry = d->modEntries;
+	while (entry)
+	{
+	    if (keycode == entry->keycode)
+		break;
+
+	    entry = entry->next;
+	}
+
+	if (!entry)
+	{
+	    d->modMap =
+		XDeleteModifiermapEntry (d->modMap, keycode,
+					 EXTRA_MOD_ENTRY_MODIFIER);
+	    changed = TRUE;
+	}
+    }
+
+    if (changed)
+	XSetModifierMapping (d->display, d->modMap);
+}
+
+CompModEntryHandle
+compAddModEntry (CompDisplay *d,
+		 KeyCode     keycode)
+{
+    CompModEntry *entry;
+
+    entry = malloc (sizeof (CompModEntry));
+    if (!entry)
+	return 0;
+
+    entry->keycode = keycode;
+    entry->handle  = d->lastModEntryHandle++;
+    entry->next    = d->modEntries;
+
+    d->modEntries = entry;
+
+    if (d->lastModEntryHandle == MAXSHORT)
+	d->lastModEntryHandle = 1;
+
+    return entry->handle;
+}
+
+void
+compRemoveModEntry (CompDisplay	       *d,
+		    CompModEntryHandle handle)
+{
+    CompModEntry *entry, *prev = NULL;
+
+    for (entry = d->modEntries; entry; entry = entry->next)
+    {
+	if (entry->handle == handle)
+	    break;
+
+	prev = entry;
+    }
+
+    if (entry)
+    {
+	if (prev)
+	    prev->next = entry->next;
+	else
+	    d->modEntries = entry->next;
+
+	free (entry);
+    }
+}
+
 static int
 doPoll (int timeout)
 {
@@ -2402,6 +2502,9 @@ displayInitObject (CompObject *object)
     d->lastKeyEventTime	   = 0;
     d->lastButtonEventTime = 0;
 
+    d->modEntries         = NULL;
+    d->lastModEntryHandle = 1;
+
     d->textureFilter = GL_LINEAR;
     d->below	     = None;
 
@@ -2551,6 +2654,7 @@ addDisplayOld (CompCore   *c,
     d->dummyWindow = createDummyXWindow (d, DefaultRootWindow (dpy));
 
     updateModifierMappings (d);
+    updateModifierEntries (d);
 
     d->supportedAtom	     = XInternAtom (dpy, "_NET_SUPPORTED", 0);
     d->supportingWmCheckAtom = XInternAtom (dpy, "_NET_SUPPORTING_WM_CHECK", 0);

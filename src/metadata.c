@@ -625,6 +625,7 @@ initKeyValue (CompDisplay     *d,
     memset (&v->action, 0, sizeof (v->action));
 
     v->action.state = state | CompActionStateInitKey;
+    v->action.modEntryHandle = 0;
 
     if (!doc)
 	return;

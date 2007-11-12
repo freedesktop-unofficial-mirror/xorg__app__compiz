@@ -1256,6 +1256,8 @@ struct _CompAction {
     CompKeyBinding    key;
     CompButtonBinding button;
 
+    unsigned int modEntryHandle;
+
     Bool bell;
 
     unsigned int edgeMask;
@@ -1729,6 +1731,15 @@ typedef void (*LogMessageProc) (CompDisplay  *d,
 				CompLogLevel level,
 				const char   *message);
 
+typedef unsigned int CompModEntryHandle;
+
+typedef struct _CompModEntry {
+    struct _CompModEntry *next;
+
+    CompModEntryHandle handle;
+    KeyCode	       keycode;
+} CompModEntry;
+
 typedef CompBool (*AddScreenProc) (CompDisplay *display,
 				   int32_t     number,
 				   char	       **error);
@@ -1947,6 +1958,9 @@ struct _CompDisplay {
     Time         lastKeyEventTime;
     Time         lastButtonEventTime;
 
+    CompModEntry	*modEntries;
+    CompFileWatchHandle lastModEntryHandle;
+
     CompOption opt[COMP_DISPLAY_OPTION_NUM];
 
     CompTimeoutHandle autoRaiseHandle;
@@ -2050,6 +2064,17 @@ updateModifierMappings (CompDisplay *d);
 unsigned int
 keycodeToModifiers (CompDisplay *d,
 		    int         keycode);
+
+void
+updateModifierEntries (CompDisplay *d);
+
+CompModEntryHandle
+compAddModEntry (CompDisplay *display,
+		 KeyCode     keycode);
+
+void
+compRemoveModEntry (CompDisplay	       *display,
+		    CompModEntryHandle handle);
 
 void
 eventLoop (void);
