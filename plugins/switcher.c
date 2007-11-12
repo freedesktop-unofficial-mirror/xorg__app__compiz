@@ -1891,7 +1891,23 @@ switchSetDisplayOption (CompPlugin      *plugin,
     if (!o)
 	return FALSE;
 
-    return compSetDisplayOption (display, o, value);
+    if (o->type == CompOptionTypeKey)
+    {
+	if (compSetDisplayOption (display, o, value))
+	{
+	    compRemoveModEntry (display, o->value.action.modEntryHandle);
+	    o->value.action.modEntryHandle =
+		compAddModEntry (display, o->value.action.key.keycode);
+	    updateModifierEntries (display);
+	    return TRUE;
+	}
+    }
+    else
+    {
+	return compSetDisplayOption (display, o, value);
+    }
+
+    return FALSE;
 }
 
 static const CompMetadataOptionInfo switchDisplayOptionInfo[] = {
@@ -1916,6 +1932,7 @@ switchInitDisplay (CompPlugin  *p,
 		   CompDisplay *d)
 {
     SwitchDisplay *sd;
+    int		  i;
 
     if (!checkPluginABI ("core", CORE_ABIVERSION))
 	return FALSE;
@@ -1947,6 +1964,13 @@ switchInitDisplay (CompPlugin  *p,
     sd->selectFgColorAtom =
 	XInternAtom (d->display, DECOR_SWITCH_FOREGROUND_COLOR_ATOM_NAME, 0);
 
+    for (i = 0; i < SWITCH_DISPLAY_OPTION_NUM; i++)
+	if (sd->opt[i].type == CompOptionTypeKey)
+	    sd->opt[i].value.action.modEntryHandle =
+		compAddModEntry (d, sd->opt[i].value.action.key.keycode);
+
+    updateModifierEntries (d);
+
     WRAP (sd, d, handleEvent, switchHandleEvent);
 
     d->privates[displayPrivateIndex].ptr = sd;
@@ -1958,7 +1982,15 @@ static void
 switchFiniDisplay (CompPlugin  *p,
 		   CompDisplay *d)
 {
+    int i;
+
     SWITCH_DISPLAY (d);
+
+    for (i = 0; i < SWITCH_DISPLAY_OPTION_NUM; i++)
+	if (sd->opt[i].type == CompOptionTypeKey)
+	    compRemoveModEntry (d, sd->opt[i].value.action.modEntryHandle);
+
+    updateModifierEntries (d);
 
     freeScreenPrivateIndex (sd->screenPrivateIndex);
 
