@@ -92,4 +92,3 @@ esprintf (char	     **strp,
 
     return n;
 }
-

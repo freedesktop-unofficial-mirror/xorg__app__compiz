@@ -257,6 +257,8 @@ extern CompMetadata coreMetadata;
 
 /* error.c */
 
+#define NO_MEMORY_ERROR_STRING "No memory"
+
 /* similar to asprintf except that 'strp' can be NULL */
 int
 esprintf (char	     **strp,
@@ -1029,6 +1031,12 @@ commonStringPropChanged (CompObject *object,
 int
 commonGetVersion (CompObject *object,
 		  const char *interface);
+
+CompBool
+commonGetMetadata (CompObject *object,
+		   const char *interface,
+		   char	      **data,
+		   char	      **error);
 
 typedef struct _CompBasicArgs {
     CompArgs base;

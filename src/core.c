@@ -24,6 +24,7 @@
  */
 
 #include <string.h>
+#include <sys/stat.h>
 
 #include <compiz-core.h>
 
@@ -101,58 +102,6 @@ coreForEachChildObject (CompObject		*object,
 				     coreInterface,
 				     N_ELEMENTS (coreInterface),
 				     proc, closure);
-}
-
-static CompBool
-coreGetMetadata (CompObject *object,
-		 const char *interface,
-		 char	    **data,
-		 char	    **error)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE (object);
-
-    if (strcmp (interface, "core") == 0)
-    {
-	xmlBufferPtr buffer;
-
-	buffer = xmlBufferCreate ();
-	if (buffer)
-	{
-	    if (coreMetadata.nDoc)
-	    {
-		if (xmlNodeDump (buffer,
-				 coreMetadata.doc[0],
-				 coreMetadata.doc[0]->children,
-				 0, 1) > 0)
-		    *data = strdup ((char *) xmlBufferContent (buffer));
-		else
-		    *data = NULL;
-	    }
-	    else
-	    {
-		*data = strdup ("");
-	    }
-
-	    xmlBufferFree (buffer);
-
-	    if (*data)
-		return TRUE;
-	}
-
-	if (error)
-	    *error = strdup ("No memory");
-
-	return FALSE;
-    }
-
-    UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->metadata.get) (object, interface, data, error);
-    WRAP (&c->object, object, vTable, v.vTable);
-
-    return status;
 }
 
 typedef struct _AddRemoveDisplayContext {
@@ -377,7 +326,7 @@ static CompCoreVTable coreObjectVTable = {
     .base.forEachType	     = coreForEachType,
     .base.forEachChildObject = coreForEachChildObject,
     .base.version.get	     = commonGetVersion,
-    .base.metadata.get	     = coreGetMetadata,
+    .base.metadata.get	     = commonGetMetadata,
     .addDisplay		     = addDisplay,
     .removeDisplay	     = removeDisplay
 };

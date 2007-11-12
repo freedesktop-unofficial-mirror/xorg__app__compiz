@@ -24,6 +24,7 @@
  */
 
 #include <string.h>
+#include <sys/stat.h>
 
 #include <compiz-core.h>
 
@@ -2363,16 +2364,151 @@ stringPropChanged (CompObject *object,
 		     interface, name, value);
 }
 
-static CompBool
-getMetadata (CompObject *object,
-	     const char *interface,
-	     char	**data,
-	     char	**error)
-{
-    if (error)
-	*error = strdup ("No available metadata");
+#define HOME_DATADIR   ".compiz/data"
+#define XML_EXTENSION ".xml"
 
-    return FALSE;
+typedef CompBool (*ForMetadataFileProc) (FILE	     *fp,
+					 const char  *path,
+					 struct stat *buf,
+					 void	     *closure);
+
+static CompBool
+forMetadataFile (const char	     *path,
+		 ForMetadataFileProc proc,
+		 void		     *closure)
+{
+    FILE	*fp;
+    struct stat buf;
+    CompBool	status = TRUE;
+
+    if (stat (path, &buf) == 0)
+    {
+	fp = fopen (path, "r");
+	if (fp)
+	{
+	    status = (*proc) (fp, path, &buf, closure);
+	    fclose (fp);
+	}
+    }
+
+    return status;
+}
+
+static CompBool
+forEachMetadataFile (const char	         *file,
+		     ForMetadataFileProc proc,
+		     void		 *closure)
+{
+    CompBool status = TRUE;
+    char     *home;
+    char     *path;
+
+    home = getenv ("HOME");
+    if (home)
+    {
+	path = malloc (strlen (home) + strlen (HOME_DATADIR) +
+		       strlen (file) + strlen (XML_EXTENSION) + 2);
+	if (path)
+	{
+	    sprintf (path, "%s/%s%s%s", home, HOME_DATADIR, file,
+		     XML_EXTENSION);
+
+	    status = forMetadataFile (path, proc, closure);
+
+	    free (path);
+	}
+    }
+
+    if (status)
+    {
+	path = malloc (strlen (METADATADIR) + strlen (file) +
+		       strlen (XML_EXTENSION) + 2);
+	if (path)
+	{
+	    sprintf (path, "%s/%s%s", METADATADIR, file, XML_EXTENSION);
+
+	    status = forMetadataFile (path, proc, closure);
+
+	    free (path);
+	}
+    }
+
+    return status;
+}
+
+static CompBool
+readMetadata (FILE	  *fp,
+	      const char  *path,
+	      struct stat *buf,
+	      void	  *closure)
+{
+    char *data;
+
+    data = malloc (buf->st_size + 1);
+    if (data)
+    {
+	GetMetadataContext *pCtx = (GetMetadataContext *) closure;
+
+	data[fread (data, 1, buf->st_size, fp)] = '\0';
+	*pCtx->data = data;
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+static CompBool
+handleGetInterfaceMetadata (CompObject		 *object,
+			    const char	         *name,
+			    void		 *key,
+			    size_t		 offset,
+			    const CompObjectType *type,
+			    void		 *closure)
+{
+    GetMetadataContext *pCtx = (GetMetadataContext *) closure;
+
+    if (strcmp (name, pCtx->interface) == 0)
+    {
+	if (forEachMetadataFile (name, readMetadata, closure))
+	{
+	    char *data;
+
+	    data = strdup ("<compiz/>");
+	    if (data)
+	    {
+		*pCtx->data = data;
+	    }
+	    else
+	    {
+		esprintf (pCtx->error, NO_MEMORY_ERROR_STRING, name);
+	    }
+	}
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+CompBool
+commonGetMetadata (CompObject *object,
+		   const char *interface,
+		   char	      **data,
+		   char	      **error)
+{
+    GetMetadataContext ctx;
+
+    ctx.interface = interface;
+    ctx.data      = data;
+    ctx.error     = error;
+
+    if (!(*object->vTable->forEachInterface) (object,
+					      handleGetInterfaceMetadata,
+					      (void *) &ctx))
+	return TRUE;
+
+    return noopGetMetadata (object, interface, data, error);
 }
 
 static CompObjectVTable objectVTable = {
@@ -2407,7 +2543,7 @@ static CompObjectVTable objectVTable = {
 	setStringProp,
 	stringPropChanged
     }, {
-	getMetadata
+	commonGetMetadata
     }
 };
 
@@ -3429,58 +3565,6 @@ handleCharacters (void		*data,
     }
 }
 
-#define HOME_DATADIR   ".compiz/data"
-#define XML_EXTENSION ".xml"
-
-static CompBool
-defaultValuesFromFile (CommonInterface *interface,
-		       int	       nInterface,
-		       const char      *path,
-		       const char      *name)
-{
-    xmlSAXHandler saxHandler = {
-	.initialized  = XML_SAX2_MAGIC,
-	.startElement = handleStartElement,
-	.endElement   = handleEndElement,
-	.characters   = handleCharacters
-    };
-    DefaultValuesContext ctx = {
-	.interface  = interface,
-	.nInterface = nInterface
-    };
-    char *file;
-    int  length = strlen (name) + strlen (XML_EXTENSION) + 1;
-    FILE *fp;
-    int  status;
-
-    if (path)
-	length += strlen (path) + 1;
-
-    file = malloc (length);
-    if (!file)
-	return FALSE;
-
-    if (path)
-	sprintf (file, "%s/%s%s", path, name, XML_EXTENSION);
-    else
-	sprintf (file, "%s%s", name, XML_EXTENSION);
-
-    fp = fopen (file, "r");
-    if (!fp)
-    {
-	free (file);
-	return FALSE;
-    }
-
-    fclose (fp);
-
-    status = xmlSAXUserParseFile (&saxHandler, &ctx, file);
-
-    free (file);
-
-    return (status == 0) ? TRUE : FALSE;
-}
-
 static void
 commonVerfiyDefaultValues (CommonInterface *interface,
 			   int		   nInterface)
@@ -3502,30 +3586,36 @@ commonVerfiyDefaultValues (CommonInterface *interface,
     }
 }
 
+static CompBool
+parseDefaultValues (FILE	*fp,
+		    const char  *path,
+		    struct stat *buf,
+		    void	*closure)
+{
+    xmlSAXHandler saxHandler = {
+	.initialized  = XML_SAX2_MAGIC,
+	.startElement = handleStartElement,
+	.endElement   = handleEndElement,
+	.characters   = handleCharacters
+    };
+
+    if (!xmlSAXUserParseFile (&saxHandler, closure, path))
+	return TRUE;
+
+    return FALSE;
+}
+
 void
 commonDefaultValuesFromFile (CommonInterface *interface,
 			     int	     nInterface,
 			     const char      *name)
 {
-    CompBool status = FALSE;
-    char     *home;
+    DefaultValuesContext ctx = {
+	.interface  = interface,
+	.nInterface = nInterface
+    };
 
-    home = getenv ("HOME");
-    if (home)
-    {
-	char *path;
-
-	path = malloc (strlen (home) + strlen (HOME_DATADIR) + 2);
-	if (path)
-	{
-	    sprintf (path, "%s/%s", home, HOME_DATADIR);
-	    status = defaultValuesFromFile (interface, nInterface, path, name);
-	    free (path);
-	}
-    }
-
-    if (!status)
-	defaultValuesFromFile (interface, nInterface, METADATADIR, name);
+    forEachMetadataFile (name, parseDefaultValues, (void *) &ctx);
 
     commonVerfiyDefaultValues (interface, nInterface);
 }
