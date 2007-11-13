@@ -1742,24 +1742,21 @@ keycodeToModifiers (CompDisplay *d,
 
 #define EXTRA_MOD_ENTRY_MODIFIER 5
 
-void
-updateModifierEntries (CompDisplay *d)
+static Bool
+setModifierEntries (void *closure)
 {
+    CompDisplay  *d = closure;
     CompModEntry *entry;
     KeyCode	 keycode;
-    int		 k;
-    CompBool	 changed = FALSE;
+    int		 result, k;
 
     entry = d->modEntries;
     while (entry)
     {
 	if (keycodeToModifiers (d, entry->keycode) == 0)
-	{
 	    d->modMap =
 		XInsertModifiermapEntry (d->modMap, entry->keycode,
 					 EXTRA_MOD_ENTRY_MODIFIER);
-	    changed = TRUE;
-	}
 
 	entry = entry->next;
     }
@@ -1781,16 +1778,29 @@ updateModifierEntries (CompDisplay *d)
 	}
 
 	if (!entry)
-	{
 	    d->modMap =
 		XDeleteModifiermapEntry (d->modMap, keycode,
 					 EXTRA_MOD_ENTRY_MODIFIER);
-	    changed = TRUE;
-	}
     }
 
-    if (changed)
-	XSetModifierMapping (d->display, d->modMap);
+    result = XSetModifierMapping (d->display, d->modMap);
+    if (result == MappingBusy)
+	return TRUE;
+
+    return FALSE;
+}
+
+#define SET_MODIFIER_MAPPING_DELAY 50
+
+void
+updateModifierEntries (CompDisplay *d)
+{
+    if (!d->setModEntriesHandle)
+	if (setModifierEntries ((void *) d))
+	    d->setModEntriesHandle =
+		compAddTimeout (SET_MODIFIER_MAPPING_DELAY,
+				setModifierEntries,
+				(void *) d);
 }
 
 CompModEntryHandle
@@ -2502,8 +2512,9 @@ displayInitObject (CompObject *object)
     d->lastKeyEventTime	   = 0;
     d->lastButtonEventTime = 0;
 
-    d->modEntries         = NULL;
-    d->lastModEntryHandle = 1;
+    d->modEntries          = NULL;
+    d->lastModEntryHandle  = 1;
+    d->setModEntriesHandle = 0;
 
     d->textureFilter = GL_LINEAR;
     d->below	     = None;
@@ -3030,6 +3041,9 @@ removeDisplayOld (CompCore    *c,
     objectFiniPlugins (&d->u.base);
 
     compRemoveTimeout (d->pingHandle);
+
+    if (d->setModEntriesHandle)
+	compRemoveTimeout (d->setModEntriesHandle);
 
     if (d->snDisplay)
 	sn_display_unref (d->snDisplay);

@@ -1958,8 +1958,9 @@ struct _CompDisplay {
     Time         lastKeyEventTime;
     Time         lastButtonEventTime;
 
-    CompModEntry	*modEntries;
-    CompFileWatchHandle lastModEntryHandle;
+    CompModEntry       *modEntries;
+    CompModEntryHandle lastModEntryHandle;
+    CompTimeoutHandle  setModEntriesHandle;
 
     CompOption opt[COMP_DISPLAY_OPTION_NUM];
 
