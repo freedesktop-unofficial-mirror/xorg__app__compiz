@@ -457,7 +457,7 @@ static CommonStringProp screenTypeStringProp[] = {
     C_PROP (defaultIconImage, CompScreen, .changed = defaultIconChanged)
 };
 static CommonChildObject screenTypeChildObject[] = {
-    C_CHILD (windowContainer, CompScreen, "container")
+    C_CHILD (windowContainer, CompScreen, CONTAINER_TYPE_NAME)
 };
 #define INTERFACE_VERSION_screenType CORE_ABIVERSION
 
