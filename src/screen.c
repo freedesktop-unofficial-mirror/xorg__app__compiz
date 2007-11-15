@@ -1529,7 +1529,6 @@ screenInitObject (CompObject *object)
 	return FALSE;
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
-    s->windowContainer.base.parent	  = &s->base;
     s->windowContainer.base.name	  = "windows";
 
     s->base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */

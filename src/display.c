@@ -2480,7 +2480,6 @@ displayInitObject (CompObject *object)
 	return FALSE;
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
-    d->screenContainer.base.parent	  = &d->u.base;
     d->screenContainer.base.name	  = "screens";
 
     d->u.base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */

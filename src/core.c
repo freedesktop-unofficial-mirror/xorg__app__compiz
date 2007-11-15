@@ -382,18 +382,10 @@ coreInitObject (CompObject *object)
 	return FALSE;
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
-    c->displayContainer.base.parent	   = &c->u.base;
     c->displayContainer.base.name	   = "displays";
 
     c->pluginContainer.forEachChildObject = forEachPluginObject;
-    c->pluginContainer.base.parent	  = &c->u.base;
     c->pluginContainer.base.name	  = "plugins";
-
-    c->inputs.base.parent = &c->u.base;
-    c->inputs.base.name	  = "inputs";
-
-    c->outputs.base.parent = &c->u.base;
-    c->outputs.base.name   = "outputs";
 
     c->u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
