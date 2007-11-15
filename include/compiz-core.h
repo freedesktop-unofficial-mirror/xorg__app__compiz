@@ -78,7 +78,6 @@ typedef struct _CompFunctionData  CompFunctionData;
 typedef struct _FragmentAttrib    FragmentAttrib;
 typedef struct _CompCursor	  CompCursor;
 typedef struct _CompMatch	  CompMatch;
-typedef struct _CompOutput        CompOutput;
 typedef struct _CompWalker        CompWalker;
 
 struct _CompMetadata {
@@ -1194,6 +1193,47 @@ typedef struct _CompContainer {
 
 CompObjectType *
 getContainerObjectType (void);
+
+
+/* output.c */
+
+typedef struct _CompOutput {
+    CompObject base;
+
+    CompObjectVTableVec object;
+
+    char       *name;
+    int        id;
+    REGION     region;
+    int        width;
+    int        height;
+    XRectangle workArea;
+} CompOutput;
+
+#define GET_OUTPUT(object) ((CompOutput *) (object))
+#define OUTPUT(object) CompOutput *o = GET_OUTPUT (object)
+
+#define OUTPUT_TYPE_NAME "output"
+
+CompObjectType *
+getOutputObjectType (void);
+
+
+/* input.c */
+
+typedef struct _CompInput {
+    CompObject base;
+
+    CompObjectVTableVec object;
+} CompInput;
+
+#define GET_INPUT(object) ((CompInput *) (object))
+#define INPUT(object) CompInput *i = GET_INPUT (object)
+
+#define INPUT_TYPE_NAME "input"
+
+CompObjectType *
+getInputObjectType (void);
 
 
 /* option.c */
@@ -2826,15 +2866,6 @@ struct _CompIcon {
     CompTexture texture;
     int		width;
     int		height;
-};
-
-struct _CompOutput {
-    char       *name;
-    int        id;
-    REGION     region;
-    int        width;
-    int        height;
-    XRectangle workArea;
 };
 
 typedef struct _CompCursorImage {

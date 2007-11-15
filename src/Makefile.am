@@ -17,6 +17,8 @@ compiz_SOURCES =    \
 	privates.c  \
 	object.c    \
 	container.c \
+	output.c    \
+	input.c     \
 	core.c	    \
 	texture.c   \
 	display.c   \
