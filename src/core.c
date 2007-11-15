@@ -36,7 +36,9 @@ static const CommonMethod coreTypeMethod[] = {
 };
 static CommonChildObject coreTypeChildObject[] = {
     C_CHILD (displayContainer, CompCore, CONTAINER_TYPE_NAME),
-    C_CHILD (pluginContainer, CompCore, CONTAINER_TYPE_NAME)
+    C_CHILD (pluginContainer, CompCore, CONTAINER_TYPE_NAME),
+    C_CHILD (inputs, CompCore, CONTAINER_TYPE_NAME),
+    C_CHILD (outputs, CompCore, CONTAINER_TYPE_NAME)
 };
 #define INTERFACE_VERSION_coreType CORE_ABIVERSION
 
@@ -262,7 +264,7 @@ coreObjectAdd (CompObject *parent,
 	       CompObject *object,
 	       const char *name)
 {
-    object->name   = strdup (name);
+    object->name   = name;
     object->parent = parent;
 
     if (parent)
@@ -275,8 +277,6 @@ coreObjectRemove (CompObject *parent,
 {
     if (parent)
 	(*parent->vTable->childObjectRemoved) (parent, object);
-
-    free (object->name);
 
     object->parent = NULL;
     object->name   = NULL;
@@ -388,6 +388,12 @@ coreInitObject (CompObject *object)
     c->pluginContainer.forEachChildObject = forEachPluginObject;
     c->pluginContainer.base.parent	  = &c->u.base;
     c->pluginContainer.base.name	  = "plugins";
+
+    c->inputs.base.parent = &c->u.base;
+    c->inputs.base.name	  = "inputs";
+
+    c->outputs.base.parent = &c->u.base;
+    c->outputs.base.name   = "outputs";
 
     c->u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 

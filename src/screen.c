@@ -1543,6 +1543,8 @@ screenInitObject (CompObject *object)
 
     WRAP (&s->object, &s->base, vTable, &screenObjectVTable);
 
+    s->objectName = NULL;
+
     s->display = NULL;
 
     s->damage = NULL;
@@ -1757,6 +1759,9 @@ screenFiniObject (CompObject *object)
 
     UNWRAP (&s->object, &s->base, vTable);
 
+    if (s->objectName)
+	free (s->objectName);
+
     if (s->privates)
 	free (s->privates);
 
@@ -1833,7 +1838,6 @@ addScreenOld (CompDisplay *display,
     GLfloat		 diffuseLight[]   = { 0.9f, 0.9f,  0.9f, 0.9f };
     GLfloat		 light0Position[] = { -0.5f, 0.5f, -9.0f, 1.0f };
     CompWindow		 *w;
-    char		 objectName[256];
 
     s = malloc (sizeof (CompScreen));
     if (!s)
@@ -2327,9 +2331,9 @@ addScreenOld (CompDisplay *display,
 
     addScreenToDisplay (display, s);
 
-    snprintf (objectName, 256, "%d", s->screenNum);
-
-    (*core.objectAdd) (&display->screenContainer.base, &s->base, objectName);
+    if (esprintf (&s->objectName, "%d", s->screenNum) > 0)
+	(*core.objectAdd) (&display->screenContainer.base, &s->base,
+			   s->objectName);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,

@@ -687,7 +687,7 @@ typedef struct _CompSignalHandler {
 struct _CompObject {
     CompObjectVTable *vTable;
     CompObject       *parent;
-    char	     *name;
+    const char	     *name;
 
     CompSignalHandler *signal[COMP_OBJECT_SIGNAL_NUM];
 
@@ -1550,6 +1550,8 @@ struct _CompCore {
 
     CompContainer displayContainer;
     CompContainer pluginContainer;
+    CompContainer inputs;
+    CompContainer outputs;
 
     CompOptionValue plugin;
     Bool	    dirtyPluginList;
@@ -1822,6 +1824,8 @@ struct _CompDisplay {
     char *hostName;
     int  displayNum;
     int  preferredScreen;
+
+    char *objectName;
 
     Display    *display;
     CompScreen *screens;
@@ -2925,6 +2929,8 @@ struct _CompScreen {
 
     CompPrivate	*privates;
 
+    char *objectName;
+
     CompScreen  *next;
     CompDisplay *display;
     CompWindow	*windows;
@@ -3440,6 +3446,8 @@ struct _CompWindow {
     CompObjectVTableVec object;
 
     CompPrivate	*privates;
+
+    char *objectName;
 
     CompScreen *screen;
     CompWindow *next;

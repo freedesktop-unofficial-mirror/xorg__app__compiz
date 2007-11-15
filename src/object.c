@@ -3764,8 +3764,9 @@ commonObjectChildrenInit (CompObject	        *object,
 			  const CommonInterface *interface,
 			  int		        nInterface)
 {
-    char *data;
-    int  i, j;
+    CompObject *child;
+    char       *data;
+    int	       i, j;
 
     for (i = 0; i < nInterface; i++)
     {
@@ -3775,8 +3776,9 @@ commonObjectChildrenInit (CompObject	        *object,
 	{
 	    if (interface[i].child[j].objectType)
 	    {
-		if (!compObjectInit (CHILD (data, &interface[i].child[j]),
-				     interface[i].child[j].objectType))
+		child = CHILD (data, &interface[i].child[j]);
+
+		if (!compObjectInit (child, interface[i].child[j].objectType))
 		{
 		    while (j--)
 			if (interface[i].child[j].objectType)
@@ -3789,6 +3791,9 @@ commonObjectChildrenInit (CompObject	        *object,
 
 		    return FALSE;
 		}
+
+		child->parent = object;
+		child->name   = interface[i].child[j].name;
 	    }
 	}
     }

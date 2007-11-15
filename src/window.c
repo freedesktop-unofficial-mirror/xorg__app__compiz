@@ -1842,6 +1842,8 @@ windowInitObject (CompObject *object)
 
     WRAP (&w->object, &w->base, vTable, &windowObjectVTable);
 
+    w->objectName = NULL;
+
     return TRUE;
 }
 
@@ -1851,6 +1853,9 @@ windowFiniObject (CompObject *object)
     WINDOW (object);
 
     UNWRAP (&w->object, &w->base, vTable);
+
+    if (w->objectName)
+	free (w->objectName);
 
     if (w->privates)
 	free (w->privates);
@@ -1906,7 +1911,6 @@ addWindow (CompScreen *screen,
 	   Window     aboveId)
 {
     CompWindow *w;
-    char       objectName[256];
 
     w = (CompWindow *) malloc (sizeof (CompWindow));
     if (!w)
@@ -2262,9 +2266,9 @@ addWindow (CompScreen *screen,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&w->base));
 
-    snprintf (objectName, 256, "%lu", w->id);
-
-    (*core.objectAdd) (&screen->windowContainer.base, &w->base, objectName);
+    if (esprintf (&w->objectName, "%lu", w->id) > 0)
+	(*core.objectAdd) (&screen->windowContainer.base, &w->base,
+			   w->objectName);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);

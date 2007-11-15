@@ -2494,6 +2494,8 @@ displayInitObject (CompObject *object)
 
     WRAP (&d->object, &d->u.base, vTable, &displayObjectVTable.base);
 
+    d->objectName = NULL;
+
     d->next    = NULL;
     d->screens = NULL;
 
@@ -2543,6 +2545,9 @@ displayFiniObject (CompObject *object)
     DISPLAY (object);
 
     UNWRAP (&d->object, &d->u.base, vTable);
+
+    if (d->objectName)
+	free (d->objectName);
 
     if (d->privates)
 	free (d->privates);
@@ -2611,7 +2616,6 @@ addDisplayOld (CompCore   *c,
     int		xkbOpcode;
     int		firstScreen, lastScreen;
     char	displayName[256];
-    char	objectName[256];
 
     d = malloc (sizeof (CompDisplay));
     if (!d)
@@ -2936,11 +2940,10 @@ addDisplayOld (CompCore   *c,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->u.base));
 
-    snprintf (objectName, 256, "%s_%d",
-	      *d->hostName == '\0' ? "localhost" : d->hostName,
-	      d->displayNum);
-
-    (*c->objectAdd) (&c->displayContainer.base, &d->u.base, objectName);
+    if (esprintf (&d->objectName, "%s_%d",
+		  *d->hostName == '\0' ? "localhost" : d->hostName,
+		  d->displayNum) > 0)
+	(*c->objectAdd) (&c->displayContainer.base, &d->u.base, d->objectName);
 
     if (onlyCurrentScreen)
     {
