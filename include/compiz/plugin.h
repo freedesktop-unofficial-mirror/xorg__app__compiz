@@ -30,6 +30,8 @@
 
 COMPIZ_BEGIN_DECLS
 
+typedef union _CompOptionValue CompOptionValue;
+
 typedef CompBool (*InitPluginProc) (CompPlugin *plugin);
 typedef void (*FiniPluginProc) (CompPlugin *plugin);
 

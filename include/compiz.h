@@ -34,8 +34,6 @@ COMPIZ_BEGIN_DECLS
 
 typedef int32_t CompBool;
 
-typedef union _CompOptionValue CompOptionValue;
-
 typedef struct _CompObject   CompObject;
 typedef struct _CompCore     CompCore;
 typedef struct _CompDisplay  CompDisplay;
