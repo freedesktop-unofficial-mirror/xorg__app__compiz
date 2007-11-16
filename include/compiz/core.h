@@ -46,6 +46,8 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
+#include <libxml/parser.h>
+
 #include <compiz/object.h>
 #include <compiz/container.h>
 #include <compiz/plugin.h>
@@ -241,24 +243,6 @@ extern int pointerY;
 
 extern CompCore     core;
 extern CompMetadata coreMetadata;
-
-#define RESTRICT_VALUE(value, min, max)				     \
-    (((value) < (min)) ? (min): ((value) > (max)) ? (max) : (value))
-
-#define MOD(a,b) ((a) < 0 ? ((b) - ((-(a) - 1) % (b))) - 1 : (a) % (b))
-
-#define N_ELEMENTS(array) (sizeof (array) / sizeof ((array)[0]))
-
-#define WRAP(priv, real, func, wrapFunc) \
-    (priv)->func = (real)->func;	 \
-    (real)->func = (wrapFunc)
-
-#define UNWRAP(priv, real, func) \
-    (real)->func = (priv)->func
-
-#define ENSURE(table, func, ensureFunc)		     \
-    if (!(table)->func) (table)->func = (ensureFunc)
-
 
 /* error.c */
 

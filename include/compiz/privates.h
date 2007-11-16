@@ -26,6 +26,8 @@
 #ifndef _COMPIZ_PRIVATES_H
 #define _COMPIZ_PRIVATES_H
 
+#include <compiz/types.h>
+
 COMPIZ_BEGIN_DECLS
 
 typedef union _CompPrivate {

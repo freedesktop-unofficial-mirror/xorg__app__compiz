@@ -23,20 +23,32 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifndef _COMPIZ_TYPES_H
-#define _COMPIZ_TYPES_H
+#ifndef _COMPIZ_MACROS_H
+#define _COMPIZ_MACROS_H
 
-#include <stdint.h>
+#ifndef MIN
+#  define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
 
-#include <compiz.h>
+#ifndef MAX
+#  define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
 
-COMPIZ_BEGIN_DECLS
+#define RESTRICT_VALUE(value, min, max)				     \
+    (((value) < (min)) ? (min): ((value) > (max)) ? (max) : (value))
 
-typedef int32_t CompBool;
-typedef int32_t CompInt;
-typedef double  CompDouble;
-typedef char    CompChar;
+#define MOD(a,b) ((a) < 0 ? ((b) - ((-(a) - 1) % (b))) - 1 : (a) % (b))
 
-COMPIZ_END_DECLS
+#define N_ELEMENTS(array) (sizeof (array) / sizeof ((array)[0]))
+
+#define WRAP(priv, real, func, wrapFunc) \
+    (priv)->func = (real)->func;	 \
+    (real)->func = (wrapFunc)
+
+#define UNWRAP(priv, real, func) \
+    (real)->func = (priv)->func
+
+#define ENSURE(table, func, ensureFunc)		     \
+    if (!(table)->func) (table)->func = (ensureFunc)
 
 #endif

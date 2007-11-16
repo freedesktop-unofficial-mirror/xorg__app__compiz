@@ -26,9 +26,10 @@
 #ifndef _COMPIZ_OBJECT_H
 #define _COMPIZ_OBJECT_H
 
-#include <libxml/parser.h>
+#include <stdarg.h>
 
 #include <compiz/types.h>
+#include <compiz/macros.h>
 #include <compiz/privates.h>
 
 #define COMPIZ_OBJECT_VERSION 20071116

@@ -23,9 +23,11 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <stdlib.h>
 #include <string.h>
 
-#include <compiz/core.h>
+#include <compiz/macros.h>
+#include <compiz/privates.h>
 
 static void
 updatePrivates (CompPrivate *privates,

@@ -593,11 +593,27 @@ AC_CONFIG_COMMANDS([include/compiz.h],
 #define COMPIZ_H
 
 #ifdef  __cplusplus
-# define COMPIZ_BEGIN_DECLS  extern "C" {
-# define COMPIZ_END_DECLS    }
+# define COMPIZ_BEGIN_DECLS extern "C" {
+# define COMPIZ_END_DECLS   }
 #else
 # define COMPIZ_BEGIN_DECLS
 # define COMPIZ_END_DECLS
+#endif
+
+#ifndef TRUE
+#  define TRUE 1
+#endif
+
+#ifndef FALSE
+#  define FALSE 0
+#endif
+
+#ifndef NULL
+#  ifdef __cplusplus
+#    define NULL (0L)
+#  else
+#    define NULL ((void *) 0)
+#  endif
 #endif
 
 #define COMPIZ_VERSION_MAJOR $COMPIZ_VERSION_MAJOR
