@@ -3516,6 +3516,40 @@ matchPropertyChanged (CompDisplay *display,
 
 /* metadata.c */
 
+CompBool
+compInitMetadata (CompMetadata *metadata);
+
+CompBool
+compInitPluginMetadata (CompMetadata *metadata,
+			const char   *plugin);
+
+void
+compFiniMetadata (CompMetadata *metadata);
+
+CompBool
+compAddMetadataFromFile (CompMetadata *metadata,
+			 const char   *file);
+
+CompBool
+compAddMetadataFromString (CompMetadata *metadata,
+			   const char	*string);
+
+CompBool
+compAddMetadataFromIO (CompMetadata	     *metadata,
+		       xmlInputReadCallback  ioread,
+		       xmlInputCloseCallback ioclose,
+		       void		     *ioctx);
+
+char *
+compGetStringFromMetadataPath (CompMetadata *metadata,
+			       const char   *path);
+
+int
+compReadXmlChunk (const char *src,
+		  int	     *offset,
+		  char	     *buffer,
+		  int	     length);
+
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY (x)
 #define MINTOSTRING(x) "<min>" TOSTRING (x) "</min>"
