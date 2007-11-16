@@ -24,6 +24,7 @@
  */
 
 #include <compiz/container.h>
+#include <compiz/c-object.h>
 
 #define INTERFACE_VERSION_containerType COMPIZ_CONTAINER_VERSION
 

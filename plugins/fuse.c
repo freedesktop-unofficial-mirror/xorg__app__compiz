@@ -33,6 +33,7 @@
 #include <fuse_lowlevel.h>
 
 #include <compiz/core.h>
+#include <compiz/c-object.h>
 
 static int corePrivateIndex;
 

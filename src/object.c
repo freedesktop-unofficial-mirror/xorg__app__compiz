@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 
 #include <compiz/core.h>
+#include <compiz/c-object.h>
 
 static const CommonSignal objectTypeSignal[] = {
     C_SIGNAL (interfaceAdded,     "s", CompObjectVTable),

@@ -43,6 +43,7 @@
 #include <X11/extensions/shape.h>
 
 #include <compiz/core.h>
+#include <compiz/c-object.h>
 
 static unsigned int virtualModMask[] = {
     CompAltMask, CompMetaMask, CompSuperMask, CompHyperMask,
