@@ -25,6 +25,12 @@
 
 #include <compiz/container.h>
 
+#define INTERFACE_VERSION_containerType COMPIZ_CONTAINER_VERSION
+
+static const CommonInterface containerInterface[] = {
+    C_INTERFACE (container, Type, CompObjectVTable, _, _, _, _, _, _, _, _, _)
+};
+
 static CompBool
 containerForBaseObject (CompObject	       *object,
 			BaseObjectCallBackProc proc,
@@ -47,20 +53,29 @@ containerForEachChildObject (CompObject		     *object,
 			     ChildObjectCallBackProc proc,
 			     void		     *closure)
 {
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
     CONTAINER (object);
 
     if (c->forEachChildObject)
 	if (!(*c->forEachChildObject) (object, proc, closure))
 	    return FALSE;
 
-    UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->forEachChildObject) (object, proc, closure);
-    WRAP (&c->object, object, vTable, v.vTable);
+    return handleForEachChildObject (object,
+				     containerInterface,
+				     N_ELEMENTS (containerInterface),
+				     proc,
+				     closure);
+}
 
-    return status;
+static CompBool
+containerForEachInterface (CompObject		 *object,
+			   InterfaceCallBackProc proc,
+			   void			 *closure)
+{
+    return handleForEachInterface (object,
+				   containerInterface,
+				   N_ELEMENTS (containerInterface),
+				   getContainerObjectType (),
+				   proc, closure);
 }
 
 static CompBool
@@ -86,7 +101,9 @@ containerForEachType (CompObject       *object,
 static CompObjectVTable containerObjectVTable = {
     .forBaseObject	= containerForBaseObject,
     .forEachType	= containerForEachType,
-    .forEachChildObject = containerForEachChildObject
+    .forEachChildObject = containerForEachChildObject,
+    .forEachInterface   = containerForEachInterface,
+    .version.get        = commonGetVersion
 };
 
 static CompBool
