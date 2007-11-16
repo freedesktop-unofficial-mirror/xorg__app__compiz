@@ -48,8 +48,6 @@ typedef struct _CompPlugin   CompPlugin;
 typedef struct _CompScreen   CompScreen;
 typedef struct _CompWindow   CompWindow;
 
-typedef CompBool (*CallBackProc) (void *closure);
-
 COMPIZ_END_DECLS
 
 #endif
