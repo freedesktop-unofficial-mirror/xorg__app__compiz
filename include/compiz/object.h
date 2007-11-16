@@ -135,6 +135,8 @@ typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
 				       BaseObjectCallBackProc proc,
 				       void		      *closure);
 
+typedef void (*UnusedProc) (CompObject *object);
+
 typedef CompBool (*InterfaceCallBackProc) (CompObject		*object,
 					   const char		*name,
 					   void			*key,
@@ -354,6 +356,10 @@ typedef struct _CompObjectVTable {
        must be implemented by each subtype
     */
     ForBaseObjectProc forBaseObject;
+
+    /* empty vtable field that each implementer can
+       use for its own purpose */
+    UnusedProc unused;
 
     /* interface functions
 

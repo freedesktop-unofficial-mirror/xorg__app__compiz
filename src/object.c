@@ -2513,6 +2513,7 @@ commonGetMetadata (CompObject *object,
 
 static CompObjectVTable objectVTable = {
     forBaseObject,
+    NULL,
     forEachInterface,
     commonForEachMethod,
     commonForEachSignal,
