@@ -23,7 +23,7 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#include <compiz/core.h>
+#include <compiz/container.h>
 
 static CompBool
 containerForBaseObject (CompObject	       *object,
