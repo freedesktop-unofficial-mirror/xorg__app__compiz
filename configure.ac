@@ -583,14 +583,14 @@ if test -n "$MAX_DESKTOPS"; then
   AC_DEFINE_UNQUOTED(MAX_DESKTOPS, $MAX_DESKTOPS, [Max reasonable desktops])
 fi
 
-AC_CONFIG_COMMANDS([include/compiz/common.h],
+AC_CONFIG_COMMANDS([include/compiz.h],
 [
-	commonfile=include/compiz/common.h
-	outfile=$commonfile.tmp
-	AC_MSG_NOTICE([creating $commonfile])
+	headerfile=include/compiz.h
+	outfile=$headerfile.tmp
+	AC_MSG_NOTICE([creating $headerfile])
 	cat > $outfile <<_EOF
-#ifndef COMPIZ_COMMON_H
-#define COMPIZ_COMMON_H
+#ifndef COMPIZ_H
+#define COMPIZ_H
 
 #ifdef  __cplusplus
 # define COMPIZ_BEGIN_DECLS  extern "C" {
@@ -609,11 +609,11 @@ AC_CONFIG_COMMANDS([include/compiz/common.h],
 _EOF
 	echo '#endif' >> $outfile
 
-	if cmp -s $outfile $commonfile; then
-	  AC_MSG_NOTICE([$commonfile is unchanged])
+	if cmp -s $outfile $headerfile; then
+	  AC_MSG_NOTICE([$headerfile is unchanged])
 	  rm -f $outfile
 	else
-	  mv $outfile $commonfile
+	  mv $outfile $headerfile
 	fi
 ],[
 	COMPIZ_VERSION_MAJOR=$COMPIZ_VERSION_MAJOR

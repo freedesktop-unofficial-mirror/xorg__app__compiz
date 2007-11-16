@@ -28,7 +28,7 @@
 
 #include <libxml/parser.h>
 
-#include <compiz.h>
+#include <compiz/types.h>
 #include <compiz/privates.h>
 
 #define COMPIZ_OBJECT_VERSION 20071116

@@ -23,10 +23,10 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifndef _COMPIZ_H
-#define _COMPIZ_H
+#ifndef _COMPIZ_TYPES_H
+#define _COMPIZ_TYPES_H
 
-#include <compiz/common.h>
+#include <compiz.h>
 
 COMPIZ_BEGIN_DECLS
 

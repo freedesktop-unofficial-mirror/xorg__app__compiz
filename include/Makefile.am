@@ -2,5 +2,7 @@ SUBDIRS = compiz
 
 compizincludedir = $(includedir)/compiz-0
 compizinclude_HEADERS = \
-	compiz.h	\
 	decoration.h
+nodist_compizinclude_HEADERS = \
+	compiz.h
+
