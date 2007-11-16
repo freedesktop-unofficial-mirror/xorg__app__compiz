@@ -710,6 +710,9 @@ nextPropType (const char *type);
 
 /* core.c */
 
+typedef int CompTimeoutHandle;
+typedef int CompWatchFdHandle;
+
 typedef CompBool (*CallBackProc) (void *closure);
 
 CompTimeoutHandle

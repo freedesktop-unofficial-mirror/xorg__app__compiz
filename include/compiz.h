@@ -34,9 +34,6 @@ COMPIZ_BEGIN_DECLS
 
 typedef int32_t CompBool;
 
-typedef int CompTimeoutHandle;
-typedef int CompWatchFdHandle;
-
 typedef union _CompOptionValue CompOptionValue;
 
 typedef struct _CompObject   CompObject;
