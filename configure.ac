@@ -106,7 +106,7 @@ fi
 
 AC_C_BIGENDIAN
 
-plugindir=$libdir/compiz
+plugindir=$libdir/compiz-0
 AC_SUBST(plugindir)
 
 AC_ARG_WITH(default-plugins, [  --with-default-plugins=PLUGINS ],
@@ -114,10 +114,10 @@ AC_ARG_WITH(default-plugins, [  --with-default-plugins=PLUGINS ],
 		       [default_plugins=""])
 AC_SUBST(default_plugins)
 
-imagedir=$datadir/compiz
+imagedir=$datadir/compiz-0
 AC_SUBST(imagedir)
 
-metadatadir=$datadir/compiz
+metadatadir=$datadir/compiz-0
 AC_SUBST(metadatadir)
 
 COMPIZ_REQUIRES="x11-xcb    \
@@ -203,7 +203,7 @@ if test "$use_gconf" = yes; then
   AC_DEFINE(USE_GCONF, 1, [Build gconf plugin])
 fi
 
-stylesheetdir=$datadir/compiz
+stylesheetdir=$datadir/compiz-0
 AC_SUBST(stylesheetdir)
 
 AC_ARG_ENABLE(place,
@@ -583,9 +583,9 @@ if test -n "$MAX_DESKTOPS"; then
   AC_DEFINE_UNQUOTED(MAX_DESKTOPS, $MAX_DESKTOPS, [Max reasonable desktops])
 fi
 
-AC_CONFIG_COMMANDS([include/compiz-common.h],
+AC_CONFIG_COMMANDS([include/compiz/common.h],
 [
-	commonfile=include/compiz-common.h
+	commonfile=include/compiz/common.h
 	outfile=$commonfile.tmp
 	AC_MSG_NOTICE([creating $commonfile])
 	cat > $outfile <<_EOF
@@ -622,7 +622,7 @@ _EOF
 ])
 
 AC_OUTPUT([
-compiz.pc
+compiz-0.pc
 compiz-cube.pc
 compiz-scale.pc
 compiz-gconf.pc
@@ -632,6 +632,7 @@ src/Makefile
 libdecoration/Makefile
 libdecoration/libdecoration.pc
 include/Makefile
+include/compiz/Makefile
 plugins/Makefile
 images/Makefile
 gtk/Makefile

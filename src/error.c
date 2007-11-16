@@ -73,7 +73,7 @@ vasprintf (char	      **strp,
 }
 #endif /* HAVE_VASPRINTF */
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 int
 esprintf (char	     **strp,

@@ -31,7 +31,7 @@
 
 #include <X11/cursorfont.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 static CompMetadata zoomMetadata;
 

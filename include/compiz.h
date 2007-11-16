@@ -28,7 +28,7 @@
 
 #include <libxml/parser.h>
 
-#include <compiz-common.h>
+#include <compiz/common.h>
 
 COMPIZ_BEGIN_DECLS
 

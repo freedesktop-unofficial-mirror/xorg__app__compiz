@@ -30,7 +30,7 @@
 #include <dbus/dbus.h>
 #include <libxml/xmlwriter.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 #define COMPIZ_DBUS_SERVICE_NAME   "org.freedesktop.compiz"
 #define COMPIZ_DBUS_INTERFACE_BASE "org.freedesktop.compiz."

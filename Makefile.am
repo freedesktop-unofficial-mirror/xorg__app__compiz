@@ -5,7 +5,7 @@ EXTRA_DIST =		    \
 	COPYING.GPL	    \
 	COPYING.LGPL	    \
 	COPYING.MIT	    \
-	compiz.pc.in	    \
+	compiz-0.pc.in	    \
 	compiz-cube.pc.in   \
 	compiz-scale.pc.in  \
 	compiz-gconf.pc.in  \
@@ -33,7 +33,7 @@ endif
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA =	\
-	compiz.pc	\
+	compiz-0.pc	\
 	compiz-cube.pc	\
 	compiz-scale.pc \
 	$(gconfdata)	\

@@ -9,5 +9,5 @@ Version: @VERSION@
 
 Requires: compiz
 Libs:
-Cflags: @COMPIZ_CFLAGS@ @GL_CFLAGS@ -I${includedir}/compiz
+Cflags: @COMPIZ_CFLAGS@ @GL_CFLAGS@ -I${includedir}/compiz-0
 

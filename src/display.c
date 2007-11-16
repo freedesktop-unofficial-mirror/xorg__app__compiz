@@ -42,7 +42,7 @@
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/shape.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 static unsigned int virtualModMask[] = {
     CompAltMask, CompMetaMask, CompSuperMask, CompHyperMask,
@@ -3433,7 +3433,7 @@ clearTargetOutput (CompDisplay	*display,
 			   mask);
 }
 
-#define HOME_IMAGEDIR ".compiz/images"
+#define HOME_IMAGEDIR ".compiz-0/images"
 
 Bool
 readImageFromFile (CompDisplay *display,

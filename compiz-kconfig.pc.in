@@ -1,5 +1,5 @@
 prefix=@prefix@
-xsltdir=@datarootdir@/compiz
+xsltdir=@datarootdir@/compiz-0
 kcfgdir=@kcfgdir@
 
 Name: compiz-kconfig

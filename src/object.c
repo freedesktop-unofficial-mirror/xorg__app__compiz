@@ -26,7 +26,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 static const CommonSignal objectTypeSignal[] = {
     C_SIGNAL (interfaceAdded,     "s", CompObjectVTable),
@@ -2364,7 +2364,7 @@ stringPropChanged (CompObject *object,
 		     interface, name, value);
 }
 
-#define HOME_DATADIR   ".compiz/data"
+#define HOME_DATADIR   ".compiz-0/data"
 #define XML_EXTENSION ".xml"
 
 typedef CompBool (*ForMetadataFileProc) (FILE	     *fp,

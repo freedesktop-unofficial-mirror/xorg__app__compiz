@@ -30,7 +30,7 @@
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 static CompMetadata resizeMetadata;
 

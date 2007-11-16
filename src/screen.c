@@ -45,7 +45,7 @@
 #include <X11/extensions/shape.h>
 #include <X11/cursorfont.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 static void
 updateOutputDevices (CompScreen	*s)

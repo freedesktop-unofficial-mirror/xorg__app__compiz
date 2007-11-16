@@ -1,5 +1,5 @@
 prefix=@prefix@
-xsltdir=@datarootdir@/compiz
+xsltdir=@datarootdir@/compiz-0
 
 Name: compiz-gconf
 Description: GConf plugin for compiz

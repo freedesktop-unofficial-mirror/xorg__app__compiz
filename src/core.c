@@ -26,7 +26,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 CompCore core;
 

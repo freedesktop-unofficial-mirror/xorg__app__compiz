@@ -26,7 +26,7 @@
 #include <string.h>
 #include <gconf/gconf-client.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 static CompMetadata gconfMetadata;
 

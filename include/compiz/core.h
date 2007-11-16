@@ -26,7 +26,7 @@
 #ifndef _COMPIZ_CORE_H
 #define _COMPIZ_CORE_H
 
-#include <compiz-plugin.h>
+#include <compiz/plugin.h>
 
 #define CORE_ABIVERSION 20080310
 
@@ -4016,7 +4016,7 @@ getWindowMovementForOffset (CompWindow *w,
 
 /* plugin.c */
 
-#define HOME_PLUGINDIR ".compiz/plugins"
+#define HOME_PLUGINDIR ".compiz-0/plugins"
 
 typedef CompPluginVTable *(*PluginGetInfoProc) (void);
 

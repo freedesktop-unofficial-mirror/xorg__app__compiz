@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 static void
 updatePrivates (CompPrivate *privates,

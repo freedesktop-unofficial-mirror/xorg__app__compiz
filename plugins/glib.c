@@ -26,7 +26,7 @@
 #include <string.h>
 #include <glib.h>
 
-#include <compiz-core.h>
+#include <compiz/core.h>
 
 static CompMetadata glibMetadata;
 
