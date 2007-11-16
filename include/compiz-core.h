@@ -1195,6 +1195,23 @@ CompObjectType *
 getContainerObjectType (void);
 
 
+/* prop.c */
+
+typedef struct _CompProp {
+    CompObject base;
+
+    CompObjectVTableVec object;
+} CompProp;
+
+#define GET_PROP(object) ((CompProp *) (object))
+#define PROP(object) CompProp *p = GET_PROP (object)
+
+#define PROP_TYPE_NAME "prop"
+
+CompObjectType *
+getPropObjectType (void);
+
+
 /* output.c */
 
 typedef struct _CompOutput {

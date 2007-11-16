@@ -17,6 +17,7 @@ compiz_SOURCES =    \
 	privates.c  \
 	object.c    \
 	container.c \
+	prop.c	    \
 	output.c    \
 	input.c     \
 	pointer.c   \
