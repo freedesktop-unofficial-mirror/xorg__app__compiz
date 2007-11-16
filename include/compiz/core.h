@@ -710,6 +710,26 @@ nextPropType (const char *type);
 
 /* core.c */
 
+CompTimeoutHandle
+compAddTimeout (int	     time,
+		CallBackProc callBack,
+		void	     *closure);
+
+void *
+compRemoveTimeout (CompTimeoutHandle handle);
+
+CompWatchFdHandle
+compAddWatchFd (int	     fd,
+		short int    events,
+		CallBackProc callBack,
+		void	     *closure);
+
+void
+compRemoveWatchFd (CompWatchFdHandle handle);
+
+short int
+compWatchFdEvents (CompWatchFdHandle handle);
+
 typedef CompBool (*InitPluginForObjectProc) (CompPlugin *plugin,
 					     CompObject *object);
 typedef void (*FiniPluginForObjectProc) (CompPlugin *plugin,

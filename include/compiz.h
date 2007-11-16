@@ -50,26 +50,6 @@ typedef struct _CompWindow   CompWindow;
 
 typedef CompBool (*CallBackProc) (void *closure);
 
-CompTimeoutHandle
-compAddTimeout (int	     time,
-		CallBackProc callBack,
-		void	     *closure);
-
-void *
-compRemoveTimeout (CompTimeoutHandle handle);
-
-CompWatchFdHandle
-compAddWatchFd (int	     fd,
-		short int    events,
-		CallBackProc callBack,
-		void	     *closure);
-
-void
-compRemoveWatchFd (CompWatchFdHandle handle);
-
-short int
-compWatchFdEvents (CompWatchFdHandle handle);
-
 CompBool
 compInitMetadata (CompMetadata *metadata);
 
