@@ -19,6 +19,8 @@ compiz_SOURCES =    \
 	container.c \
 	output.c    \
 	input.c     \
+	pointer.c   \
+	keyboard.c  \
 	core.c	    \
 	texture.c   \
 	display.c   \

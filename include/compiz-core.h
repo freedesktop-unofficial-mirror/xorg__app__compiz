@@ -1236,6 +1236,45 @@ CompObjectType *
 getInputObjectType (void);
 
 
+/* pointer.c */
+
+typedef struct _CompPointer {
+    CompInput base;
+
+    CompObjectVTableVec object;
+
+    int	x;
+    int	y;
+} CompPointer;
+
+#define GET_POINTER(object) ((CompPointer *) (object))
+#define POINTER(object) CompPointer *p = GET_POINTER (object)
+
+#define POINTER_TYPE_NAME "pointer"
+
+CompObjectType *
+getPointerObjectType (void);
+
+
+/* keyboard.c */
+
+typedef struct _CompKeyboard {
+    CompInput base;
+
+    CompObjectVTableVec object;
+
+    unsigned int state;
+} CompKeyboard;
+
+#define GET_KEYBOARD(object) ((CompKeyboard *) (object))
+#define KEYBOARD(object) CompKeyboard *k = GET_KEYBOARD (object)
+
+#define KEYBOARD_TYPE_NAME "keyboard"
+
+CompObjectType *
+getKeyboardObjectType (void);
+
+
 /* option.c */
 
 typedef enum {
