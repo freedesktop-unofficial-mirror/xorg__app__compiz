@@ -423,6 +423,76 @@ getKeyboardObjectType (void);
 /* option.c */
 
 typedef enum {
+    CompOptionTypeBool,
+    CompOptionTypeInt,
+    CompOptionTypeFloat,
+    CompOptionTypeString,
+    CompOptionTypeColor,
+    CompOptionTypeAction,
+    CompOptionTypeKey,
+    CompOptionTypeButton,
+    CompOptionTypeEdge,
+    CompOptionTypeBell,
+    CompOptionTypeMatch,
+    CompOptionTypeList
+} CompOptionType;
+
+void
+compInitOptionValue (CompOptionValue *v);
+
+void
+compFiniOptionValue (CompOptionValue *v,
+		     CompOptionType  type);
+
+void
+compInitOption (CompOption *option);
+
+void
+compFiniOption (CompOption *option);
+
+CompOption *
+compFindOption (CompOption *option,
+		int	    nOption,
+		const char  *name,
+		int	    *index);
+
+CompBool
+compSetBoolOption (CompOption            *option,
+		   const CompOptionValue *value);
+
+CompBool
+compSetIntOption (CompOption            *option,
+		  const CompOptionValue *value);
+
+CompBool
+compSetFloatOption (CompOption            *option,
+		    const CompOptionValue *value);
+
+CompBool
+compSetStringOption (CompOption            *option,
+		     const CompOptionValue *value);
+
+CompBool
+compSetColorOption (CompOption            *option,
+		    const CompOptionValue *value);
+
+CompBool
+compSetActionOption (CompOption            *option,
+		     const CompOptionValue *value);
+
+CompBool
+compSetMatchOption (CompOption            *option,
+		    const CompOptionValue *value);
+
+CompBool
+compSetOptionList (CompOption            *option,
+		   const CompOptionValue *value);
+
+CompBool
+compSetOption (CompOption            *option,
+	       const CompOptionValue *value);
+
+typedef enum {
     CompBindingTypeNone       = 0,
     CompBindingTypeKey        = 1 << 0,
     CompBindingTypeButton     = 1 << 1,
