@@ -26,6 +26,8 @@
 #ifndef _COMPIZ_OBJECT_H
 #define _COMPIZ_OBJECT_H
 
+#include <libxml/parser.h>
+
 #include <compiz.h>
 #include <compiz/privates.h>
 

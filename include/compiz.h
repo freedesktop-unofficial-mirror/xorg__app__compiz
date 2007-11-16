@@ -26,8 +26,6 @@
 #ifndef _COMPIZ_H
 #define _COMPIZ_H
 
-#include <libxml/parser.h>
-
 #include <compiz/common.h>
 
 COMPIZ_BEGIN_DECLS
