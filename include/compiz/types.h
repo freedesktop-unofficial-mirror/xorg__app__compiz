@@ -31,6 +31,9 @@
 COMPIZ_BEGIN_DECLS
 
 typedef int32_t CompBool;
+typedef int32_t CompInt;
+typedef double  CompDouble;
+typedef char    CompChar;
 
 COMPIZ_END_DECLS
 
