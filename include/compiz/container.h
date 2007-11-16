@@ -26,6 +26,8 @@
 #ifndef _COMPIZ_CONTAINER_H
 #define _COMPIZ_CONTAINER_H
 
+#include <compiz/object.h>
+
 #define COMPIZ_CONTAINER_VERSION 20071116
 
 COMPIZ_BEGIN_DECLS
