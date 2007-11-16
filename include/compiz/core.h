@@ -71,6 +71,10 @@ COMPIZ_BEGIN_DECLS
 #  define BITMAP_BIT_ORDER LSBFirst
 #endif
 
+typedef struct _CompCore	  CompCore;
+typedef struct _CompDisplay	  CompDisplay;
+typedef struct _CompScreen	  CompScreen;
+typedef struct _CompWindow	  CompWindow;
 typedef struct _CompTexture	  CompTexture;
 typedef struct _CompIcon	  CompIcon;
 typedef struct _CompWindowExtents CompWindowExtents;

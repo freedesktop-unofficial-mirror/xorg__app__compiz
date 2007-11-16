@@ -32,15 +32,6 @@ COMPIZ_BEGIN_DECLS
 
 typedef int32_t CompBool;
 
-typedef struct _CompObject   CompObject;
-typedef struct _CompCore     CompCore;
-typedef struct _CompDisplay  CompDisplay;
-typedef struct _CompMetadata CompMetadata;
-typedef struct _CompOption   CompOption;
-typedef struct _CompPlugin   CompPlugin;
-typedef struct _CompScreen   CompScreen;
-typedef struct _CompWindow   CompWindow;
-
 COMPIZ_END_DECLS
 
 #endif

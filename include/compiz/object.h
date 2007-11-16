@@ -47,6 +47,7 @@ COMPIZ_BEGIN_DECLS
   - must also not begin with a digit
 */
 
+typedef struct _CompObject     CompObject;
 typedef struct _CompObjectType CompObjectType;
 
 typedef CompBool (*InitObjectProc) (CompObject *object);

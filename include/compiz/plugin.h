@@ -26,9 +26,13 @@
 #ifndef _COMPIZ_PLUGIN_H
 #define _COMPIZ_PLUGIN_H
 
-#include <compiz.h>
+#include <compiz/object.h>
 
 COMPIZ_BEGIN_DECLS
+
+typedef struct _CompPlugin   CompPlugin;
+typedef struct _CompOption   CompOption;
+typedef struct _CompMetadata CompMetadata;
 
 typedef union _CompOptionValue CompOptionValue;
 
