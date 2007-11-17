@@ -852,7 +852,7 @@ annoScreenGetCContect (CompObject *object,
     ctx->version    = COMPIZ_ANNOTATE_VERSION;
 }
 
-static CompObjectPrivate annoObj[] = {
+static CObjectPrivate annoObj[] = {
     {
 	"display",
 	&displayPrivateIndex, sizeof (AnnoDisplay), &annoDisplayObjectVTable,
@@ -882,7 +882,7 @@ annoInit (CompPlugin *p)
 		       NULL);
     cInitObjectVTable (&annoScreenObjectVTable, annoScreenGetCContect, NULL);
 
-    if (!compObjectInitPrivates (annoObj, N_ELEMENTS (annoObj)))
+    if (!cObjectInitPrivates (annoObj, N_ELEMENTS (annoObj)))
     {
 	compFiniMetadata (&annoMetadata);
 	return FALSE;
@@ -894,7 +894,7 @@ annoInit (CompPlugin *p)
 static void
 annoFini (CompPlugin *p)
 {
-    compObjectFiniPrivates (annoObj, N_ELEMENTS (annoObj));
+    cObjectFiniPrivates (annoObj, N_ELEMENTS (annoObj));
     compFiniMetadata (&annoMetadata);
 }
 

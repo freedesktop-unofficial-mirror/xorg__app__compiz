@@ -24,6 +24,7 @@
 #include <qfile.h>
 
 #include <compiz/core.h>
+#include <compiz/c-object.h>
 
 #define COMPIZ_KCONFIG_RC "compizrc"
 
@@ -362,7 +363,7 @@ kconfigFiniCore (CompCore *c)
     delete kc->config;
 }
 
-static CompObjectPrivate kconfigObj[] = {
+static CObjectPrivate kconfigObj[] = {
     {
 	"core",
 	&corePrivateIndex, sizeof (KconfigCore), NULL,
@@ -387,7 +388,7 @@ kconfigInit (CompPlugin *p)
 
     compAddMetadataFromFile (&kconfigMetadata, p->vTable->name);
 
-    if (!compObjectInitPrivates (kconfigObj, N_ELEMENTS (kconfigObj)))
+    if (!cObjectInitPrivates (kconfigObj, N_ELEMENTS (kconfigObj)))
     {
 	compFiniMetadata (&kconfigMetadata);
 	delete kInstance;
@@ -400,7 +401,7 @@ kconfigInit (CompPlugin *p)
 static void
 kconfigFini (CompPlugin *p)
 {
-    compObjectFiniPrivates (kconfigObj, N_ELEMENTS (kconfigObj));
+    cObjectFiniPrivates (kconfigObj, N_ELEMENTS (kconfigObj));
     compFiniMetadata (&kconfigMetadata);
     delete kInstance;
 }

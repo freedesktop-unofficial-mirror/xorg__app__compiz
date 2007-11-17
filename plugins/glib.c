@@ -243,7 +243,7 @@ glibCoreGetCContect (CompObject *object,
     ctx->version    = COMPIZ_GLIB_VERSION;
 }
 
-static CompObjectPrivate glibObj[] = {
+static CObjectPrivate glibObj[] = {
     {
 	"core",
 	&corePrivateIndex, sizeof (GLibCore), &glibCoreObjectVTable.base,
@@ -263,7 +263,7 @@ glibInit (CompPlugin *p)
     cInitObjectVTable (&glibCoreObjectVTable.base.base, glibCoreGetCContect,
 		       0);
 
-    if (!compObjectInitPrivates (glibObj, N_ELEMENTS (glibObj)))
+    if (!cObjectInitPrivates (glibObj, N_ELEMENTS (glibObj)))
     {
 	compFiniMetadata (&glibMetadata);
 	return FALSE;
@@ -275,7 +275,7 @@ glibInit (CompPlugin *p)
 static void
 glibFini (CompPlugin *p)
 {
-    compObjectFiniPrivates (glibObj, N_ELEMENTS (glibObj));
+    cObjectFiniPrivates (glibObj, N_ELEMENTS (glibObj));
     compFiniMetadata (&glibMetadata);
 }
 

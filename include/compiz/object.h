@@ -483,23 +483,6 @@ CompObject *
 compLookupObject (CompObject *root,
 		  char	     **path);
 
-typedef struct _CompObjectPrivate {
-    const char	   *name;
-    int		   *pIndex;
-    int		   size;
-    void	   *vTable;
-    InitObjectProc init;
-    FiniObjectProc fini;
-} CompObjectPrivate;
-
-CompBool
-compObjectInitPrivates (CompObjectPrivate *privates,
-			int		  nPrivates);
-
-void
-compObjectFiniPrivates (CompObjectPrivate *privates,
-			int		  nPrivates);
-
 CompBool
 compObjectCheckVersion (CompObject *object,
 			const char *interface,

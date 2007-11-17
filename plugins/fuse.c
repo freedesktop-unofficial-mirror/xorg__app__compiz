@@ -1114,7 +1114,7 @@ fuseCoreGetCContect (CompObject *object,
     ctx->version    = COMPIZ_FUSE_VERSION;
 }
 
-static CompObjectPrivate fuseObj[] = {
+static CObjectPrivate fuseObj[] = {
     {
 	"object",
 	&objectPrivateIndex, sizeof (FuseObject), NULL,
@@ -1136,7 +1136,7 @@ fuseInit (CompPlugin *p)
 
     cInitObjectVTable (&fuseCoreObjectVTable.base, fuseCoreGetCContect, NULL);
 
-    if (!compObjectInitPrivates (fuseObj, N_ELEMENTS (fuseObj)))
+    if (!cObjectInitPrivates (fuseObj, N_ELEMENTS (fuseObj)))
     {
 	cInterfaceFini (fuseCoreInterface, N_ELEMENTS (fuseCoreInterface));
 	return FALSE;
@@ -1148,7 +1148,7 @@ fuseInit (CompPlugin *p)
 static void
 fuseFini (CompPlugin *p)
 {
-    compObjectFiniPrivates (fuseObj, N_ELEMENTS (fuseObj));
+    cObjectFiniPrivates (fuseObj, N_ELEMENTS (fuseObj));
     cInterfaceFini (fuseCoreInterface, N_ELEMENTS (fuseCoreInterface));
 }
 

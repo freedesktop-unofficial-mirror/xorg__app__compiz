@@ -2977,7 +2977,7 @@ finiTypedObjects (CompObject	  *object,
 }
 
 static CompBool
-compObjectInitPrivate (CompObjectPrivate *private)
+cObjectInitPrivate (CObjectPrivate *private)
 {
     CompObjectType  *type;
     CompObjectFuncs *funcs;
@@ -3019,7 +3019,7 @@ compObjectInitPrivate (CompObjectPrivate *private)
 }
 
 static void
-compObjectFiniPrivate (CompObjectPrivate *private)
+cObjectFiniPrivate (CObjectPrivate *private)
 {
     CompObjectType  *type;
     CompObjectFuncs *funcs;
@@ -3046,19 +3046,19 @@ compObjectFiniPrivate (CompObjectPrivate *private)
 }
 
 CompBool
-compObjectInitPrivates (CompObjectPrivate *private,
-			int		  nPrivate)
+cObjectInitPrivates (CObjectPrivate *private,
+		     int	    nPrivate)
 {
     int	i;
 
     for (i = 0; i < nPrivate; i++)
-	if (!compObjectInitPrivate (&private[i]))
+	if (!cObjectInitPrivate (&private[i]))
 	    break;
 
     if (i < nPrivate)
     {
 	if (i)
-	    compObjectFiniPrivates (private, i - 1);
+	    cObjectFiniPrivates (private, i - 1);
 
 	return FALSE;
     }
@@ -3067,13 +3067,13 @@ compObjectInitPrivates (CompObjectPrivate *private,
 }
 
 void
-compObjectFiniPrivates (CompObjectPrivate *private,
-			int		  nPrivate)
+cObjectFiniPrivates (CObjectPrivate *private,
+		     int	    nPrivate)
 {
     int	n = nPrivate;
 
     while (n--)
-	compObjectFiniPrivate (&private[n]);
+	cObjectFiniPrivate (&private[n]);
 }
 
 typedef struct _ForInterfaceContext {

@@ -27,6 +27,7 @@
 #include <gconf/gconf-client.h>
 
 #include <compiz/core.h>
+#include <compiz/c-object.h>
 
 static CompMetadata gconfMetadata;
 
@@ -444,7 +445,7 @@ gconfFiniCore (CompCore *c)
     gconf_client_clear_cache (gc->client);
 }
 
-static CompObjectPrivate gconfObj[] = {
+static CObjectPrivate gconfObj[] = {
     {
 	"core",
 	&corePrivateIndex, sizeof (GConfCore), NULL,
@@ -462,7 +463,7 @@ gconfInit (CompPlugin *p)
 
     compAddMetadataFromFile (&gconfMetadata, p->vTable->name);
 
-    if (!compObjectInitPrivates (gconfObj, N_ELEMENTS (gconfObj)))
+    if (!cObjectInitPrivates (gconfObj, N_ELEMENTS (gconfObj)))
     {
 	compFiniMetadata (&gconfMetadata);
 	return FALSE;
@@ -474,7 +475,7 @@ gconfInit (CompPlugin *p)
 static void
 gconfFini (CompPlugin *p)
 {
-    compObjectFiniPrivates (gconfObj, N_ELEMENTS (gconfObj));
+    cObjectFiniPrivates (gconfObj, N_ELEMENTS (gconfObj));
     compFiniMetadata (&gconfMetadata);
 }
 

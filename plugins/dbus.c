@@ -31,6 +31,7 @@
 #include <libxml/xmlwriter.h>
 
 #include <compiz/core.h>
+#include <compiz/c-object.h>
 
 #define COMPIZ_DBUS_SERVICE_NAME   "org.freedesktop.compiz"
 #define COMPIZ_DBUS_INTERFACE_BASE "org.freedesktop.compiz."
@@ -896,7 +897,7 @@ dbusFiniCore (CompCore *c)
     compRemoveWatchFd (dc->watchFdHandle);
 }
 
-static CompObjectPrivate dbusObj[] = {
+static CObjectPrivate dbusObj[] = {
     {
 	"core",
 	&corePrivateIndex, sizeof (DBusCore), NULL,
@@ -908,7 +909,7 @@ static CompObjectPrivate dbusObj[] = {
 static Bool
 dbusInit (CompPlugin *p)
 {
-    if (!compObjectInitPrivates (dbusObj, N_ELEMENTS (dbusObj)))
+    if (!cObjectInitPrivates (dbusObj, N_ELEMENTS (dbusObj)))
 	return FALSE;
 
     return TRUE;
@@ -917,7 +918,7 @@ dbusInit (CompPlugin *p)
 static void
 dbusFini (CompPlugin *p)
 {
-    compObjectFiniPrivates (dbusObj, N_ELEMENTS (dbusObj));
+    cObjectFiniPrivates (dbusObj, N_ELEMENTS (dbusObj));
 }
 
 CompPluginVTable dbusVTable = {

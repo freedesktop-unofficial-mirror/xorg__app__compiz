@@ -30,6 +30,15 @@
 
 COMPIZ_BEGIN_DECLS
 
+typedef struct _CObjectPrivate {
+    const char	   *name;
+    int		   *pIndex;
+    int		   size;
+    void	   *vTable;
+    InitObjectProc init;
+    FiniObjectProc fini;
+} CObjectPrivate;
+
 typedef struct _CMethod {
     const char	      *name;
     const char	      *in;
@@ -366,6 +375,14 @@ cObjectInit (CompObject	            *object,
 void
 cObjectFini (CompObject	          *object,
 	     const CompObjectType *baseType);
+
+CompBool
+cObjectInitPrivates (CObjectPrivate *privates,
+		     int	    nPrivates);
+
+void
+cObjectFiniPrivates (CObjectPrivate *privates,
+		     int	    nPrivates);
 
 COMPIZ_END_DECLS
 
