@@ -1201,6 +1201,19 @@ cForEachType (CompObject       *object,
     return noopForEachType (object, proc, closure);
 }
 
+static int
+getVersion (CompObject *object,
+	    const char *interface)
+{
+    int i;
+
+    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
+	if (strcmp (interface, objectInterface[i].name) == 0)
+	    return COMPIZ_OBJECT_VERSION;
+
+    return 0;
+}
+
 int
 commonGetVersion (CompObject *object,
 		  const char *interface)
@@ -2402,10 +2415,8 @@ readMetadata (FILE	  *fp,
     data = malloc (buf->st_size + 1);
     if (data)
     {
-	GetMetadataContext *pCtx = (GetMetadataContext *) closure;
-
 	data[fread (data, 1, buf->st_size, fp)] = '\0';
-	*pCtx->data = data;
+	*((char **) closure) = data;
 
 	return FALSE;
     }
@@ -2414,36 +2425,44 @@ readMetadata (FILE	  *fp,
 }
 
 static CompBool
-handleGetInterfaceMetadata (CompObject		 *object,
-			    const char	         *name,
-			    void		 *key,
-			    size_t		 offset,
-			    const CompObjectType *type,
-			    void		 *closure)
+handleGetMetadata (CompObject *object,
+		   const char *interface,
+		   char       **data,
+		   char       **error)
 {
-    GetMetadataContext *pCtx = (GetMetadataContext *) closure;
-
-    if (strcmp (name, pCtx->interface) == 0)
+    if (forEachMetadataFile (interface, readMetadata, data))
     {
-	if (forEachMetadataFile (name, readMetadata, closure))
+	char *str;
+
+	str = strdup ("<compiz/>");
+	if (str)
 	{
-	    char *data;
-
-	    data = strdup ("<compiz/>");
-	    if (data)
-	    {
-		*pCtx->data = data;
-	    }
-	    else
-	    {
-		esprintf (pCtx->error, NO_MEMORY_ERROR_STRING, name);
-	    }
+	    *data = str;
 	}
-
-	return FALSE;
+	else
+	{
+	    esprintf (error, NO_MEMORY_ERROR_STRING);
+	    return FALSE;
+	}
     }
 
     return TRUE;
+}
+
+static CompBool
+getMetadata (CompObject *object,
+	     const char *interface,
+	     char	**data,
+	     char	**error)
+{
+    int i;
+
+    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
+	if (strcmp (interface, objectInterface[i].name) == 0)
+	    return handleGetMetadata (object, interface, data, error);
+
+    esprintf (error, "No \"%s\" interface", interface);
+    return FALSE;
 }
 
 CompBool
@@ -2452,16 +2471,14 @@ commonGetMetadata (CompObject *object,
 		   char	      **data,
 		   char	      **error)
 {
-    GetMetadataContext ctx;
+    CContext ctx;
+    int	     i;
 
-    ctx.interface = interface;
-    ctx.data      = data;
-    ctx.error     = error;
+    CCONTEXT (object->vTable, &ctx);
 
-    if (!(*object->vTable->forEachInterface) (object,
-					      handleGetInterfaceMetadata,
-					      (void *) &ctx))
-	return TRUE;
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleGetMetadata (object, interface, data, error);
 
     return noopGetMetadata (object, interface, data, error);
 }
@@ -2484,7 +2501,7 @@ static CompObjectVTable objectVTable = {
 	disconnect,
 	signal
     }, {
-	commonGetVersion
+	getVersion
     }, {
 	getBoolProp,
 	setBoolProp,
@@ -2499,7 +2516,7 @@ static CompObjectVTable objectVTable = {
 	setStringProp,
 	stringPropChanged
     }, {
-	commonGetMetadata
+	getMetadata
     }
 };
 
