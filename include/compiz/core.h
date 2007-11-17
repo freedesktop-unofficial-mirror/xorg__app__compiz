@@ -26,7 +26,8 @@
 #ifndef _COMPIZ_CORE_H
 #define _COMPIZ_CORE_H
 
-#define CORE_ABIVERSION 20080310
+#define COMPIZ_CORE_VERSION 20071116
+#define CORE_ABIVERSION COMPIZ_CORE_VERSION
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -889,6 +890,8 @@ removeFileWatch (CompFileWatchHandle handle);
 
 
 /* display.c */
+
+#define COMPIZ_DISPLAY_VERSION 20071116
 
 #define COMP_DISPLAY_OPTION_ABI                              0
 #define COMP_DISPLAY_OPTION_ACTIVE_PLUGINS                   1
@@ -1891,6 +1894,8 @@ disableTexture (CompScreen  *screen,
 
 
 /* screen.c */
+
+#define COMPIZ_SCREEN_VERSION 20071116
 
 #define COMP_SCREEN_OPTION_OUTPUTS		  0
 #define COMP_SCREEN_OPTION_OVERLAPPING_OUTPUTS	  1

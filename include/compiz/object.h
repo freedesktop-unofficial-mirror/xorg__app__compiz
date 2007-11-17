@@ -393,7 +393,7 @@ typedef struct _CompObjectVTable {
 } CompObjectVTable;
 
 typedef struct _CompObjectVTableVec {
-    CompObjectVTable *vTable;
+    const CompObjectVTable *vTable;
 } CompObjectVTableVec;
 
 CompBool
@@ -423,9 +423,9 @@ typedef struct _CompSignalHandler {
 #define COMP_OBJECT_SIGNAL_NUM               9
 
 struct _CompObject {
-    CompObjectVTable *vTable;
-    CompObject       *parent;
-    const char	     *name;
+    const CompObjectVTable *vTable;
+    const char		   *name;
+    CompObject		   *parent;
 
     CompSignalHandler *signal[COMP_OBJECT_SIGNAL_NUM];
 

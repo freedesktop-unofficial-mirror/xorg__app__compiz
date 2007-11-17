@@ -200,6 +200,7 @@ static const CommonMethod displayTypeMethod[] = {
     C_METHOD (addScreen,    "i", "", CompDisplayVTable, marshal__I__E),
     C_METHOD (removeScreen, "i", "", CompDisplayVTable, marshal__I__E)
 };
+
 static CommonBoolProp displayTypeBoolProp[] = {
     C_PROP (audibleBell, CompDisplay, .changed = audibleBellChanged),
     C_PROP (autoRaise, CompDisplay),
@@ -208,79 +209,20 @@ static CommonBoolProp displayTypeBoolProp[] = {
     C_PROP (ignoreHintsWhenMaximized, CompDisplay),
     C_PROP (raiseOnClick, CompDisplay)
 };
+
 static CommonIntProp displayTypeIntProp[] = {
     C_INT_PROP (autoRaiseDelay, CompDisplay, 0, 10000),
     C_INT_PROP (filter, CompDisplay, 0, 2, .changed = filterChanged),
     C_INT_PROP (pingDelay, CompDisplay, 1000, 60000, .changed = pingChanged)
 };
+
 static CommonChildObject displayTypeChildObject[] = {
     C_CHILD (screenContainer, CompDisplay, CONTAINER_TYPE_NAME)
 };
-#define INTERFACE_VERSION_displayType CORE_ABIVERSION
 
 static CommonInterface displayInterface[] = {
-    C_INTERFACE (display, Type, CompObjectVTable, _, _, X, _, X, X, _, _, X)
+    C_INTERFACE (display, Type, CompObjectVTable, _, X, _, X, X, _, _, X)
 };
-
-static CompBool
-displayForBaseObject (CompObject	     *object,
-		      BaseObjectCallBackProc proc,
-		      void		     *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    DISPLAY (object);
-
-    UNWRAP (&d->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-displayForEachInterface (CompObject	       *object,
-			 InterfaceCallBackProc proc,
-			 void		       *closure)
-{
-    return handleForEachInterface (object,
-				   displayInterface,
-				   N_ELEMENTS (displayInterface),
-				   getDisplayObjectType (),
-				   proc, closure);
-}
-
-static CompBool
-displayForEachType (CompObject	     *object,
-		    TypeCallBackProc proc,
-		    void	     *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    DISPLAY (object);
-
-    if (!(*proc) (object, getDisplayObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&d->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&d->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-displayForEachChildObject (CompObject		   *object,
-			   ChildObjectCallBackProc proc,
-			   void			   *closure)
-{
-    return handleForEachChildObject (object,
-				     displayInterface,
-				     N_ELEMENTS (displayInterface),
-				     proc, closure);
-}
 
 typedef struct _AddRemoveScreenContext {
     int  number;
@@ -2428,20 +2370,8 @@ freeDisplay (CompDisplay *d)
 }
 
 static CompDisplayVTable displayObjectVTable = {
-    .base.forBaseObject		= displayForBaseObject,
-    .base.forEachInterface	= displayForEachInterface,
-    .base.forEachMethod		= commonForEachMethod,
-    .base.forEachProp		= commonForEachProp,
-    .base.forEachType		= displayForEachType,
-    .base.forEachChildObject	= displayForEachChildObject,
-    .base.version.get		= commonGetVersion,
-    .base.properties.getBool	= commonGetBoolProp,
-    .base.properties.setBool	= commonSetBoolProp,
-    .base.properties.getInt	= commonGetIntProp,
-    .base.properties.setInt	= commonSetIntProp,
-    .base.properties.intChanged	= commonIntPropChanged,
-    .addScreen			= addScreen,
-    .removeScreen		= removeScreen
+    .addScreen	  = addScreen,
+    .removeScreen = removeScreen
 };
 
 static CompObjectPrivates displayObjectPrivates = {
@@ -2477,7 +2407,7 @@ displayInitObject (CompObject *object)
     DISPLAY (object);
 
     if (!commonObjectInit (&d->u.base, getObjectType (),
-			   displayInterface, N_ELEMENTS (displayInterface)))
+			   &displayObjectVTable.base))
 	return FALSE;
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
@@ -2487,12 +2417,9 @@ displayInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
-	commonObjectFini (&d->u.base, getObjectType (),
-			  displayInterface, N_ELEMENTS (displayInterface));
+	commonObjectFini (&d->u.base, getObjectType ());
 	return FALSE;
     }
-
-    WRAP (&d->object, &d->u.base, vTable, &displayObjectVTable.base);
 
     d->objectName = NULL;
 
@@ -2544,16 +2471,13 @@ displayFiniObject (CompObject *object)
 {
     DISPLAY (object);
 
-    UNWRAP (&d->object, &d->u.base, vTable);
-
     if (d->objectName)
 	free (d->objectName);
 
     if (d->privates)
 	free (d->privates);
 
-    commonObjectFini (&d->u.base, getObjectType (),
-		      displayInterface, N_ELEMENTS (displayInterface));
+    commonObjectFini (&d->u.base, getObjectType ());
 }
 
 static void
@@ -2575,6 +2499,20 @@ static CompObjectType displayObjectType = {
     (InitVTableProc) displayInitVTable
 };
 
+static void
+displayGetCContect (CompObject *object,
+		    CContext   *ctx)
+{
+    DISPLAY (object);
+
+    ctx->interface  = displayInterface;
+    ctx->nInterface = N_ELEMENTS (displayInterface);
+    ctx->type	    = &displayObjectType;
+    ctx->data	    = (char *) d;
+    ctx->vtStore    = &d->object;
+    ctx->version    = COMPIZ_DISPLAY_VERSION;
+}
+
 CompObjectType *
 getDisplayObjectType (void)
 {
@@ -2583,7 +2521,8 @@ getDisplayObjectType (void)
     if (!init)
     {
 	commonInterfaceInit (displayInterface, N_ELEMENTS (displayInterface));
-	displayInitVTable (&displayObjectVTable);
+	cInitObjectVTable (&displayObjectVTable.base, displayGetCContect,
+			   displayObjectType.initVTable);
 	init = TRUE;
     }
 

@@ -35,77 +35,17 @@ static const CommonMethod coreTypeMethod[] = {
     C_METHOD (addDisplay,    "si", "", CompCoreVTable, marshal__SI__E),
     C_METHOD (removeDisplay, "si", "", CompCoreVTable, marshal__SI__E)
 };
+
 static CommonChildObject coreTypeChildObject[] = {
     C_CHILD (displayContainer, CompCore, CONTAINER_TYPE_NAME),
     C_CHILD (pluginContainer, CompCore, CONTAINER_TYPE_NAME),
     C_CHILD (inputs, CompCore, CONTAINER_TYPE_NAME),
     C_CHILD (outputs, CompCore, CONTAINER_TYPE_NAME)
 };
-#define INTERFACE_VERSION_coreType CORE_ABIVERSION
 
 static CommonInterface coreInterface[] = {
-    C_INTERFACE (core, Type, CompObjectVTable, _, _, X, _, _, _, _, _, X)
+    C_INTERFACE (core, Type, CompObjectVTable, _, X, _, _, _, _, _, X)
 };
-
-static CompBool
-coreForBaseObject (CompObject		  *object,
-		   BaseObjectCallBackProc proc,
-		   void			  *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE (object);
-
-    UNWRAP (&c->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&c->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-coreForEachInterface (CompObject	    *object,
-		      InterfaceCallBackProc proc,
-		      void		    *closure)
-{
-    return handleForEachInterface (object,
-				   coreInterface,
-				   N_ELEMENTS (coreInterface),
-				   getCoreObjectType (),
-				   proc, closure);
-}
-
-static CompBool
-coreForEachType (CompObject	  *object,
-		 TypeCallBackProc proc,
-		 void		  *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    CORE (object);
-
-    if (!(*proc) (object, getCoreObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&c->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&c->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-coreForEachChildObject (CompObject		*object,
-			ChildObjectCallBackProc proc,
-			void			*closure)
-{
-    return handleForEachChildObject (object,
-				     coreInterface,
-				     N_ELEMENTS (coreInterface),
-				     proc, closure);
-}
 
 typedef struct _AddRemoveDisplayContext {
     const char *hostName;
@@ -321,15 +261,8 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 }
 
 static CompCoreVTable coreObjectVTable = {
-    .base.forBaseObject	     = coreForBaseObject,
-    .base.forEachInterface   = coreForEachInterface,
-    .base.forEachMethod      = commonForEachMethod,
-    .base.forEachType	     = coreForEachType,
-    .base.forEachChildObject = coreForEachChildObject,
-    .base.version.get	     = commonGetVersion,
-    .base.metadata.get	     = commonGetMetadata,
-    .addDisplay		     = addDisplay,
-    .removeDisplay	     = removeDisplay
+    .addDisplay	   = addDisplay,
+    .removeDisplay = removeDisplay
 };
 
 static CompObjectPrivates coreObjectPrivates = {
@@ -379,7 +312,7 @@ coreInitObject (CompObject *object)
     CORE (object);
 
     if (!commonObjectInit (&c->u.base, getObjectType (),
-			   coreInterface, N_ELEMENTS (coreInterface)))
+			   &coreObjectVTable.base))
 	return FALSE;
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
@@ -393,8 +326,7 @@ coreInitObject (CompObject *object)
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	commonObjectFini (&c->u.base, getObjectType (),
-			  coreInterface, N_ELEMENTS (coreInterface));
+	commonObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -402,8 +334,7 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	commonObjectFini (&c->u.base, getObjectType (),
-			  coreInterface, N_ELEMENTS (coreInterface));
+	commonObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -411,12 +342,9 @@ coreInitObject (CompObject *object)
     {
 	XDestroyRegion (c->outputRegion);
 	XDestroyRegion (c->tmpRegion);
-	commonObjectFini (&c->u.base, getObjectType (),
-			  coreInterface, N_ELEMENTS (coreInterface));
+	commonObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
-
-    WRAP (&c->object, &c->u.base, vTable, &coreObjectVTable.base);
 
     compInitOptionValue (&c->plugin);
 
@@ -475,13 +403,10 @@ coreFiniObject (CompObject *object)
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);
 
-    UNWRAP (&c->object, &c->u.base, vTable);
-
     if (c->privates)
 	free (c->privates);
 
-    commonObjectFini (&c->u.base, getObjectType (),
-		      coreInterface, N_ELEMENTS (coreInterface));
+    commonObjectFini (&c->u.base, getObjectType ());
 }
 
 static void
@@ -503,6 +428,20 @@ static CompObjectType coreObjectType = {
     (InitVTableProc) coreInitVTable
 };
 
+static void
+coreGetCContect (CompObject *object,
+		 CContext   *ctx)
+{
+    CORE (object);
+
+    ctx->interface  = coreInterface;
+    ctx->nInterface = N_ELEMENTS (coreInterface);
+    ctx->type	    = &coreObjectType;
+    ctx->data	    = (char *) c;
+    ctx->vtStore    = &c->object;
+    ctx->version    = COMPIZ_CORE_VERSION;
+}
+
 CompObjectType *
 getCoreObjectType (void)
 {
@@ -511,7 +450,8 @@ getCoreObjectType (void)
     if (!init)
     {
 	commonInterfaceInit (coreInterface, N_ELEMENTS (coreInterface));
-	coreInitVTable (&coreObjectVTable);
+	cInitObjectVTable (&coreObjectVTable.base, coreGetCContect,
+			   coreObjectType.initVTable);
 	init = TRUE;
     }
 

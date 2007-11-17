@@ -80,7 +80,7 @@ kconfigReadProp (CompObject *object,
 		 const char *name,
 		 int	    type)
 {
-    CompPropertiesVTable *vTable = &object->vTable->properties;
+    const CompPropertiesVTable *vTable = &object->vTable->properties;
 
     switch (type) {
     case COMP_TYPE_BOOLEAN:

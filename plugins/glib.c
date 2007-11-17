@@ -29,6 +29,8 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
+#define COMPIZ_GLIB_VERSION 20071116
+
 static CompMetadata glibMetadata;
 
 static int corePrivateIndex;
@@ -67,10 +69,9 @@ typedef struct _GLibCoreVTable {
 static CommonMethod glibCoreMethod[] = {
     C_METHOD (wakeUp, "", "", GLibCoreVTable, marshal____)
 };
-#define INTERFACE_VERSION_glibCore 20071011
 
 static const CommonInterface glibCoreInterface[] = {
-    C_INTERFACE (glib, Core, GLibCoreVTable, _, _, X, _, _, _, _, _, _)
+    C_INTERFACE (glib, Core, GLibCoreVTable, _, X, _, _, _, _, _, _)
 };
 
 static void
@@ -188,41 +189,8 @@ glibPrepare (CompCore     *c,
 	compAddTimeout (timeout, glibDispatchAndPrepare, c);
 }
 
-static CompBool
-glibCoreForBaseObject (CompObject	      *object,
-		       BaseObjectCallBackProc proc,
-		       void		      *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    GLIB_CORE (GET_CORE (object));
-
-    UNWRAP (&gc->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&gc->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-glibCoreForEachInterface (CompObject		*object,
-			  InterfaceCallBackProc proc,
-			  void			*closure)
-{
-    return handleForEachInterface (object,
-				   glibCoreInterface,
-				   N_ELEMENTS (glibCoreInterface),
-				   NULL, proc, closure);
-}
-
 static GLibCoreVTable glibCoreObjectVTable = {
-    .base.base.forBaseObject    = glibCoreForBaseObject,
-    .base.base.forEachInterface = glibCoreForEachInterface,
-    .base.base.forEachMethod    = commonForEachMethod,
-    .base.base.version.get      = commonGetVersion,
-    .base.base.metadata.get     = commonGetMetadata,
-    .wakeUp			= glibWakeup
+    .wakeUp = glibWakeup
 };
 
 static CompBool
@@ -237,7 +205,9 @@ glibInitCore (CompCore *c)
     gc->fdsSize	      = 0;
     gc->timeoutHandle = 0;
 
-    WRAP (&gc->object, &c->u.base, vTable, &glibCoreObjectVTable.base.base);
+    if (!commonObjectInterfaceInit (&c->u.base,
+				    &glibCoreObjectVTable.base.base))
+	return FALSE;
 
     glibPrepare (c, g_main_context_default ());
 
@@ -261,11 +231,24 @@ glibFiniCore (CompCore *c)
     if (gc->fds)
 	free (gc->fds);
 
-    UNWRAP (&gc->object, &c->u.base, vTable);
-
+    commonObjectInterfaceFini (&c->u.base);
     commonInterfacesRemoved (&c->u.base,
 			     glibCoreInterface,
 			     N_ELEMENTS (glibCoreInterface));
+}
+
+static void
+glibCoreGetCContect (CompObject *object,
+		     CContext   *ctx)
+{
+    GLIB_CORE (GET_CORE (object));
+
+    ctx->interface  = glibCoreInterface;
+    ctx->nInterface = N_ELEMENTS (glibCoreInterface);
+    ctx->type	    = NULL;
+    ctx->data	    = (char *) gc;
+    ctx->vtStore    = &gc->object;
+    ctx->version    = COMPIZ_GLIB_VERSION;
 }
 
 static CompObjectPrivate glibObj[] = {
@@ -284,6 +267,8 @@ glibInit (CompPlugin *p)
 	return FALSE;
 
     compAddMetadataFromFile (&glibMetadata, p->vTable->name);
+
+    cInitObjectVTable (&glibCoreObjectVTable.base, glibCoreGetCContect, 0);
 
     if (!compObjectInitPrivates (glibObj, N_ELEMENTS (glibObj)))
     {

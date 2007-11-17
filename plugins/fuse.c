@@ -35,6 +35,8 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
+#define COMPIZ_FUSE_VERSION 20071116
+
 static int corePrivateIndex;
 
 typedef struct _FuseCore {
@@ -1035,58 +1037,15 @@ setMountPoint (CompObject *object,
     return TRUE;
 }
 
-static char *
-getCoreData (CompObject *object)
-{
-    return (char *) GET_FUSE_CORE (GET_CORE (object));
-}
-
 static CommonStringProp fuseCoreStringProp[] = {
     C_PROP (mountPoint, FuseCore, .set = setMountPoint)
 };
-#define INTERFACE_VERSION_fuseCore 20071011
 
 static CommonInterface fuseCoreInterface[] = {
-    C_INTERFACE (fuse, Core, CompObjectVTable, _, X, _, _, _, _, _, X, _)
+    C_INTERFACE (fuse, Core, CompObjectVTable, _, _, _, _, _, _, X, _)
 };
 
-static CompBool
-fuseCoreForBaseObject (CompObject	      *object,
-		       BaseObjectCallBackProc proc,
-		       void		      *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    FUSE_CORE (GET_CORE (object));
-
-    UNWRAP (&fc->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&fc->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-fuseCoreForEachInterface (CompObject		*object,
-			  InterfaceCallBackProc proc,
-			  void		        *closure)
-{
-    return handleForEachInterface (object,
-				   fuseCoreInterface,
-				   N_ELEMENTS (fuseCoreInterface),
-				   NULL, proc, closure);
-}
-
-static CompCoreVTable fuseCoreObjectVTable = {
-    .base.forBaseObject        = fuseCoreForBaseObject,
-    .base.forEachInterface     = fuseCoreForEachInterface,
-    .base.forEachProp          = commonForEachProp,
-    .base.version.get          = commonGetVersion,
-    .base.properties.getString = commonGetStringProp,
-    .base.properties.setString = commonSetStringProp,
-    .base.metadata.get	       = commonGetMetadata
-};
+static CompCoreVTable fuseCoreObjectVTable = { { 0 } };
 
 static CompBool
 fuseInitCore (CompCore *c)
@@ -1098,9 +1057,7 @@ fuseInitCore (CompCore *c)
     if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    if (!commonObjectInterfaceInit (&c->u.base,
-				    fuseCoreInterface,
-				    N_ELEMENTS (fuseCoreInterface)))
+    if (!commonObjectInterfaceInit (&c->u.base, &fuseCoreObjectVTable.base))
 	return FALSE;
 
     memset (&sa, 0, sizeof (struct sigaction));
@@ -1111,9 +1068,7 @@ fuseInitCore (CompCore *c)
 
     if (sigaction (SIGPIPE, &sa, NULL) == -1)
     {
-	commonObjectInterfaceFini (&c->u.base,
-				   fuseCoreInterface,
-				   N_ELEMENTS (fuseCoreInterface));
+	commonObjectInterfaceFini (&c->u.base);
 	return FALSE;
     }
 
@@ -1122,13 +1077,9 @@ fuseInitCore (CompCore *c)
 				     (void *) c);
     if (!fc->session)
     {
-	commonObjectInterfaceFini (&c->u.base,
-				   fuseCoreInterface,
-				   N_ELEMENTS (fuseCoreInterface));
+	commonObjectInterfaceFini (&c->u.base);
 	return FALSE;
     }
-
-    WRAP (&fc->object, &c->u.base, vTable, &fuseCoreObjectVTable.base);
 
     fc->watchFdHandle = 0;
     fc->channel	      = NULL;
@@ -1150,16 +1101,26 @@ fuseFiniCore (CompCore *c)
 
     fuseUnmount (c);
 
-    UNWRAP (&fc->object, &c->u.base, vTable);
-
     fuse_session_destroy (fc->session);
 
     commonInterfacesRemoved (&c->u.base,
 			     fuseCoreInterface,
 			     N_ELEMENTS (fuseCoreInterface));
-    commonObjectInterfaceFini (&c->u.base,
-			       fuseCoreInterface,
-			       N_ELEMENTS (fuseCoreInterface));
+    commonObjectInterfaceFini (&c->u.base);
+}
+
+static void
+fuseCoreGetCContect (CompObject *object,
+		     CContext   *ctx)
+{
+    FUSE_CORE (GET_CORE (object));
+
+    ctx->interface  = fuseCoreInterface;
+    ctx->nInterface = N_ELEMENTS (fuseCoreInterface);
+    ctx->type	    = NULL;
+    ctx->data	    = (char *) fc;
+    ctx->vtStore    = &fc->object;
+    ctx->version    = COMPIZ_FUSE_VERSION;
 }
 
 static CompObjectPrivate fuseObj[] = {
@@ -1183,6 +1144,8 @@ fuseInit (CompPlugin *p)
 			      N_ELEMENTS (fuseCoreInterface)))
 	return FALSE;
 
+    cInitObjectVTable (&fuseCoreObjectVTable.base, fuseCoreGetCContect, NULL);
+
     if (!compObjectInitPrivates (fuseObj, N_ELEMENTS (fuseObj)))
     {
 	commonInterfaceFini (fuseCoreInterface,
@@ -1197,8 +1160,7 @@ static void
 fuseFini (CompPlugin *p)
 {
     compObjectFiniPrivates (fuseObj, N_ELEMENTS (fuseObj));
-    commonInterfaceFini (fuseCoreInterface,
-			 N_ELEMENTS (fuseCoreInterface));
+    commonInterfaceFini (fuseCoreInterface, N_ELEMENTS (fuseCoreInterface));
 }
 
 CompPluginVTable fuseVTable = {

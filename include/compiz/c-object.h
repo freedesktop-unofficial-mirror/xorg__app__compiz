@@ -30,8 +30,6 @@
 
 COMPIZ_BEGIN_DECLS
 
-typedef char *(*GetDataProc) (CompObject *object);
-
 typedef struct _CommonMethod {
     const char	      *name;
     const char	      *in;
@@ -125,9 +123,7 @@ typedef struct _CommonChildObject {
 
 typedef struct _CommonInterface {
     const char	       *name;
-    int		       version;
     size_t	       offset;
-    GetDataProc	       data;
     const CommonMethod *method;
     int		       nMethod;
     const CommonSignal *signal;
@@ -147,18 +143,14 @@ typedef struct _CommonInterface {
 #define C_OFFSET__(vtable, name) 0
 #define C_OFFSET_X(vtable, name) offsetof (vtable, name)
 
-#define C_DATA__(type) NULL
-#define C_DATA_X(type) get ## type ## Data
-
 #define C_MEMBER__(name, type, member) NULL, 0
 #define C_MEMBER_X(name, type, member)				\
     name ## type ## member, N_ELEMENTS (name ## type ## member)
 
-#define C_INTERFACE(name, type, vtable, offset, data, method, signal,	\
+#define C_INTERFACE(name, type, vtable, offset, method, signal,		\
 		    bool, int, double, string, child)			\
-    { # name, INTERFACE_VERSION_ ## name ## type,			\
+    { # name,								\
 	    C_OFFSET_ ## offset (vtable, name),				\
-	    C_DATA_   ## data   (type),					\
 	    C_MEMBER_ ## method (name, type, Method),			\
 	    C_MEMBER_ ## signal (name, type, Signal),			\
 	    C_MEMBER_ ## bool   (name, type, BoolProp),			\
@@ -167,20 +159,32 @@ typedef struct _CommonInterface {
 	    C_MEMBER_ ## string (name, type, StringProp),		\
 	    C_MEMBER_ ## child  (name, type, ChildObject) }
 
-CompBool
-handleForEachInterface (CompObject	      *object,
-			const CommonInterface *interface,
-			int		      nInterface,
-			const CompObjectType  *type,
-			InterfaceCallBackProc proc,
-			void		      *closure);
+typedef struct _CContext {
+    const CommonInterface *interface;
+    int			  nInterface;
+    const CompObjectType  *type;
+    char		  *data;
+    CompObjectVTableVec	  *vtStore;
+    int			  version;
+} CContext;
+
+typedef void (*GetCContextProc) (CompObject *object,
+				 CContext   *ctx);
+
+void
+cInitObjectVTable (CompObjectVTable *vTable,
+		   GetCContextProc  getCContext,
+		   InitVTableProc   initVTable);
 
 CompBool
-handleForEachChildObject (CompObject		  *object,
-			  const CommonInterface   *interface,
-			  int		          nInterface,
-			  ChildObjectCallBackProc proc,
-			  void			  *closure);
+cForBaseObject (CompObject	       *object,
+		BaseObjectCallBackProc proc,
+		void		       *closure);
+
+CompBool
+commonForEachInterface (CompObject	      *object,
+			InterfaceCallBackProc proc,
+			void		      *closure);
 
 CompBool
 commonForEachMethod (CompObject		*object,
@@ -208,6 +212,16 @@ void
 commonInterfacesRemoved (CompObject	       *object,
 			 const CommonInterface *interface,
 			 int		       nInterface);
+
+CompBool
+cForEachType (CompObject       *object,
+	      TypeCallBackProc proc,
+	      void	       *closure);
+
+CompBool
+commonForEachChildObject (CompObject		  *object,
+			  ChildObjectCallBackProc proc,
+			  void			  *closure);
 
 CompBool
 commonGetBoolProp (CompObject *object,
@@ -314,45 +328,43 @@ commonInterfaceFini (CommonInterface *interface,
 
 CompBool
 commonObjectPropertiesInit (CompObject		  *object,
+			    char		  *data,
 			    const CommonInterface *interface,
 			    int			  nInterface);
 
 void
-commonObjectPropertiesFini (CompObject		  *object,
+commonObjectPropertiesFini (CompObject	          *object,
+			    char		  *data,
 			    const CommonInterface *interface,
 			    int			  nInterface);
 
 CompBool
 commonObjectChildrenInit (CompObject	        *object,
+			  char		        *data,
 			  const CommonInterface *interface,
-			  int		        nInterface);
+			  int			nInterface);
 
 void
 commonObjectChildrenFini (CompObject	        *object,
+			  char		        *data,
 			  const CommonInterface *interface,
-			  int		        nInterface);
+			  int			nInterface);
 
 CompBool
-commonObjectInterfaceInit (CompObject	         *object,
-			   const CommonInterface *interface,
-			   int		         nInterface);
+commonObjectInterfaceInit (CompObject		  *object,
+			   const CompObjectVTable *vTable);
 
 void
-commonObjectInterfaceFini (CompObject	         *object,
-			   const CommonInterface *interface,
-			   int		         nInterface);
+commonObjectInterfaceFini (CompObject *object);
 
 CompBool
-commonObjectInit (CompObject	        *object,
-		  const CompObjectType  *baseType,
-		  const CommonInterface *interface,
-		  int		        nInterface);
+commonObjectInit (CompObject	         *object,
+		  const CompObjectType   *baseType,
+		  const CompObjectVTable *vTable);
 
 void
-commonObjectFini (CompObject	        *object,
-		  const CompObjectType  *baseType,
-		  const CommonInterface *interface,
-		  int		        nInterface);
+commonObjectFini (CompObject	       *object,
+		  const CompObjectType *baseType);
 
 COMPIZ_END_DECLS
 

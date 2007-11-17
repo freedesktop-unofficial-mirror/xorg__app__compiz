@@ -445,6 +445,7 @@ static CommonBoolProp screenTypeBoolProp[] = {
     C_PROP (syncToVBlank, CompScreen),
     C_PROP (unredirectFullscreenWindows, CompScreen)
 };
+
 static CommonIntProp screenTypeIntProp[] = {
     C_INT_PROP (hSize, CompScreen, 1, 32, .changed = virtualSizeChanged),
     C_INT_PROP (numberOfDesktops, CompScreen, 1, 36,
@@ -454,77 +455,18 @@ static CommonIntProp screenTypeIntProp[] = {
 		.changed = refreshRateChanged),
     C_INT_PROP (vSize, CompScreen, 1, 32, .changed = virtualSizeChanged)
 };
+
 static CommonStringProp screenTypeStringProp[] = {
     C_PROP (defaultIconImage, CompScreen, .changed = defaultIconChanged)
 };
+
 static CommonChildObject screenTypeChildObject[] = {
     C_CHILD (windowContainer, CompScreen, CONTAINER_TYPE_NAME)
 };
-#define INTERFACE_VERSION_screenType CORE_ABIVERSION
 
 static CommonInterface screenInterface[] = {
-    C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, _, X, X, _, X, X)
+    C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, X, X, _, X, X)
 };
-
-static CompBool
-screenForBaseObject (CompObject	            *object,
-		     BaseObjectCallBackProc proc,
-		     void		    *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    SCREEN (object);
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-screenForEachInterface (CompObject	      *object,
-			InterfaceCallBackProc proc,
-			void		      *closure)
-{
-    return handleForEachInterface (object,
-				   screenInterface,
-				   N_ELEMENTS (screenInterface),
-				   getScreenObjectType (),
-				   proc, closure);
-}
-
-static CompBool
-screenForEachType (CompObject	    *object,
-		   TypeCallBackProc proc,
-		   void		    *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    SCREEN (object);
-
-    if (!(*proc) (object, getScreenObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&s->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&s->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-screenForEachChildObject (CompObject		  *object,
-			  ChildObjectCallBackProc proc,
-			  void			  *closure)
-{
-    return handleForEachChildObject (object,
-				     screenInterface,
-				     N_ELEMENTS (screenInterface),
-				     proc, closure);
-}
 
 CompOption *
 getScreenOptions (CompPlugin *plugin,
@@ -1475,23 +1417,7 @@ freeScreen (CompScreen *s)
     free (s);
 }
 
-static CompObjectVTable screenObjectVTable = {
-    .forBaseObject	      = screenForBaseObject,
-    .forEachInterface	      = screenForEachInterface,
-    .forEachProp	      = commonForEachProp,
-    .forEachType	      = screenForEachType,
-    .forEachChildObject	      = screenForEachChildObject,
-    .version.get	      = commonGetVersion,
-    .properties.getBool	      = commonGetBoolProp,
-    .properties.setBool	      = commonSetBoolProp,
-    .properties.boolChanged   = commonBoolPropChanged,
-    .properties.getInt	      = commonGetIntProp,
-    .properties.setInt	      = commonSetIntProp,
-    .properties.intChanged    = commonIntPropChanged,
-    .properties.getString     = commonGetStringProp,
-    .properties.setString     = commonSetStringProp,
-    .properties.stringChanged = commonStringPropChanged
-};
+static CompObjectVTable screenObjectVTable = { 0 };
 
 static CompObjectPrivates screenObjectPrivates = {
     0,
@@ -1525,8 +1451,7 @@ screenInitObject (CompObject *object)
 
     SCREEN (object);
 
-    if (!commonObjectInit (&s->base, getObjectType (),
-			   screenInterface, N_ELEMENTS (screenInterface)))
+    if (!commonObjectInit (&s->base, getObjectType (), &screenObjectVTable))
 	return FALSE;
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
@@ -1536,12 +1461,9 @@ screenInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
-	commonObjectFini (&s->base, getObjectType (),
-			  screenInterface, N_ELEMENTS (screenInterface));
+	commonObjectFini (&s->base, getObjectType ());
 	return FALSE;
     }
-
-    WRAP (&s->object, &s->base, vTable, &screenObjectVTable);
 
     s->objectName = NULL;
 
@@ -1757,16 +1679,13 @@ screenFiniObject (CompObject *object)
 {
     SCREEN (object);
 
-    UNWRAP (&s->object, &s->base, vTable);
-
     if (s->objectName)
 	free (s->objectName);
 
     if (s->privates)
 	free (s->privates);
 
-    commonObjectFini (&s->base, getObjectType (),
-		      screenInterface, N_ELEMENTS (screenInterface));
+    commonObjectFini (&s->base, getObjectType ());
 }
 
 static void
@@ -1785,6 +1704,20 @@ static CompObjectType screenObjectType = {
     screenInitVTable
 };
 
+static void
+screenGetCContect (CompObject *object,
+		   CContext   *ctx)
+{
+    SCREEN (object);
+
+    ctx->interface  = screenInterface;
+    ctx->nInterface = N_ELEMENTS (screenInterface);
+    ctx->type	    = &screenObjectType;
+    ctx->data	    = (char *) s;
+    ctx->vtStore    = &s->object;
+    ctx->version    = COMPIZ_SCREEN_VERSION;
+}
+
 CompObjectType *
 getScreenObjectType (void)
 {
@@ -1793,7 +1726,8 @@ getScreenObjectType (void)
     if (!init)
     {
 	commonInterfaceInit (screenInterface, N_ELEMENTS (screenInterface));
-	screenInitVTable (&screenObjectVTable);
+	cInitObjectVTable (&screenObjectVTable, screenGetCContect,
+			   screenObjectType.initVTable);
 	init = TRUE;
     }
 

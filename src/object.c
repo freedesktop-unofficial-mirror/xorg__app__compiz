@@ -35,12 +35,10 @@ static const CommonSignal objectTypeSignal[] = {
     C_SIGNAL (childObjectAdded,   "o", CompObjectVTable),
     C_SIGNAL (childObjectRemoved, "o", CompObjectVTable)
 };
-#define INTERFACE_VERSION_objectType CORE_ABIVERSION
 
 static const CommonSignal signalObjectSignal[] = {
     C_SIGNAL (signal, NULL, CompSignalVTable)
 };
-#define INTERFACE_VERSION_signalObject CORE_ABIVERSION
 
 static const CommonMethod propertiesObjectMethod[] = {
     C_METHOD (getBool,   "ss",  "b", CompPropertiesVTable, marshal__SS_B_E),
@@ -52,32 +50,28 @@ static const CommonMethod propertiesObjectMethod[] = {
     C_METHOD (getString, "ss",  "s", CompPropertiesVTable, marshal__SS_S_E),
     C_METHOD (setString, "sss", "",  CompPropertiesVTable, marshal__SSS__E)
 };
+
 static const CommonSignal propertiesObjectSignal[] = {
     C_SIGNAL (boolChanged,   "ssb", CompPropertiesVTable),
     C_SIGNAL (intChanged,    "ssi", CompPropertiesVTable),
     C_SIGNAL (doubleChanged, "ssd", CompPropertiesVTable),
     C_SIGNAL (stringChanged, "sss", CompPropertiesVTable)
 };
-#define INTERFACE_VERSION_propertiesObject CORE_ABIVERSION
 
 static const CommonMethod metadataObjectMethod[] = {
     C_METHOD (get, "s", "s", CompMetadataVTable, marshal__S_S_E)
 };
-#define INTERFACE_VERSION_metadataObject CORE_ABIVERSION
 
 static const CommonMethod versionObjectMethod[] = {
     C_METHOD (get, "s", "i", CompVersionVTable, marshal_I_S)
 };
-#define INTERFACE_VERSION_versionObject CORE_ABIVERSION
 
 static const CommonInterface objectInterface[] = {
-    C_INTERFACE (object, Type, CompObjectVTable, _, _, _, X, _, _, _, _, _),
-    C_INTERFACE (signal, Object, CompObjectVTable, X, _, _, X, _, _, _, _, _),
-    C_INTERFACE (properties, Object, CompObjectVTable,
-		 X, _, X, X, _, _, _, _, _),
-    C_INTERFACE (metadata, Object, CompObjectVTable,
-		 X, _, X, _, _, _, _, _, _),
-    C_INTERFACE (version, Object, CompObjectVTable, X, _, X, _, _, _, _, _, _)
+    C_INTERFACE (object,     Type,   CompObjectVTable, _, _, X, _, _, _, _, _),
+    C_INTERFACE (signal,     Object, CompObjectVTable, X, _, X, _, _, _, _, _),
+    C_INTERFACE (properties, Object, CompObjectVTable, X, X, X, _, _, _, _, _),
+    C_INTERFACE (metadata,   Object, CompObjectVTable, X, X, _, _, _, _, _, _),
+    C_INTERFACE (version,    Object, CompObjectVTable, X, X, _, _, _, _, _, _)
 };
 
 CompBool
@@ -960,127 +954,69 @@ noopGetMetadata (CompObject *object,
 					     (void *) &ctx);
 }
 
+#define CCONTEXT(vTable, pCtx)				   \
+    (*((GetCContextProc) (vTable)->unused)) (object, pCtx)
+
 CompBool
-handleForEachInterface (CompObject	      *object,
-			const CommonInterface *interface,
-			int		      nInterface,
-			const CompObjectType  *type,
+cForBaseObject (CompObject	       *object,
+		BaseObjectCallBackProc proc,
+		void		       *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+    CContext		ctx;
+
+    CCONTEXT (object->vTable, &ctx);
+
+    UNWRAP (ctx.vtStore, object, vTable);
+    status = (*proc) (object, closure);
+    WRAP (ctx.vtStore, object, vTable, v.vTable);
+
+    return status;
+}
+
+CompBool
+commonForEachInterface (CompObject	      *object,
 			InterfaceCallBackProc proc,
 			void		      *closure)
 {
-    int i;
+    CContext ctx;
+    int      i;
 
-    for (i = 0; i < nInterface; i++)
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
 	if (!(*proc) (object,
-		      interface[i].name,
-		      (void *) &interface[i],
-		      interface[i].offset,
-		      type,
+		      ctx.interface[i].name,
+		      (void *) &ctx.interface[i],
+		      ctx.interface[i].offset,
+		      ctx.type,
 		      closure))
 	    return FALSE;
 
     return noopForEachInterface (object, proc, closure);
 }
 
-#define INTERFACE_DATA(object, interface) \
-    ((interface)->data ? (*(interface)->data) (object) : (char *) object)
-
 #define CHILD(data, child)		      \
-    ((CompObject *) (data + (child)->offset))
+    ((CompObject *) ((data) + (child)->offset))
 
 CompBool
-handleForEachChildObject (CompObject		  *object,
-			  const CommonInterface   *interface,
-			  int		          nInterface,
+commonForEachChildObject (CompObject		  *object,
 			  ChildObjectCallBackProc proc,
 			  void			  *closure)
 {
-    char *data;
-    int  i, j;
+    CContext ctx;
+    int      i, j;
 
-    for (i = 0; i < nInterface; i++)
-    {
-	data = INTERFACE_DATA (object, interface);
+    CCONTEXT (object->vTable, &ctx);
 
-	for (j = 0; j < interface[i].nChild; j++)
-	    if (!(*proc) (CHILD (data, &interface[i].child[j]), closure))
+    for (i = 0; i < ctx.nInterface; i++)
+	for (j = 0; j < ctx.interface[i].nChild; j++)
+	    if (!(*proc) (CHILD (ctx.data, &ctx.interface[i].child[j]),
+			  closure))
 		return FALSE;
-    }
 
     return noopForEachChildObject (object, proc, closure);
-}
-
-typedef struct _IsCommonInterfaceContext {
-    CompObjectVTable *vTable;
-    const char	     *name;
-    void	     *key;
-} IsCommonInterfaceContext;
-
-static CompBool
-isNotCommonInterface (CompObject	   *object,
-		      const char	   *name,
-		      void		   *key,
-		      size_t		   offset,
-		      const CompObjectType *type,
-		      void		   *closure)
-{
-    IsCommonInterfaceContext *pCtx = (IsCommonInterfaceContext *) closure;
-
-    if (pCtx->key)
-    {
-	if (key != pCtx->key)
-	    return TRUE;
-    }
-    else
-    {
-	if (strcmp (name, pCtx->name))
-	    return TRUE;
-    }
-
-    if (pCtx->vTable == object->vTable)
-    {
-	pCtx->key = key;
-
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
-static CommonInterface *
-getCommonInterface (CompObject *object,
-		    const char *name,
-		    void       *key)
-{
-    IsCommonInterfaceContext ctx;
-
-    ctx.vTable = object->vTable;
-    ctx.name   = name;
-    ctx.key    = key;
-
-    if ((*object->vTable->forEachInterface) (object,
-					     isNotCommonInterface,
-					     (void *) &ctx))
-	return NULL;
-
-    return (CommonInterface *) ctx.key;
-}
-
-static CompBool
-handleForEachMethod (CompObject	        *object,
-		     const CommonMethod *method,
-		     int		nMethod,
-		     MethodCallBackProc proc,
-		     void		*closure)
-{
-    int i;
-
-    for (i = 0; i < nMethod; i++)
-	if (!(*proc) (object, method[i].name, method[i].in, method[i].out,
-		      method[i].offset, method[i].marshal, closure))
-	    return FALSE;
-
-    return TRUE;
 }
 
 CompBool
@@ -1089,37 +1025,28 @@ commonForEachMethod (CompObject		*object,
 		     MethodCallBackProc proc,
 		     void	        *closure)
 {
-    CommonInterface *interface;
+    CContext ctx;
+    int      i, j;
 
-    interface = getCommonInterface (object, NULL, key);
-    if (interface)
-	if (!handleForEachMethod (object,
-				  interface->method, interface->nMethod,
-				  proc, closure))
-	    return FALSE;
+    CCONTEXT (object->vTable, &ctx);
 
-    return noopForEachMethod (object, key, proc, closure);
-}
+    for (i = 0; i < ctx.nInterface; i++)
+    {
+	if (key && key != &ctx.interface[i])
+	    continue;
 
-static CompBool
-handleForEachSignal (CompObject	        *object,
-		     const CommonSignal *signal,
-		     int		nSignal,
-		     SignalCallBackProc proc,
-		     void		*closure)
-{
-    int i;
-
-    for (i = 0; i < nSignal; i++)
-	if (signal[i].out)
+	for (j = 0; j < ctx.interface[i].nMethod; j++)
 	    if (!(*proc) (object,
-			  signal[i].name,
-			  signal[i].out,
-			  signal[i].offset,
+			  ctx.interface[i].method[j].name,
+			  ctx.interface[i].method[j].in,
+			  ctx.interface[i].method[j].out,
+			  ctx.interface[i].method[j].offset,
+			  ctx.interface[i].method[j].marshal,
 			  closure))
 		return FALSE;
+    }
 
-    return TRUE;
+    return noopForEachMethod (object, key, proc, closure);
 }
 
 CompBool
@@ -1128,14 +1055,24 @@ commonForEachSignal (CompObject		*object,
 		     SignalCallBackProc proc,
 		     void		*closure)
 {
-    CommonInterface *interface;
+    CContext ctx;
+    int      i, j;
 
-    interface = getCommonInterface (object, NULL, key);
-    if (interface)
-	if (!handleForEachSignal (object,
-				  interface->signal, interface->nSignal,
-				  proc, closure))
-	    return FALSE;
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+    {
+	if (key && key != &ctx.interface[i])
+	    continue;
+
+	for (j = 0; j < ctx.interface[i].nSignal; j++)
+	    if (!(*proc) (object,
+			  ctx.interface[i].signal[j].name,
+			  ctx.interface[i].signal[j].out,
+			  ctx.interface[i].signal[j].offset,
+			  closure))
+		return FALSE;
+    }
 
     return noopForEachSignal (object, key, proc, closure);
 }
@@ -1210,32 +1147,37 @@ commonForEachProp (CompObject	    *object,
 		   PropCallBackProc proc,
 		   void		    *closure)
 {
-    CommonInterface *interface;
+    CContext ctx;
+    int      i;
 
-    interface = getCommonInterface (object, NULL, key);
-    if (interface)
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
     {
+	if (key && key != &ctx.interface[i])
+	    continue;
+
 	if (!handleForEachBoolProp (object,
-				    interface->boolProp,
-				    interface->nBoolProp,
+				    ctx.interface[i].boolProp,
+				    ctx.interface[i].nBoolProp,
 				    proc, closure))
 	    return FALSE;
 
 	if (!handleForEachIntProp (object,
-				   interface->intProp,
-				   interface->nIntProp,
+				   ctx.interface[i].intProp,
+				   ctx.interface[i].nIntProp,
 				   proc, closure))
 	    return FALSE;
 
 	if (!handleForEachDoubleProp (object,
-				      interface->doubleProp,
-				      interface->nDoubleProp,
+				      ctx.interface[i].doubleProp,
+				      ctx.interface[i].nDoubleProp,
 				      proc, closure))
 	    return FALSE;
 
 	if (!handleForEachStringProp (object,
-				      interface->stringProp,
-				      interface->nStringProp,
+				      ctx.interface[i].stringProp,
+				      ctx.interface[i].nStringProp,
 				      proc, closure))
 	    return FALSE;
     }
@@ -1243,38 +1185,34 @@ commonForEachProp (CompObject	    *object,
     return noopForEachProp (object, key, proc, closure);
 }
 
-static CompBool
-handleGetInterfaceVersion (CompObject		*object,
-			   const char	        *name,
-			   void			*key,
-			   size_t		offset,
-			   const CompObjectType *type,
-			   void			*closure)
+CompBool
+cForEachType (CompObject       *object,
+	      TypeCallBackProc proc,
+	      void	       *closure)
 {
-    GetVersionContext *pCtx = (GetVersionContext *) closure;
-    CommonInterface   *interface = (CommonInterface *) key;
+    CContext ctx;
 
-    if (strcmp (name, pCtx->interface) == 0)
-    {
-	pCtx->result = interface->version;
-	return FALSE;
-    }
+    CCONTEXT (object->vTable, &ctx);
 
-    return TRUE;
+    if (ctx.type)
+	if (!(*proc) (object, ctx.type, closure))
+	    return FALSE;
+
+    return noopForEachType (object, proc, closure);
 }
 
 int
 commonGetVersion (CompObject *object,
 		  const char *interface)
 {
-    GetVersionContext ctx;
+    CContext ctx;
+    int      i;
 
-    ctx.interface = interface;
+    CCONTEXT (object->vTable, &ctx);
 
-    if (!(*object->vTable->forEachInterface) (object,
-					      handleGetInterfaceVersion,
-					      (void *) &ctx))
-	return ctx.result;
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return ctx.version;
 
     return noopGetVersion (object, interface);
 }
@@ -1285,18 +1223,6 @@ forBaseObject (CompObject	      *object,
 	       void		      *closure)
 {
     return TRUE;
-}
-
-static CompBool
-forEachInterface (CompObject		*object,
-		  InterfaceCallBackProc proc,
-		  void			*closure)
-{
-    return handleForEachInterface (object,
-				   objectInterface,
-				   N_ELEMENTS (objectInterface),
-				   getObjectType (),
-				   proc, closure);
 }
 
 static void
@@ -1367,14 +1293,6 @@ childObjectRemoved (CompObject *object,
 {
     EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_REMOVED],
 		     "object", "childObjectRemoved", "o", child);
-}
-
-static CompBool
-forEachChildObject (CompObject		    *object,
-		    ChildObjectCallBackProc proc,
-		    void		    *closure)
-{
-    return TRUE;
 }
 
 static CompBool
@@ -1597,18 +1515,21 @@ commonGetBoolProp (CompObject *object,
 		   CompBool   *value,
 		   char	      **error)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	return handleGetBoolProp (object,
-				  commonInterface->boolProp,
-				  commonInterface->nBoolProp,
-				  INTERFACE_DATA (object, commonInterface),
-				  interface,
-				  name,
-				  value,
-				  error);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleGetBoolProp (object,
+				      ctx.interface[i].boolProp,
+				      ctx.interface[i].nBoolProp,
+				      ctx.data,
+				      interface,
+				      name,
+				      value,
+				      error);
 
     return noopGetBoolProp (object, interface, name, value, error);
 }
@@ -1661,18 +1582,21 @@ commonSetBoolProp (CompObject *object,
 		   CompBool   value,
 		   char	      **error)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	return handleSetBoolProp (object,
-				  commonInterface->boolProp,
-				  commonInterface->nBoolProp,
-				  INTERFACE_DATA (object, commonInterface),
-				  interface,
-				  name,
-				  value,
-				  error);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleSetBoolProp (object,
+				      ctx.interface[i].boolProp,
+				      ctx.interface[i].nBoolProp,
+				      ctx.data,
+				      interface,
+				      name,
+				      value,
+				      error);
 
     return noopSetBoolProp (object, interface, name, value, error);
 }
@@ -1698,16 +1622,19 @@ commonBoolPropChanged (CompObject *object,
 		       const char *name,
 		       CompBool   value)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	handleBoolPropChanged (object,
-			       commonInterface->boolProp,
-			       commonInterface->nBoolProp,
-			       interface,
-			       name,
-			       value);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    handleBoolPropChanged (object,
+				   ctx.interface[i].boolProp,
+				   ctx.interface[i].nBoolProp,
+				   interface,
+				   name,
+				   value);
 
     noopBoolPropChanged (object, interface, name, value);
 }
@@ -1780,18 +1707,21 @@ commonGetIntProp (CompObject *object,
 		  int32_t    *value,
 		  char	     **error)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	return handleGetIntProp (object,
-				 commonInterface->intProp,
-				 commonInterface->nIntProp,
-				 INTERFACE_DATA (object, commonInterface),
-				 interface,
-				 name,
-				 value,
-				 error);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleGetIntProp (object,
+				     ctx.interface[i].intProp,
+				     ctx.interface[i].nIntProp,
+				     ctx.data,
+				     interface,
+				     name,
+				     value,
+				     error);
 
     return noopGetIntProp (object, interface, name, value, error);
 }
@@ -1864,18 +1794,21 @@ commonSetIntProp (CompObject *object,
 		  int32_t    value,
 		  char	     **error)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	return handleSetIntProp (object,
-				 commonInterface->intProp,
-				 commonInterface->nIntProp,
-				 INTERFACE_DATA (object, commonInterface),
-				 interface,
-				 name,
-				 value,
-				 error);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleSetIntProp (object,
+				     ctx.interface[i].intProp,
+				     ctx.interface[i].nIntProp,
+				     ctx.data,
+				     interface,
+				     name,
+				     value,
+				     error);
 
     return noopSetIntProp (object, interface, name, value, error);
 }
@@ -1901,16 +1834,19 @@ commonIntPropChanged (CompObject *object,
 		      const char *name,
 		      int32_t    value)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	handleIntPropChanged (object,
-			      commonInterface->intProp,
-			      commonInterface->nIntProp,
-			      interface,
-			      name,
-			      value);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    handleIntPropChanged (object,
+				  ctx.interface[i].intProp,
+				  ctx.interface[i].nIntProp,
+				  interface,
+				  name,
+				  value);
 
     noopIntPropChanged (object, interface, name, value);
 }
@@ -1983,18 +1919,21 @@ commonGetDoubleProp (CompObject *object,
 		     double     *value,
 		     char	**error)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	return handleGetDoubleProp (object,
-				    commonInterface->doubleProp,
-				    commonInterface->nDoubleProp,
-				    INTERFACE_DATA (object, commonInterface),
-				    interface,
-				    name,
-				    value,
-				    error);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleGetDoubleProp (object,
+					ctx.interface[i].doubleProp,
+					ctx.interface[i].nDoubleProp,
+					ctx.data,
+					interface,
+					name,
+					value,
+					error);
 
     return noopGetDoubleProp (object, interface, name, value, error);
 }
@@ -2067,18 +2006,21 @@ commonSetDoubleProp (CompObject *object,
 		     double     value,
 		     char	**error)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	return handleSetDoubleProp (object,
-				    commonInterface->doubleProp,
-				    commonInterface->nDoubleProp,
-				    INTERFACE_DATA (object, commonInterface),
-				    interface,
-				    name,
-				    value,
-				    error);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleSetDoubleProp (object,
+					ctx.interface[i].doubleProp,
+					ctx.interface[i].nDoubleProp,
+					ctx.data,
+					interface,
+					name,
+					value,
+					error);
 
     return noopSetDoubleProp (object, interface, name, value, error);
 }
@@ -2104,16 +2046,19 @@ commonDoublePropChanged (CompObject *object,
 			 const char *name,
 			 double     value)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	handleDoublePropChanged (object,
-				 commonInterface->doubleProp,
-				 commonInterface->nDoubleProp,
-				 interface,
-				 name,
-				 value);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    handleDoublePropChanged (object,
+				     ctx.interface[i].doubleProp,
+				     ctx.interface[i].nDoubleProp,
+				     interface,
+				     name,
+				     value);
 
     noopDoublePropChanged (object, interface, name, value);
 }
@@ -2198,18 +2143,21 @@ commonGetStringProp (CompObject *object,
 		     char       **value,
 		     char	**error)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	return handleGetStringProp (object,
-				    commonInterface->stringProp,
-				    commonInterface->nStringProp,
-				    INTERFACE_DATA (object, commonInterface),
-				    interface,
-				    name,
-				    value,
-				    error);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleGetStringProp (object,
+					ctx.interface[i].stringProp,
+					ctx.interface[i].nStringProp,
+					ctx.data,
+					interface,
+					name,
+					value,
+					error);
 
     return noopGetStringProp (object, interface, name, value, error);
 }
@@ -2277,18 +2225,21 @@ commonSetStringProp (CompObject *object,
 		     const char *value,
 		     char	**error)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	return handleSetStringProp (object,
-				    commonInterface->stringProp,
-				    commonInterface->nStringProp,
-				    INTERFACE_DATA (object, commonInterface),
-				    interface,
-				    name,
-				    value,
-				    error);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    return handleSetStringProp (object,
+					ctx.interface[i].stringProp,
+					ctx.interface[i].nStringProp,
+					ctx.data,
+					interface,
+					name,
+					value,
+					error);
 
     return noopSetStringProp (object, interface, name, value, error);
 }
@@ -2314,16 +2265,19 @@ commonStringPropChanged (CompObject *object,
 			 const char *name,
 			 const char *value)
 {
-    CommonInterface *commonInterface;
+    CContext ctx;
+    int      i;
 
-    commonInterface = getCommonInterface (object, interface, NULL);
-    if (commonInterface)
-	handleStringPropChanged (object,
-				 commonInterface->stringProp,
-				 commonInterface->nStringProp,
-				 interface,
-				 name,
-				 value);
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+	if (strcmp (interface, ctx.interface[i].name) == 0)
+	    handleStringPropChanged (object,
+				     ctx.interface[i].stringProp,
+				     ctx.interface[i].nStringProp,
+				     interface,
+				     name,
+				     value);
 
     noopStringPropChanged (object, interface, name, value);
 }
@@ -2515,14 +2469,14 @@ commonGetMetadata (CompObject *object,
 static CompObjectVTable objectVTable = {
     forBaseObject,
     NULL,
-    forEachInterface,
+    commonForEachInterface,
     commonForEachMethod,
     commonForEachSignal,
     commonForEachProp,
     interfaceAdded,
     interfaceRemoved,
     forEachType,
-    forEachChildObject,
+    commonForEachChildObject,
     childObjectAdded,
     childObjectRemoved,
     {
@@ -2634,9 +2588,29 @@ static CompObjectType objectType = {
     (InitVTableProc) initObjectVTable
 };
 
+static void
+objectGetCContect (CompObject *object,
+		   CContext   *ctx)
+{
+    ctx->interface  = objectInterface;
+    ctx->nInterface = N_ELEMENTS (objectInterface);
+    ctx->type	    = &objectType;
+    ctx->data	    = (char *) object;
+    ctx->vtStore    = NULL;
+    ctx->version    = COMPIZ_OBJECT_VERSION;
+}
+
 CompObjectType *
 getObjectType (void)
 {
+    static CompBool init = FALSE;
+
+    if (!init)
+    {
+	cInitObjectVTable (&objectVTable, objectGetCContect, 0);
+	init = TRUE;
+    }
+
     return &objectType;
 }
 
@@ -3233,13 +3207,13 @@ compFiniBasicArgs (CompBasicArgs *args)
 }
 
 typedef struct _MethodCallContext {
-    const char	      *interface;
-    const char	      *name;
-    const char	      *in;
-    const char	      *out;
-    CompObjectVTable  *vTable;
-    int		      offset;
-    MethodMarshalProc marshal;
+    const char		   *interface;
+    const char		   *name;
+    const char		   *in;
+    const char		   *out;
+    const CompObjectVTable *vTable;
+    int			   offset;
+    MethodMarshalProc	   marshal;
 } MethodCallContext;
 
 static CompBool
@@ -3301,11 +3275,11 @@ checkInterface (CompObject	     *object,
 }
 
 static void
-invokeMethod (CompObject        *object,
-	      CompObjectVTable  *vTable,
-	      int	        offset,
-	      MethodMarshalProc marshal,
-	      CompArgs		*args)
+invokeMethod (CompObject	     *object,
+	      const CompObjectVTable *vTable,
+	      int		     offset,
+	      MethodMarshalProc	     marshal,
+	      CompArgs		     *args)
 {
     CompObjectVTableVec save = { object->vTable };
     CompObjectVTableVec interface = { vTable };
@@ -3683,16 +3657,14 @@ commonInterfaceFini (CommonInterface *interface,
 
 CompBool
 commonObjectPropertiesInit (CompObject		  *object,
+			    char		  *data,
 			    const CommonInterface *interface,
 			    int			  nInterface)
 {
-    char *data;
-    int  i, j;
+    int i, j;
 
     for (i = 0; i < nInterface; i++)
     {
-	data = INTERFACE_DATA (object, &interface[i]);
-
 	for (j = 0; j < interface[i].nBoolProp; j++)
 	    SET_DEFAULT_VALUE (data, &interface[i].boolProp[j], CompBool);
 
@@ -3721,7 +3693,8 @@ commonObjectPropertiesInit (CompObject		  *object,
 		    }
 
 		    while (i--)
-			commonObjectPropertiesFini (object, &interface[i], 1);
+			commonObjectPropertiesFini (object, data,
+						    &interface[i], 1);
 
 		    return FALSE;
 		}
@@ -3740,16 +3713,14 @@ commonObjectPropertiesInit (CompObject		  *object,
 
 void
 commonObjectPropertiesFini (CompObject		  *object,
+			    char		  *data,
 			    const CommonInterface *interface,
 			    int			  nInterface)
 {
-    char *data;
-    int  i, j;
+    int i, j;
 
     for (i = 0; i < nInterface; i++)
     {
-	data = INTERFACE_DATA (object, &interface[i]);
-
 	for (j = 0; j < interface[i].nStringProp; j++)
 	{
 	    char *str;
@@ -3762,18 +3733,16 @@ commonObjectPropertiesFini (CompObject		  *object,
 }
 
 CompBool
-commonObjectChildrenInit (CompObject	        *object,
+commonObjectChildrenInit (CompObject		*object,
+			  char			*data,
 			  const CommonInterface *interface,
-			  int		        nInterface)
+			  int			nInterface)
 {
     CompObject *child;
-    char       *data;
     int	       i, j;
 
     for (i = 0; i < nInterface; i++)
     {
-	data = INTERFACE_DATA (object, &interface[i]);
-
 	for (j = 0; j < interface[i].nChild; j++)
 	{
 	    if (interface[i].child[j].objectType)
@@ -3789,7 +3758,8 @@ commonObjectChildrenInit (CompObject	        *object,
 					    interface[i].child[j].objectType);
 
 		    while (i--)
-			commonObjectChildrenFini (object, &interface[i], 1);
+			commonObjectChildrenFini (object, data,
+						  &interface[i], 1);
 
 		    return FALSE;
 		}
@@ -3805,60 +3775,78 @@ commonObjectChildrenInit (CompObject	        *object,
 
 void
 commonObjectChildrenFini (CompObject	        *object,
+			  char			*data,
 			  const CommonInterface *interface,
 			  int		        nInterface)
 {
-    char *data;
-    int  i, j;
+    int i, j;
 
     for (i = 0; i < nInterface; i++)
-    {
-	data = INTERFACE_DATA (object, &interface[i]);
-
 	for (j = 0; j < interface[i].nChild; j++)
 	    if (interface[i].child[j].objectType)
 		compObjectFini (CHILD (data, &interface[i].child[j]),
 				interface[i].child[j].objectType);
-    }
 }
 
 CompBool
-commonObjectInterfaceInit (CompObject	         *object,
-			   const CommonInterface *interface,
-			   int		         nInterface)
+commonObjectInterfaceInit (CompObject		  *object,
+			   const CompObjectVTable *vTable)
 {
+    CContext ctx;
 
-    if (!commonObjectPropertiesInit (object, interface, nInterface))
+    CCONTEXT (vTable, &ctx);
+
+    if (!commonObjectPropertiesInit (object,
+				     ctx.data,
+				     ctx.interface,
+				     ctx.nInterface))
 	return FALSE;
 
-    if (!commonObjectChildrenInit (object, interface, nInterface))
+    if (!commonObjectChildrenInit (object,
+				   ctx.data,
+				   ctx.interface,
+				   ctx.nInterface))
     {
-	commonObjectPropertiesFini (object, interface, nInterface);
+	commonObjectPropertiesFini (object,
+				    ctx.data,
+				    ctx.interface,
+				    ctx.nInterface);
 	return FALSE;
     }
+
+    WRAP (ctx.vtStore, object, vTable, vTable);
 
     return TRUE;
 }
 
 void
-commonObjectInterfaceFini (CompObject	         *object,
-			   const CommonInterface *interface,
-			   int		         nInterface)
+commonObjectInterfaceFini (CompObject *object)
 {
-    commonObjectChildrenFini (object, interface, nInterface);
-    commonObjectPropertiesFini (object, interface, nInterface);
+    CContext ctx;
+
+    CCONTEXT (object->vTable, &ctx);
+
+    UNWRAP (ctx.vtStore, object, vTable);
+
+    commonObjectChildrenFini (object,
+			      ctx.data,
+			      ctx.interface,
+			      ctx.nInterface);
+    commonObjectPropertiesFini (object,
+				ctx.data,
+				ctx.interface,
+				ctx.nInterface);
 }
 
 CompBool
-commonObjectInit (CompObject	        *object,
-		  const CompObjectType  *baseType,
-		  const CommonInterface *interface,
-		  int		        nInterface)
+commonObjectInit (CompObject	         *object,
+		  const CompObjectType   *baseType,
+		  const CompObjectVTable *vTable)
 {
     if (!compObjectInit (object, baseType))
 	return FALSE;
 
-    if (!commonObjectInterfaceInit (object, interface, nInterface))
+    if (!commonObjectInterfaceInit (object, vTable))
     {
 	compObjectFini (object, baseType);
 	return FALSE;
@@ -3868,11 +3856,51 @@ commonObjectInit (CompObject	        *object,
 }
 
 void
-commonObjectFini (CompObject	        *object,
-		  const CompObjectType  *baseType,
-		  const CommonInterface *interface,
-		  int		        nInterface)
+commonObjectFini (CompObject	       *object,
+		  const CompObjectType *baseType)
 {
-    commonObjectInterfaceFini (object, interface, nInterface);
+    commonObjectInterfaceFini (object);
     compObjectFini (object, baseType);
+}
+
+void
+cInitObjectVTable (CompObjectVTable *vTable,
+		   GetCContextProc  getCContext,
+		   InitVTableProc   initVTable)
+{
+    vTable->unused = (UnusedProc) getCContext;
+
+    ENSURE (vTable, forBaseObject, cForBaseObject);
+
+    ENSURE (vTable, forEachInterface, commonForEachInterface);
+    ENSURE (vTable, forEachMethod,    commonForEachMethod);
+    ENSURE (vTable, forEachSignal,    commonForEachSignal);
+    ENSURE (vTable, forEachProp,      commonForEachProp);
+
+    ENSURE (vTable, forEachType, cForEachType);
+
+    ENSURE (vTable, forEachChildObject, commonForEachChildObject);
+
+    ENSURE (vTable, version.get, commonGetVersion);
+
+    ENSURE (vTable, properties.getBool,     commonGetBoolProp);
+    ENSURE (vTable, properties.setBool,     commonSetBoolProp);
+    ENSURE (vTable, properties.boolChanged, commonBoolPropChanged);
+
+    ENSURE (vTable, properties.getInt,     commonGetIntProp);
+    ENSURE (vTable, properties.setInt,     commonSetIntProp);
+    ENSURE (vTable, properties.intChanged, commonIntPropChanged);
+
+    ENSURE (vTable, properties.getDouble,     commonGetDoubleProp);
+    ENSURE (vTable, properties.setDouble,     commonSetDoubleProp);
+    ENSURE (vTable, properties.doubleChanged, commonDoublePropChanged);
+
+    ENSURE (vTable, properties.getString,     commonGetStringProp);
+    ENSURE (vTable, properties.setString,     commonSetStringProp);
+    ENSURE (vTable, properties.stringChanged, commonStringPropChanged);
+
+    ENSURE (vTable, metadata.get, commonGetMetadata);
+
+    if (initVTable)
+	(*initVTable) (vTable);
 }

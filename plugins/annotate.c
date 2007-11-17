@@ -31,6 +31,8 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
+#define COMPIZ_ANNOTATE_VERSION 20071116
+
 static CompMetadata annoMetadata;
 
 static int displayPrivateIndex;
@@ -62,6 +64,8 @@ typedef struct _AnnoDisplay {
 static int screenPrivateIndex;
 
 typedef struct _AnnoScreen {
+    CompObjectVTableVec object;
+
     PaintOutputProc paintOutput;
     int		    grabIndex;
 
@@ -86,21 +90,18 @@ typedef struct _AnnoScreen {
 #define ANNO_SCREEN(s)			 \
     AnnoScreen *as = GET_ANNO_SCREEN (s)
 
-static char *
-getDisplayData (CompObject *object)
-{
-    return (char *) GET_ANNO_DISPLAY (GET_DISPLAY (object));
-}
 
 static CommonDoubleProp annotateDisplayDoubleProp[] = {
     C_PROP (lineWidth, AnnoDisplay),
     C_PROP (strokeWidth, AnnoDisplay)
 };
-#define INTERFACE_VERSION_annotateDisplay 20071011
 
 static const CommonInterface annoDisplayInterface[] = {
-    C_INTERFACE (annotate, Display, CompObjectVTable,
-		 _, X, _, _, _, _, X, _, _)
+    C_INTERFACE (annotate, Display, CompObjectVTable, _, _, _, _, _, X, _, _)
+};
+
+static const CommonInterface annoScreenInterface[] = {
+    C_INTERFACE (annotate, Screen, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
 static void
@@ -731,34 +732,6 @@ annoHandleEvent (CompDisplay *d,
     WRAP (ad, d, handleEvent, annoHandleEvent);
 }
 
-static CompBool
-annoDisplayForBaseObject (CompObject		 *object,
-			  BaseObjectCallBackProc proc,
-			  void			 *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    ANNO_DISPLAY (GET_DISPLAY (object));
-
-    UNWRAP (&ad->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&ad->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-annoDisplayForEachInterface (CompObject		   *object,
-			     InterfaceCallBackProc proc,
-			     void		   *closure)
-{
-    return handleForEachInterface (object,
-				   annoDisplayInterface,
-				   N_ELEMENTS (annoDisplayInterface),
-				   NULL, proc, closure);
-}
-
 static const CompMetadataOptionInfo annoDisplayOptionInfo[] = {
     { "initiate_button", "button", 0, annoInitiate, annoTerminate },
     { "draw", "action", 0, annoDraw, 0 },
@@ -769,14 +742,7 @@ static const CompMetadataOptionInfo annoDisplayOptionInfo[] = {
     { "stroke_color", "color", 0, 0, 0 }
 };
 
-static CompDisplayVTable annoDisplayObjectVTable = {
-    .base.forBaseObject        = annoDisplayForBaseObject,
-    .base.forEachInterface     = annoDisplayForEachInterface,
-    .base.forEachProp          = commonForEachProp,
-    .base.version.get          = commonGetVersion,
-    .base.properties.getDouble = commonGetDoubleProp,
-    .base.properties.setDouble = commonSetDoubleProp
-};
+static CompDisplayVTable annoDisplayObjectVTable = { { 0 } };
 
 static CompBool
 annoInitDisplay (CompDisplay *d)
@@ -796,13 +762,17 @@ annoInitDisplay (CompDisplay *d)
     ad->lineWidth   = 3.0;
     ad->strokeWidth = 1.0;
 
-    WRAP (&ad->object, &d->u.base, vTable, &annoDisplayObjectVTable.base);
-
-    WRAP (ad, d, handleEvent, annoHandleEvent);
+    if (!commonObjectInterfaceInit (&d->u.base, &annoDisplayObjectVTable.base))
+    {
+	compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
+	return FALSE;
+    }
 
     commonInterfacesAdded (&d->u.base,
 			   annoDisplayInterface,
 			   N_ELEMENTS (annoDisplayInterface));
+
+    WRAP (ad, d, handleEvent, annoHandleEvent);
 
     return TRUE;
 }
@@ -814,14 +784,29 @@ annoFiniDisplay (CompDisplay *d)
 
     UNWRAP (ad, d, handleEvent);
 
-    UNWRAP (&ad->object, &d->u.base, vTable);
-
+    commonObjectInterfaceFini (&d->u.base);
     commonInterfacesRemoved (&d->u.base,
 			     annoDisplayInterface,
 			     N_ELEMENTS (annoDisplayInterface));
 
     compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 }
+
+static void
+annoDisplayGetCContect (CompObject *object,
+			CContext   *ctx)
+{
+    ANNO_DISPLAY (object);
+
+    ctx->interface  = annoDisplayInterface;
+    ctx->nInterface = N_ELEMENTS (annoDisplayInterface);
+    ctx->type	    = NULL;
+    ctx->data	    = (char *) ad;
+    ctx->vtStore    = &ad->object;
+    ctx->version    = COMPIZ_ANNOTATE_VERSION;
+}
+
+static CompObjectVTable annoScreenObjectVTable = { 0 };
 
 static Bool
 annoInitScreen (CompScreen *s)
@@ -860,6 +845,20 @@ annoFiniScreen (CompScreen *s)
     UNWRAP (as, s, paintOutput);
 }
 
+static void
+annoScreenGetCContect (CompObject *object,
+		       CContext   *ctx)
+{
+    ANNO_SCREEN (GET_SCREEN (object));
+
+    ctx->interface  = annoScreenInterface;
+    ctx->nInterface = N_ELEMENTS (annoScreenInterface);
+    ctx->type	    = NULL;
+    ctx->data	    = (char *) as;
+    ctx->vtStore    = &as->object;
+    ctx->version    = COMPIZ_ANNOTATE_VERSION;
+}
+
 static CompObjectPrivate annoObj[] = {
     {
 	"display",
@@ -868,7 +867,7 @@ static CompObjectPrivate annoObj[] = {
 	(FiniObjectProc) annoFiniDisplay
     }, {
 	"screen",
-	&screenPrivateIndex, sizeof (AnnoScreen), NULL,
+	&screenPrivateIndex, sizeof (AnnoScreen), &annoScreenObjectVTable,
 	(InitObjectProc) annoInitScreen,
 	(FiniObjectProc) annoFiniScreen
     }
@@ -885,6 +884,10 @@ annoInit (CompPlugin *p)
 	return FALSE;
 
     compAddMetadataFromFile (&annoMetadata, p->vTable->name);
+
+    cInitObjectVTable (&annoDisplayObjectVTable.base, annoDisplayGetCContect,
+		       NULL);
+    cInitObjectVTable (&annoScreenObjectVTable, annoScreenGetCContect, NULL);
 
     if (!compObjectInitPrivates (annoObj, N_ELEMENTS (annoObj)))
     {
