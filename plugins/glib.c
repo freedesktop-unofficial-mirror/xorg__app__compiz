@@ -268,7 +268,8 @@ glibInit (CompPlugin *p)
 
     compAddMetadataFromFile (&glibMetadata, p->vTable->name);
 
-    cInitObjectVTable (&glibCoreObjectVTable.base, glibCoreGetCContect, 0);
+    cInitObjectVTable (&glibCoreObjectVTable.base.base, glibCoreGetCContect,
+		       0);
 
     if (!compObjectInitPrivates (glibObj, N_ELEMENTS (glibObj)))
     {
