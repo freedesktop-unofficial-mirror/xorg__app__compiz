@@ -26,7 +26,7 @@
 #include <compiz/container.h>
 #include <compiz/c-object.h>
 
-static const CommonInterface containerInterface[] = {
+static const CInterface containerInterface[] = {
     C_INTERFACE (container, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
@@ -41,7 +41,7 @@ containerForEachChildObject (CompObject		     *object,
 	if (!(*c->forEachChildObject) (object, proc, closure))
 	    return FALSE;
 
-    return commonForEachChildObject (object, proc, closure);
+    return cForEachChildObject (object, proc, closure);
 }
 
 static CompObjectVTable containerObjectVTable = {
@@ -53,7 +53,7 @@ containerInitObject (CompObject *object)
 {
     CONTAINER (object);
 
-    if (!commonObjectInit (&c->base, getObjectType (), &containerObjectVTable))
+    if (!cObjectInit (&c->base, getObjectType (), &containerObjectVTable))
 	return FALSE;
 
     c->forEachChildObject = NULL;
@@ -64,7 +64,7 @@ containerInitObject (CompObject *object)
 static void
 containerFiniObject (CompObject *object)
 {
-    commonObjectFini (object, getObjectType ());
+    cObjectFini (object, getObjectType ());
 }
 
 static void

@@ -91,16 +91,16 @@ typedef struct _AnnoScreen {
     AnnoScreen *as = GET_ANNO_SCREEN (s)
 
 
-static CommonDoubleProp annotateDisplayDoubleProp[] = {
+static CDoubleProp annotateDisplayDoubleProp[] = {
     C_PROP (lineWidth, AnnoDisplay),
     C_PROP (strokeWidth, AnnoDisplay)
 };
 
-static const CommonInterface annoDisplayInterface[] = {
+static const CInterface annoDisplayInterface[] = {
     C_INTERFACE (annotate, Display, CompObjectVTable, _, _, _, _, _, X, _, _)
 };
 
-static const CommonInterface annoScreenInterface[] = {
+static const CInterface annoScreenInterface[] = {
     C_INTERFACE (annotate, Screen, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
@@ -762,15 +762,15 @@ annoInitDisplay (CompDisplay *d)
     ad->lineWidth   = 3.0;
     ad->strokeWidth = 1.0;
 
-    if (!commonObjectInterfaceInit (&d->u.base, &annoDisplayObjectVTable.base))
+    if (!cObjectInterfaceInit (&d->u.base, &annoDisplayObjectVTable.base))
     {
 	compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 	return FALSE;
     }
 
-    commonInterfacesAdded (&d->u.base,
-			   annoDisplayInterface,
-			   N_ELEMENTS (annoDisplayInterface));
+    cInterfacesAdded (&d->u.base,
+		      annoDisplayInterface,
+		      N_ELEMENTS (annoDisplayInterface));
 
     WRAP (ad, d, handleEvent, annoHandleEvent);
 
@@ -784,10 +784,10 @@ annoFiniDisplay (CompDisplay *d)
 
     UNWRAP (ad, d, handleEvent);
 
-    commonObjectInterfaceFini (&d->u.base);
-    commonInterfacesRemoved (&d->u.base,
-			     annoDisplayInterface,
-			     N_ELEMENTS (annoDisplayInterface));
+    cObjectInterfaceFini (&d->u.base);
+    cInterfacesRemoved (&d->u.base,
+			annoDisplayInterface,
+			N_ELEMENTS (annoDisplayInterface));
 
     compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 }

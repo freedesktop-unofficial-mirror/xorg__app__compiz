@@ -437,7 +437,7 @@ defaultIconChanged (CompObject *object,
     updateDefaultIcon (GET_SCREEN (object));
 }
 
-static CommonBoolProp screenTypeBoolProp[] = {
+static CBoolProp screenTypeBoolProp[] = {
     C_PROP (detectOutputs, CompScreen, .changed = detectOutputsChanged),
     C_PROP (detectRefreshRate, CompScreen,
 	    .changed = detectRefreshRateChanged),
@@ -446,7 +446,7 @@ static CommonBoolProp screenTypeBoolProp[] = {
     C_PROP (unredirectFullscreenWindows, CompScreen)
 };
 
-static CommonIntProp screenTypeIntProp[] = {
+static CIntProp screenTypeIntProp[] = {
     C_INT_PROP (hSize, CompScreen, 1, 32, .changed = virtualSizeChanged),
     C_INT_PROP (numberOfDesktops, CompScreen, 1, 36,
 		.changed = numberOfDesktopsChanged),
@@ -456,15 +456,15 @@ static CommonIntProp screenTypeIntProp[] = {
     C_INT_PROP (vSize, CompScreen, 1, 32, .changed = virtualSizeChanged)
 };
 
-static CommonStringProp screenTypeStringProp[] = {
+static CStringProp screenTypeStringProp[] = {
     C_PROP (defaultIconImage, CompScreen, .changed = defaultIconChanged)
 };
 
-static CommonChildObject screenTypeChildObject[] = {
+static CChildObject screenTypeChildObject[] = {
     C_CHILD (windowContainer, CompScreen, CONTAINER_TYPE_NAME)
 };
 
-static CommonInterface screenInterface[] = {
+static CInterface screenInterface[] = {
     C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, X, X, _, X, X)
 };
 
@@ -1451,7 +1451,7 @@ screenInitObject (CompObject *object)
 
     SCREEN (object);
 
-    if (!commonObjectInit (&s->base, getObjectType (), &screenObjectVTable))
+    if (!cObjectInit (&s->base, getObjectType (), &screenObjectVTable))
 	return FALSE;
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
@@ -1461,7 +1461,7 @@ screenInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &screenObjectPrivates))
     {
-	commonObjectFini (&s->base, getObjectType ());
+	cObjectFini (&s->base, getObjectType ());
 	return FALSE;
     }
 
@@ -1685,7 +1685,7 @@ screenFiniObject (CompObject *object)
     if (s->privates)
 	free (s->privates);
 
-    commonObjectFini (&s->base, getObjectType ());
+    cObjectFini (&s->base, getObjectType ());
 }
 
 static void
@@ -1725,7 +1725,7 @@ getScreenObjectType (void)
 
     if (!init)
     {
-	commonInterfaceInit (screenInterface, N_ELEMENTS (screenInterface));
+	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface));
 	cInitObjectVTable (&screenObjectVTable, screenGetCContect,
 			   screenObjectType.initVTable);
 	init = TRUE;

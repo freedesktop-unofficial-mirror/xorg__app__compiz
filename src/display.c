@@ -196,12 +196,12 @@ pingChanged (CompObject *object,
     d->pingHandle = compAddTimeout (value, pingTimeout, d);
 }
 
-static const CommonMethod displayTypeMethod[] = {
+static const CMethod displayTypeMethod[] = {
     C_METHOD (addScreen,    "i", "", CompDisplayVTable, marshal__I__E),
     C_METHOD (removeScreen, "i", "", CompDisplayVTable, marshal__I__E)
 };
 
-static CommonBoolProp displayTypeBoolProp[] = {
+static CBoolProp displayTypeBoolProp[] = {
     C_PROP (audibleBell, CompDisplay, .changed = audibleBellChanged),
     C_PROP (autoRaise, CompDisplay),
     C_PROP (clickToFocus, CompDisplay),
@@ -210,17 +210,17 @@ static CommonBoolProp displayTypeBoolProp[] = {
     C_PROP (raiseOnClick, CompDisplay)
 };
 
-static CommonIntProp displayTypeIntProp[] = {
+static CIntProp displayTypeIntProp[] = {
     C_INT_PROP (autoRaiseDelay, CompDisplay, 0, 10000),
     C_INT_PROP (filter, CompDisplay, 0, 2, .changed = filterChanged),
     C_INT_PROP (pingDelay, CompDisplay, 1000, 60000, .changed = pingChanged)
 };
 
-static CommonChildObject displayTypeChildObject[] = {
+static CChildObject displayTypeChildObject[] = {
     C_CHILD (screenContainer, CompDisplay, CONTAINER_TYPE_NAME)
 };
 
-static CommonInterface displayInterface[] = {
+static CInterface displayInterface[] = {
     C_INTERFACE (display, Type, CompObjectVTable, _, X, _, X, X, _, _, X)
 };
 
@@ -2406,8 +2406,7 @@ displayInitObject (CompObject *object)
 
     DISPLAY (object);
 
-    if (!commonObjectInit (&d->u.base, getObjectType (),
-			   &displayObjectVTable.base))
+    if (!cObjectInit (&d->u.base, getObjectType (), &displayObjectVTable.base))
 	return FALSE;
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
@@ -2417,7 +2416,7 @@ displayInitObject (CompObject *object)
 
     if (!allocateObjectPrivates (object, &displayObjectPrivates))
     {
-	commonObjectFini (&d->u.base, getObjectType ());
+	cObjectFini (&d->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -2477,7 +2476,7 @@ displayFiniObject (CompObject *object)
     if (d->privates)
 	free (d->privates);
 
-    commonObjectFini (&d->u.base, getObjectType ());
+    cObjectFini (&d->u.base, getObjectType ());
 }
 
 static void
@@ -2520,7 +2519,7 @@ getDisplayObjectType (void)
 
     if (!init)
     {
-	commonInterfaceInit (displayInterface, N_ELEMENTS (displayInterface));
+	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface));
 	cInitObjectVTable (&displayObjectVTable.base, displayGetCContect,
 			   displayObjectType.initVTable);
 	init = TRUE;

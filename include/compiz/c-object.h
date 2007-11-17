@@ -30,45 +30,45 @@
 
 COMPIZ_BEGIN_DECLS
 
-typedef struct _CommonMethod {
+typedef struct _CMethod {
     const char	      *name;
     const char	      *in;
     const char	      *out;
     size_t	      offset;
     MethodMarshalProc marshal;
-} CommonMethod;
+} CMethod;
 
 #define C_METHOD(name, in, out, vtable, marshal)			      \
     { # name, in, out, offsetof (vtable, name), (MethodMarshalProc) marshal }
 
-typedef struct _CommonSignal {
-    const char	      *name;
-    const char	      *out;
-    size_t	      offset;
-} CommonSignal;
+typedef struct _CSignal {
+    const char *name;
+    const char *out;
+    size_t     offset;
+} CSignal;
 
 #define C_SIGNAL(name, out, vtable)	     \
     { # name, out, offsetof (vtable, name) }
 
-typedef struct _CommonProp {
+typedef struct _CProp {
     const char *name;
     size_t     offset;
-} CommonProp;
+} CProp;
 
 #define C_PROP(name, object, ...)			 \
     { { # name, offsetof (object, name) }, __VA_ARGS__ }
 
-typedef struct _CommonBoolProp {
-    CommonProp base;
+typedef struct _CBoolProp {
+    CProp base;
 
     CompBool defaultValue;
 
     SetBoolPropProc     set;
     BoolPropChangedProc changed;
-} CommonBoolProp;
+} CBoolProp;
 
-typedef struct _CommonIntProp {
-    CommonProp base;
+typedef struct _CIntProp {
+    CProp base;
 
     CompBool restriction;
     int32_t  min;
@@ -78,13 +78,13 @@ typedef struct _CommonIntProp {
 
     SetIntPropProc     set;
     IntPropChangedProc changed;
-} CommonIntProp;
+} CIntProp;
 
 #define C_INT_PROP(name, object, min, max, ...)				 \
     { { # name, offsetof (object, name) }, TRUE, min, max, __VA_ARGS__ }
 
-typedef struct _CommonDoubleProp {
-    CommonProp base;
+typedef struct _CDoubleProp {
+    CProp base;
 
     CompBool restriction;
     double   min;
@@ -95,50 +95,50 @@ typedef struct _CommonDoubleProp {
 
     SetDoublePropProc     set;
     DoublePropChangedProc changed;
-} CommonDoubleProp;
+} CDoubleProp;
 
 #define C_DOUBLE_PROP(name, object, min, max, precision, ...) \
     { { # name, offsetof (object, name) },		      \
 	    TRUE, min, max, precision,  __VA_ARGS__ }
 
-typedef struct _CommonStringProp {
-    CommonProp base;
+typedef struct _CStringProp {
+    CProp base;
 
     const char *defaultValue;
     char       *data;
 
     SetStringPropProc     set;
     StringPropChangedProc changed;
-} CommonStringProp;
+} CStringProp;
 
-typedef struct _CommonChildObject {
+typedef struct _CChildObject {
     const char		 *name;
     size_t		 offset;
     const char		 *type;
     const CompObjectType *objectType;
-} CommonChildObject;
+} CChildObject;
 
 #define C_CHILD(name, object, type)	      \
     { # name, offsetof (object, name), type }
 
-typedef struct _CommonInterface {
-    const char	       *name;
-    size_t	       offset;
-    const CommonMethod *method;
-    int		       nMethod;
-    const CommonSignal *signal;
-    int		       nSignal;
-    CommonBoolProp     *boolProp;
-    int		       nBoolProp;
-    CommonIntProp      *intProp;
-    int		       nIntProp;
-    CommonDoubleProp   *doubleProp;
-    int		       nDoubleProp;
-    CommonStringProp   *stringProp;
-    int		       nStringProp;
-    CommonChildObject  *child;
-    int		       nChild;
-} CommonInterface;
+typedef struct _CInterface {
+    const char	  *name;
+    size_t	  offset;
+    const CMethod *method;
+    int		  nMethod;
+    const CSignal *signal;
+    int		  nSignal;
+    CBoolProp     *boolProp;
+    int		  nBoolProp;
+    CIntProp      *intProp;
+    int		  nIntProp;
+    CDoubleProp   *doubleProp;
+    int		  nDoubleProp;
+    CStringProp   *stringProp;
+    int		  nStringProp;
+    CChildObject  *child;
+    int		  nChild;
+} CInterface;
 
 #define C_OFFSET__(vtable, name) 0
 #define C_OFFSET_X(vtable, name) offsetof (vtable, name)
@@ -160,12 +160,12 @@ typedef struct _CommonInterface {
 	    C_MEMBER_ ## child  (name, type, ChildObject) }
 
 typedef struct _CContext {
-    const CommonInterface *interface;
-    int			  nInterface;
-    const CompObjectType  *type;
-    char		  *data;
-    CompObjectVTableVec	  *vtStore;
-    int			  version;
+    const CInterface     *interface;
+    int			 nInterface;
+    const CompObjectType *type;
+    char		 *data;
+    CompObjectVTableVec	 *vtStore;
+    int			 version;
 } CContext;
 
 typedef void (*GetCContextProc) (CompObject *object,
@@ -182,37 +182,37 @@ cForBaseObject (CompObject	       *object,
 		void		       *closure);
 
 CompBool
-commonForEachInterface (CompObject	      *object,
-			InterfaceCallBackProc proc,
-			void		      *closure);
+cForEachInterface (CompObject	         *object,
+		   InterfaceCallBackProc proc,
+		   void		         *closure);
 
 CompBool
-commonForEachMethod (CompObject		*object,
-		     const char		*interface,
-		     MethodCallBackProc proc,
-		     void	        *closure);
+cForEachMethod (CompObject	   *object,
+		const char	   *interface,
+		MethodCallBackProc proc,
+		void	           *closure);
 
 CompBool
-commonForEachSignal (CompObject		*object,
-		     const char		*interface,
-		     SignalCallBackProc proc,
-		     void		*closure);
+cForEachSignal (CompObject	   *object,
+		const char	   *interface,
+		SignalCallBackProc proc,
+		void		   *closure);
 
 CompBool
-commonForEachProp (CompObject	    *object,
-		   const char	    *interface,
-		   PropCallBackProc proc,
-		   void		    *closure);
+cForEachProp (CompObject       *object,
+	      const char       *interface,
+	      PropCallBackProc proc,
+	      void	       *closure);
 
 void
-commonInterfacesAdded (CompObject	     *object,
-		       const CommonInterface *interface,
-		       int		     nInterface);
+cInterfacesAdded (CompObject	   *object,
+		  const CInterface *interface,
+		  int		   nInterface);
 
 void
-commonInterfacesRemoved (CompObject	       *object,
-			 const CommonInterface *interface,
-			 int		       nInterface);
+cInterfacesRemoved (CompObject	     *object,
+		    const CInterface *interface,
+		    int		     nInterface);
 
 CompBool
 cForEachType (CompObject       *object,
@@ -220,152 +220,152 @@ cForEachType (CompObject       *object,
 	      void	       *closure);
 
 CompBool
-commonForEachChildObject (CompObject		  *object,
-			  ChildObjectCallBackProc proc,
-			  void			  *closure);
+cForEachChildObject (CompObject		     *object,
+		     ChildObjectCallBackProc proc,
+		     void		     *closure);
 
 CompBool
-commonGetBoolProp (CompObject *object,
-		   const char *interface,
-		   const char *name,
-		   CompBool   *value,
-		   char	      **error);
+cGetBoolProp (CompObject *object,
+	      const char *interface,
+	      const char *name,
+	      CompBool   *value,
+	      char	 **error);
 
 CompBool
-commonSetBoolProp (CompObject *object,
-		   const char *interface,
-		   const char *name,
-		   CompBool   value,
-		   char	      **error);
+cSetBoolProp (CompObject *object,
+	      const char *interface,
+	      const char *name,
+	      CompBool   value,
+	      char	 **error);
 
 void
-commonBoolPropChanged (CompObject *object,
-		       const char *interface,
-		       const char *name,
-		       CompBool   value);
-
-CompBool
-commonGetIntProp (CompObject *object,
+cBoolPropChanged (CompObject *object,
 		  const char *interface,
 		  const char *name,
-		  int32_t    *value,
-		  char	     **error);
+		  CompBool   value);
 
 CompBool
-commonSetIntProp (CompObject *object,
-		  const char *interface,
-		  const char *name,
-		  int32_t    value,
-		  char	     **error);
+cGetIntProp (CompObject *object,
+	     const char *interface,
+	     const char *name,
+	     int32_t    *value,
+	     char	**error);
+
+CompBool
+cSetIntProp (CompObject *object,
+	     const char *interface,
+	     const char *name,
+	     int32_t    value,
+	     char	**error);
 
 void
-commonIntPropChanged (CompObject *object,
-		      const char *interface,
-		      const char *name,
-		      int32_t    value);
+cIntPropChanged (CompObject *object,
+		 const char *interface,
+		 const char *name,
+		 int32_t    value);
 
 CompBool
-commonGetDoubleProp (CompObject *object,
-		     const char *interface,
-		     const char *name,
-		     double     *value,
-		     char	**error);
+cGetDoubleProp (CompObject *object,
+		const char *interface,
+		const char *name,
+		double     *value,
+		char	   **error);
 
 CompBool
-commonSetDoubleProp (CompObject *object,
-		     const char *interface,
-		     const char *name,
-		     double     value,
-		     char	**error);
+cSetDoubleProp (CompObject *object,
+		const char *interface,
+		const char *name,
+		double     value,
+		char	   **error);
 
 void
-commonDoublePropChanged (CompObject *object,
-			 const char *interface,
-			 const char *name,
-			 double     value);
+cDoublePropChanged (CompObject *object,
+		    const char *interface,
+		    const char *name,
+		    double     value);
 
 CompBool
-commonGetStringProp (CompObject *object,
-		     const char *interface,
-		     const char *name,
-		     char       **value,
-		     char	**error);
+cGetStringProp (CompObject *object,
+		const char *interface,
+		const char *name,
+		char       **value,
+		char	   **error);
 
 CompBool
-commonSetStringProp (CompObject *object,
-		     const char *interface,
-		     const char *name,
-		     const char *value,
-		     char	**error);
+cSetStringProp (CompObject *object,
+		const char *interface,
+		const char *name,
+		const char *value,
+		char	   **error);
 
 void
-commonStringPropChanged (CompObject *object,
-			 const char *interface,
-			 const char *name,
-			 const char *value);
+cStringPropChanged (CompObject *object,
+		    const char *interface,
+		    const char *name,
+		    const char *value);
 
 int
-commonGetVersion (CompObject *object,
-		  const char *interface);
+cGetVersion (CompObject *object,
+	     const char *interface);
 
 CompBool
-commonGetMetadata (CompObject *object,
-		   const char *interface,
-		   char	      **data,
-		   char	      **error);
+cGetMetadata (CompObject *object,
+	      const char *interface,
+	      char	 **data,
+	      char	 **error);
 
 void
-commonDefaultValuesFromFile (CommonInterface *interface,
-			     int	     nInterface,
-			     const char      *name);
+cDefaultValuesFromFile (CInterface *interface,
+			int	   nInterface,
+			const char *name);
 
 CompBool
-commonInterfaceInit (CommonInterface *interface,
-		     int	     nInterface);
+cInterfaceInit (CInterface *interface,
+		int	   nInterface);
 
 void
-commonInterfaceFini (CommonInterface *interface,
-		     int	     nInterface);
+cInterfaceFini (CInterface *interface,
+		int	   nInterface);
 
 CompBool
-commonObjectPropertiesInit (CompObject		  *object,
-			    char		  *data,
-			    const CommonInterface *interface,
-			    int			  nInterface);
+cObjectPropertiesInit (CompObject	*object,
+		       char	        *data,
+		       const CInterface *interface,
+		       int		nInterface);
 
 void
-commonObjectPropertiesFini (CompObject	          *object,
-			    char		  *data,
-			    const CommonInterface *interface,
-			    int			  nInterface);
+cObjectPropertiesFini (CompObject	*object,
+		       char	        *data,
+		       const CInterface *interface,
+		       int		nInterface);
 
 CompBool
-commonObjectChildrenInit (CompObject	        *object,
-			  char		        *data,
-			  const CommonInterface *interface,
-			  int			nInterface);
+cObjectChildrenInit (CompObject	      *object,
+		     char	      *data,
+		     const CInterface *interface,
+		     int	      nInterface);
 
 void
-commonObjectChildrenFini (CompObject	        *object,
-			  char		        *data,
-			  const CommonInterface *interface,
-			  int			nInterface);
+cObjectChildrenFini (CompObject	      *object,
+		     char	      *data,
+		     const CInterface *interface,
+		     int	      nInterface);
 
 CompBool
-commonObjectInterfaceInit (CompObject		  *object,
-			   const CompObjectVTable *vTable);
+cObjectInterfaceInit (CompObject	     *object,
+		      const CompObjectVTable *vTable);
 
 void
-commonObjectInterfaceFini (CompObject *object);
+cObjectInterfaceFini (CompObject *object);
 
 CompBool
-commonObjectInit (CompObject	         *object,
-		  const CompObjectType   *baseType,
-		  const CompObjectVTable *vTable);
+cObjectInit (CompObject	            *object,
+	     const CompObjectType   *baseType,
+	     const CompObjectVTable *vTable);
 
 void
-commonObjectFini (CompObject	       *object,
-		  const CompObjectType *baseType);
+cObjectFini (CompObject	          *object,
+	     const CompObjectType *baseType);
 
 COMPIZ_END_DECLS
 

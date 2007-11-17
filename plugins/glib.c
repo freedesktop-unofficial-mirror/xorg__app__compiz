@@ -66,11 +66,11 @@ typedef struct _GLibCoreVTable {
     GLibCore *gc = GET_GLIB_CORE (c)
 
 
-static CommonMethod glibCoreMethod[] = {
+static CMethod glibCoreMethod[] = {
     C_METHOD (wakeUp, "", "", GLibCoreVTable, marshal____)
 };
 
-static const CommonInterface glibCoreInterface[] = {
+static const CInterface glibCoreInterface[] = {
     C_INTERFACE (glib, Core, GLibCoreVTable, _, X, _, _, _, _, _, _)
 };
 
@@ -205,15 +205,14 @@ glibInitCore (CompCore *c)
     gc->fdsSize	      = 0;
     gc->timeoutHandle = 0;
 
-    if (!commonObjectInterfaceInit (&c->u.base,
-				    &glibCoreObjectVTable.base.base))
+    if (!cObjectInterfaceInit (&c->u.base, &glibCoreObjectVTable.base.base))
 	return FALSE;
 
     glibPrepare (c, g_main_context_default ());
 
-    commonInterfacesAdded (&c->u.base,
-			   glibCoreInterface,
-			   N_ELEMENTS (glibCoreInterface));
+    cInterfacesAdded (&c->u.base,
+		      glibCoreInterface,
+		      N_ELEMENTS (glibCoreInterface));
 
     return TRUE;
 }
@@ -231,10 +230,10 @@ glibFiniCore (CompCore *c)
     if (gc->fds)
 	free (gc->fds);
 
-    commonObjectInterfaceFini (&c->u.base);
-    commonInterfacesRemoved (&c->u.base,
-			     glibCoreInterface,
-			     N_ELEMENTS (glibCoreInterface));
+    cObjectInterfaceFini (&c->u.base);
+    cInterfacesRemoved (&c->u.base,
+			glibCoreInterface,
+			N_ELEMENTS (glibCoreInterface));
 }
 
 static void

@@ -31,19 +31,19 @@
 
 CompCore core;
 
-static const CommonMethod coreTypeMethod[] = {
+static const CMethod coreTypeMethod[] = {
     C_METHOD (addDisplay,    "si", "", CompCoreVTable, marshal__SI__E),
     C_METHOD (removeDisplay, "si", "", CompCoreVTable, marshal__SI__E)
 };
 
-static CommonChildObject coreTypeChildObject[] = {
+static CChildObject coreTypeChildObject[] = {
     C_CHILD (displayContainer, CompCore, CONTAINER_TYPE_NAME),
     C_CHILD (pluginContainer, CompCore, CONTAINER_TYPE_NAME),
     C_CHILD (inputs, CompCore, CONTAINER_TYPE_NAME),
     C_CHILD (outputs, CompCore, CONTAINER_TYPE_NAME)
 };
 
-static CommonInterface coreInterface[] = {
+static CInterface coreInterface[] = {
     C_INTERFACE (core, Type, CompObjectVTable, _, X, _, _, _, _, _, X)
 };
 
@@ -311,8 +311,7 @@ coreInitObject (CompObject *object)
 {
     CORE (object);
 
-    if (!commonObjectInit (&c->u.base, getObjectType (),
-			   &coreObjectVTable.base))
+    if (!cObjectInit (&c->u.base, getObjectType (), &coreObjectVTable.base))
 	return FALSE;
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
@@ -326,7 +325,7 @@ coreInitObject (CompObject *object)
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	commonObjectFini (&c->u.base, getObjectType ());
+	cObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -334,7 +333,7 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	commonObjectFini (&c->u.base, getObjectType ());
+	cObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -342,7 +341,7 @@ coreInitObject (CompObject *object)
     {
 	XDestroyRegion (c->outputRegion);
 	XDestroyRegion (c->tmpRegion);
-	commonObjectFini (&c->u.base, getObjectType ());
+	cObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -406,7 +405,7 @@ coreFiniObject (CompObject *object)
     if (c->privates)
 	free (c->privates);
 
-    commonObjectFini (&c->u.base, getObjectType ());
+    cObjectFini (&c->u.base, getObjectType ());
 }
 
 static void
@@ -449,7 +448,7 @@ getCoreObjectType (void)
 
     if (!init)
     {
-	commonInterfaceInit (coreInterface, N_ELEMENTS (coreInterface));
+	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface));
 	cInitObjectVTable (&coreObjectVTable.base, coreGetCContect,
 			   coreObjectType.initVTable);
 	init = TRUE;
