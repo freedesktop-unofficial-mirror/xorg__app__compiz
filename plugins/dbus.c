@@ -265,7 +265,6 @@ dbusCheckForObjectProp (CompObject *object,
 static CompBool
 dbusObjectInterfaceToXml (CompObject	       *object,
 			  const char	       *name,
-			  void		       *interface,
 			  size_t	       offset,
 			  const CompObjectType *type,
 			  void		       *closure)
@@ -275,15 +274,15 @@ dbusObjectInterfaceToXml (CompObject	       *object,
 
     /* avoid interfaces without public members */
     if ((*object->vTable->forEachMethod) (object,
-					  interface,
+					  name,
 					  dbusCheckForObjectMethod,
 					  NULL) &&
 	(*object->vTable->forEachSignal) (object,
-					  interface,
+					  name,
 					  dbusCheckForObjectSignal,
 					  NULL) &&
 	(*object->vTable->forEachProp) (object,
-					interface,
+					name,
 					dbusCheckForObjectProp,
 					NULL))
 	return TRUE;
@@ -296,17 +295,17 @@ dbusObjectInterfaceToXml (CompObject	       *object,
 				     BAD_CAST dbusInterface);
 
 	(*object->vTable->forEachMethod) (object,
-					  interface,
+					  name,
 					  dbusObjectMethodToXml,
 					  closure);
 
 	(*object->vTable->forEachSignal) (object,
-					  interface,
+					  name,
 					  dbusObjectSignalToXml,
 					  closure);
 
 	(*object->vTable->forEachProp) (object,
-					interface,
+					name,
 					dbusObjectPropToXml,
 					closure);
 

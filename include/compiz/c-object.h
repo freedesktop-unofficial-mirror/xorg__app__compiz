@@ -188,19 +188,19 @@ commonForEachInterface (CompObject	      *object,
 
 CompBool
 commonForEachMethod (CompObject		*object,
-		     void		*key,
+		     const char		*interface,
 		     MethodCallBackProc proc,
 		     void	        *closure);
 
 CompBool
 commonForEachSignal (CompObject		*object,
-		     void	        *interface,
+		     const char		*interface,
 		     SignalCallBackProc proc,
 		     void		*closure);
 
 CompBool
 commonForEachProp (CompObject	    *object,
-		   void		    *interface,
+		   const char	    *interface,
 		   PropCallBackProc proc,
 		   void		    *closure);
 
@@ -208,6 +208,7 @@ void
 commonInterfacesAdded (CompObject	     *object,
 		       const CommonInterface *interface,
 		       int		     nInterface);
+
 void
 commonInterfacesRemoved (CompObject	       *object,
 			 const CommonInterface *interface,

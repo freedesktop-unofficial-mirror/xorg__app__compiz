@@ -147,31 +147,109 @@ noopForEachInterface (CompObject	    *object,
 					     (void *) &ctx);
 }
 
+typedef struct _ForEachMethodContext {
+    const char         *interface;
+    MethodCallBackProc proc;
+    void	       *closure;
+} ForEachMethodContext;
+
+static CompBool
+baseObjectForEachMethod (CompObject *object,
+			 void       *closure)
+{
+    ForEachMethodContext *pCtx = (ForEachMethodContext *) closure;
+
+    return (*object->vTable->forEachMethod) (object,
+					     pCtx->interface,
+					     pCtx->proc,
+					     pCtx->closure);
+}
+
 static CompBool
 noopForEachMethod (CompObject	      *object,
-		   void		      *interface,
+		   const char	      *interface,
 		   MethodCallBackProc proc,
 		   void		      *closure)
 {
-    return TRUE;
+    ForEachMethodContext ctx;
+
+    ctx.interface = interface;
+    ctx.proc      = proc;
+    ctx.closure   = closure;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectForEachMethod,
+					     (void *) &ctx);
+}
+
+typedef struct _ForEachSignalContext {
+    const char         *interface;
+    SignalCallBackProc proc;
+    void	       *closure;
+} ForEachSignalContext;
+
+static CompBool
+baseObjectForEachSignal (CompObject *object,
+			 void       *closure)
+{
+    ForEachSignalContext *pCtx = (ForEachSignalContext *) closure;
+
+    return (*object->vTable->forEachSignal) (object,
+					     pCtx->interface,
+					     pCtx->proc,
+					     pCtx->closure);
 }
 
 static CompBool
 noopForEachSignal (CompObject	      *object,
-		   void		      *interface,
+		   const char	      *interface,
 		   SignalCallBackProc proc,
 		   void		      *closure)
 {
-    return TRUE;
+    ForEachSignalContext ctx;
+
+    ctx.interface = interface;
+    ctx.proc      = proc;
+    ctx.closure   = closure;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectForEachSignal,
+					     (void *) &ctx);
+}
+
+typedef struct _ForEachPropContext {
+    const char       *interface;
+    PropCallBackProc proc;
+    void	     *closure;
+} ForEachPropContext;
+
+static CompBool
+baseObjectForEachProp (CompObject *object,
+		       void       *closure)
+{
+    ForEachPropContext *pCtx = (ForEachPropContext *) closure;
+
+    return (*object->vTable->forEachProp) (object,
+					   pCtx->interface,
+					   pCtx->proc,
+					   pCtx->closure);
 }
 
 static CompBool
 noopForEachProp (CompObject	  *object,
-		 void		  *interface,
+		 const char	  *interface,
 		 PropCallBackProc proc,
 		 void		  *closure)
 {
-    return TRUE;
+    ForEachPropContext ctx;
+
+    ctx.interface = interface;
+    ctx.proc      = proc;
+    ctx.closure   = closure;
+
+    return (*object->vTable->forBaseObject) (object,
+					     baseObjectForEachProp,
+					     (void *) &ctx);
 }
 
 static CompBool
@@ -193,7 +271,7 @@ noopInterfaceAdded (CompObject *object,
 
 static CompBool
 baseObjectInterfaceRemoved (CompObject *object,
-			  void       *closure)
+			    void       *closure)
 {
     (*object->vTable->interfaceRemoved) (object, (const char *) closure);
     return TRUE;
@@ -201,7 +279,7 @@ baseObjectInterfaceRemoved (CompObject *object,
 
 static void
 noopInterfaceRemoved (CompObject *object,
-		    const char *interface)
+		      const char *interface)
 {
     (*object->vTable->forBaseObject) (object,
 				      baseObjectInterfaceRemoved,
@@ -988,7 +1066,6 @@ commonForEachInterface (CompObject	      *object,
     for (i = 0; i < ctx.nInterface; i++)
 	if (!(*proc) (object,
 		      ctx.interface[i].name,
-		      (void *) &ctx.interface[i],
 		      ctx.interface[i].offset,
 		      ctx.type,
 		      closure))
@@ -1021,7 +1098,7 @@ commonForEachChildObject (CompObject		  *object,
 
 CompBool
 commonForEachMethod (CompObject		*object,
-		     void		*key,
+		     const char	        *interface,
 		     MethodCallBackProc proc,
 		     void	        *closure)
 {
@@ -1032,8 +1109,9 @@ commonForEachMethod (CompObject		*object,
 
     for (i = 0; i < ctx.nInterface; i++)
     {
-	if (key && key != &ctx.interface[i])
-	    continue;
+	if (interface)
+	    if (*interface && strcmp (interface, ctx.interface[i].name))
+		continue;
 
 	for (j = 0; j < ctx.interface[i].nMethod; j++)
 	    if (!(*proc) (object,
@@ -1046,12 +1124,12 @@ commonForEachMethod (CompObject		*object,
 		return FALSE;
     }
 
-    return noopForEachMethod (object, key, proc, closure);
+    return noopForEachMethod (object, interface, proc, closure);
 }
 
 CompBool
 commonForEachSignal (CompObject		*object,
-		     void	        *key,
+		     const char	        *interface,
 		     SignalCallBackProc proc,
 		     void		*closure)
 {
@@ -1062,19 +1140,21 @@ commonForEachSignal (CompObject		*object,
 
     for (i = 0; i < ctx.nInterface; i++)
     {
-	if (key && key != &ctx.interface[i])
-	    continue;
+	if (interface)
+	    if (*interface && strcmp (interface, ctx.interface[i].name))
+		continue;
 
 	for (j = 0; j < ctx.interface[i].nSignal; j++)
-	    if (!(*proc) (object,
-			  ctx.interface[i].signal[j].name,
-			  ctx.interface[i].signal[j].out,
-			  ctx.interface[i].signal[j].offset,
-			  closure))
-		return FALSE;
+	    if (ctx.interface[i].signal[j].out)
+		if (!(*proc) (object,
+			      ctx.interface[i].signal[j].name,
+			      ctx.interface[i].signal[j].out,
+			      ctx.interface[i].signal[j].offset,
+			      closure))
+		    return FALSE;
     }
 
-    return noopForEachSignal (object, key, proc, closure);
+    return noopForEachSignal (object, interface, proc, closure);
 }
 
 static CompBool
@@ -1143,7 +1223,7 @@ handleForEachStringProp (CompObject	        *object,
 
 CompBool
 commonForEachProp (CompObject	    *object,
-		   void		    *key,
+		   const char	    *interface,
 		   PropCallBackProc proc,
 		   void		    *closure)
 {
@@ -1154,8 +1234,9 @@ commonForEachProp (CompObject	    *object,
 
     for (i = 0; i < ctx.nInterface; i++)
     {
-	if (key && key != &ctx.interface[i])
-	    continue;
+	if (interface)
+	    if (*interface && strcmp (interface, ctx.interface[i].name))
+		continue;
 
 	if (!handleForEachBoolProp (object,
 				    ctx.interface[i].boolProp,
@@ -1182,7 +1263,7 @@ commonForEachProp (CompObject	    *object,
 	    return FALSE;
     }
 
-    return noopForEachProp (object, key, proc, closure);
+    return noopForEachProp (object, interface, proc, closure);
 }
 
 CompBool
@@ -3017,7 +3098,6 @@ typedef struct _ForInterfaceContext {
 static CompBool
 handleInterface (CompObject	      *object,
 		 const char	      *name,
-		 void		      *key,
 		 size_t		      offset,
 		 const CompObjectType *type,
 		 void		      *closure)
@@ -3025,7 +3105,7 @@ handleInterface (CompObject	      *object,
     ForInterfaceContext *pCtx = (ForInterfaceContext *) closure;
 
     if (!pCtx->interface || strcmp (name, pCtx->interface) == 0)
-	if (!(*pCtx->proc) (object, name, key, offset, type, pCtx->closure))
+	if (!(*pCtx->proc) (object, name, offset, type, pCtx->closure))
 	    return FALSE;
 
     return TRUE;
@@ -3051,7 +3131,6 @@ compForInterface (CompObject		*object,
 static CompBool
 getInterfaceVersion (CompObject		  *object,
 		     const char	          *name,
-		     void		  *key,
 		     size_t		  offset,
 		     const CompObjectType *type,
 		     void		  *closure)
@@ -3263,7 +3342,6 @@ checkMethod (CompObject	       *object,
 static CompBool
 checkInterface (CompObject	     *object,
 		const char	     *name,
-		void		     *key,
 		size_t		     offset,
 		const CompObjectType *type,
 		void		     *closure)
@@ -3272,7 +3350,7 @@ checkInterface (CompObject	     *object,
 
     if (!pCtx->interface || strcmp (name, pCtx->interface) == 0)
     {
-	if (!(*object->vTable->forEachMethod) (object, key, checkMethod,
+	if (!(*object->vTable->forEachMethod) (object, name, checkMethod,
 					       closure))
 	{
 

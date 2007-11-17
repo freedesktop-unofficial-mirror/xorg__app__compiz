@@ -142,7 +142,6 @@ typedef struct _ReloadInterfaceContext {
 static CompBool
 kconfigReloadInterface (CompObject	     *object,
 			const char	     *name,
-			void		     *key,
 			size_t		     offset,
 			const CompObjectType *type,
 			void		     *closure)
@@ -157,7 +156,7 @@ kconfigReloadInterface (CompObject	     *object,
 
     kc->config->setGroup (kconfigGroup (object, name));
 
-    (*object->vTable->forEachProp) (object, key,
+    (*object->vTable->forEachProp) (object, name,
 				    kconfigReloadProp,
 				    (void *) &ctx);
 

@@ -96,7 +96,7 @@ gconfSetPropToValue (CompObject       *object,
 		     const char       *name,
 		     const GConfValue *gvalue)
 {
-    CompPropertiesVTable *vTable = &object->vTable->properties;
+    const CompPropertiesVTable *vTable = &object->vTable->properties;
 
     switch (gvalue->type) {
     case GCONF_VALUE_BOOL:
@@ -187,7 +187,6 @@ typedef struct _ReloadInterfaceContext {
 static CompBool
 gconfReloadInterface (CompObject	   *object,
 		      const char	   *name,
-		      void		   *key,
 		      size_t		   offset,
 		      const CompObjectType *type,
 		      void		   *closure)
@@ -197,7 +196,7 @@ gconfReloadInterface (CompObject	   *object,
     ctx.core      = GET_CORE (closure);
     ctx.interface = name;
 
-    (*object->vTable->forEachProp) (object, key,
+    (*object->vTable->forEachProp) (object, name,
 				    gconfReloadProp,
 				    (void *) &ctx);
 
@@ -241,7 +240,6 @@ typedef struct _LoadPropContext {
 static CompBool
 gconfLoadProp (CompObject	    *object,
 	       const char	    *name,
-	       void		    *key,
 	       size_t		    offset,
 	       const CompObjectType *type,
 	       void		    *closure)

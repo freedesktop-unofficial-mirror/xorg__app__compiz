@@ -139,7 +139,6 @@ typedef void (*UnusedProc) (CompObject *object);
 
 typedef CompBool (*InterfaceCallBackProc) (CompObject		*object,
 					   const char		*name,
-					   void			*key,
 					   size_t		offset,
 					   const CompObjectType *type,
 					   void			*closure);
@@ -161,7 +160,7 @@ typedef CompBool (*MethodCallBackProc) (CompObject	  *object,
 					void		  *closure);
 
 typedef CompBool (*ForEachMethodProc) (CompObject	  *object,
-				       void		  *interface,
+				       const char	  *interface,
 				       MethodCallBackProc proc,
 				       void		  *closure);
 
@@ -172,7 +171,7 @@ typedef CompBool (*SignalCallBackProc) (CompObject *object,
 					void	   *closure);
 
 typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
-				       void		  *interface,
+				       const char	  *interface,
 				       SignalCallBackProc proc,
 				       void		  *closure);
 
@@ -182,7 +181,7 @@ typedef CompBool (*PropCallBackProc) (CompObject *object,
 				      void	 *closure);
 
 typedef CompBool (*ForEachPropProc) (CompObject	      *object,
-				     void	      *interface,
+				     const char	      *interface,
 				     PropCallBackProc proc,
 				     void	      *closure);
 
