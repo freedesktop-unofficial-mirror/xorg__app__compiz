@@ -448,7 +448,7 @@ gconfFiniCore (CompCore *c)
 static CObjectPrivate gconfObj[] = {
     {
 	"core",
-	&corePrivateIndex, sizeof (GConfCore), NULL,
+	&corePrivateIndex, sizeof (GConfCore), NULL, NULL,
 	(InitObjectProc) gconfInitCore,
 	(FiniObjectProc) gconfFiniCore
     }

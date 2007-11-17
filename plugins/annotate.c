@@ -786,7 +786,7 @@ annoFiniDisplay (CompDisplay *d)
 }
 
 static void
-annoDisplayGetCContect (CompObject *object,
+annoDisplayGetCContext (CompObject *object,
 			CContext   *ctx)
 {
     ANNO_DISPLAY (object);
@@ -839,7 +839,7 @@ annoFiniScreen (CompScreen *s)
 }
 
 static void
-annoScreenGetCContect (CompObject *object,
+annoScreenGetCContext (CompObject *object,
 		       CContext   *ctx)
 {
     ANNO_SCREEN (GET_SCREEN (object));
@@ -855,12 +855,14 @@ annoScreenGetCContect (CompObject *object,
 static CObjectPrivate annoObj[] = {
     {
 	"display",
-	&displayPrivateIndex, sizeof (AnnoDisplay), &annoDisplayObjectVTable,
+	&displayPrivateIndex, sizeof (AnnoDisplay),
+	&annoDisplayObjectVTable, annoDisplayGetCContext,
 	(InitObjectProc) annoInitDisplay,
 	(FiniObjectProc) annoFiniDisplay
     }, {
 	"screen",
-	&screenPrivateIndex, sizeof (AnnoScreen), &annoScreenObjectVTable,
+	&screenPrivateIndex, sizeof (AnnoScreen),
+	&annoScreenObjectVTable, annoScreenGetCContext,
 	(InitObjectProc) annoInitScreen,
 	(FiniObjectProc) annoFiniScreen
     }
@@ -877,10 +879,6 @@ annoInit (CompPlugin *p)
 	return FALSE;
 
     compAddMetadataFromFile (&annoMetadata, p->vTable->name);
-
-    cInitObjectVTable (&annoDisplayObjectVTable.base, annoDisplayGetCContect,
-		       NULL);
-    cInitObjectVTable (&annoScreenObjectVTable, annoScreenGetCContect, NULL);
 
     if (!cObjectInitPrivates (annoObj, N_ELEMENTS (annoObj)))
     {

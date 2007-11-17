@@ -230,7 +230,7 @@ glibFiniCore (CompCore *c)
 }
 
 static void
-glibCoreGetCContect (CompObject *object,
+glibCoreGetCContext (CompObject *object,
 		     CContext   *ctx)
 {
     GLIB_CORE (GET_CORE (object));
@@ -246,7 +246,8 @@ glibCoreGetCContect (CompObject *object,
 static CObjectPrivate glibObj[] = {
     {
 	"core",
-	&corePrivateIndex, sizeof (GLibCore), &glibCoreObjectVTable.base,
+	&corePrivateIndex, sizeof (GLibCore),
+	&glibCoreObjectVTable.base, glibCoreGetCContext,
 	(InitObjectProc) glibInitCore,
 	(FiniObjectProc) glibFiniCore
     }
@@ -259,9 +260,6 @@ glibInit (CompPlugin *p)
 	return FALSE;
 
     compAddMetadataFromFile (&glibMetadata, p->vTable->name);
-
-    cInitObjectVTable (&glibCoreObjectVTable.base.base, glibCoreGetCContect,
-		       0);
 
     if (!cObjectInitPrivates (glibObj, N_ELEMENTS (glibObj)))
     {

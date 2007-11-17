@@ -1101,7 +1101,7 @@ fuseFiniCore (CompCore *c)
 }
 
 static void
-fuseCoreGetCContect (CompObject *object,
+fuseCoreGetCContext (CompObject *object,
 		     CContext   *ctx)
 {
     FUSE_CORE (GET_CORE (object));
@@ -1117,12 +1117,13 @@ fuseCoreGetCContect (CompObject *object,
 static CObjectPrivate fuseObj[] = {
     {
 	"object",
-	&objectPrivateIndex, sizeof (FuseObject), NULL,
+	&objectPrivateIndex, sizeof (FuseObject), NULL, NULL,
 	(InitObjectProc) fuseInitObject,
 	(FiniObjectProc) fuseFiniObject
     }, {
 	"core",
-	&corePrivateIndex, sizeof (FuseCore), &fuseCoreObjectVTable,
+	&corePrivateIndex, sizeof (FuseCore),
+	&fuseCoreObjectVTable, fuseCoreGetCContext,
 	(InitObjectProc) fuseInitCore,
 	(FiniObjectProc) fuseFiniCore
     }
@@ -1133,8 +1134,6 @@ fuseInit (CompPlugin *p)
 {
     if (!cInterfaceInit (fuseCoreInterface, N_ELEMENTS (fuseCoreInterface)))
 	return FALSE;
-
-    cInitObjectVTable (&fuseCoreObjectVTable.base, fuseCoreGetCContect, NULL);
 
     if (!cObjectInitPrivates (fuseObj, N_ELEMENTS (fuseObj)))
     {

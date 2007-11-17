@@ -900,7 +900,7 @@ dbusFiniCore (CompCore *c)
 static CObjectPrivate dbusObj[] = {
     {
 	"core",
-	&corePrivateIndex, sizeof (DBusCore), NULL,
+	&corePrivateIndex, sizeof (DBusCore), NULL, NULL,
 	(InitObjectProc) dbusInitCore,
 	(FiniObjectProc) dbusFiniCore
     }

@@ -30,15 +30,6 @@
 
 COMPIZ_BEGIN_DECLS
 
-typedef struct _CObjectPrivate {
-    const char	   *name;
-    int		   *pIndex;
-    int		   size;
-    void	   *vTable;
-    InitObjectProc init;
-    FiniObjectProc fini;
-} CObjectPrivate;
-
 typedef struct _CMethod {
     const char	      *name;
     const char	      *in;
@@ -179,6 +170,16 @@ typedef struct _CContext {
 
 typedef void (*GetCContextProc) (CompObject *object,
 				 CContext   *ctx);
+
+typedef struct _CObjectPrivate {
+    const char	    *name;
+    int		    *pIndex;
+    int		    size;
+    void	    *vTable;
+    GetCContextProc proc;
+    InitObjectProc  init;
+    FiniObjectProc  fini;
+} CObjectPrivate;
 
 void
 cInitObjectVTable (CompObjectVTable *vTable,

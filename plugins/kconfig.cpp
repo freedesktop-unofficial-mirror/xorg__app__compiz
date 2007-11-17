@@ -366,7 +366,7 @@ kconfigFiniCore (CompCore *c)
 static CObjectPrivate kconfigObj[] = {
     {
 	"core",
-	&corePrivateIndex, sizeof (KconfigCore), NULL,
+	&corePrivateIndex, sizeof (KconfigCore), NULL, NULL,
 	(InitObjectProc) kconfigInitCore,
 	(FiniObjectProc) kconfigFiniCore
     }

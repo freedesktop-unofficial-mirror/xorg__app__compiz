@@ -2999,7 +2999,7 @@ cObjectInitPrivate (CObjectPrivate *private)
 	return FALSE;
 
     if (private->vTable)
-	(*type->initVTable) (private->vTable);
+	cInitObjectVTable (private->vTable, private->proc, type->initVTable);
 
     *(private->pIndex) = index;
 
