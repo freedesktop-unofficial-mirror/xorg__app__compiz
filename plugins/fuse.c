@@ -1083,10 +1083,6 @@ fuseInitCore (CompCore *c)
     fc->channel	      = NULL;
     fc->buffer	      = NULL;
 
-    cInterfacesAdded (&c->u.base,
-		      fuseCoreInterface,
-		      N_ELEMENTS (fuseCoreInterface));
-
     fuseMount (c);
 
     return TRUE;
@@ -1099,12 +1095,9 @@ fuseFiniCore (CompCore *c)
 
     fuseUnmount (c);
 
-    fuse_session_destroy (fc->session);
-
-    cInterfacesRemoved (&c->u.base,
-			fuseCoreInterface,
-			N_ELEMENTS (fuseCoreInterface));
     cObjectInterfaceFini (&c->u.base);
+
+    fuse_session_destroy (fc->session);
 }
 
 static void

@@ -3896,6 +3896,8 @@ cObjectInterfaceInit (CompObject	     *object,
 
     WRAP (ctx.vtStore, object, vTable, vTable);
 
+    cInterfacesAdded (object, ctx.interface, ctx.nInterface);
+
     return TRUE;
 }
 
@@ -3916,6 +3918,8 @@ cObjectInterfaceFini (CompObject *object)
 			   ctx.data,
 			   ctx.interface,
 			   ctx.nInterface);
+
+    cInterfacesRemoved (object, ctx.interface, ctx.nInterface);
 }
 
 CompBool

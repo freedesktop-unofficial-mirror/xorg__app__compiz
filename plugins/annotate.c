@@ -768,10 +768,6 @@ annoInitDisplay (CompDisplay *d)
 	return FALSE;
     }
 
-    cInterfacesAdded (&d->u.base,
-		      annoDisplayInterface,
-		      N_ELEMENTS (annoDisplayInterface));
-
     WRAP (ad, d, handleEvent, annoHandleEvent);
 
     return TRUE;
@@ -785,9 +781,6 @@ annoFiniDisplay (CompDisplay *d)
     UNWRAP (ad, d, handleEvent);
 
     cObjectInterfaceFini (&d->u.base);
-    cInterfacesRemoved (&d->u.base,
-			annoDisplayInterface,
-			N_ELEMENTS (annoDisplayInterface));
 
     compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 }

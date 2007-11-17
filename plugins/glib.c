@@ -210,10 +210,6 @@ glibInitCore (CompCore *c)
 
     glibPrepare (c, g_main_context_default ());
 
-    cInterfacesAdded (&c->u.base,
-		      glibCoreInterface,
-		      N_ELEMENTS (glibCoreInterface));
-
     return TRUE;
 }
 
@@ -231,9 +227,6 @@ glibFiniCore (CompCore *c)
 	free (gc->fds);
 
     cObjectInterfaceFini (&c->u.base);
-    cInterfacesRemoved (&c->u.base,
-			glibCoreInterface,
-			N_ELEMENTS (glibCoreInterface));
 }
 
 static void
