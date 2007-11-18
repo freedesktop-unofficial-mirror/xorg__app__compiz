@@ -96,11 +96,11 @@ static CDoubleProp annotateDisplayDoubleProp[] = {
     C_PROP (strokeWidth, AnnoDisplay)
 };
 
-static const CInterface annoDisplayInterface[] = {
+static CInterface annoDisplayInterface[] = {
     C_INTERFACE (annotate, Display, CompObjectVTable, _, _, _, _, _, X, _, _)
 };
 
-static const CInterface annoScreenInterface[] = {
+static CInterface annoScreenInterface[] = {
     C_INTERFACE (annotate, Screen, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 

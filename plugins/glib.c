@@ -70,7 +70,7 @@ static CMethod glibCoreMethod[] = {
     C_METHOD (wakeUp, "", "", GLibCoreVTable, marshal____)
 };
 
-static const CInterface glibCoreInterface[] = {
+static CInterface glibCoreInterface[] = {
     C_INTERFACE (glib, Core, GLibCoreVTable, _, X, _, _, _, _, _, _)
 };
 
