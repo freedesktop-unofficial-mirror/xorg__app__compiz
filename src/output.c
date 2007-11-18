@@ -23,7 +23,7 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#include <compiz/core.h>
+#include <compiz/output.h>
 
 static CompBool
 outputForBaseObject (CompObject	            *object,

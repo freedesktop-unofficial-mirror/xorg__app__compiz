@@ -23,72 +23,29 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifdef HAVE_CONFIG_H
-#  include "../config.h"
+#ifndef _COMPIZ_INPUT_H
+#define _COMPIZ_INPUT_H
+
+#include <compiz/object.h>
+
+#define COMPIZ_INPUT_VERSION 20071116
+
+COMPIZ_BEGIN_DECLS
+
+typedef struct _CompInput {
+    CompObject base;
+
+    CompObjectVTableVec object;
+} CompInput;
+
+#define GET_INPUT(object) ((CompInput *) (object))
+#define INPUT(object) CompInput *i = GET_INPUT (object)
+
+#define INPUT_TYPE_NAME "input"
+
+CompObjectType *
+getInputObjectType (void);
+
+COMPIZ_END_DECLS
+
 #endif
-
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-
-#ifndef HAVE_VASPRINTF
-static int
-vasprintf (char	      **strp,
-	   const char *fmt,
-	   va_list    ap)
-{
-    va_list ap2;
-    int     len = 0;
-    char    *str = NULL;
-
-    for (;;)
-    {
-	char *s;
-	int  n;
-
-	va_copy (ap2, ap);
-	n = vsnprintf (str, len, fmt, ap2);
-	va_end (ap2);
-
-	if (n > -1 && n < len)
-	    return n;
-
-	if (n > len)
-	    len = n + 1;
-	else
-	    len = 256 + len * 2;
-
-	s = realloc (str, len);
-	if (!s)
-	{
-	    if (str)
-		free (str);
-
-	    return -1;
-	}
-
-	str = s;
-    }
-}
-#endif /* HAVE_VASPRINTF */
-
-#include <compiz/error.h>
-
-int
-esprintf (char	     **strp,
-	  const char *fmt,
-	  ...)
-{
-    va_list ap;
-    int	    n;
-
-    if (!strp)
-	return 0;
-
-    va_start (ap, fmt);
-    n = vasprintf (strp, fmt, ap);
-    va_end (ap);
-
-    return n;
-}

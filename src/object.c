@@ -23,11 +23,15 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
-#include <compiz/core.h>
+#include <compiz/object.h>
 #include <compiz/c-object.h>
+#include <compiz/marshal.h>
+#include <compiz/error.h>
+#include <compiz/core.h>
 
 static const CSignal objectTypeSignal[] = {
     C_SIGNAL (interfaceAdded,     "s", CompObjectVTable),

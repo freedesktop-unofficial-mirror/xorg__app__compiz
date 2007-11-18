@@ -28,6 +28,8 @@
 
 #include <compiz/core.h>
 #include <compiz/c-object.h>
+#include <compiz/marshal.h>
+#include <compiz/error.h>
 
 CompCore core;
 

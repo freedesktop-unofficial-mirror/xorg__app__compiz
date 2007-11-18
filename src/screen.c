@@ -47,6 +47,7 @@
 
 #include <compiz/core.h>
 #include <compiz/c-object.h>
+#include <compiz/error.h>
 
 static void
 updateOutputDevices (CompScreen	*s)

@@ -23,72 +23,21 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifdef HAVE_CONFIG_H
-#  include "../config.h"
-#endif
+#ifndef _COMPIZ_ERROR_H
+#define _COMPIZ_ERROR_H
 
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include <compiz/types.h>
 
-#ifndef HAVE_VASPRINTF
-static int
-vasprintf (char	      **strp,
-	   const char *fmt,
-	   va_list    ap)
-{
-    va_list ap2;
-    int     len = 0;
-    char    *str = NULL;
+COMPIZ_BEGIN_DECLS
 
-    for (;;)
-    {
-	char *s;
-	int  n;
+#define NO_MEMORY_ERROR_STRING "No memory"
 
-	va_copy (ap2, ap);
-	n = vsnprintf (str, len, fmt, ap2);
-	va_end (ap2);
-
-	if (n > -1 && n < len)
-	    return n;
-
-	if (n > len)
-	    len = n + 1;
-	else
-	    len = 256 + len * 2;
-
-	s = realloc (str, len);
-	if (!s)
-	{
-	    if (str)
-		free (str);
-
-	    return -1;
-	}
-
-	str = s;
-    }
-}
-#endif /* HAVE_VASPRINTF */
-
-#include <compiz/error.h>
-
+/* similar to asprintf except that 'strp' can be NULL */
 int
 esprintf (char	     **strp,
 	  const char *fmt,
-	  ...)
-{
-    va_list ap;
-    int	    n;
+	  ...);
 
-    if (!strp)
-	return 0;
+COMPIZ_END_DECLS
 
-    va_start (ap, fmt);
-    n = vasprintf (strp, fmt, ap);
-    va_end (ap);
-
-    return n;
-}
+#endif

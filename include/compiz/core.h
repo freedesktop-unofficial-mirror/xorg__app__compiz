@@ -51,6 +51,7 @@
 
 #include <compiz/object.h>
 #include <compiz/container.h>
+#include <compiz/output.h>
 #include <compiz/plugin.h>
 
 COMPIZ_BEGIN_DECLS
@@ -245,17 +246,6 @@ extern int pointerY;
 extern CompCore     core;
 extern CompMetadata coreMetadata;
 
-/* error.c */
-
-#define NO_MEMORY_ERROR_STRING "No memory"
-
-/* similar to asprintf except that 'strp' can be NULL */
-int
-esprintf (char	     **strp,
-	  const char *fmt,
-	  ...);
-
-
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))
 
@@ -311,103 +301,6 @@ sessionEvent (CompCore         *c,
 	      CompSessionEvent event,
 	      CompOption       *arguments,
 	      unsigned int     nArguments);
-
-/* prop.c */
-
-typedef struct _CompProp {
-    CompObject base;
-
-    CompObjectVTableVec object;
-} CompProp;
-
-#define GET_PROP(object) ((CompProp *) (object))
-#define PROP(object) CompProp *p = GET_PROP (object)
-
-#define PROP_TYPE_NAME "prop"
-
-CompObjectType *
-getPropObjectType (void);
-
-
-/* output.c */
-
-typedef struct _CompOutput {
-    CompObject base;
-
-    CompObjectVTableVec object;
-
-    char       *name;
-    int        id;
-    REGION     region;
-    int        width;
-    int        height;
-    XRectangle workArea;
-} CompOutput;
-
-#define GET_OUTPUT(object) ((CompOutput *) (object))
-#define OUTPUT(object) CompOutput *o = GET_OUTPUT (object)
-
-#define OUTPUT_TYPE_NAME "output"
-
-CompObjectType *
-getOutputObjectType (void);
-
-
-/* input.c */
-
-typedef struct _CompInput {
-    CompObject base;
-
-    CompObjectVTableVec object;
-} CompInput;
-
-#define GET_INPUT(object) ((CompInput *) (object))
-#define INPUT(object) CompInput *i = GET_INPUT (object)
-
-#define INPUT_TYPE_NAME "input"
-
-CompObjectType *
-getInputObjectType (void);
-
-
-/* pointer.c */
-
-typedef struct _CompPointer {
-    CompInput base;
-
-    CompObjectVTableVec object;
-
-    int	x;
-    int	y;
-} CompPointer;
-
-#define GET_POINTER(object) ((CompPointer *) (object))
-#define POINTER(object) CompPointer *p = GET_POINTER (object)
-
-#define POINTER_TYPE_NAME "pointer"
-
-CompObjectType *
-getPointerObjectType (void);
-
-
-/* keyboard.c */
-
-typedef struct _CompKeyboard {
-    CompInput base;
-
-    CompObjectVTableVec object;
-
-    unsigned int state;
-} CompKeyboard;
-
-#define GET_KEYBOARD(object) ((CompKeyboard *) (object))
-#define KEYBOARD(object) CompKeyboard *k = GET_KEYBOARD (object)
-
-#define KEYBOARD_TYPE_NAME "keyboard"
-
-CompObjectType *
-getKeyboardObjectType (void);
-
 
 /* option.c */
 
@@ -3695,115 +3588,6 @@ compReadXmlChunkFromMetadataOptionInfo (const CompMetadataOptionInfo *info,
 					int			     *offset,
 					char			     *buffer,
 					int			     length);
-
-
-/* marshal.c */
-
-void
-marshal____ (CompObject *object,
-	     void       (*method) (CompObject *),
-	     CompArgs   *args);
-
-void
-marshal_I_S (CompObject *object,
-	     CompBool   (*method) (CompObject *,
-				   char       *),
-	     CompArgs   *args);
-
-void
-marshal__SI__E (CompObject *object,
-		CompBool   (*method) (CompObject *,
-				      char       *,
-				      int32_t     ,
-				      char       **),
-		CompArgs   *args);
-
-void
-marshal__I__E (CompObject *object,
-	       CompBool   (*method) (CompObject *,
-				     int32_t     ,
-				     char       **),
-	       CompArgs   *args);
-
-void
-marshal__SSB__E (CompObject *object,
-		 CompBool   (*method) (CompObject *,
-				       char       *,
-				       char       *,
-				       CompBool    ,
-				       char       **),
-		 CompArgs   *args);
-
-void
-marshal__SS_B_E (CompObject *object,
-		 CompBool   (*method) (CompObject *,
-				       char       *,
-				       char       *,
-				       CompBool   *,
-				       char       **),
-		 CompArgs   *args);
-
-void
-marshal__SSI__E (CompObject *object,
-		 CompBool   (*method) (CompObject *,
-				       char       *,
-				       char       *,
-				       int32_t     ,
-				       char       **),
-		 CompArgs   *args);
-
-void
-marshal__SS_I_E (CompObject *object,
-		 CompBool   (*method) (CompObject *,
-				       char       *,
-				       char       *,
-				       int32_t    *,
-				       char       **),
-		 CompArgs   *args);
-
-void
-marshal__SSD__E (CompObject *object,
-		 CompBool   (*method) (CompObject *,
-				       char       *,
-				       char       *,
-				       double      ,
-				       char       **),
-		 CompArgs   *args);
-
-void
-marshal__SS_D_E (CompObject *object,
-		 CompBool   (*method) (CompObject *,
-				       char       *,
-				       char       *,
-				       double     *,
-				       char       **),
-		 CompArgs   *args);
-
-void
-marshal__SSS__E (CompObject *object,
-		 CompBool   (*method) (CompObject *,
-				       char       *,
-				       char       *,
-				       char       *,
-				       char       **),
-		 CompArgs   *args);
-
-void
-marshal__SS_S_E (CompObject *object,
-		 CompBool   (*method) (CompObject *,
-				       char       *,
-				       char       *,
-				       char	  **,
-				       char       **),
-		 CompArgs   *args);
-
-void
-marshal__S_S_E (CompObject *object,
-		CompBool   (*method) (CompObject *,
-				      char	 *,
-				      char	 **,
-				      char       **),
-		CompArgs   *args);
 
 COMPIZ_END_DECLS
 

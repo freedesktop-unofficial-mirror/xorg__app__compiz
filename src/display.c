@@ -44,6 +44,8 @@
 
 #include <compiz/core.h>
 #include <compiz/c-object.h>
+#include <compiz/marshal.h>
+#include <compiz/error.h>
 
 static unsigned int virtualModMask[] = {
     CompAltMask, CompMetaMask, CompSuperMask, CompHyperMask,

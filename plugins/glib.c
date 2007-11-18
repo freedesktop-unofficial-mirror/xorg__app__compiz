@@ -28,6 +28,7 @@
 
 #include <compiz/core.h>
 #include <compiz/c-object.h>
+#include <compiz/marshal.h>
 
 #define COMPIZ_GLIB_VERSION 20071116
 

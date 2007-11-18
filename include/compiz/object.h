@@ -27,6 +27,7 @@
 #define _COMPIZ_OBJECT_H
 
 #include <stdio.h>
+#include <stddef.h>
 #include <stdarg.h>
 
 #include <compiz/types.h>
