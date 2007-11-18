@@ -311,7 +311,8 @@ coreInitObject (CompObject *object)
 {
     CORE (object);
 
-    if (!cObjectInit (&c->u.base, getObjectType (), &coreObjectVTable.base))
+    if (!cObjectInit (&c->u.base, getObjectType (), &coreObjectVTable.base,
+		      &coreObjectPrivates))
 	return FALSE;
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
@@ -325,7 +326,7 @@ coreInitObject (CompObject *object)
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	cObjectFini (&c->u.base, getObjectType ());
+	cObjectFini (&c->u.base, getObjectType (), &coreObjectPrivates);
 	return FALSE;
     }
 
@@ -333,15 +334,7 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	cObjectFini (&c->u.base, getObjectType ());
-	return FALSE;
-    }
-
-    if (!allocateObjectPrivates (object, &coreObjectPrivates))
-    {
-	XDestroyRegion (c->outputRegion);
-	XDestroyRegion (c->tmpRegion);
-	cObjectFini (&c->u.base, getObjectType ());
+	cObjectFini (&c->u.base, getObjectType (), &coreObjectPrivates);
 	return FALSE;
     }
 
@@ -402,10 +395,7 @@ coreFiniObject (CompObject *object)
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);
 
-    if (c->privates)
-	free (c->privates);
-
-    cObjectFini (&c->u.base, getObjectType ());
+    cObjectFini (&c->u.base, getObjectType (), &coreObjectPrivates);
 }
 
 static void
@@ -448,9 +438,9 @@ getCoreObjectType (void)
 
     if (!init)
     {
-	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface));
-	cInitObjectVTable (&coreObjectVTable.base, coreGetCContect,
-			   coreObjectType.initVTable);
+	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface),
+			&coreObjectVTable.base, coreGetCContect,
+			coreObjectType.initVTable);
 	init = TRUE;
     }
 

@@ -1451,19 +1451,14 @@ screenInitObject (CompObject *object)
 
     SCREEN (object);
 
-    if (!cObjectInit (&s->base, getObjectType (), &screenObjectVTable))
+    if (!cObjectInit (&s->base, getObjectType (), &screenObjectVTable,
+		      &screenObjectPrivates))
 	return FALSE;
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
     s->windowContainer.base.name	  = "windows";
 
     s->base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */
-
-    if (!allocateObjectPrivates (object, &screenObjectPrivates))
-    {
-	cObjectFini (&s->base, getObjectType ());
-	return FALSE;
-    }
 
     s->objectName = NULL;
 
@@ -1682,10 +1677,7 @@ screenFiniObject (CompObject *object)
     if (s->objectName)
 	free (s->objectName);
 
-    if (s->privates)
-	free (s->privates);
-
-    cObjectFini (&s->base, getObjectType ());
+    cObjectFini (&s->base, getObjectType (), &screenObjectPrivates);
 }
 
 static void
@@ -1705,7 +1697,7 @@ static CompObjectType screenObjectType = {
 };
 
 static void
-screenGetCContect (CompObject *object,
+screenGetCContext (CompObject *object,
 		   CContext   *ctx)
 {
     SCREEN (object);
@@ -1725,9 +1717,9 @@ getScreenObjectType (void)
 
     if (!init)
     {
-	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface));
-	cInitObjectVTable (&screenObjectVTable, screenGetCContect,
-			   screenObjectType.initVTable);
+	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface),
+			&screenObjectVTable, screenGetCContext,
+			screenObjectType.initVTable);
 	init = TRUE;
     }
 

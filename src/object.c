@@ -2674,7 +2674,7 @@ static CompObjectType objectType = {
 };
 
 static void
-objectGetCContect (CompObject *object,
+objectGetCContext (CompObject *object,
 		   CContext   *ctx)
 {
     ctx->interface  = objectInterface;
@@ -2692,7 +2692,7 @@ getObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&objectVTable, objectGetCContect, 0);
+	cInitObjectVTable (&objectVTable, objectGetCContext, 0);
 	init = TRUE;
     }
 
@@ -2700,8 +2700,8 @@ getObjectType (void)
 }
 
 CompBool
-allocateObjectPrivates (CompObject	   *object,
-			CompObjectPrivates *objectPrivates)
+allocateObjectPrivates (CompObject		 *object,
+			const CompObjectPrivates *objectPrivates)
 {
     CompPrivate *privates, **pPrivates = (CompPrivate **)
 	(((char *) object) + objectPrivates->offset);
@@ -2715,6 +2715,17 @@ allocateObjectPrivates (CompObject	   *object,
     *pPrivates = privates;
 
     return TRUE;
+}
+
+void
+freeObjectPrivates (CompObject		     *object,
+		    const CompObjectPrivates *objectPrivates)
+{
+    CompPrivate **pPrivates = (CompPrivate **)
+	(((char *) object) + objectPrivates->offset);
+
+    if (*pPrivates)
+	free (*pPrivates);
 }
 
 typedef struct _ForEachObjectPrivatesContext {
@@ -2998,8 +3009,9 @@ cObjectInitPrivate (CObjectPrivate *private)
     if (index < 0)
 	return FALSE;
 
-    if (private->vTable)
-	cInitObjectVTable (private->vTable, private->proc, type->initVTable);
+    if (private->interface)
+	cInterfaceInit (private->interface, private->nInterface,
+			private->vTable, private->proc, type->initVTable);
 
     *(private->pIndex) = index;
 
@@ -3043,6 +3055,9 @@ cObjectFiniPrivate (CObjectPrivate *private)
 		     sizeof (CompObjectFuncs));
     if (funcs)
 	type->privates->funcs = funcs;
+
+    if (private->interface)
+	cInterfaceFini (private->interface, private->nInterface);
 }
 
 CompBool
@@ -3705,8 +3720,11 @@ cEnsureChildObjectTypes (CInterface *interface,
 }
 
 CompBool
-cInterfaceInit (CInterface *interface,
-		int	   nInterface)
+cInterfaceInit (CInterface	 *interface,
+		int		 nInterface,
+		CompObjectVTable *vTable,
+		GetCContextProc  getCContext,
+		InitVTableProc   initVTable)
 {
     int i;
 
@@ -3715,6 +3733,8 @@ cInterfaceInit (CInterface *interface,
 
     for (i = 0; i < nInterface; i++)
 	cDefaultValuesFromFile (&interface[i], 1, interface->name);
+
+    cInitObjectVTable (vTable, getCContext, initVTable);
 
     return TRUE;
 }
@@ -3923,9 +3943,10 @@ cObjectInterfaceFini (CompObject *object)
 }
 
 CompBool
-cObjectInit (CompObject	            *object,
-	     const CompObjectType   *baseType,
-	     const CompObjectVTable *vTable)
+cObjectInit (CompObject	              *object,
+	     const CompObjectType     *baseType,
+	     const CompObjectVTable   *vTable,
+	     const CompObjectPrivates *objectPrivates)
 {
     if (!compObjectInit (object, baseType))
 	return FALSE;
@@ -3936,13 +3957,27 @@ cObjectInit (CompObject	            *object,
 	return FALSE;
     }
 
+    if (objectPrivates)
+    {
+	if (!allocateObjectPrivates (object, objectPrivates))
+	{
+	    cObjectInterfaceFini (object);
+	    compObjectFini (object, baseType);
+	    return FALSE;
+	}
+    }
+
     return TRUE;
 }
 
 void
-cObjectFini (CompObject	          *object,
-	     const CompObjectType *baseType)
+cObjectFini (CompObject	              *object,
+	     const CompObjectType     *baseType,
+	     const CompObjectPrivates *objectPrivates)
 {
+    if (objectPrivates)
+	freeObjectPrivates (object, objectPrivates);
+
     cObjectInterfaceFini (object);
     compObjectFini (object, baseType);
 }

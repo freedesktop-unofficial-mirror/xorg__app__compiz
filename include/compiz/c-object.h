@@ -351,8 +351,11 @@ cDefaultValuesFromFile (CInterface *interface,
 			const char *name);
 
 CompBool
-cInterfaceInit (CInterface *interface,
-		int	   nInterface);
+cInterfaceInit (CInterface	 *interface,
+		int		 nInterface,
+		CompObjectVTable *vTable,
+		GetCContextProc  getCContext,
+		InitVTableProc   initVTable);
 
 void
 cInterfaceFini (CInterface *interface,
@@ -390,13 +393,15 @@ void
 cObjectInterfaceFini (CompObject *object);
 
 CompBool
-cObjectInit (CompObject	            *object,
-	     const CompObjectType   *baseType,
-	     const CompObjectVTable *vTable);
+cObjectInit (CompObject	              *object,
+	     const CompObjectType     *baseType,
+	     const CompObjectVTable   *vTable,
+	     const CompObjectPrivates *objectPrivates);
 
 void
-cObjectFini (CompObject	          *object,
-	     const CompObjectType *baseType);
+cObjectFini (CompObject	              *object,
+	     const CompObjectType     *baseType,
+	     const CompObjectPrivates *objectPrivates);
 
 CompBool
 cObjectInitPrivates (CObjectPrivate *privates,

@@ -1122,14 +1122,8 @@ static CObjectPrivate fuseObj[] = {
 static Bool
 fuseInit (CompPlugin *p)
 {
-    if (!cInterfaceInit (fuseCoreInterface, N_ELEMENTS (fuseCoreInterface)))
-	return FALSE;
-
     if (!cObjectInitPrivates (fuseObj, N_ELEMENTS (fuseObj)))
-    {
-	cInterfaceFini (fuseCoreInterface, N_ELEMENTS (fuseCoreInterface));
 	return FALSE;
-    }
 
     return TRUE;
 }
@@ -1138,7 +1132,6 @@ static void
 fuseFini (CompPlugin *p)
 {
     cObjectFiniPrivates (fuseObj, N_ELEMENTS (fuseObj));
-    cInterfaceFini (fuseCoreInterface, N_ELEMENTS (fuseCoreInterface));
 }
 
 CompPluginVTable fuseVTable = {

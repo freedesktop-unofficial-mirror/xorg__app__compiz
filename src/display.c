@@ -2406,19 +2406,14 @@ displayInitObject (CompObject *object)
 
     DISPLAY (object);
 
-    if (!cObjectInit (&d->u.base, getObjectType (), &displayObjectVTable.base))
+    if (!cObjectInit (&d->u.base, getObjectType (), &displayObjectVTable.base,
+		      &displayObjectPrivates))
 	return FALSE;
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
     d->screenContainer.base.name	  = "screens";
 
     d->u.base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */
-
-    if (!allocateObjectPrivates (object, &displayObjectPrivates))
-    {
-	cObjectFini (&d->u.base, getObjectType ());
-	return FALSE;
-    }
 
     d->objectName = NULL;
 
@@ -2473,10 +2468,7 @@ displayFiniObject (CompObject *object)
     if (d->objectName)
 	free (d->objectName);
 
-    if (d->privates)
-	free (d->privates);
-
-    cObjectFini (&d->u.base, getObjectType ());
+    cObjectFini (&d->u.base, getObjectType (), &displayObjectPrivates);
 }
 
 static void
@@ -2519,9 +2511,9 @@ getDisplayObjectType (void)
 
     if (!init)
     {
-	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface));
-	cInitObjectVTable (&displayObjectVTable.base, displayGetCContect,
-			   displayObjectType.initVTable);
+	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface),
+			&displayObjectVTable.base, displayGetCContect,
+			displayObjectType.initVTable);
 	init = TRUE;
     }
 

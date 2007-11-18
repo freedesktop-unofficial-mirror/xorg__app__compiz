@@ -459,8 +459,12 @@ CompObjectType *
 getObjectType (void);
 
 CompBool
-allocateObjectPrivates (CompObject	   *object,
-			CompObjectPrivates *objectPrivates);
+allocateObjectPrivates (CompObject		 *object,
+			const CompObjectPrivates *objectPrivates);
+
+void
+freeObjectPrivates (CompObject		     *object,
+		    const CompObjectPrivates *objectPrivates);
 
 int
 compObjectAllocatePrivateIndex (CompObjectType *type,
