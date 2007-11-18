@@ -192,7 +192,7 @@ typedef struct _CObjectPrivate {
 #define C_OBJECT_PRIVATE(str, name, type, struct, index, vtable) \
     {	str,							 \
 	    C_INDEX_ ## index (name, type, struct),		 \
-	    C_VTABLE_ ## index (name, type),			 \
+	    C_VTABLE_ ## vtable (name, type),			 \
 	    (InitObjectProc) name ## Init ## type,		 \
 	    (FiniObjectProc) name ## Fini ## type }
 
