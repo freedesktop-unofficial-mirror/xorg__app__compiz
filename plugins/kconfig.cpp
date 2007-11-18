@@ -32,7 +32,7 @@ static KInstance *kInstance;
 
 static CompMetadata kconfigMetadata;
 
-static int corePrivateIndex;
+static int kconfigCorePrivateIndex;
 
 typedef struct _KconfigCore {
     KConfig *config;
@@ -43,8 +43,8 @@ typedef struct _KconfigCore {
     int		        signalHandle;
 } KconfigCore;
 
-#define GET_KCONFIG_CORE(c)				  \
-    ((KconfigCore *) (c)->privates[corePrivateIndex].ptr)
+#define GET_KCONFIG_CORE(c)					 \
+    ((KconfigCore *) (c)->privates[kconfigCorePrivateIndex].ptr)
 
 #define KCONFIG_CORE(c)			   \
     KconfigCore *kc = GET_KCONFIG_CORE (c)
@@ -364,12 +364,7 @@ kconfigFiniCore (CompCore *c)
 }
 
 static CObjectPrivate kconfigObj[] = {
-    {
-	"core",
-	&corePrivateIndex, sizeof (KconfigCore), NULL, NULL,
-	(InitObjectProc) kconfigInitCore,
-	(FiniObjectProc) kconfigFiniCore
-    }
+    C_OBJECT_PRIVATE ("core", kconfig, Core, KconfigCore, X, _)
 };
 
 static Bool
