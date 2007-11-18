@@ -34,7 +34,7 @@ static CompMetadata gconfMetadata;
 #define APP_NAME        "compiz"
 #define MAX_PATH_LENGTH 1024
 
-static int corePrivateIndex;
+static int gconfCorePrivateIndex;
 
 typedef struct _GConfCore {
     GConfClient *client;
@@ -44,8 +44,8 @@ typedef struct _GConfCore {
     int		      signalHandle;
 } GConfCore;
 
-#define GET_GCONF_CORE(c)				\
-    ((GConfCore *) (c)->privates[corePrivateIndex].ptr)
+#define GET_GCONF_CORE(c)				     \
+    ((GConfCore *) (c)->privates[gconfCorePrivateIndex].ptr)
 
 #define GCONF_CORE(c)		       \
     GConfCore *gc = GET_GCONF_CORE (c)
@@ -446,12 +446,7 @@ gconfFiniCore (CompCore *c)
 }
 
 static CObjectPrivate gconfObj[] = {
-    {
-	"core",
-	&corePrivateIndex, sizeof (GConfCore), NULL, NULL,
-	(InitObjectProc) gconfInitCore,
-	(FiniObjectProc) gconfFiniCore
-    }
+    C_OBJECT_PRIVATE ("core", gconf, Core, GConfCore, X, _)
 };
 
 static Bool

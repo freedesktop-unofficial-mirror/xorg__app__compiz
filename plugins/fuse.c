@@ -37,7 +37,7 @@
 
 #define COMPIZ_FUSE_VERSION 20071116
 
-static int corePrivateIndex;
+static int fuseCorePrivateIndex;
 
 typedef struct _FuseCore {
     CompObjectVTableVec object;
@@ -49,7 +49,7 @@ typedef struct _FuseCore {
     char		*buffer;
 } FuseCore;
 
-static int objectPrivateIndex;
+static int fuseObjectPrivateIndex;
 
 typedef struct _FuseProp {
     struct _FuseProp *next;
@@ -78,14 +78,14 @@ typedef struct _FuseFile {
     int  size;
 } FuseFile;
 
-#define GET_FUSE_CORE(c)			       \
-    ((FuseCore *) (c)->privates[corePrivateIndex].ptr)
+#define GET_FUSE_CORE(c)				   \
+    ((FuseCore *) (c)->privates[fuseCorePrivateIndex].ptr)
 
 #define FUSE_CORE(c)		     \
     FuseCore *fc = GET_FUSE_CORE (c)
 
-#define GET_FUSE_OBJECT(o)				   \
-    ((FuseObject *) (o)->privates[objectPrivateIndex].ptr)
+#define GET_FUSE_OBJECT(o)				       \
+    ((FuseObject *) (o)->privates[fuseObjectPrivateIndex].ptr)
 
 #define FUSE_OBJECT(o)			 \
     FuseObject *fo = GET_FUSE_OBJECT (o)
@@ -1115,18 +1115,8 @@ fuseCoreGetCContext (CompObject *object,
 }
 
 static CObjectPrivate fuseObj[] = {
-    {
-	"object",
-	&objectPrivateIndex, sizeof (FuseObject), NULL, NULL,
-	(InitObjectProc) fuseInitObject,
-	(FiniObjectProc) fuseFiniObject
-    }, {
-	"core",
-	&corePrivateIndex, sizeof (FuseCore),
-	&fuseCoreObjectVTable, fuseCoreGetCContext,
-	(InitObjectProc) fuseInitCore,
-	(FiniObjectProc) fuseFiniCore
-    }
+    C_OBJECT_PRIVATE ("object", fuse, Object, FuseObject, X, _),
+    C_OBJECT_PRIVATE ("core",   fuse, Core,   FuseCore,   X, X)
 };
 
 static Bool

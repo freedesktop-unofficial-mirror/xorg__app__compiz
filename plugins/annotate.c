@@ -35,7 +35,7 @@
 
 static CompMetadata annoMetadata;
 
-static int displayPrivateIndex;
+static int annoDisplayPrivateIndex;
 
 static int annoLastPointerX = 0;
 static int annoLastPointerY = 0;
@@ -61,7 +61,7 @@ typedef struct _AnnoDisplay {
     CompOption opt[ANNO_DISPLAY_OPTION_NUM];
 } AnnoDisplay;
 
-static int screenPrivateIndex;
+static int annoScreenPrivateIndex;
 
 typedef struct _AnnoScreen {
     CompObjectVTableVec object;
@@ -78,14 +78,14 @@ typedef struct _AnnoScreen {
     Bool eraseMode;
 } AnnoScreen;
 
-#define GET_ANNO_DISPLAY(d)				     \
-    ((AnnoDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_ANNO_DISPLAY(d)					 \
+    ((AnnoDisplay *) (d)->privates[annoDisplayPrivateIndex].ptr)
 
 #define ANNO_DISPLAY(d)			   \
     AnnoDisplay *ad = GET_ANNO_DISPLAY (d)
 
-#define GET_ANNO_SCREEN(s)				   \
-    ((AnnoScreen *) (s)->privates[screenPrivateIndex].ptr)
+#define GET_ANNO_SCREEN(s)				       \
+    ((AnnoScreen *) (s)->privates[annoScreenPrivateIndex].ptr)
 
 #define ANNO_SCREEN(s)			 \
     AnnoScreen *as = GET_ANNO_SCREEN (s)
@@ -853,19 +853,8 @@ annoScreenGetCContext (CompObject *object,
 }
 
 static CObjectPrivate annoObj[] = {
-    {
-	"display",
-	&displayPrivateIndex, sizeof (AnnoDisplay),
-	&annoDisplayObjectVTable, annoDisplayGetCContext,
-	(InitObjectProc) annoInitDisplay,
-	(FiniObjectProc) annoFiniDisplay
-    }, {
-	"screen",
-	&screenPrivateIndex, sizeof (AnnoScreen),
-	&annoScreenObjectVTable, annoScreenGetCContext,
-	(InitObjectProc) annoInitScreen,
-	(FiniObjectProc) annoFiniScreen
-    }
+    C_OBJECT_PRIVATE ("display", anno, Display, AnnoDisplay, X, X),
+    C_OBJECT_PRIVATE ("screen",  anno, Screen,  AnnoScreen,  X, X)
 };
 
 static Bool

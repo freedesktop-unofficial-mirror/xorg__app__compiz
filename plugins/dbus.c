@@ -37,7 +37,7 @@
 #define COMPIZ_DBUS_INTERFACE_BASE "org.freedesktop.compiz."
 #define COMPIZ_DBUS_PATH_ROOT	   "/org/freedesktop/compiz"
 
-static int corePrivateIndex;
+static int dbusCorePrivateIndex;
 
 typedef struct _DBusCore {
     DBusConnection    *connection;
@@ -45,8 +45,8 @@ typedef struct _DBusCore {
     int		      signalHandle;
 } DBusCore;
 
-#define GET_DBUS_CORE(c)			       \
-    ((DBusCore *) (c)->privates[corePrivateIndex].ptr)
+#define GET_DBUS_CORE(c)			           \
+    ((DBusCore *) (c)->privates[dbusCorePrivateIndex].ptr)
 
 #define DBUS_CORE(c)		     \
     DBusCore *dc = GET_DBUS_CORE (c)
@@ -898,12 +898,7 @@ dbusFiniCore (CompCore *c)
 }
 
 static CObjectPrivate dbusObj[] = {
-    {
-	"core",
-	&corePrivateIndex, sizeof (DBusCore), NULL, NULL,
-	(InitObjectProc) dbusInitCore,
-	(FiniObjectProc) dbusFiniCore
-    }
+    C_OBJECT_PRIVATE ("core", dbus, Core, DBusCore, X, _)
 };
 
 static Bool

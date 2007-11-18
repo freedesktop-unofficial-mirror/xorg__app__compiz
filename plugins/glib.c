@@ -33,7 +33,7 @@
 
 static CompMetadata glibMetadata;
 
-static int corePrivateIndex;
+static int glibCorePrivateIndex;
 
 typedef struct _GLibWatch {
     CompWatchFdHandle handle;
@@ -59,8 +59,8 @@ typedef struct _GLibCoreVTable {
     WakeUpProc     wakeUp;
 } GLibCoreVTable;
 
-#define GET_GLIB_CORE(c)			       \
-    ((GLibCore *) (c)->privates[corePrivateIndex].ptr)
+#define GET_GLIB_CORE(c)				   \
+    ((GLibCore *) (c)->privates[glibCorePrivateIndex].ptr)
 
 #define GLIB_CORE(c)		     \
     GLibCore *gc = GET_GLIB_CORE (c)
@@ -244,13 +244,7 @@ glibCoreGetCContext (CompObject *object,
 }
 
 static CObjectPrivate glibObj[] = {
-    {
-	"core",
-	&corePrivateIndex, sizeof (GLibCore),
-	&glibCoreObjectVTable.base, glibCoreGetCContext,
-	(InitObjectProc) glibInitCore,
-	(FiniObjectProc) glibFiniCore
-    }
+    C_OBJECT_PRIVATE ("core", glib, Core, GLibCore, X, X)
 };
 
 static Bool
