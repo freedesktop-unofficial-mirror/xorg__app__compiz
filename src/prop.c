@@ -24,70 +24,24 @@
  */
 
 #include <compiz/prop.h>
+#include <compiz/c-object.h>
 
-static CompBool
-propForBaseObject (CompObject	          *object,
-		   BaseObjectCallBackProc proc,
-		   void		          *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    PROP (object);
-
-    UNWRAP (&p->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&p->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-propForEachType (CompObject       *object,
-		 TypeCallBackProc proc,
-		 void	          *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    PROP (object);
-
-    if (!(*proc) (object, getPropObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&p->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&p->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObjectVTable propObjectVTable = {
-    .forBaseObject = propForBaseObject,
-    .forEachType   = propForEachType,
+static const CInterface propInterface[] = {
+    C_INTERFACE (prop, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
+
+static CompObjectVTable propObjectVTable = { 0 };
 
 static CompBool
 propInitObject (CompObject *object)
 {
-    PROP (object);
-
-    if (!compObjectInit (&p->base, getObjectType ()))
-	return FALSE;
-
-    WRAP (&p->object, &p->base, vTable, &propObjectVTable);
-
-    return TRUE;
+    return cObjectInit (object, getObjectType (), &propObjectVTable, 0);
 }
 
 static void
 propFiniObject (CompObject *object)
 {
-    PROP (object);
-
-    UNWRAP (&p->object, &p->base, vTable);
-
-    compObjectFini (&p->base, getObjectType ());
+    cObjectFini (object, getObjectType (), 0);
 }
 
 static void
@@ -106,6 +60,20 @@ static CompObjectType propObjectType = {
     propInitVTable
 };
 
+static void
+propGetCContect (CompObject *object,
+		 CContext   *ctx)
+{
+    PROP (object);
+
+    ctx->interface  = propInterface;
+    ctx->nInterface = N_ELEMENTS (propInterface);
+    ctx->type	    = &propObjectType;
+    ctx->data	    = (char *) p;
+    ctx->vtStore    = &p->object;
+    ctx->version    = COMPIZ_PROP_VERSION;
+}
+
 CompObjectType *
 getPropObjectType (void)
 {
@@ -113,7 +81,8 @@ getPropObjectType (void)
 
     if (!init)
     {
-	propInitVTable (&propObjectVTable);
+	cInitObjectVTable (&propObjectVTable, propGetCContect,
+			   propObjectType.initVTable);
 	init = TRUE;
     }
 
