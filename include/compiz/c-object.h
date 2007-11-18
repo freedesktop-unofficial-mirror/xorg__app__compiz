@@ -181,6 +181,22 @@ typedef struct _CObjectPrivate {
     FiniObjectProc  fini;
 } CObjectPrivate;
 
+#define C_INDEX__(name, type, struct) 0, 0
+#define C_INDEX_X(name, type, struct)		    \
+    & name ## type ## PrivateIndex, sizeof (struct)
+
+#define C_VTABLE__(name, type) 0, 0
+#define C_VTABLE_X(name, type)					\
+    & name ## type ## ObjectVTable, name ## type ## GetCContext
+
+#define C_OBJECT_PRIVATE(str, name, type, struct, index, vtable) \
+    {	str,							 \
+	    C_INDEX_ ## index (name, type, struct),		 \
+	    C_VTABLE_ ## index (name, type),			 \
+	    (InitObjectProc) name ## Init ## type,		 \
+	    (FiniObjectProc) name ## Fini ## type }
+
+
 void
 cInitObjectVTable (CompObjectVTable *vTable,
 		   GetCContextProc  getCContext,
