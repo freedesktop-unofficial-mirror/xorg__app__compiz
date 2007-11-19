@@ -393,15 +393,13 @@ void
 cObjectInterfaceFini (CompObject *object);
 
 CompBool
-cObjectInit (CompObject	              *object,
-	     const CompObjectType     *baseType,
-	     const CompObjectVTable   *vTable,
-	     const CompObjectPrivates *objectPrivates);
+cObjectInit (CompObject	            *object,
+	     const CompObjectType   *baseType,
+	     const CompObjectVTable *vTable);
 
 void
-cObjectFini (CompObject	              *object,
-	     const CompObjectType     *baseType,
-	     const CompObjectPrivates *objectPrivates);
+cObjectFini (CompObject	          *object,
+	     const CompObjectType *baseType);
 
 CompBool
 cObjectInitPrivates (CObjectPrivate *privates,

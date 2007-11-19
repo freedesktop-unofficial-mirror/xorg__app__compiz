@@ -53,7 +53,7 @@ containerInitObject (CompObject *object)
 {
     CONTAINER (object);
 
-    if (!cObjectInit (&c->base, getObjectType (), &containerObjectVTable, 0))
+    if (!cObjectInit (&c->base, getObjectType (), &containerObjectVTable))
 	return FALSE;
 
     c->forEachChildObject = NULL;
@@ -64,7 +64,7 @@ containerInitObject (CompObject *object)
 static void
 containerFiniObject (CompObject *object)
 {
-    cObjectFini (object, getObjectType (), 0);
+    cObjectFini (object, getObjectType ());
 }
 
 static void
@@ -79,6 +79,7 @@ static CompObjectType containerObjectType = {
 	containerInitObject,
 	containerFiniObject
     },
+    0,
     NULL,
     containerInitVTable
 };

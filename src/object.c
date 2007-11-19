@@ -78,6 +78,37 @@ static const CInterface objectInterface[] = {
     C_INTERFACE (version,    Object, CompObjectVTable, X, X, _, _, _, _, _, _)
 };
 
+static CompBool
+allocateObjectPrivates (CompObject		 *object,
+			const CompObjectType     *type,
+			const CompObjectPrivates *objectPrivates)
+{
+    CompPrivate *privates, **pPrivates = (CompPrivate **)
+	(((char *) object) + type->privatesOffset);
+
+    privates = allocatePrivates (objectPrivates->len,
+				 objectPrivates->sizes,
+				 objectPrivates->totalSize);
+    if (!privates)
+	return FALSE;
+
+    *pPrivates = privates;
+
+    return TRUE;
+}
+
+static void
+freeObjectPrivates (CompObject		     *object,
+		    const CompObjectType     *type,
+		    const CompObjectPrivates *objectPrivates)
+{
+    CompPrivate **pPrivates = (CompPrivate **)
+	(((char *) object) + type->privatesOffset);
+
+    if (*pPrivates)
+	free (*pPrivates);
+}
+
 CompBool
 compObjectInit (CompObject           *object,
 		const CompObjectType *type)
@@ -87,8 +118,14 @@ compObjectInit (CompObject           *object,
     if (!(*type->funcs.init) (object))
 	return FALSE;
 
-    if (!type->privates)
+    if (!type->privatesOffset)
 	return TRUE;
+
+    if (!allocateObjectPrivates (object, type, type->privates))
+    {
+	(*type->funcs.fini) (object);
+	return FALSE;
+    }
 
     for (i = 0; i < type->privates->nFuncs; i++)
 	if (!(*type->privates->funcs[i].init) (object))
@@ -109,12 +146,14 @@ void
 compObjectFini (CompObject           *object,
 		const CompObjectType *type)
 {
-    if (type->privates)
+    if (type->privatesOffset)
     {
 	int i = type->privates->nFuncs;
 
 	while (--i >= 0)
 	    (*type->privates->funcs[i].fini) (object);
+
+	freeObjectPrivates (object, type, type->privates);
     }
 
     (*type->funcs.fini) (object);
@@ -2596,7 +2635,6 @@ static CompObjectPrivates objectPrivates = {
     0,
     NULL,
     0,
-    offsetof (CompObject, privates),
     NULL,
     0
 };
@@ -2606,9 +2644,6 @@ initObject (CompObject *object)
 {
     object->vTable = &objectVTable;
     object->parent = NULL;
-
-    if (!allocateObjectPrivates (object, &objectPrivates))
-	return FALSE;
 
     memset (object->signal, 0, sizeof (object->signal));
 
@@ -2622,8 +2657,6 @@ initObject (CompObject *object)
 static void
 finiObject (CompObject *object)
 {
-    if (object->privates)
-	free (object->privates);
 }
 
 static void
@@ -2673,6 +2706,7 @@ static CompObjectType objectType = {
 	initObject,
 	finiObject
     },
+    offsetof (CompObject, privates),
     &objectPrivates,
     (InitVTableProc) initObjectVTable
 };
@@ -2703,35 +2737,6 @@ getObjectType (void)
     return &objectType;
 }
 
-CompBool
-allocateObjectPrivates (CompObject		 *object,
-			const CompObjectPrivates *objectPrivates)
-{
-    CompPrivate *privates, **pPrivates = (CompPrivate **)
-	(((char *) object) + objectPrivates->offset);
-
-    privates = allocatePrivates (objectPrivates->len,
-				 objectPrivates->sizes,
-				 objectPrivates->totalSize);
-    if (!privates)
-	return FALSE;
-
-    *pPrivates = privates;
-
-    return TRUE;
-}
-
-void
-freeObjectPrivates (CompObject		     *object,
-		    const CompObjectPrivates *objectPrivates)
-{
-    CompPrivate **pPrivates = (CompPrivate **)
-	(((char *) object) + objectPrivates->offset);
-
-    if (*pPrivates)
-	free (*pPrivates);
-}
-
 typedef struct _ForEachObjectPrivatesContext {
     CompObjectType       *type;
     PrivatesCallBackProc proc;
@@ -2750,9 +2755,8 @@ forEachInterfacePrivates (CompObject	       *object,
 
     if (type && type == pCtx->type)
     {
-	CompObjectPrivates *objectPrivates = pCtx->type->privates;
-	CompPrivate	   **pPrivates = (CompPrivate **)
-	    (((char *) object) + objectPrivates->offset);
+	CompPrivate **pPrivates = (CompPrivate **)
+	    (((char *) object) + type->privatesOffset);
 
 	return (*pCtx->proc) (pPrivates, pCtx->data);
     }
@@ -3959,10 +3963,9 @@ cObjectInterfaceFini (CompObject *object)
 }
 
 CompBool
-cObjectInit (CompObject	              *object,
-	     const CompObjectType     *baseType,
-	     const CompObjectVTable   *vTable,
-	     const CompObjectPrivates *objectPrivates)
+cObjectInit (CompObject	            *object,
+	     const CompObjectType   *baseType,
+	     const CompObjectVTable *vTable)
 {
     if (!compObjectInit (object, baseType))
 	return FALSE;
@@ -3973,27 +3976,13 @@ cObjectInit (CompObject	              *object,
 	return FALSE;
     }
 
-    if (objectPrivates)
-    {
-	if (!allocateObjectPrivates (object, objectPrivates))
-	{
-	    cObjectInterfaceFini (object);
-	    compObjectFini (object, baseType);
-	    return FALSE;
-	}
-    }
-
     return TRUE;
 }
 
 void
-cObjectFini (CompObject	              *object,
-	     const CompObjectType     *baseType,
-	     const CompObjectPrivates *objectPrivates)
+cObjectFini (CompObject	          *object,
+	     const CompObjectType *baseType)
 {
-    if (objectPrivates)
-	freeObjectPrivates (object, objectPrivates);
-
     cObjectInterfaceFini (object);
     compObjectFini (object, baseType);
 }

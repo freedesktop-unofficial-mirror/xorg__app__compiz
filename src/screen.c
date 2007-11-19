@@ -1424,7 +1424,6 @@ static CompObjectPrivates screenObjectPrivates = {
     0,
     NULL,
     0,
-    offsetof (CompScreen, privates),
     NULL,
     0
 };
@@ -1452,8 +1451,7 @@ screenInitObject (CompObject *object)
 
     SCREEN (object);
 
-    if (!cObjectInit (&s->base, getObjectType (), &screenObjectVTable,
-		      &screenObjectPrivates))
+    if (!cObjectInit (&s->base, getObjectType (), &screenObjectVTable))
 	return FALSE;
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
@@ -1678,7 +1676,7 @@ screenFiniObject (CompObject *object)
     if (s->objectName)
 	free (s->objectName);
 
-    cObjectFini (&s->base, getObjectType (), &screenObjectPrivates);
+    cObjectFini (&s->base, getObjectType ());
 }
 
 static void
@@ -1693,6 +1691,7 @@ static CompObjectType screenObjectType = {
 	screenInitObject,
 	screenFiniObject
     },
+    offsetof (CompScreen, privates),
     &screenObjectPrivates,
     screenInitVTable
 };

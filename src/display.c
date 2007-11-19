@@ -2380,7 +2380,6 @@ static CompObjectPrivates displayObjectPrivates = {
     0,
     NULL,
     0,
-    offsetof (CompDisplay, privates),
     NULL,
     0
 };
@@ -2408,8 +2407,7 @@ displayInitObject (CompObject *object)
 
     DISPLAY (object);
 
-    if (!cObjectInit (&d->u.base, getObjectType (), &displayObjectVTable.base,
-		      &displayObjectPrivates))
+    if (!cObjectInit (&d->u.base, getObjectType (), &displayObjectVTable.base))
 	return FALSE;
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
@@ -2470,7 +2468,7 @@ displayFiniObject (CompObject *object)
     if (d->objectName)
 	free (d->objectName);
 
-    cObjectFini (&d->u.base, getObjectType (), &displayObjectPrivates);
+    cObjectFini (&d->u.base, getObjectType ());
 }
 
 static void
@@ -2488,6 +2486,7 @@ static CompObjectType displayObjectType = {
 	displayInitObject,
 	displayFiniObject
     },
+    offsetof (CompDisplay, privates),
     &displayObjectPrivates,
     (InitVTableProc) displayInitVTable
 };

@@ -271,7 +271,6 @@ static CompObjectPrivates coreObjectPrivates = {
     0,
     NULL,
     0,
-    offsetof (CompCore, privates),
     NULL,
     0
 };
@@ -313,8 +312,7 @@ coreInitObject (CompObject *object)
 {
     CORE (object);
 
-    if (!cObjectInit (&c->u.base, getObjectType (), &coreObjectVTable.base,
-		      &coreObjectPrivates))
+    if (!cObjectInit (&c->u.base, getObjectType (), &coreObjectVTable.base))
 	return FALSE;
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
@@ -328,7 +326,7 @@ coreInitObject (CompObject *object)
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	cObjectFini (&c->u.base, getObjectType (), &coreObjectPrivates);
+	cObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -336,7 +334,7 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	cObjectFini (&c->u.base, getObjectType (), &coreObjectPrivates);
+	cObjectFini (&c->u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -397,7 +395,7 @@ coreFiniObject (CompObject *object)
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);
 
-    cObjectFini (&c->u.base, getObjectType (), &coreObjectPrivates);
+    cObjectFini (&c->u.base, getObjectType ());
 }
 
 static void
@@ -415,6 +413,7 @@ static CompObjectType coreObjectType = {
 	coreInitObject,
 	coreFiniObject
     },
+    offsetof (CompCore, privates),
     &coreObjectPrivates,
     (InitVTableProc) coreInitVTable
 };

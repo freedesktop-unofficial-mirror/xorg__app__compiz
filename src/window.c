@@ -1785,7 +1785,6 @@ static CompObjectPrivates windowObjectPrivates = {
     0,
     NULL,
     0,
-    offsetof (CompWindow, privates),
     NULL,
     0
 };
@@ -1795,8 +1794,7 @@ windowInitObject (CompObject *object)
 {
     WINDOW (object);
 
-    if (!cObjectInit (&w->base, getObjectType (), &windowObjectVTable,
-		      &windowObjectPrivates))
+    if (!cObjectInit (&w->base, getObjectType (), &windowObjectVTable))
 	return FALSE;
 
     w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
@@ -1814,7 +1812,7 @@ windowFiniObject (CompObject *object)
     if (w->objectName)
 	free (w->objectName);
 
-    cObjectFini (&w->base, getObjectType (), &windowObjectPrivates);
+    cObjectFini (&w->base, getObjectType ());
 }
 
 static void
@@ -1829,6 +1827,7 @@ static CompObjectType windowObjectType = {
 	windowInitObject,
 	windowFiniObject
     },
+    offsetof (CompWindow, privates),
     &windowObjectPrivates,
     windowInitVTable
 };

@@ -65,7 +65,6 @@ typedef struct _CompObjectPrivates {
     int		    len;
     int		    *sizes;
     int		    totalSize;
-    size_t	    offset;
     CompObjectFuncs *funcs;
     int		    nFuncs;
 } CompObjectPrivates;
@@ -75,6 +74,7 @@ typedef void (*InitVTableProc) (void *vTable);
 struct _CompObjectType {
     const char	       *name;
     CompObjectFuncs    funcs;
+    size_t	       privatesOffset;
     CompObjectPrivates *privates;
     InitVTableProc     initVTable;
 };
@@ -357,7 +357,7 @@ typedef struct _CompObjectVTable {
     */
     ForBaseObjectProc forBaseObject;
 
-    /* empty vtable field that each implementer can
+    /* empty vtable entry that each implementer can
        use for its own purpose */
     UnusedProc unused;
 
@@ -374,7 +374,7 @@ typedef struct _CompObjectVTable {
 
     /* type function
 
-       must be implemented by every subtype
+       object types are provided by implementing forEachType
      */
     ForEachTypeProc forEachType;
 
@@ -458,14 +458,6 @@ emitSignalSignal (CompObject *object,
 
 CompObjectType *
 getObjectType (void);
-
-CompBool
-allocateObjectPrivates (CompObject		 *object,
-			const CompObjectPrivates *objectPrivates);
-
-void
-freeObjectPrivates (CompObject		     *object,
-		    const CompObjectPrivates *objectPrivates);
 
 int
 compObjectAllocatePrivateIndex (CompObjectType *type,

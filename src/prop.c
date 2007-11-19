@@ -35,13 +35,13 @@ static CompObjectVTable propObjectVTable = { 0 };
 static CompBool
 propInitObject (CompObject *object)
 {
-    return cObjectInit (object, getObjectType (), &propObjectVTable, 0);
+    return cObjectInit (object, getObjectType (), &propObjectVTable);
 }
 
 static void
 propFiniObject (CompObject *object)
 {
-    cObjectFini (object, getObjectType (), 0);
+    cObjectFini (object, getObjectType ());
 }
 
 static void
@@ -56,6 +56,7 @@ static CompObjectType propObjectType = {
 	propInitObject,
 	propFiniObject
     },
+    0,
     NULL,
     propInitVTable
 };
