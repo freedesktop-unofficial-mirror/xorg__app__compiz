@@ -2859,12 +2859,18 @@ compObjectFindType (const char *name)
 
 static CompBool
 topObjectType (CompObject	    *object,
+	       const char	    *name,
+	       size_t		    offset,
 	       const CompObjectType *type,
 	       void		    *closure)
 {
-    *((const CompObjectType **) closure) = type;
+    if (type)
+    {
+	*((const CompObjectType **) closure) = type;
+	return FALSE;
+    }
 
-    return FALSE;
+    return TRUE;
 }
 
 typedef struct _InitObjectContext {
@@ -2880,7 +2886,9 @@ initBaseObject (CompObject *object,
     InitObjectContext    *pCtx = (InitObjectContext *) closure;
     const CompObjectType *type;
 
-    (*object->vTable->forEachType) (object, topObjectType, (void *) &type);
+    (*object->vTable->forEachInterface) (object,
+					 topObjectType,
+					 (void *) &type);
 
     if (type == pCtx->type)
 	return (*pCtx->funcs->init) (object);
@@ -2897,7 +2905,9 @@ finiBaseObject (CompObject *object,
     InitObjectContext    *pCtx = (InitObjectContext *) closure;
     const CompObjectType *type;
 
-    (*object->vTable->forEachType) (object, topObjectType, (void *) &type);
+    (*object->vTable->forEachInterface) (object,
+					 topObjectType,
+					 (void *) &type);
 
     if (type == pCtx->type)
 	(*pCtx->funcs->fini) (object);
