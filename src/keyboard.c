@@ -24,58 +24,21 @@
  */
 
 #include <compiz/keyboard.h>
+#include <compiz/c-object.h>
 
-static CompBool
-keyboardForBaseObject (CompObject	      *object,
-		       BaseObjectCallBackProc proc,
-		       void		      *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    KEYBOARD (object);
-
-    UNWRAP (&k->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&k->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-keyboardForEachType (CompObject       *object,
-		     TypeCallBackProc proc,
-		     void	      *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    KEYBOARD (object);
-
-    if (!(*proc) (object, getKeyboardObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&k->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&k->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObjectVTable keyboardObjectVTable = {
-    .forBaseObject = keyboardForBaseObject,
-    .forEachType   = keyboardForEachType
+static const CInterface keyboardInterface[] = {
+    C_INTERFACE (keyboard, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
+
+static CompObjectVTable keyboardObjectVTable = { 0 };
 
 static CompBool
 keyboardInitObject (CompObject *object)
 {
     KEYBOARD (object);
 
-    if (!compObjectInit (&k->base.base, getInputObjectType ()))
+    if (!cObjectInit (object, getInputObjectType (), &keyboardObjectVTable))
 	return FALSE;
-
-    WRAP (&k->object, &k->base.base, vTable, &keyboardObjectVTable);
 
     k->state = 0;
 
@@ -85,11 +48,7 @@ keyboardInitObject (CompObject *object)
 static void
 keyboardFiniObject (CompObject *object)
 {
-    KEYBOARD (object);
-
-    UNWRAP (&k->object, &k->base.base, vTable);
-
-    compObjectFini (&k->base.base, getInputObjectType ());
+    cObjectFini (object, getInputObjectType ());
 }
 
 static void
@@ -104,9 +63,24 @@ static CompObjectType keyboardObjectType = {
 	keyboardInitObject,
 	keyboardFiniObject
     },
+    0,
     NULL,
     keyboardInitVTable
 };
+
+static void
+keyboardGetCContect (CompObject *object,
+		   CContext   *ctx)
+{
+    KEYBOARD (object);
+
+    ctx->interface  = keyboardInterface;
+    ctx->nInterface = N_ELEMENTS (keyboardInterface);
+    ctx->type	    = &keyboardObjectType;
+    ctx->data	    = (char *) k;
+    ctx->vtStore    = &k->object;
+    ctx->version    = COMPIZ_KEYBOARD_VERSION;
+}
 
 CompObjectType *
 getKeyboardObjectType (void)
@@ -115,7 +89,8 @@ getKeyboardObjectType (void)
 
     if (!init)
     {
-	keyboardInitVTable (&keyboardObjectVTable);
+	cInitObjectVTable (&keyboardObjectVTable, keyboardGetCContect,
+			   keyboardObjectType.initVTable);
 	init = TRUE;
     }
 

@@ -24,58 +24,21 @@
  */
 
 #include <compiz/pointer.h>
+#include <compiz/c-object.h>
 
-static CompBool
-pointerForBaseObject (CompObject	     *object,
-		      BaseObjectCallBackProc proc,
-		      void		     *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    POINTER (object);
-
-    UNWRAP (&p->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&p->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-pointerForEachType (CompObject       *object,
-		    TypeCallBackProc proc,
-		    void	     *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    POINTER (object);
-
-    if (!(*proc) (object, getPointerObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&p->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&p->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObjectVTable pointerObjectVTable = {
-    .forBaseObject = pointerForBaseObject,
-    .forEachType   = pointerForEachType
+static const CInterface pointerInterface[] = {
+    C_INTERFACE (pointer, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
+
+static CompObjectVTable pointerObjectVTable = { 0 };
 
 static CompBool
 pointerInitObject (CompObject *object)
 {
     POINTER (object);
 
-    if (!compObjectInit (&p->base.base, getInputObjectType ()))
+    if (!cObjectInit (object, getInputObjectType (), &pointerObjectVTable))
 	return FALSE;
-
-    WRAP (&p->object, &p->base.base, vTable, &pointerObjectVTable);
 
     p->x = 0;
     p->y = 0;
@@ -86,11 +49,7 @@ pointerInitObject (CompObject *object)
 static void
 pointerFiniObject (CompObject *object)
 {
-    POINTER (object);
-
-    UNWRAP (&p->object, &p->base.base, vTable);
-
-    compObjectFini (&p->base.base, getInputObjectType ());
+    cObjectFini (object, getInputObjectType ());
 }
 
 static void
@@ -105,9 +64,24 @@ static CompObjectType pointerObjectType = {
 	pointerInitObject,
 	pointerFiniObject
     },
+    0,
     NULL,
     pointerInitVTable
 };
+
+static void
+pointerGetCContect (CompObject *object,
+		   CContext   *ctx)
+{
+    POINTER (object);
+
+    ctx->interface  = pointerInterface;
+    ctx->nInterface = N_ELEMENTS (pointerInterface);
+    ctx->type	    = &pointerObjectType;
+    ctx->data	    = (char *) p;
+    ctx->vtStore    = &p->object;
+    ctx->version    = COMPIZ_POINTER_VERSION;
+}
 
 CompObjectType *
 getPointerObjectType (void)
@@ -116,7 +90,8 @@ getPointerObjectType (void)
 
     if (!init)
     {
-	pointerInitVTable (&pointerObjectVTable);
+	cInitObjectVTable (&pointerObjectVTable, pointerGetCContect,
+			   pointerObjectType.initVTable);
 	init = TRUE;
     }
 

@@ -24,70 +24,24 @@
  */
 
 #include <compiz/input.h>
+#include <compiz/c-object.h>
 
-static CompBool
-inputForBaseObject (CompObject	           *object,
-		    BaseObjectCallBackProc proc,
-		    void		   *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    INPUT (object);
-
-    UNWRAP (&i->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&i->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-inputForEachType (CompObject       *object,
-		  TypeCallBackProc proc,
-		  void	           *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    INPUT (object);
-
-    if (!(*proc) (object, getInputObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&i->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&i->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObjectVTable inputObjectVTable = {
-    .forBaseObject = inputForBaseObject,
-    .forEachType   = inputForEachType
+static const CInterface inputInterface[] = {
+    C_INTERFACE (input, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
+
+static CompObjectVTable inputObjectVTable = { 0 };
 
 static CompBool
 inputInitObject (CompObject *object)
 {
-    INPUT (object);
-
-    if (!compObjectInit (&i->base, getObjectType ()))
-	return FALSE;
-
-    WRAP (&i->object, &i->base, vTable, &inputObjectVTable);
-
-    return TRUE;
+    return cObjectInit (object, getObjectType (), &inputObjectVTable);
 }
 
 static void
 inputFiniObject (CompObject *object)
 {
-    INPUT (object);
-
-    UNWRAP (&i->object, &i->base, vTable);
-
-    compObjectFini (&i->base, getObjectType ());
+    cObjectFini (object, getObjectType ());
 }
 
 static void
@@ -102,9 +56,24 @@ static CompObjectType inputObjectType = {
 	inputInitObject,
 	inputFiniObject
     },
+    0,
     NULL,
     inputInitVTable
 };
+
+static void
+inputGetCContect (CompObject *object,
+		  CContext   *ctx)
+{
+    INPUT (object);
+
+    ctx->interface  = inputInterface;
+    ctx->nInterface = N_ELEMENTS (inputInterface);
+    ctx->type	    = &inputObjectType;
+    ctx->data	    = (char *) i;
+    ctx->vtStore    = &i->object;
+    ctx->version    = COMPIZ_INPUT_VERSION;
+}
 
 CompObjectType *
 getInputObjectType (void)
@@ -113,7 +82,8 @@ getInputObjectType (void)
 
     if (!init)
     {
-	inputInitVTable (&inputObjectVTable);
+	cInitObjectVTable (&inputObjectVTable, inputGetCContect,
+			   inputObjectType.initVTable);
 	init = TRUE;
     }
 

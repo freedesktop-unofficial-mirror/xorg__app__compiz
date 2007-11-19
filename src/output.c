@@ -24,70 +24,24 @@
  */
 
 #include <compiz/output.h>
+#include <compiz/c-object.h>
 
-static CompBool
-outputForBaseObject (CompObject	            *object,
-		     BaseObjectCallBackProc proc,
-		     void		    *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    OUTPUT (object);
-
-    UNWRAP (&o->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&o->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-outputForEachType (CompObject       *object,
-		   TypeCallBackProc proc,
-		   void	            *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    OUTPUT (object);
-
-    if (!(*proc) (object, getOutputObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&o->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&o->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObjectVTable outputObjectVTable = {
-    .forBaseObject = outputForBaseObject,
-    .forEachType   = outputForEachType
+static const CInterface outputInterface[] = {
+    C_INTERFACE (output, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
+
+static CompObjectVTable outputObjectVTable = { 0 };
 
 static CompBool
 outputInitObject (CompObject *object)
 {
-    OUTPUT (object);
-
-    if (!compObjectInit (&o->base, getObjectType ()))
-	return FALSE;
-
-    WRAP (&o->object, &o->base, vTable, &outputObjectVTable);
-
-    return TRUE;
+    return cObjectInit (object, getObjectType (), &outputObjectVTable);
 }
 
 static void
 outputFiniObject (CompObject *object)
 {
-    OUTPUT (object);
-
-    UNWRAP (&o->object, &o->base, vTable);
-
-    compObjectFini (&o->base, getObjectType ());
+    cObjectFini (object, getObjectType ());
 }
 
 static void
@@ -102,9 +56,24 @@ static CompObjectType outputObjectType = {
 	outputInitObject,
 	outputFiniObject
     },
+    0,
     NULL,
     outputInitVTable
 };
+
+static void
+outputGetCContect (CompObject *object,
+		   CContext   *ctx)
+{
+    OUTPUT (object);
+
+    ctx->interface  = outputInterface;
+    ctx->nInterface = N_ELEMENTS (outputInterface);
+    ctx->type	    = &outputObjectType;
+    ctx->data	    = (char *) o;
+    ctx->vtStore    = &o->object;
+    ctx->version    = COMPIZ_OUTPUT_VERSION;
+}
 
 CompObjectType *
 getOutputObjectType (void)
@@ -113,7 +82,8 @@ getOutputObjectType (void)
 
     if (!init)
     {
-	outputInitVTable (&outputObjectVTable);
+	cInitObjectVTable (&outputObjectVTable, outputGetCContect,
+			   outputObjectType.initVTable);
 	init = TRUE;
     }
 
