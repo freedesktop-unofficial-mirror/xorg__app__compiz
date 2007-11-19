@@ -1126,6 +1126,8 @@ initOptionFromMetadataPath (CompDisplay   *d,
 
 static CompBool
 isNotObjectType (CompObject	      *object,
+		 const char	      *name,
+		 size_t		      offset,
 		 const CompObjectType *type,
 		 void		      *closure)
 {
@@ -1144,16 +1146,16 @@ compInitObjectPropFromMetadata (CompObject   *o,
     CompDisplay	*display = NULL;
     char	str[1024];
 
-    if (!(*o->vTable->forEachType) (o, isNotObjectType, (void *)
-				    getDisplayObjectType ()))
+    if (!(*o->vTable->forEachInterface) (o, isNotObjectType, (void *)
+					 getDisplayObjectType ()))
     {
 	display = GET_DISPLAY (o);
 
 	sprintf (str, "/compiz/%s/display//option[@name=\"%s\"]",
 		 m->path, name);
     }
-    else if (!(*o->vTable->forEachType) (o, isNotObjectType, (void *)
-					 getScreenObjectType ()))
+    else if (!(*o->vTable->forEachInterface) (o, isNotObjectType, (void *)
+					      getScreenObjectType ()))
     {
 	display = GET_SCREEN (o)->display;
 
@@ -1183,16 +1185,16 @@ finiObjectPropValue (CompObject      *o,
     case CompOptionTypeBell:
 	if (v->action.state & CompActionStateAutoGrab)
 	{
-	    if (!(*o->vTable->forEachType) (o, isNotObjectType, (void *)
-					    getDisplayObjectType ()))
+	    if (!(*o->vTable->forEachInterface) (o, isNotObjectType, (void *)
+						 getDisplayObjectType ()))
 	    {
 		CompScreen *s;
 
 		for (s = GET_DISPLAY (o)->screens; s; s = s->next)
 		    removeScreenAction (s, &v->action);
 	    }
-	    if (!(*o->vTable->forEachType) (o, isNotObjectType, (void *)
-					    getScreenObjectType ()))
+	    if (!(*o->vTable->forEachInterface) (o, isNotObjectType, (void *)
+						 getScreenObjectType ()))
 	    {
 		removeScreenAction (GET_SCREEN (o), &v->action);
 	    }
@@ -1258,8 +1260,8 @@ compSetObjectProp (CompObject		 *object,
 		   CompOption		 *prop,
 		   const CompOptionValue *value)
 {
-    if (!(*object->vTable->forEachType) (object, isNotObjectType, (void *)
-					 getDisplayObjectType ()) &&
+    if (!(*object->vTable->forEachInterface) (object, isNotObjectType, (void *)
+					      getDisplayObjectType ()) &&
 	isActionOption (prop))
     {
 	if (prop->value.action.state & CompActionStateAutoGrab)
