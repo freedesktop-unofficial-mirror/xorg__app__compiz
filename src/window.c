@@ -37,6 +37,7 @@
 #include <assert.h>
 
 #include <compiz/core.h>
+#include <compiz/c-object.h>
 #include <compiz/error.h>
 
 #define MwmHintsFunctions   (1L << 0)
@@ -1774,47 +1775,11 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
     wa->screen		      = NULL;
 }
 
-static CompBool
-windowForBaseObject (CompObject	            *object,
-		     BaseObjectCallBackProc proc,
-		     void		    *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    WINDOW (object);
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompBool
-windowForEachType (CompObject	    *object,
-		   TypeCallBackProc proc,
-		   void		    *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    WINDOW (object);
-
-    if (!(*proc) (object, getWindowObjectType (), closure))
-	return FALSE;
-
-    UNWRAP (&w->object, object, vTable);
-    status = (*object->vTable->forEachType) (object, proc, closure);
-    WRAP (&w->object, object, vTable, v.vTable);
-
-    return status;
-}
-
-static CompObjectVTable windowObjectVTable = {
-    .forBaseObject = windowForBaseObject,
-    .forEachType   = windowForEachType
+static CInterface windowInterface[] = {
+    C_INTERFACE (window, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
+
+static CompObjectVTable windowObjectVTable = { 0 };
 
 static CompObjectPrivates windowObjectPrivates = {
     0,
@@ -1830,18 +1795,11 @@ windowInitObject (CompObject *object)
 {
     WINDOW (object);
 
-    if (!compObjectInit (&w->base, getObjectType ()))
+    if (!cObjectInit (&w->base, getObjectType (), &windowObjectVTable,
+		      &windowObjectPrivates))
 	return FALSE;
 
     w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
-
-    if (!allocateObjectPrivates (object, &windowObjectPrivates))
-    {
-	compObjectFini (&w->base, getObjectType ());
-	return FALSE;
-    }
-
-    WRAP (&w->object, &w->base, vTable, &windowObjectVTable);
 
     w->objectName = NULL;
 
@@ -1853,15 +1811,10 @@ windowFiniObject (CompObject *object)
 {
     WINDOW (object);
 
-    UNWRAP (&w->object, &w->base, vTable);
-
     if (w->objectName)
 	free (w->objectName);
 
-    if (w->privates)
-	free (w->privates);
-
-    compObjectFini (&w->base, getObjectType ());
+    cObjectFini (&w->base, getObjectType (), &windowObjectPrivates);
 }
 
 static void
@@ -1880,6 +1833,20 @@ static CompObjectType windowObjectType = {
     windowInitVTable
 };
 
+static void
+windowGetCContext (CompObject *object,
+		   CContext   *ctx)
+{
+    WINDOW (object);
+
+    ctx->interface  = windowInterface;
+    ctx->nInterface = N_ELEMENTS (windowInterface);
+    ctx->type	    = &windowObjectType;
+    ctx->data	    = (char *) w;
+    ctx->vtStore    = &w->object;
+    ctx->version    = COMPIZ_WINDOW_VERSION;
+}
+
 CompObjectType *
 getWindowObjectType (void)
 {
@@ -1887,7 +1854,9 @@ getWindowObjectType (void)
 
     if (!init)
     {
-	windowInitVTable (&windowObjectVTable);
+	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface),
+			&windowObjectVTable, windowGetCContext,
+			windowObjectType.initVTable);
 	init = TRUE;
     }
 

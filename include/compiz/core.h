@@ -2575,6 +2575,8 @@ setWindowPaintOffset (CompScreen *s,
 
 /* window.c */
 
+#define COMPIZ_WINDOW_VERSION 20071116
+
 #define WINDOW_INVISIBLE(w)				       \
     ((w)->attrib.map_state != IsViewable		    || \
      (!(w)->damaged)					    || \
