@@ -2739,14 +2739,16 @@ typedef struct _ForEachObjectPrivatesContext {
 } ForEachObjectPrivatesContext;
 
 static CompBool
-forEachTypePrivates (CompObject		  *object,
-		     const CompObjectType *type,
-		     void		  *closure)
+forEachInterfacePrivates (CompObject	       *object,
+			  const char	       *name,
+			  size_t	       offset,
+			  const CompObjectType *type,
+			  void		       *closure)
 {
     ForEachObjectPrivatesContext *pCtx =
 	(ForEachObjectPrivatesContext *) closure;
 
-    if (type == pCtx->type)
+    if (type && type == pCtx->type)
     {
 	CompObjectPrivates *objectPrivates = pCtx->type->privates;
 	CompPrivate	   **pPrivates = (CompPrivate **)
@@ -2762,9 +2764,9 @@ static CompBool
 forEachObjectPrivatesTree (CompObject *object,
 			   void	      *closure)
 {
-    if (!(*object->vTable->forEachType) (object,
-					 forEachTypePrivates,
-					 closure))
+    if (!(*object->vTable->forEachInterface) (object,
+					      forEachInterfacePrivates,
+					      closure))
 	return FALSE;
 
     return (*object->vTable->forEachChildObject) (object,
@@ -2783,9 +2785,9 @@ forEachObjectPrivates (PrivatesCallBackProc proc,
     ctx.proc = proc;
     ctx.data = data;
 
-    if (!(*core.u.base.vTable->forEachType) (&core.u.base,
-					     forEachTypePrivates,
-					     (void *) &ctx))
+    if (!(*core.u.base.vTable->forEachInterface) (&core.u.base,
+						  forEachInterfacePrivates,
+						  (void *) &ctx))
 	return FALSE;
 
     return (*core.u.base.vTable->forEachChildObject) (&core.u.base,
