@@ -4,8 +4,9 @@ compizsubinclude_HEADERS = \
 	privates.h	   \
 	error.h		   \
 	object.h	   \
-	branch.h	   \
 	c-object.h	   \
+	root.h		   \
+	branch.h	   \
 	container.h	   \
 	prop.h		   \
 	input.h		   \

@@ -16,6 +16,7 @@ compiz_SOURCES =    \
 	error.c     \
 	privates.c  \
 	object.c    \
+	root.c      \
 	branch.c    \
 	container.c \
 	prop.c	    \
