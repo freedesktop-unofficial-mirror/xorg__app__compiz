@@ -66,7 +66,7 @@ dbusGetObjectPath (CompObject *object)
     if (!parentPath)
 	return NULL;
 
-    if (strcmp (object->name, "core") == 0)
+    if (!object->name || strcmp (object->name, "core") == 0)
 	return parentPath;
 
     parentPathLen = strlen (parentPath);

@@ -61,7 +61,7 @@ gconfGetObjectPath (CompObject *object)
     else
 	parentPath = g_strdup ("/apps/" APP_NAME);
 
-    if (strcmp (object->name, "core") == 0)
+    if (!object->name || strcmp (object->name, "core") == 0)
 	return parentPath;
 
     path = g_strdup_printf ("%s/%s", parentPath, object->name);

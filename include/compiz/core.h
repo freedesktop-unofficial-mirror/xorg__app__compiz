@@ -757,10 +757,10 @@ CompObjectType *
 getCoreObjectType (void);
 
 CompBool
-initCore (void);
+initCore (CompObject *parent);
 
 void
-finiCore (void);
+finiCore (CompObject *parent);
 
 int
 allocateCorePrivateIndex (void);

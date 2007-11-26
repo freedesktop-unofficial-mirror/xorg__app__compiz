@@ -35,6 +35,7 @@
 #include <sys/wait.h>
 
 #include <compiz/core.h>
+#include <compiz/root.h>
 
 char *programName;
 char **programArgv;
@@ -241,6 +242,7 @@ main (int argc, char **argv)
     char      *clientId = NULL;
     char      *hostName;
     int	      displayNum;
+    CompRoot  root;
 
     programName = argv[0];
     programArgc = argc;
@@ -385,7 +387,13 @@ main (int argc, char **argv)
 
     compAddMetadataFromFile (&coreMetadata, "core");
 
-    if (!initCore ())
+    if (!compObjectInit (&root.u.base.base, getRootObjectType ()))
+	return 1;
+
+    /* XXX: until core object is moved into the root object */
+    root.core = &core.u.base;
+
+    if (!initCore (&root.u.base.base))
 	return 1;
 
     if (!disableSm)
@@ -411,7 +419,9 @@ main (int argc, char **argv)
     if (!disableSm)
 	closeSession ();
 
-    finiCore ();
+    finiCore (&root.u.base.base);
+
+    compObjectFini (&root.u.base.base, getRootObjectType ());
 
     xmlCleanupParser ();
 

@@ -380,8 +380,6 @@ coreInitObject (CompObject *object)
     c->sessionFini  = sessionFini;
     c->sessionEvent = sessionEvent;
 
-    (*c->objectAdd) (NULL, &c->u.base, "core");
-
     return TRUE;
 }
 
@@ -461,12 +459,14 @@ freeCorePrivateIndex (int index)
 }
 
 CompBool
-initCore (void)
+initCore (CompObject *parent)
 {
     CompPlugin *corePlugin;
 
     if (!compObjectInit (&core.u.base, getCoreObjectType ()))
 	return FALSE;
+
+    coreObjectAdd (parent, &core.u.base, "core");
 
     corePlugin = loadPlugin ("core");
     if (!corePlugin)
@@ -490,7 +490,7 @@ initCore (void)
 }
 
 void
-finiCore (void)
+finiCore (CompObject *parent)
 {
     while (core.displays)
 	(*core.u.vTable->removeDisplay) (&core,
@@ -499,6 +499,8 @@ finiCore (void)
 					 NULL);
 
     while (popPlugin ());
+
+    coreObjectRemove (parent, &core.u.base);
 
     compObjectFini (&core.u.base, getCoreObjectType ());
 }
