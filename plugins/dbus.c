@@ -407,12 +407,26 @@ dbusObjectToXml (DBusConnection *connection,
 typedef struct _DBusArgs {
     CompArgs base;
 
+    char *path;
+    int  pathLen;
+
     DBusMessage *message;
     DBusMessage *reply;
 
     DBusMessageIter messageIter;
     DBusMessageIter replyIter;
 } DBusArgs;
+
+static void
+dbusArgsIntError (DBusArgs   *dArgs,
+		  const char *name,
+		  const char *message)
+{
+    if (dArgs->reply)
+	dbus_message_unref (dArgs->reply);
+
+    dArgs->reply = dbus_message_new_error (dArgs->message, name, message);
+}
 
 static void
 dbusArgsLoad (CompArgs *args,
@@ -422,14 +436,25 @@ dbusArgsLoad (CompArgs *args,
     DBusArgs *dArgs = (DBusArgs *) args;
 
     switch (type) {
-    case DBUS_TYPE_BOOLEAN:
-    case DBUS_TYPE_INT32:
-    case DBUS_TYPE_DOUBLE:
-    case DBUS_TYPE_STRING:
+    case COMP_TYPE_BOOLEAN:
+    case COMP_TYPE_INT32:
+    case COMP_TYPE_DOUBLE:
+    case COMP_TYPE_STRING:
 	dbus_message_iter_get_basic (&dArgs->messageIter, value);
-	dbus_message_iter_next (&dArgs->messageIter);
 	break;
+    case COMP_TYPE_OBJECT: {
+	char *object;
+
+	dbus_message_iter_get_basic (&dArgs->messageIter, &object);
+
+	if (strlen (object) > dArgs->pathLen)
+	    *((char **) value) = object + dArgs->pathLen + 1;
+	else
+	    *((char **) value) = "";
+    } break;
     }
+
+    dbus_message_iter_next (&dArgs->messageIter);
 }
 
 static void
@@ -446,19 +471,40 @@ dbusArgsStore (CompArgs *args,
 	return;
 
     switch (type) {
-    case DBUS_TYPE_BOOLEAN:
-    case DBUS_TYPE_INT32:
-    case DBUS_TYPE_DOUBLE:
-    case DBUS_TYPE_STRING:
+    case COMP_TYPE_BOOLEAN:
+    case COMP_TYPE_INT32:
+    case COMP_TYPE_DOUBLE:
+    case COMP_TYPE_STRING:
 	if (!dbus_message_iter_append_basic (&dArgs->replyIter, type, value))
-	{
-	    dbus_message_unref (dArgs->reply);
-	    dArgs->reply =
-		dbus_message_new_error (dArgs->message,
-					DBUS_ERROR_NO_MEMORY,
-					"Failed to append output argument");
-	}
+	    dbusArgsIntError (dArgs,
+			      DBUS_ERROR_NO_MEMORY,
+			      "Failed to append output argument");
 	break;
+    case COMP_TYPE_OBJECT: {
+	char *dbusPath, *path = *((char **) value);
+
+	dbusPath = malloc (dArgs->pathLen + strlen (path) + 2);
+	if (dbusPath)
+	{
+	    sprintf (dbusPath, "%s/%s", dArgs->path, path);
+
+	    if (!dbus_message_iter_append_basic (&dArgs->replyIter,
+						 DBUS_TYPE_OBJECT_PATH,
+						 dbusPath))
+		dbusArgsIntError (dArgs,
+				  DBUS_ERROR_NO_MEMORY,
+				  "Failed to append object path output "
+				  "argument");
+
+	    free (dbusPath);
+	}
+	else
+	{
+	    dbusArgsIntError (dArgs,
+			      DBUS_ERROR_NO_MEMORY,
+			      "Failed to convert object path argument");
+	}
+    } break;
     }
 }
 
@@ -468,29 +514,34 @@ dbusArgsError (CompArgs *args,
 {
     DBusArgs *dArgs = (DBusArgs *) args;
 
-    if (dArgs->reply)
-	dbus_message_unref (dArgs->reply);
-
-    dArgs->reply = dbus_message_new_error (dArgs->message,
-					   DBUS_ERROR_FAILED,
-					   error);
+    dbusArgsIntError (dArgs, DBUS_ERROR_FAILED, error);
 
     free (error);
 }
 
 static CompBool
 dbusInitArgs (DBusArgs	  *dArgs,
+	      CompObject  *object,
 	      DBusMessage *message)
 {
     dArgs->base.load  = dbusArgsLoad;
     dArgs->base.store = dbusArgsStore;
     dArgs->base.error = dbusArgsError;
 
-    dArgs->message = message;
-    dArgs->reply   = dbus_message_new_method_return (message);
-
-    if (!dArgs->reply)
+    dArgs->path = dbusGetObjectPath (object);
+    if (!dArgs->path)
 	return FALSE;
+
+    dArgs->pathLen = strlen (dArgs->path);
+
+    dArgs->reply = dbus_message_new_method_return (message);
+    if (!dArgs->reply)
+    {
+	free (dArgs->path);
+	return FALSE;
+    }
+
+    dArgs->message = message;
 
     dbus_message_iter_init (message, &dArgs->messageIter);
     dbus_message_iter_init_append (dArgs->reply, &dArgs->replyIter);
@@ -503,6 +554,8 @@ dbusFiniArgs (DBusArgs *dArgs)
 {
     if (dArgs->reply)
 	dbus_message_unref (dArgs->reply);
+
+    free (dArgs->path);
 }
 
 static DBusMessage *
@@ -515,7 +568,7 @@ dbusInvokeMethod (DBusMessage *message,
     DBusMessage *reply = NULL;
     DBusArgs	args;
 
-    if (!dbusInitArgs (&args, message))
+    if (!dbusInitArgs (&args, object, message))
 	return dbus_message_new_error (message,
 				       DBUS_ERROR_NO_MEMORY,
 				       "Failed to create return message");
