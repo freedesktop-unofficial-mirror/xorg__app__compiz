@@ -520,12 +520,12 @@ dbusInvokeMethod (DBusMessage *message,
 				       DBUS_ERROR_NO_MEMORY,
 				       "Failed to create return message");
 
-    if (compInvokeMethod (object,
-			  interface,
-			  name,
-			  in,
-			  NULL,
-			  &args.base))
+    if (compInvokeMethodWithArgs (object,
+				  interface,
+				  name,
+				  in,
+				  NULL,
+				  &args.base))
 	reply = dbus_message_ref (args.reply);
 
     dbusFiniArgs (&args);
