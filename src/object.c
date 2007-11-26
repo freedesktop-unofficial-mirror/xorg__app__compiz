@@ -393,13 +393,13 @@ static CompBool
 baseObjectChildObjectAdded (CompObject *object,
 			    void       *closure)
 {
-    (*object->vTable->childObjectAdded) (object, (CompObject *) closure);
+    (*object->vTable->childObjectAdded) (object, (const char *) closure);
     return TRUE;
 }
 
 static void
 noopChildObjectAdded (CompObject *object,
-		      CompObject *child)
+		      const char *child)
 {
     (*object->vTable->forBaseObject) (object,
 				      baseObjectChildObjectAdded,
@@ -410,13 +410,13 @@ static CompBool
 baseObjectChildObjectRemoved (CompObject *object,
 			      void       *closure)
 {
-    (*object->vTable->childObjectRemoved) (object, (CompObject *) closure);
+    (*object->vTable->childObjectRemoved) (object, (const char *) closure);
     return TRUE;
 }
 
 static void
 noopChildObjectRemoved (CompObject *object,
-			CompObject *child)
+			const char *child)
 {
     (*object->vTable->forBaseObject) (object,
 				      baseObjectChildObjectRemoved,
@@ -1410,7 +1410,7 @@ cInterfacesRemoved (CompObject	     *object,
 
 static void
 childObjectAdded (CompObject *object,
-		  CompObject *child)
+		  const char *child)
 {
     EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_ADDED],
 		     "object", "childObjectAdded", "o", child);
@@ -1418,7 +1418,7 @@ childObjectAdded (CompObject *object,
 
 static void
 childObjectRemoved (CompObject *object,
-		    CompObject *child)
+		    const char *child)
 {
     EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_REMOVED],
 		     "object", "childObjectRemoved", "o", child);
@@ -3164,7 +3164,8 @@ getInterfaceVersion (CompObject		  *object,
 }
 
 typedef struct _LookupObjectContext {
-    char       **path;
+    const char *path;
+    int	       size;
     CompObject *object;
 } LookupObjectContext;
 
@@ -3173,13 +3174,23 @@ checkChildObject (CompObject *object,
 		  void	     *closure)
 {
     LookupObjectContext *pCtx = (LookupObjectContext *) closure;
+    int			i;
 
-    if (strcmp (object->name, pCtx->path[0]))
+    if (strncmp (object->name, pCtx->path, pCtx->size))
 	return TRUE;
 
-    if (pCtx->path[1])
+    i = strlen (object->name);
+
+    if (i != pCtx->size)
+	return TRUE;
+
+    pCtx->path += i;
+
+    if (*pCtx->path++)
     {
-	pCtx->path = &pCtx->path[1];
+	for (i = 0; pCtx->path[i] != '\0' && pCtx->path[i] != '/'; i++);
+
+	pCtx->size = i;
 
 	return (*object->vTable->forEachChildObject) (object,
 						      checkChildObject,
@@ -3193,11 +3204,15 @@ checkChildObject (CompObject *object,
 
 CompObject *
 compLookupObject (CompObject *root,
-		  char	     **path)
+		  const char *path)
 {
     LookupObjectContext ctx;
+    int			i;
+
+    for (i = 0; path[i] != '\0' && path[i] != '/'; i++);
 
     ctx.path = path;
+    ctx.size = i;
 
     if ((*root->vTable->forEachChildObject) (root,
 					     checkChildObject,
@@ -3255,10 +3270,8 @@ basicArgsLoad (CompArgs   *args,
 	*((double *) value) = b->in[b->inPos++].d;
 	break;
     case COMP_TYPE_STRING:
-	*((char **) value) = b->in[b->inPos++].s;
-	break;
     case COMP_TYPE_OBJECT:
-	*((CompObject **) value) = b->in[b->inPos++].o;
+	*((char **) value) = b->in[b->inPos++].s;
 	break;
     }
 }
@@ -3281,10 +3294,8 @@ basicArgsStore (CompArgs   *args,
 	b->out[b->outPos++].d = *((double *) value);
 	break;
     case COMP_TYPE_STRING:
-	b->out[b->outPos++].s = *((char **) value);
-	break;
     case COMP_TYPE_OBJECT:
-	b->out[b->outPos++].o = *((CompObject **) value);
+	b->out[b->outPos++].s = *((char **) value);
 	break;
     }
 }

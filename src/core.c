@@ -203,26 +203,24 @@ setOptionForPlugin (CompObject      *object,
 }
 
 static void
-coreObjectAdd (CompObject *parent,
-	       CompObject *object,
+coreObjectAdd (CompObject *object,
+	       CompObject *child,
 	       const char *name)
 {
-    object->name   = name;
-    object->parent = parent;
+    child->name   = name;
+    child->parent = object;
 
-    if (parent)
-	(*parent->vTable->childObjectAdded) (parent, object);
+    (*object->vTable->childObjectAdded) (object, name);
 }
 
 static void
-coreObjectRemove (CompObject *parent,
-		  CompObject *object)
+coreObjectRemove (CompObject *object,
+		  CompObject *child)
 {
-    if (parent)
-	(*parent->vTable->childObjectRemoved) (parent, object);
+    (*object->vTable->childObjectRemoved) (object, child->name);
 
-    object->parent = NULL;
-    object->name   = NULL;
+    child->parent = NULL;
+    child->name   = NULL;
 }
 
 static void

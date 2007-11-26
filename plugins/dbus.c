@@ -700,12 +700,18 @@ dbusPropChanged (CompObject *object,
     /* register and unregister objects */
     if (strcmp (interface, "object") == 0 && strcmp (signature, "o") == 0)
     {
+	CompObject *child;
+
 	va_copy (ap, args);
 
-	if (strcmp (name, "childObjectAdded") == 0)
-	    dbusRegisterObjectTree (va_arg (ap, CompObject *), (void *) c);
-	else if (strcmp (name, "childObjectRemoved") == 0)
-	    dbusUnregisterObjectTree (va_arg (ap, CompObject *), (void *) c);
+	child = compLookupObject (source, va_arg (ap, const char *));
+	if (child)
+	{
+	    if (strcmp (name, "childObjectAdded") == 0)
+		dbusRegisterObjectTree (child, (void *) c);
+	    else if (strcmp (name, "childObjectRemoved") == 0)
+		dbusUnregisterObjectTree (child, (void *) c);
+	}
 
 	va_end (ap);
     }
@@ -751,11 +757,15 @@ dbusPropChanged (CompObject *object,
 		    value.s = va_arg (ap, char *);
 		    break;
 		case COMP_TYPE_OBJECT:
-		    objectPath = dbusGetObjectPath (va_arg (ap, CompObject *));
+		    value.s = va_arg (ap, char *);
+
+		    objectPath = malloc (strlen (path) + strlen (value.s) + 2);
 		    if (objectPath)
+		    {
+			sprintf (objectPath, "%s/%s", path, value.s);
 			value.s = objectPath;
-		    else
-			value.s = COMPIZ_DBUS_PATH_ROOT "/unknown";
+		    }
+
 		    break;
 		}
 

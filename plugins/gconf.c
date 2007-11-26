@@ -260,7 +260,7 @@ gconfKeyChanged (GConfClient *client,
 {
     CompCore   *c = (CompCore *) userData;
     CompObject *object;
-    gchar      **token, *prop;
+    gchar      **token, *prop, *path;
     guint      nToken;
 
     token  = g_strsplit (entry->key, "/", MAX_PATH_LENGTH);
@@ -269,7 +269,9 @@ gconfKeyChanged (GConfClient *client,
     prop = token[nToken - 1];
     token[nToken - 1] = NULL;
 
-    object = compLookupObject (&c->u.base, &token[3]);
+    path = g_strjoinv ("/", &token[3]);
+
+    object = compLookupObject (&c->u.base, path);
     if (object)
     {
 	LoadPropContext ctx;
@@ -282,6 +284,8 @@ gconfKeyChanged (GConfClient *client,
 					     gconfLoadProp,
 					     (void *) &ctx);
     }
+
+    g_free (path);
 
     token[nToken - 1] = prop;
 
@@ -377,8 +381,14 @@ gconfHandleSignal (CompObject *object,
 	if (strcmp (name,      "childObjectAdded") == 0 &&
 	    strcmp (signature, "o")		   == 0)
 	{
+	    CompObject *child;
+
 	    va_copy (ap, args);
-	    gconfReloadObjectTree (va_arg (ap, CompObject *), (void *) c);
+
+	    child = compLookupObject (source, va_arg (ap, const char *));
+	    if (child)
+		gconfReloadObjectTree (child, (void *) c);
+
 	    va_end (ap);
 	}
     }

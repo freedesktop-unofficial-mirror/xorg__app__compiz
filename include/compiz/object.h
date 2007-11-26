@@ -92,7 +92,7 @@ typedef unsigned int CompObjectTypeID;
    INT32	105 (ASCII 'i')	32-bit signed integer.
    DOUBLE	100 (ASCII 'd')	IEEE 754 double.
    STRING	115 (ASCII 's')	Nul terminated UTF-8 string.
-   OBJECT	111 (ASCII 'o')	Object instance
+   OBJECT	111 (ASCII 'o')	Object path
 */
 
 #define COMP_TYPE_INVALID ((int) '\0')
@@ -104,11 +104,10 @@ typedef unsigned int CompObjectTypeID;
 #define COMP_TYPE_OBJECT  ((int) 'o')
 
 typedef union {
-    CompBool   b;
-    int	       i;
-    double     d;
-    char       *s;
-    CompObject *o;
+    CompBool b;
+    int32_t  i;
+    double   d;
+    char     *s;
 } CompAnyValue;
 
 typedef struct _CompArgs CompArgs;
@@ -208,10 +207,10 @@ typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
 					    void		    *closure);
 
 typedef void (*ChildObjectAddedProc) (CompObject *object,
-				      CompObject *child);
+				      const char *name);
 
 typedef void (*ChildObjectRemovedProc) (CompObject *object,
-					CompObject *child);
+					const char *name);
 
 typedef void (*SignalHandlerProc) (CompObject *object,
 				   void	      *data,
@@ -478,7 +477,7 @@ compForInterface (CompObject		*object,
 
 CompObject *
 compLookupObject (CompObject *root,
-		  char	     **path);
+		  const char *path);
 
 CompBool
 compObjectCheckVersion (CompObject *object,
