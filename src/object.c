@@ -2644,10 +2644,9 @@ initObject (CompObject *object)
 {
     object->vTable = &objectVTable;
     object->parent = NULL;
+    object->name   = NULL;
 
     memset (object->signal, 0, sizeof (object->signal));
-
-    object->parent = NULL;
 
     object->id = ~0; /* XXX: remove id asap */
 
