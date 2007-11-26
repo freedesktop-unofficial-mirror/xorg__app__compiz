@@ -42,11 +42,11 @@ marshal_I_S (CompObject *object,
     char *in0;
     int  result;
 
-    (*args->load) (args, "s", &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
 
     result = (*method) (object, in0);
 
-    (*args->store) (args, "i", &result);
+    (*args->store) (args, COMP_TYPE_INT32, &result);
 }
 
 void
@@ -59,7 +59,7 @@ marshal__I__E (CompObject *object,
     int32_t in0;
     char    *error;
 
-    (*args->load) (args, "i", &in0);
+    (*args->load) (args, COMP_TYPE_INT32, &in0);
 
     if (!(*method) (object, in0, &error))
     {
@@ -79,8 +79,8 @@ marshal__SI__E (CompObject *object,
     int32_t in1;
     char    *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "i", &in1);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_INT32, &in1);
 
     if (!(*method) (object, in0, in1, &error))
     {
@@ -102,9 +102,9 @@ marshal__SSB__E (CompObject *object,
     CompBool in2;
     char     *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "s", &in1);
-    (*args->load) (args, "b", &in2);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
+    (*args->load) (args, COMP_TYPE_BOOLEAN, &in2);
 
     if (!(*method) (object, in0, in1, in2, &error))
     {
@@ -126,8 +126,8 @@ marshal__SS_B_E (CompObject *object,
     CompBool out0;
     char     *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "s", &in1);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
 
     if (!(*method) (object, in0, in1, &out0, &error))
     {
@@ -135,7 +135,7 @@ marshal__SS_B_E (CompObject *object,
     }
     else
     {
-	(*args->store) (args, "b", &out0);
+	(*args->store) (args, COMP_TYPE_BOOLEAN, &out0);
     }
 }
 
@@ -153,9 +153,9 @@ marshal__SSI__E (CompObject *object,
     int32_t in2;
     char    *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "s", &in1);
-    (*args->load) (args, "i", &in2);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
+    (*args->load) (args, COMP_TYPE_INT32, &in2);
 
     if (!(*method) (object, in0, in1, in2, &error))
     {
@@ -177,8 +177,8 @@ marshal__SS_I_E (CompObject *object,
     int32_t out0;
     char    *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "s", &in1);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
 
     if (!(*method) (object, in0, in1, &out0, &error))
     {
@@ -186,7 +186,7 @@ marshal__SS_I_E (CompObject *object,
     }
     else
     {
-	(*args->store) (args, "i", &out0);
+	(*args->store) (args, COMP_TYPE_INT32, &out0);
     }
 }
 
@@ -204,9 +204,9 @@ marshal__SSD__E (CompObject *object,
     double in2;
     char   *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "s", &in1);
-    (*args->load) (args, "d", &in2);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
+    (*args->load) (args, COMP_TYPE_DOUBLE, &in2);
 
     if (!(*method) (object, in0, in1, in2, &error))
     {
@@ -228,8 +228,8 @@ marshal__SS_D_E (CompObject *object,
     double out0;
     char   *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "s", &in1);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
 
     if (!(*method) (object, in0, in1, &out0, &error))
     {
@@ -237,7 +237,7 @@ marshal__SS_D_E (CompObject *object,
     }
     else
     {
-	(*args->store) (args, "d", &out0);
+	(*args->store) (args, COMP_TYPE_DOUBLE, &out0);
     }
 }
 
@@ -255,9 +255,9 @@ marshal__SSS__E (CompObject *object,
     char *in2;
     char *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "s", &in1);
-    (*args->load) (args, "s", &in2);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
+    (*args->load) (args, COMP_TYPE_STRING, &in2);
 
     if (!(*method) (object, in0, in1, in2, &error))
     {
@@ -279,8 +279,8 @@ marshal__SS_S_E (CompObject *object,
     char *out0;
     char *error;
 
-    (*args->load) (args, "s", &in0);
-    (*args->load) (args, "s", &in1);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
 
     if (!(*method) (object, in0, in1, &out0, &error))
     {
@@ -288,7 +288,7 @@ marshal__SS_S_E (CompObject *object,
     }
     else
     {
-	(*args->store) (args, "s", &out0);
+	(*args->store) (args, COMP_TYPE_STRING, &out0);
     }
 }
 
@@ -304,7 +304,7 @@ marshal__S_S_E (CompObject *object,
     char *out0;
     char *error;
 
-    (*args->load) (args, "s", &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
 
     if (!(*method) (object, in0, &out0, &error))
     {
@@ -312,7 +312,6 @@ marshal__S_S_E (CompObject *object,
     }
     else
     {
-	(*args->store) (args, "s", &out0);
+	(*args->store) (args, COMP_TYPE_STRING, &out0);
     }
 }
-

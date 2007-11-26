@@ -102,54 +102,57 @@ fuseForPropString (CompObject	     *object,
 		   ForPropStringProc proc,
 		   void		     *closure)
 {
-    CompAnyValue  value[3];
-    CompBasicArgs args;
-    char	  tmp[256];
-
-    compInitBasicArgs (&args, &value[0], &value[2]);
-
-    value[0].s = prop->interface;
-    value[1].s = prop->member;
+    char tmp[256];
 
     switch (prop->type) {
-    case COMP_TYPE_BOOLEAN:
+    case COMP_TYPE_BOOLEAN: {
+	CompBool boolValue;
+
 	if (compInvokeMethod (object,
 			      "properties", "getBool", "ss", "b",
-			      &args.base))
-	{
-	    (*proc) (value[2].b ? "true" : "false", closure);
-	}
-	break;
-    case COMP_TYPE_INT32:
+			      prop->interface, prop->member,
+			      &boolValue, NULL))
+	    (*proc) (boolValue ? "true" : "false", closure);
+    } break;
+    case COMP_TYPE_INT32: {
+	int32_t intValue;
+
 	if (compInvokeMethod (object,
 			      "properties", "getInt", "ss", "i",
-			      &args.base))
+			      prop->interface, prop->member,
+			      &intValue, NULL))
 	{
-	    snprintf (tmp, 256, "%d", value[2].i);
+	    snprintf (tmp, 256, "%d", intValue);
 	    (*proc) (tmp, closure);
 	}
-	break;
-    case COMP_TYPE_DOUBLE:
+    } break;
+    case COMP_TYPE_DOUBLE: {
+	double doubleValue;
+
 	if (compInvokeMethod (object,
 			      "properties", "getDouble", "ss", "d",
-			      &args.base))
+			      prop->interface, prop->member,
+			      &doubleValue, NULL))
 	{
-	    snprintf (tmp, 256, "%f", value[2].d);
+	    snprintf (tmp, 256, "%f", doubleValue);
 	    (*proc) (tmp, closure);
 	}
-	break;
-    case COMP_TYPE_STRING:
+    } break;
+    case COMP_TYPE_STRING: {
+	char *stringValue;
+
 	if (compInvokeMethod (object,
 			      "properties", "getString", "ss", "s",
-			      &args.base))
+			      prop->interface, prop->member,
+			      &stringValue, NULL))
 	{
-	    (*proc) (value[2].s, closure);
-	    free (value[2].s);
-	}
-	break;
-    }
+	    (*proc) (stringValue, closure);
 
-    compFiniBasicArgs (&args);
+	    if (stringValue)
+		free (stringValue);
+	}
+    } break;
+    }
 }
 
 static void
@@ -157,46 +160,32 @@ fuseStringToProp (CompObject *object,
 		  FuseProp   *prop,
 		  const char *str)
 {
-    CompAnyValue  value[3];
-    CompBasicArgs args;
-
-    compInitBasicArgs (&args, &value[0], NULL);
-
-    value[0].s = prop->interface;
-    value[1].s = prop->member;
-
     switch (prop->type) {
     case COMP_TYPE_BOOLEAN:
-	value[2].b = *str == 't' ? TRUE : FALSE;
 	compInvokeMethod (object,
 			  "properties", "setBool", "ssb", "",
-			  &args.base);
+			  prop->interface, prop->member,
+			  *str == 't' ? TRUE : FALSE, NULL);
 	break;
     case COMP_TYPE_INT32:
-	value[2].i = strtol (str, NULL, 0);
 	compInvokeMethod (object,
 			  "properties", "setInt", "ssi", "",
-			  &args.base);
+			  prop->interface, prop->member,
+			  strtol (str, NULL, 0), NULL);
 	break;
     case COMP_TYPE_DOUBLE:
-	value[2].d = strtod (str, NULL);
 	compInvokeMethod (object,
 			  "properties", "setDouble", "ssd", "",
-			  &args.base);
+			  prop->interface, prop->member,
+			  strtod (str, NULL), NULL);
 	break;
     case COMP_TYPE_STRING:
-	value[2].s = strdup (str);
-	if (value[2].s)
-	{
-	    compInvokeMethod (object,
-			      "properties", "setString", "sss", "",
-			      &args.base);
-	    free (value[2].s);
-	}
+	compInvokeMethod (object,
+			  "properties", "setString", "sss", "",
+			  prop->interface, prop->member,
+			  str, NULL);
 	break;
     }
-
-    compFiniBasicArgs (&args);
 }
 
 static void

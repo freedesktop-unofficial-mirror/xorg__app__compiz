@@ -402,8 +402,6 @@ gconfHandleSignal (CompObject *object,
 static CompBool
 gconfInitCore (CompCore *c)
 {
-    CompBasicArgs args;
-
     GCONF_CORE (c);
 
     if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
@@ -429,9 +427,7 @@ gconfInitCore (CompCore *c)
     gc->cnxn = gconf_client_notify_add (gc->client, "/apps/" APP_NAME,
 					gconfKeyChanged, c, NULL, NULL);
 
-    compInitBasicArgs (&args, NULL, NULL);
-    compInvokeMethod (&c->u.base, "glib", "wakeUp", "", "", &args.base);
-    compFiniBasicArgs (&args);
+    compInvokeMethod (&c->u.base, "glib", "wakeUp", "", "", NULL);
 
     return TRUE;
 }

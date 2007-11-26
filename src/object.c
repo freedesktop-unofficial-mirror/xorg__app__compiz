@@ -3252,88 +3252,6 @@ compObjectCheckVersion (CompObject *object,
     return TRUE;
 }
 
-static void
-basicArgsLoad (CompArgs   *args,
-	       const char *type,
-	       void       *value)
-{
-    CompBasicArgs *b = (CompBasicArgs *) args;
-
-    switch (type[0]) {
-    case COMP_TYPE_BOOLEAN:
-	*((CompBool *) value) = b->in[b->inPos++].b;
-	break;
-    case COMP_TYPE_INT32:
-	*((int32_t *) value) = b->in[b->inPos++].i;
-	break;
-    case COMP_TYPE_DOUBLE:
-	*((double *) value) = b->in[b->inPos++].d;
-	break;
-    case COMP_TYPE_STRING:
-    case COMP_TYPE_OBJECT:
-	*((char **) value) = b->in[b->inPos++].s;
-	break;
-    }
-}
-
-static void
-basicArgsStore (CompArgs   *args,
-		const char *type,
-		void       *value)
-{
-    CompBasicArgs *b = (CompBasicArgs *) args;
-
-    switch (type[0]) {
-    case COMP_TYPE_BOOLEAN:
-	b->out[b->outPos++].b = *((CompBool *) value);
-	break;
-    case COMP_TYPE_INT32:
-	b->out[b->outPos++].i = *((int32_t *) value);
-	break;
-    case COMP_TYPE_DOUBLE:
-	b->out[b->outPos++].d = *((double *) value);
-	break;
-    case COMP_TYPE_STRING:
-    case COMP_TYPE_OBJECT:
-	b->out[b->outPos++].s = *((char **) value);
-	break;
-    }
-}
-
-static void
-basicArgsError (CompArgs *args,
-		char     *error)
-{
-    CompBasicArgs *b = (CompBasicArgs *) args;
-
-    b->error = error;
-}
-
-void
-compInitBasicArgs (CompBasicArgs *args,
-		   CompAnyValue  *in,
-		   CompAnyValue  *out)
-{
-    args->base.load  = basicArgsLoad;
-    args->base.store = basicArgsStore;
-    args->base.error = basicArgsError;
-
-    args->in  = in;
-    args->out = out;
-
-    args->inPos  = 0;
-    args->outPos = 0;
-
-    args->error = NULL;
-}
-
-void
-compFiniBasicArgs (CompBasicArgs *args)
-{
-    if (args->error)
-	free (args->error);
-}
-
 typedef struct _MethodCallContext {
     const char		   *interface;
     const char		   *name;
@@ -3419,12 +3337,12 @@ invokeMethod (CompObject	     *object,
 }
 
 CompBool
-compInvokeMethod (CompObject *object,
-		  const char *interface,
-		  const char *name,
-		  const char *in,
-		  const char *out,
-		  CompArgs   *args)
+compInvokeMethodWithArgs (CompObject *object,
+			  const char *interface,
+			  const char *name,
+			  const char *in,
+			  const char *out,
+			  CompArgs   *args)
 {
     MethodCallContext ctx;
 
@@ -3442,6 +3360,203 @@ compInvokeMethod (CompObject *object,
     invokeMethod (object, ctx.vTable, ctx.offset, ctx.marshal, args);
 
     return TRUE;
+}
+
+typedef struct _VaArgs {
+    CompArgs base;
+
+    va_list    args;
+    const char *in;
+    int	       nIn;
+    const char *out;
+    int	       nOut;
+    CompBool   status;
+} VaArgs;
+
+static void
+vaArgsStep (VaArgs *va,
+	    int	   type)
+{
+    switch (type) {
+    case COMP_TYPE_BOOLEAN:
+	va_arg (va->args, CompBool);
+	break;
+    case COMP_TYPE_INT32:
+	va_arg (va->args, int32_t);
+	break;
+    case COMP_TYPE_DOUBLE:
+	va_arg (va->args, double);
+	break;
+    case COMP_TYPE_STRING:
+    case COMP_TYPE_OBJECT:
+	va_arg (va->args, char *);
+	break;
+    }
+}
+
+static void
+vaArgsLoad (CompArgs *args,
+	    int      type,
+	    void     *value)
+{
+    VaArgs *va = (VaArgs *) args;
+
+    switch (type) {
+    case COMP_TYPE_BOOLEAN:
+	*((CompBool *) value) = va_arg (va->args, CompBool);
+	break;
+    case COMP_TYPE_INT32:
+	*((int32_t *) value) = va_arg (va->args, int32_t);
+	break;
+    case COMP_TYPE_DOUBLE:
+	*((double *) value) = va_arg (va->args, double);
+	break;
+    case COMP_TYPE_STRING:
+    case COMP_TYPE_OBJECT:
+	*((char **) value) = va_arg (va->args, char *);
+	break;
+    }
+
+    va->in++;
+}
+
+static void
+vaArgsStore (CompArgs *args,
+	     int      type,
+	     void     *value)
+{
+    VaArgs *va = (VaArgs *) args;
+
+    while (*va->in != COMP_TYPE_INVALID)
+	vaArgsStep (va, *va->in++);
+
+    switch (type) {
+    case COMP_TYPE_BOOLEAN: {
+	CompBool *boolOut;
+
+	boolOut = va_arg (va->args, CompBool *);
+	if (boolOut)
+	    *boolOut = *((CompBool *) value);
+    } break;
+    case COMP_TYPE_INT32: {
+	int32_t *intOut;
+
+	intOut = va_arg (va->args, int32_t *);
+	if (intOut)
+	    *intOut = *((int32_t *) value);
+    } break;
+    case COMP_TYPE_DOUBLE: {
+	double *doubleOut;
+
+	doubleOut = va_arg (va->args, double *);
+	if (doubleOut)
+	    *doubleOut = *((double *) value);
+    } break;
+    case COMP_TYPE_STRING:
+    case COMP_TYPE_OBJECT: {
+	char **stringOut;
+
+	stringOut = va_arg (va->args, char **);
+	if (stringOut)
+	{
+	    *stringOut = *((char **) value);
+	}
+	else
+	{
+	    if (*((char **) value))
+		free (*((char **) value));
+	}
+    } break;
+    }
+
+    va->out++;
+}
+
+static void
+vaArgsError (CompArgs *args,
+	     char     *error)
+{
+    VaArgs *va = (VaArgs *) args;
+    char   **errorOut;
+
+    while (*va->in != COMP_TYPE_INVALID)
+	vaArgsStep (va, *va->in++);
+
+    while (*va->out != COMP_TYPE_INVALID)
+	vaArgsStep (va, *va->out++);
+
+    errorOut = va_arg (va->args, char **);
+    if (errorOut)
+    {
+	*errorOut = error;
+    }
+    else
+    {
+	if (error)
+	    free (error);
+    }
+
+    va->status = FALSE;
+}
+
+static CompBool
+vaInitArgs (VaArgs     *va,
+	    const char *in,
+	    const char *out,
+	    va_list    args)
+{
+    va->base.load  = vaArgsLoad;
+    va->base.store = vaArgsStore;
+    va->base.error = vaArgsError;
+
+    va->status = TRUE;
+    va->args   = args;
+    va->in     = in;
+    va->out    = out;
+
+    return TRUE;
+}
+
+static CompBool
+vaFiniArgs (VaArgs *va)
+{
+    return va->status;
+}
+
+CompBool
+compInvokeMethod (CompObject *object,
+		  const char *interface,
+		  const char *name,
+		  const char *in,
+		  const char *out,
+		  ...)
+{
+    VaArgs   args;
+    CompBool status;
+    va_list  ap;
+
+    va_start (ap, out);
+
+    vaInitArgs (&args, in, out, ap);
+
+    if (!compInvokeMethodWithArgs (object,
+				   interface, name, in, out,
+				   &args.base))
+    {
+	char *error;
+
+	esprintf (&error, "Method \"%s\" with input signature \"%s\" and "
+		  "output signature \"%s\" on interface "
+		  "\"%s\" doesn't exist", name, in, out, interface);
+
+	(*args.base.error) (&args.base, error);
+    }
+
+    status = vaFiniArgs (&args);
+
+    va_end (ap);
+
+    return status;
 }
 
 static CompBool

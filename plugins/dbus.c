@@ -415,13 +415,13 @@ typedef struct _DBusArgs {
 } DBusArgs;
 
 static void
-dbusArgsLoad (CompArgs   *args,
-	      const char *type,
-	      void       *value)
+dbusArgsLoad (CompArgs *args,
+	      int      type,
+	      void     *value)
 {
     DBusArgs *dArgs = (DBusArgs *) args;
 
-    switch (type[0]) {
+    switch (type) {
     case DBUS_TYPE_BOOLEAN:
     case DBUS_TYPE_INT32:
     case DBUS_TYPE_DOUBLE:
@@ -433,9 +433,9 @@ dbusArgsLoad (CompArgs   *args,
 }
 
 static void
-dbusArgsStore (CompArgs   *args,
-	       const char *type,
-	       void       *value)
+dbusArgsStore (CompArgs *args,
+	       int      type,
+	       void     *value)
 {
     DBusArgs *dArgs = (DBusArgs *) args;
 
@@ -445,14 +445,12 @@ dbusArgsStore (CompArgs   *args,
     if (dbus_message_get_type (dArgs->reply) == DBUS_MESSAGE_TYPE_ERROR)
 	return;
 
-    switch (type[0]) {
+    switch (type) {
     case DBUS_TYPE_BOOLEAN:
     case DBUS_TYPE_INT32:
     case DBUS_TYPE_DOUBLE:
     case DBUS_TYPE_STRING:
-	if (!dbus_message_iter_append_basic (&dArgs->replyIter,
-					     (int) type[0],
-					     value))
+	if (!dbus_message_iter_append_basic (&dArgs->replyIter, type, value))
 	{
 	    dbus_message_unref (dArgs->reply);
 	    dArgs->reply =

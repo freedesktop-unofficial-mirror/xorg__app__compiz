@@ -112,13 +112,13 @@ typedef union {
 
 typedef struct _CompArgs CompArgs;
 
-typedef void (*ArgsLoadProc) (CompArgs   *args,
-			      const char *type,
-			      void       *value);
+typedef void (*ArgsLoadProc) (CompArgs *args,
+			      int      type,
+			      void     *value);
 
-typedef void (*ArgsStoreProc) (CompArgs	  *args,
-			       const char *type,
-			       void	  *value);
+typedef void (*ArgsStoreProc) (CompArgs	*args,
+			       int      type,
+			       void	*value);
 
 typedef void (*ArgsErrorProc) (CompArgs	*args,
 			       char	*error);
@@ -484,25 +484,13 @@ compObjectCheckVersion (CompObject *object,
 			const char *interface,
 			int	   version);
 
-typedef struct _CompBasicArgs {
-    CompArgs base;
-
-    CompAnyValue *in;
-    CompAnyValue *out;
-
-    int inPos;
-    int outPos;
-
-    char *error;
-} CompBasicArgs;
-
-void
-compInitBasicArgs (CompBasicArgs *args,
-		   CompAnyValue  *in,
-		   CompAnyValue  *out);
-
-void
-compFiniBasicArgs (CompBasicArgs *args);
+CompBool
+compInvokeMethodWithArgs (CompObject *object,
+			  const char *interface,
+			  const char *name,
+			  const char *in,
+			  const char *out,
+			  CompArgs   *args);
 
 CompBool
 compInvokeMethod (CompObject *object,
@@ -510,7 +498,7 @@ compInvokeMethod (CompObject *object,
 		  const char *name,
 		  const char *in,
 		  const char *out,
-		  CompArgs   *args);
+		  ...);
 
 COMPIZ_END_DECLS
 
