@@ -964,8 +964,3 @@ isActionOption (const CompOption *option)
     return FALSE;
 }
 
-const char *
-nextPropType (const char *type)
-{
-    return type + 1;
-}

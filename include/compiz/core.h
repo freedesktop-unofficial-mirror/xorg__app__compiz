@@ -586,9 +586,6 @@ optionTypeToString (CompOptionType type);
 Bool
 isActionOption (const CompOption *option);
 
-const char *
-nextPropType (const char *type);
-
 
 /* core.c */
 

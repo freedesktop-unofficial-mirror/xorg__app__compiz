@@ -293,48 +293,41 @@ gconfKeyChanged (GConfClient *client,
 }
 
 static void
-gconfPropChanged (CompCore   *c,
-		  CompObject *object,
-		  const char *signal,
-		  const char *signature,
-		  va_list    args)
+gconfPropChanged (CompCore     *c,
+		  CompObject   *object,
+		  const char   *signal,
+		  const char   *signature,
+		  CompAnyValue *value,
+		  int	       nValue)
 {
     GConfValue *gvalue = NULL;
-    const char *interface;
-    const char *name;
-    va_list    ap;
-
-    va_copy (ap, args);
-
-    interface = va_arg (ap, const char *);
-    name      = va_arg (ap, const char *);
+    const char *interface = value[0].s;
+    const char *name = value[1].s;
 
     if (signature[2] == 'b' && strcmp (signal, "boolChanged") == 0)
     {
 	gvalue = gconf_value_new (GCONF_VALUE_BOOL);
 	if (gvalue)
-	    gconf_value_set_bool (gvalue, va_arg (ap, CompBool));
+	    gconf_value_set_bool (gvalue, value[2].b);
     }
     else if (signature[2] == 'i' && strcmp (signal, "intChanged") == 0)
     {
 	gvalue = gconf_value_new (GCONF_VALUE_INT);
 	if (gvalue)
-	    gconf_value_set_int (gvalue, va_arg (ap, int32_t));
+	    gconf_value_set_int (gvalue, value[2].i);
     }
     else if (signature[2] == 'd' && strcmp (signal, "doubleChanged") == 0)
     {
 	gvalue = gconf_value_new (GCONF_VALUE_FLOAT);
 	if (gvalue)
-	    gconf_value_set_float (gvalue, va_arg (ap, double));
+	    gconf_value_set_float (gvalue, value[2].d);
     }
     else if (signature[2] == 's' && strcmp (signal, "stringChanged") == 0)
     {
 	gvalue = gconf_value_new (GCONF_VALUE_STRING);
 	if (gvalue)
-	    gconf_value_set_string (gvalue, va_arg (ap, const char *));
+	    gconf_value_set_string (gvalue, value[2].s);
     }
-
-    va_end (ap);
 
     if (gvalue)
     {
@@ -358,11 +351,13 @@ gconfHandleSignal (CompObject *object,
 		   void	      *data,
 		   ...)
 {
-    CompObject *source;
-    const char *interface;
-    const char *name;
-    const char *signature;
-    va_list    ap, args;
+    CompObject	 *source;
+    const char	 *interface;
+    const char	 *name;
+    const char	 *signature;
+    CompAnyValue *value;
+    int		 nValue;
+    va_list      ap;
 
     CORE (object);
 
@@ -372,7 +367,8 @@ gconfHandleSignal (CompObject *object,
     interface = va_arg (ap, const char *);
     name      = va_arg (ap, const char *);
     signature = va_arg (ap, const char *);
-    args      = va_arg (ap, va_list);
+    value     = va_arg (ap, CompAnyValue *);
+    nValue    = va_arg (ap, int);
 
     va_end (ap);
 
@@ -383,19 +379,15 @@ gconfHandleSignal (CompObject *object,
 	{
 	    CompObject *child;
 
-	    va_copy (ap, args);
-
-	    child = compLookupObject (source, va_arg (ap, const char *));
+	    child = compLookupObject (source, value[0].s);
 	    if (child)
 		gconfReloadObjectTree (child, (void *) c);
-
-	    va_end (ap);
 	}
     }
     else if (strcmp (interface, "properties") == 0)
     {
 	if (strncmp (signature, "ss", 2) == 0)
-	    gconfPropChanged (c, source, name, signature, args);
+	    gconfPropChanged (c, source, name, signature, value, nValue);
     }
 }
 

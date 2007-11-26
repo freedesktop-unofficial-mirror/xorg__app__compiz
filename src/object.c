@@ -505,11 +505,12 @@ noopDisconnect (CompObject *object,
 }
 
 typedef struct _SignalContext {
-    CompObject *source;
-    const char *interface;
-    const char *name;
-    const char *signature;
-    va_list    args;
+    CompObject   *source;
+    const char   *interface;
+    const char   *name;
+    const char   *signature;
+    CompAnyValue *value;
+    int	         nValue;
 } SignalContext;
 
 static CompBool
@@ -523,18 +524,20 @@ baseObjectSignal (CompObject *object,
 				      pCtx->interface,
 				      pCtx->name,
 				      pCtx->signature,
-				      pCtx->args);
+				      pCtx->value,
+				      pCtx->nValue);
 
     return TRUE;
 }
 
 static void
-noopSignal (CompObject *object,
-	    CompObject *source,
-	    const char *interface,
-	    const char *name,
-	    const char *signature,
-	    va_list    args)
+noopSignal (CompObject   *object,
+	    CompObject   *source,
+	    const char   *interface,
+	    const char   *name,
+	    const char   *signature,
+	    CompAnyValue *value,
+	    int	         nValue)
 {
     SignalContext ctx;
 
@@ -542,7 +545,8 @@ noopSignal (CompObject *object,
     ctx.interface = interface;
     ctx.name      = name;
     ctx.signature = signature;
-    ctx.args      = args;
+    ctx.value     = value;
+    ctx.nValue    = nValue;
 
     (*object->vTable->forBaseObject) (object,
 				      baseObjectSignal,
@@ -1578,21 +1582,22 @@ disconnect (CompObject *object,
 }
 
 static void
-signal (CompObject *object,
-	CompObject *source,
-	const char *interface,
-	const char *name,
-	const char *signature,
-	va_list    args)
+signal (CompObject   *object,
+	CompObject   *source,
+	const char   *interface,
+	const char   *name,
+	const char   *signature,
+	CompAnyValue *value,
+	int	     nValue)
 {
     EMIT_SIGNAL (object,
 		 object->signal[COMP_OBJECT_SIGNAL_SIGNAL],
-		 source, interface, name, signature, args);
+		 source, interface, name, signature, value, nValue);
 
     if (object->parent)
 	(*object->parent->vTable->signal.signal) (object->parent, source,
 						  interface, name, signature,
-						  args);
+						  value, nValue);
 }
 
 void
@@ -1602,15 +1607,48 @@ emitSignalSignal (CompObject *object,
 		  const char *signature,
 		  ...)
 {
-    va_list args;
+    CompAnyValue *value = NULL;
+    int		 nValue = strlen (signature);
 
-    va_start (args, signature);
+    if (nValue)
+    {
+	va_list args;
+	int     i;
+
+	value = malloc (sizeof (CompAnyValue) * nValue);
+	if (!value)
+	    return;
+
+	va_start (args, signature);
+
+	for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
+	{
+	    switch (signature[i]) {
+	    case COMP_TYPE_BOOLEAN:
+		value[i].b = va_arg (args, CompBool);
+		break;
+	    case COMP_TYPE_INT32:
+		value[i].i = va_arg (args, int32_t);
+		break;
+	    case COMP_TYPE_DOUBLE:
+		value[i].d = va_arg (args, double);
+		break;
+	    case COMP_TYPE_STRING:
+	    case COMP_TYPE_OBJECT:
+		value[i].s = va_arg (args, char *);
+		break;
+	    }
+	}
+
+	va_end (args);
+    }
 
     (*object->vTable->signal.signal) (object, object,
 				      interface, name, signature,
-				      args);
+				      value, nValue);
 
-    va_end (args);
+    if (value)
+	free (value);
 }
 
 static CompBool

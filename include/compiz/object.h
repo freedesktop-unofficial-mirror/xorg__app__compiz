@@ -233,12 +233,13 @@ typedef void (*DisconnectProc) (CompObject *object,
    object that is emitting the original signal and args should
    be the list of arguments. any signal handler connecting to
    this signal must use the va_copy macro before using args. */
-typedef void (*SignalSignalProc) (CompObject *object,
-				  CompObject *source,
-				  const char *interface,
-				  const char *name,
-				  const char *signature,
-				  va_list    args);
+typedef void (*SignalSignalProc) (CompObject   *object,
+				  CompObject   *source,
+				  const char   *interface,
+				  const char   *name,
+				  const char   *signature,
+				  CompAnyValue *value,
+				  int	       nValue);
 
 typedef struct _CompSignalVTable {
     ConnectProc      connect;
