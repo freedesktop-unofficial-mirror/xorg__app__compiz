@@ -391,7 +391,7 @@ main (int argc, char **argv)
 	return 1;
 
     /* XXX: until core object is moved into the root object */
-    root.core = &core.u.base;
+    root.core = &core.u.base.u.base;
 
     if (!initCore (&root.u.base.base))
 	return 1;

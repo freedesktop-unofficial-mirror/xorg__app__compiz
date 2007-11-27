@@ -94,9 +94,6 @@ branchInitObject (CompObject *object)
     b->instance  = NULL;
     b->nInstance = 0;
 
-    b->plugin  = NULL;
-    b->nPlugin = 0;
-
     return TRUE;
 }
 

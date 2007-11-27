@@ -199,14 +199,15 @@ glibInitCore (CompCore *c)
 {
     GLIB_CORE (c);
 
-    if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
+    if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
     gc->fds	      = NULL;
     gc->fdsSize	      = 0;
     gc->timeoutHandle = 0;
 
-    if (!cObjectInterfaceInit (&c->u.base, &glibCoreObjectVTable.base.base))
+    if (!cObjectInterfaceInit (&c->u.base.u.base,
+			       &glibCoreObjectVTable.base.base.base))
 	return FALSE;
 
     glibPrepare (c, g_main_context_default ());
@@ -227,7 +228,7 @@ glibFiniCore (CompCore *c)
     if (gc->fds)
 	free (gc->fds);
 
-    cObjectInterfaceFini (&c->u.base);
+    cObjectInterfaceFini (&c->u.base.u.base);
 }
 
 static void

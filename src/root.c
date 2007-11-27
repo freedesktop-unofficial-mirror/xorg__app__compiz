@@ -68,7 +68,7 @@ processSignals (CompRoot *r)
 	else
 	    r->signal.head = r->signal.tail = NULL;
 
-	source = compLookupObject (r, s->path);
+	source = compLookupObject (&r->u.base.base, s->path);
 
 	for (node = source; node; node = node->parent)
 	    (*node->vTable->signal.signal) (node,

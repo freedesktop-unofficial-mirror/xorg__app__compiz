@@ -27,7 +27,6 @@
 #define _COMPIZ_BRANCH_H
 
 #include <compiz/object.h>
-#include <compiz/plugin.h>
 
 #define COMPIZ_BRANCH_VERSION 20071116
 
@@ -58,9 +57,6 @@ typedef struct _CompBranch {
 
     CompObjectTypeInstance *instance;
     int			   nInstance;
-
-    CompPlugin *plugin;
-    int	       nPlugin;
 } CompBranch;
 
 #define GET_BRANCH(object) ((CompBranch *) (object))

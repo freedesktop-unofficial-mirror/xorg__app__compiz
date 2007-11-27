@@ -888,7 +888,7 @@ dbusInitCore (CompCore *c)
 
     DBUS_CORE (c);
 
-    if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
+    if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
     dbus_error_init (&error);
@@ -915,16 +915,17 @@ dbusInitCore (CompCore *c)
 					c);
 
     dc->signalHandle =
-	(*c->u.base.vTable->signal.connect) (&c->u.base, "signal",
-					     offsetof (CompSignalVTable, signal),
-					     dbusPropChanged,
-					     NULL);
+	(*c->u.base.u.base.vTable->signal.connect) (&c->u.base.u.base, "signal",
+						    offsetof (CompSignalVTable,
+							      signal),
+						    dbusPropChanged,
+						    NULL);
     if (dc->signalHandle < 0)
 	return FALSE;
 
     dbusRequestName (c, COMPIZ_DBUS_SERVICE_NAME);
 
-    dbusRegisterObjectTree (&c->u.base, (void *) c);
+    dbusRegisterObjectTree (&c->u.base.u.base, (void *) c);
 
     return TRUE;
 }
@@ -934,11 +935,12 @@ dbusFiniCore (CompCore *c)
 {
     DBUS_CORE (c);
 
-    (*c->u.base.vTable->signal.disconnect) (&c->u.base, "signal",
-					    offsetof (CompSignalVTable, signal),
-					    dc->signalHandle);
+    (*c->u.base.u.base.vTable->signal.disconnect) (&c->u.base.u.base, "signal",
+						   offsetof (CompSignalVTable,
+							     signal),
+						   dc->signalHandle);
 
-    dbusUnregisterObjectTree (&c->u.base, (void *) c);
+    dbusUnregisterObjectTree (&c->u.base.u.base, (void *) c);
 
     dbusReleaseName (c, COMPIZ_DBUS_SERVICE_NAME);
 
@@ -949,9 +951,12 @@ static CObjectPrivate dbusObj[] = {
     C_OBJECT_PRIVATE ("core", dbus, Core, DBusCore, X, _)
 };
 
-static Bool
-dbusInit (CompPlugin *p)
+static CompBool
+dbusInsert (CompObject *parent,
+	    CompBranch *branch)
 {
+    printf ("dbusInsert\n");
+
     if (!cObjectInitPrivates (dbusObj, N_ELEMENTS (dbusObj)))
 	return FALSE;
 
@@ -959,9 +964,23 @@ dbusInit (CompPlugin *p)
 }
 
 static void
-dbusFini (CompPlugin *p)
+dbusRemove (CompObject *parent,
+	    CompBranch *branch)
 {
     cObjectFiniPrivates (dbusObj, N_ELEMENTS (dbusObj));
+
+    printf ("dbusRemove\n");
+}
+
+static Bool
+dbusInit (CompPlugin *p)
+{
+    return TRUE;
+}
+
+static void
+dbusFini (CompPlugin *p)
+{
 }
 
 CompPluginVTable dbusVTable = {
@@ -972,7 +991,9 @@ CompPluginVTable dbusVTable = {
     0, /* InitObject */
     0, /* FiniObject */
     0, /* GetObjectOptions */
-    0  /* SetObjectOption */
+    0, /* SetObjectOption */
+    dbusInsert,
+    dbusRemove
 };
 
 CompPluginVTable *

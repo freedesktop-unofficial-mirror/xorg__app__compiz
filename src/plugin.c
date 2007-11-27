@@ -385,8 +385,6 @@ finiObjectTree (CompObject *o,
 static Bool
 initPlugin (CompPlugin *p)
 {
-    InitObjectContext ctx;
-
     if (!(*p->vTable->init) (p))
     {
 	compLogMessage (NULL, "core", CompLogLevelError,
@@ -394,33 +392,48 @@ initPlugin (CompPlugin *p)
 	return FALSE;
     }
 
-    ctx.plugin = p;
-    ctx.object = NULL;
-
-    if (p->vTable->initObject)
+    if (p->vTable->insert)
     {
-	if (!(*p->vTable->initObject) (p, &core.u.base))
+	if (!(*p->vTable->insert) (core.u.base.u.base.parent, &core.u.base))
 	{
-	    compLogMessage (NULL, p->vTable->name, CompLogLevelError,
-			    "InitObject failed");
+	    (*p->vTable->fini) (p);
 	    return FALSE;
 	}
     }
-
-    if (!(*core.u.base.vTable->forEachChildObject) (&core.u.base,
-						    initObjectTree,
-						    (void *) &ctx))
+    else
     {
-	(*core.u.base.vTable->forEachChildObject) (&core.u.base,
-						   finiObjectTree,
-						   (void *) &ctx);
+	InitObjectContext ctx;
 
-	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, &core.u.base);
+	ctx.plugin = p;
+	ctx.object = NULL;
 
-	(*p->vTable->fini) (p);
+	if (p->vTable->initObject)
+	{
+	    if (!(*p->vTable->initObject) (p, &core.u.base.u.base))
+	    {
+		compLogMessage (NULL, p->vTable->name, CompLogLevelError,
+				"InitObject failed");
+		(*p->vTable->fini) (p);
 
-	return FALSE;
+		return FALSE;
+	    }
+	}
+
+	if (!(*core.u.base.u.base.vTable->forEachChildObject) (&core.u.base.u.base,
+							       initObjectTree,
+							       (void *) &ctx))
+	{
+	    (*core.u.base.u.base.vTable->forEachChildObject) (&core.u.base.u.base,
+							      finiObjectTree,
+							      (void *) &ctx);
+
+	    if (p->vTable->initObject && p->vTable->finiObject)
+		(*p->vTable->finiObject) (p, &core.u.base.u.base);
+
+	    (*p->vTable->fini) (p);
+
+	    return FALSE;
+	}
     }
 
     return TRUE;
@@ -429,17 +442,24 @@ initPlugin (CompPlugin *p)
 static void
 finiPlugin (CompPlugin *p)
 {
-    InitObjectContext ctx;
+    if (p->vTable->remove)
+    {
+	(*p->vTable->remove) (core.u.base.u.base.parent, &core.u.base);
+    }
+    else
+    {
+	InitObjectContext ctx;
 
-    ctx.plugin = p;
-    ctx.object = NULL;
+	ctx.plugin = p;
+	ctx.object = NULL;
 
-    (*core.u.base.vTable->forEachChildObject) (&core.u.base,
-					       finiObjectTree,
-					       (void *) &ctx);
+	(*core.u.base.u.base.vTable->forEachChildObject) (&core.u.base.u.base,
+							  finiObjectTree,
+							  (void *) &ctx);
 
-    if (p->vTable->initObject && p->vTable->finiObject)
-	(*p->vTable->finiObject) (p, &core.u.base);
+	if (p->vTable->initObject && p->vTable->finiObject)
+	    (*p->vTable->finiObject) (p, &core.u.base.u.base);
+    }
 
     (*p->vTable->fini) (p);
 }

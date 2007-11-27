@@ -689,14 +689,14 @@ typedef CompBool (*RemoveDisplayProc) (CompCore   *c,
 				       char	  **error);
 
 typedef struct _CompCoreVTable {
-    CompObjectVTable  base;
+    CompBranchVTable  base;
     AddDisplayProc    addDisplay;
     RemoveDisplayProc removeDisplay;
 } CompCoreVTable;
 
 struct _CompCore {
     union {
-	CompObject     base;
+	CompBranch     base;
 	CompCoreVTable *vTable;
     } u;
 

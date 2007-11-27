@@ -26,7 +26,7 @@
 #ifndef _COMPIZ_PLUGIN_H
 #define _COMPIZ_PLUGIN_H
 
-#include <compiz/object.h>
+#include <compiz/branch.h>
 
 COMPIZ_BEGIN_DECLS
 
@@ -54,6 +54,11 @@ typedef CompBool (*SetPluginObjectOptionProc) (CompPlugin      *plugin,
 					       const char      *name,
 					       CompOptionValue *value);
 
+typedef CompBool (*InsertPluginProc) (CompObject *parent,
+				      CompBranch *branch);
+typedef void     (*RemovePluginProc) (CompObject *parent,
+				      CompBranch *branch);
+
 typedef struct _CompPluginVTable {
     const char *name;
 
@@ -67,6 +72,9 @@ typedef struct _CompPluginVTable {
 
     GetPluginObjectOptionsProc getObjectOptions;
     SetPluginObjectOptionProc  setObjectOption;
+
+    InsertPluginProc insert;
+    RemovePluginProc remove;
 } CompPluginVTable;
 
 CompPluginVTable *

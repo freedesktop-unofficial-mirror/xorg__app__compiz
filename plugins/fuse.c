@@ -480,7 +480,7 @@ compiz_getattr (fuse_req_t	      req,
     CompObject *object;
     FuseProp   *prop;
 
-    object = fuseLookupInode (&c->u.base, ino, &prop);
+    object = fuseLookupInode (&c->u.base.u.base, ino, &prop);
     if (object)
     {
 	struct stat stbuf;
@@ -528,7 +528,7 @@ compiz_setattr (fuse_req_t	      req,
     CompObject *object;
     FuseProp   *prop;
 
-    object = fuseLookupInode (&c->u.base, ino, &prop);
+    object = fuseLookupInode (&c->u.base.u.base, ino, &prop);
     if (object && prop)
     {
 	struct stat stbuf;
@@ -572,7 +572,7 @@ compiz_lookup (fuse_req_t req,
     struct fuse_entry_param e;
     struct stat		    stbuf;
 
-    object = fuseLookupInode (&c->u.base, parent, NULL);
+    object = fuseLookupInode (&c->u.base.u.base, parent, NULL);
     if (!object)
     {
 	fuse_reply_err (req, ENOENT);
@@ -643,7 +643,7 @@ compiz_opendir (fuse_req_t	      req,
     CompCore   *c = (CompCore *) fuse_req_userdata (req);
     CompObject *object;
 
-    object = fuseLookupInode (&c->u.base, ino, NULL);
+    object = fuseLookupInode (&c->u.base.u.base, ino, NULL);
     if (object)
     {
 	FuseProp     *prop;
@@ -732,7 +732,7 @@ compiz_open (fuse_req_t		   req,
     FuseFile   *file;
     char       *data = NULL;
 
-    object = fuseLookupInode (&c->u.base, ino, &prop);
+    object = fuseLookupInode (&c->u.base.u.base, ino, &prop);
     if (!object)
     {
 	fuse_reply_err (req, ENOENT);
@@ -826,7 +826,7 @@ compiz_release (fuse_req_t	      req,
     CompObject *object;
     FuseProp   *prop;
 
-    object = fuseLookupInode (&c->u.base, ino, &prop);
+    object = fuseLookupInode (&c->u.base.u.base, ino, &prop);
     if (object && prop)
 	fuseStringToProp (object, prop, file->data);
 
@@ -847,7 +847,7 @@ compiz_fsync (fuse_req_t	    req,
     CompObject *object;
     FuseProp   *prop;
 
-    object = fuseLookupInode (&c->u.base, ino, &prop);
+    object = fuseLookupInode (&c->u.base.u.base, ino, &prop);
     if (object && prop)
 	fuseStringToProp (object, prop, file->data);
 
@@ -1032,7 +1032,7 @@ static CInterface fuseCoreInterface[] = {
     C_INTERFACE (fuse, Core, CompObjectVTable, _, _, _, _, _, _, X, _)
 };
 
-static CompCoreVTable fuseCoreObjectVTable = { { 0 } };
+static CompCoreVTable fuseCoreObjectVTable = { { { 0 } } };
 
 static CompBool
 fuseInitCore (CompCore *c)
@@ -1041,10 +1041,11 @@ fuseInitCore (CompCore *c)
 
     FUSE_CORE (c);
 
-    if (!compObjectCheckVersion (&c->u.base, "object", CORE_ABIVERSION))
+    if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    if (!cObjectInterfaceInit (&c->u.base, &fuseCoreObjectVTable.base))
+    if (!cObjectInterfaceInit (&c->u.base.u.base,
+			       &fuseCoreObjectVTable.base.base))
 	return FALSE;
 
     memset (&sa, 0, sizeof (struct sigaction));
@@ -1055,7 +1056,7 @@ fuseInitCore (CompCore *c)
 
     if (sigaction (SIGPIPE, &sa, NULL) == -1)
     {
-	cObjectInterfaceFini (&c->u.base);
+	cObjectInterfaceFini (&c->u.base.u.base);
 	return FALSE;
     }
 
@@ -1064,7 +1065,7 @@ fuseInitCore (CompCore *c)
 				     (void *) c);
     if (!fc->session)
     {
-	cObjectInterfaceFini (&c->u.base);
+	cObjectInterfaceFini (&c->u.base.u.base);
 	return FALSE;
     }
 
@@ -1084,7 +1085,7 @@ fuseFiniCore (CompCore *c)
 
     fuseUnmount (c);
 
-    cObjectInterfaceFini (&c->u.base);
+    cObjectInterfaceFini (&c->u.base.u.base);
 
     fuse_session_destroy (fc->session);
 }
