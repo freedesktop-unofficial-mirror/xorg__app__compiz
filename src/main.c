@@ -414,7 +414,7 @@ main (int argc, char **argv)
 	free (hostName);
     }
 
-    eventLoop ();
+    eventLoop (&root);
 
     if (!disableSm)
 	closeSession ();

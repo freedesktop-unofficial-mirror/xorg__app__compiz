@@ -23,7 +23,70 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <string.h>
+#include <stdlib.h>
+
 #include <compiz/root.h>
+
+struct _CompSignal {
+    struct _CompSignal *next;
+    char	       *path;
+    char	       *interface;
+    char	       *name;
+    char	       *signature;
+    CompAnyValue       *value;
+    int		       nValue;
+};
+
+static CompBool
+rootForBaseObject (CompObject	       *object,
+		   BaseObjectCallBackProc proc,
+		   void		       *closure)
+{
+    CompObjectVTableVec v = { object->vTable };
+    CompBool		status;
+
+    ROOT (object);
+
+    UNWRAP (&r->object, object, vTable);
+    status = (*proc) (object, closure);
+    WRAP (&r->object, object, vTable, v.vTable);
+
+    return status;
+}
+
+static void
+processSignals (CompRoot *r)
+{
+    while (r->signal.head)
+    {
+	CompSignal *s = r->signal.head;
+	CompObject *source, *node;
+
+	if (s->next)
+	    r->signal.head = s->next;
+	else
+	    r->signal.head = r->signal.tail = NULL;
+
+	source = compLookupObject (r, s->path);
+
+	for (node = source; node; node = node->parent)
+	    (*node->vTable->signal.signal) (node,
+					    source,
+					    s->interface,
+					    s->name,
+					    s->signature,
+					    s->value,
+					    s->nValue);
+
+	free (s);
+    }
+}
+
+static CompRootVTable rootObjectVTable = {
+    .base.forBaseObject = rootForBaseObject,
+    .processSignals     = processSignals
+};
 
 static CompBool
 forCoreObject (CompObject	       *object,
@@ -43,13 +106,15 @@ rootInitObject (CompObject *object)
 {
     ROOT (object);
 
+    r->signal.head = NULL;
+    r->signal.tail = NULL;
+
     if (!compObjectInit (&r->u.base.base, getContainerObjectType ()))
 	return FALSE;
 
-    r->u.base.forEachChildObject = forCoreObject;
+    WRAP (&r->object, object, vTable, &rootObjectVTable.base);
 
-    r->signals.head = NULL;
-    r->signals.tail = NULL;
+    r->u.base.forEachChildObject = forCoreObject;
 
     r->core = NULL;
 
@@ -59,11 +124,15 @@ rootInitObject (CompObject *object)
 static void
 rootFiniObject (CompObject *object)
 {
+    ROOT (object);
+
+    UNWRAP (&r->object, object, vTable);
+
     compObjectFini (object, getContainerObjectType ());
 }
 
 static void
-rootInitVTable (void *vTable)
+rootInitVTable (CompRootVTable *vTable)
 {
     (*getContainerObjectType ()->initVTable) (vTable);
 }
@@ -82,5 +151,147 @@ static CompObjectType rootObjectType = {
 CompObjectType *
 getRootObjectType (void)
 {
+    static int init = 0;
+
+    if (!init)
+    {
+	rootInitVTable (&rootObjectVTable);
+	init = 1;
+    }
     return &rootObjectType;
+}
+
+void
+emitSignalSignal (CompObject *object,
+		  const char *interface,
+		  const char *name,
+		  const char *signature,
+		  ...)
+{
+    CompRoot   *r = NULL;
+    CompObject *node;
+    CompSignal *signal;
+    char       *data, *str;
+    int        pathSize = 0;
+    int	       interfaceSize = strlen (interface) + 1;
+    int	       nameSize = strlen (name) + 1;
+    int	       signatureSize = strlen (signature) + 1;
+    int	       valueSize = 0;
+    int	       nValue = 0;
+    int	       i, offset;
+    va_list    args;
+
+    for (node = object; node->parent; node = node->parent)
+	pathSize += strlen (node->name) + 1;
+
+    r = (CompRoot *) node;
+
+    va_start (args, signature);
+
+    for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
+    {
+	switch (signature[i]) {
+	case COMP_TYPE_BOOLEAN:
+	    va_arg (args, CompBool);
+	    break;
+	case COMP_TYPE_INT32:
+	    va_arg (args, int32_t);
+	    break;
+	case COMP_TYPE_DOUBLE:
+	    va_arg (args, double);
+	    break;
+	case COMP_TYPE_STRING:
+	case COMP_TYPE_OBJECT:
+	    str = va_arg (args, char *);
+	    if (str)
+		valueSize += strlen (str) + 1;
+	    break;
+	}
+
+	nValue++;
+    }
+
+    va_end (args);
+
+    signal = malloc (sizeof (CompSignal) +
+		     pathSize +
+		     interfaceSize +
+		     nameSize +
+		     signatureSize +
+		     sizeof (CompAnyValue) * nValue +
+		     valueSize);
+    if (!signal)
+	return;
+
+    signal->next = NULL;
+    signal->path = (char *) (signal + 1);
+
+    offset = pathSize;
+    signal->path[offset - 1] = '\0';
+
+    for (node = object; node->parent; node = node->parent)
+    {
+	int len;
+
+	if (offset-- < pathSize)
+	    signal->path[offset] = '/';
+
+	len = strlen (node->name);
+	offset -= len;
+	memcpy (&signal->path[offset], node->name, len);
+    }
+
+    signal->interface = (char *) (signal->path + pathSize);
+    strcpy (signal->interface, interface);
+
+    signal->name = (char *) (signal->interface + interfaceSize);
+    strcpy (signal->name, name);
+
+    signal->signature = (char *) (signal->name + nameSize);
+    strcpy (signal->signature, signature);
+
+    signal->value  = (CompAnyValue *) (signal->signature + signatureSize);
+    signal->nValue = nValue;
+
+    data = (char *) (signal->value + nValue);
+
+    va_start (args, signature);
+
+    for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
+    {
+	switch (signature[i]) {
+	case COMP_TYPE_BOOLEAN:
+	    signal->value[i].b = va_arg (args, CompBool);
+	    break;
+	case COMP_TYPE_INT32:
+	    signal->value[i].i = va_arg (args, int32_t);
+	    break;
+	case COMP_TYPE_DOUBLE:
+	    signal->value[i].d = va_arg (args, double);
+	    break;
+	case COMP_TYPE_STRING:
+	case COMP_TYPE_OBJECT:
+	    str = va_arg (args, char *);
+	    if (str)
+	    {
+		signal->value[i].s = data;
+		strcpy (signal->value[i].s, str);
+		data += strlen (str) + 1;
+	    }
+	    else
+	    {
+		signal->value[i].s = NULL;
+	    }
+	    break;
+	}
+    }
+
+    va_end (args);
+
+    if (r->signal.tail)
+	r->signal.tail->next = signal;
+    else
+	r->signal.head = signal;
+
+    r->signal.tail = signal;
 }

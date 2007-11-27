@@ -1931,7 +1931,7 @@ paintScreen (CompScreen   *s,
 }
 
 void
-eventLoop (void)
+eventLoop (CompRoot *root)
 {
     XEvent	   event;
     int		   timeDiff;
@@ -1944,6 +1944,8 @@ eventLoop (void)
 
     for (;;)
     {
+	(*root->u.vTable->processSignals) (root);
+
 	if (restartSignal || shutDown)
 	    break;
 
@@ -2226,6 +2228,8 @@ eventLoop (void)
 	}
 	else
 	{
+	    (*root->u.vTable->processSignals) (root);
+
 	    if (core.timeouts)
 	    {
 		if (core.timeouts->left > 0)

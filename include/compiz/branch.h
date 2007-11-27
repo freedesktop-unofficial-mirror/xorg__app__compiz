@@ -74,5 +74,3 @@ getBranchObjectType (void);
 COMPIZ_END_DECLS
 
 #endif
-
-

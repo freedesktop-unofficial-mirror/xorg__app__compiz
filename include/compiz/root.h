@@ -33,19 +33,30 @@
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompSignal CompSignal;
+typedef struct _CompRoot   CompRoot;
 
-typedef struct _CompRoot {
+typedef void (*ProcessSignalsProc) (CompRoot *r);
+
+typedef struct _CompRootVTable {
+    CompObjectVTable   base;
+    ProcessSignalsProc processSignals;
+} CompRootVTable;
+
+struct _CompRoot {
     union {
-	CompContainer base;
+	CompContainer	     base;
+	const CompRootVTable *vTable;
     } u;
+
+    CompObjectVTableVec object;
 
     struct {
 	CompSignal *head;
 	CompSignal *tail;
-    } signals;
+    } signal;
 
     CompObject *core;
-} CompRoot;
+};
 
 #define GET_ROOT(object) ((CompRoot *) (object))
 #define ROOT(object) CompRoot *r = GET_ROOT (object)

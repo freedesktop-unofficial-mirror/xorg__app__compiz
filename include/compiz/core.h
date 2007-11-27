@@ -53,6 +53,7 @@
 #include <compiz/container.h>
 #include <compiz/output.h>
 #include <compiz/plugin.h>
+#include <compiz/root.h>
 
 COMPIZ_BEGIN_DECLS
 
@@ -1282,7 +1283,7 @@ compRemoveModEntry (CompDisplay	       *display,
 		    CompModEntryHandle handle);
 
 void
-eventLoop (void);
+eventLoop (CompRoot *root);
 
 void
 handleSelectionRequest (CompDisplay *display,
