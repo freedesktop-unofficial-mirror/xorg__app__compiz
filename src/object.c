@@ -1491,7 +1491,7 @@ removed (CompObject *object)
 {
     EMIT_EXT_SIGNAL (object,
 		     object->signal[COMP_OBJECT_SIGNAL_REMOVED],
-		     "object", "inserted", "");
+		     "object", "removed", "");
 }
 
 static void
