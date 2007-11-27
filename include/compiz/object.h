@@ -137,6 +137,16 @@ typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
 
 typedef void (*UnusedProc) (CompObject *object);
 
+typedef void (*InsertObjectProc) (CompObject *object,
+				  CompObject *parent,
+				  const char *name);
+
+typedef void (*RemoveObjectProc) (CompObject *object);
+
+typedef void (*InsertedProc) (CompObject *object);
+
+typedef void (*RemovedProc)  (CompObject *object);
+
 typedef CompBool (*InterfaceCallBackProc) (CompObject		*object,
 					   const char		*name,
 					   size_t		offset,
@@ -361,6 +371,15 @@ typedef struct _CompObjectVTable {
        use for its own purpose */
     UnusedProc unused;
 
+    /* object tree functions
+
+       used when inserting and removing objects from an object tree
+    */
+    InsertObjectProc insertObject;
+    RemoveObjectProc removeObject;
+    InsertedProc     inserted;
+    RemovedProc      removed;
+
     /* interface functions
 
        object interfaces are provided by implementing some of these
@@ -372,19 +391,11 @@ typedef struct _CompObjectVTable {
     InterfaceAddedProc   interfaceAdded;
     InterfaceRemovedProc interfaceRemoved;
 
-    /* type function
-
-       object types are provided by implementing forEachType
-     */
-    ForEachTypeProc forEachType;
-
     /* child object functions
 
        child objects are provided by implementing forEachChildObject
      */
     ForEachChildObjectProc forEachChildObject;
-    ChildObjectAddedProc   childObjectAdded;
-    ChildObjectRemovedProc childObjectRemoved;
 
     CompSignalVTable     signal;
     CompVersionVTable    version;
@@ -411,10 +422,10 @@ typedef struct _CompSignalHandler {
     void		      *data;
 } CompSignalHandler;
 
-#define COMP_OBJECT_SIGNAL_INTERFACE_ADDED   0
-#define COMP_OBJECT_SIGNAL_INTERFACE_REMOVED 1
-#define COMP_OBJECT_SIGNAL_CHILD_ADDED       2
-#define COMP_OBJECT_SIGNAL_CHILD_REMOVED     3
+#define COMP_OBJECT_SIGNAL_INSERTED          0
+#define COMP_OBJECT_SIGNAL_REMOVED           1
+#define COMP_OBJECT_SIGNAL_INTERFACE_ADDED   2
+#define COMP_OBJECT_SIGNAL_INTERFACE_REMOVED 3
 #define COMP_OBJECT_SIGNAL_SIGNAL            4
 #define COMP_OBJECT_SIGNAL_BOOL_CHANGED      5
 #define COMP_OBJECT_SIGNAL_INT_CHANGED       6
@@ -441,20 +452,20 @@ emitSignalSignal (CompObject *object,
 		  const char *signature,
 		  ...);
 
-#define EMIT_SIGNAL(object, handlers, ...)			   \
-    do {							   \
-	CompSignalHandler *handler = handlers;			   \
-								   \
-	while (handler)						   \
-	{							   \
-	    (*handler->proc) (object, handler->data, __VA_ARGS__); \
-	    handler = handler->next;				   \
-	}							   \
+#define EMIT_SIGNAL(object, handlers, ...)			     \
+    do {							     \
+	CompSignalHandler *handler = handlers;			     \
+								     \
+	while (handler)						     \
+	{							     \
+	    (*handler->proc) (object, handler->data, ##__VA_ARGS__); \
+	    handler = handler->next;				     \
+	}							     \
     } while (0)
 
 #define EMIT_EXT_SIGNAL(object, handlers, interface, name, signature, ...) \
-    EMIT_SIGNAL (object, handlers, __VA_ARGS__);			   \
-    emitSignalSignal (object, interface, name, signature, __VA_ARGS__)
+    EMIT_SIGNAL (object, handlers, ##__VA_ARGS__);			   \
+    emitSignalSignal (object, interface, name, signature, ##__VA_ARGS__)
 
 CompObjectType *
 getObjectType (void);

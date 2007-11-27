@@ -2393,13 +2393,16 @@ forEachScreenObject (CompObject	             *object,
 		     ChildObjectCallBackProc proc,
 		     void		     *closure)
 {
-    CompScreen	*s;
+    if (object->parent)
+    {
+	CompScreen *s;
 
-    DISPLAY (object->parent);
+	DISPLAY (object->parent);
 
-    for (s = d->screens; s; s = s->next)
-	if (!(*proc) (&s->base, closure))
-	    return FALSE;
+	for (s = d->screens; s; s = s->next)
+	    if (!(*proc) (&s->base, closure))
+		return FALSE;
+    }
 
     return TRUE;
 }

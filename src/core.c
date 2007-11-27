@@ -207,20 +207,16 @@ coreObjectAdd (CompObject *object,
 	       CompObject *child,
 	       const char *name)
 {
-    child->name   = name;
-    child->parent = object;
-
-    (*object->vTable->childObjectAdded) (object, name);
+    (*child->vTable->insertObject) (child, object, name);
+    (*child->vTable->inserted) (child);
 }
 
 static void
 coreObjectRemove (CompObject *object,
 		  CompObject *child)
 {
-    (*object->vTable->childObjectRemoved) (object, child->name);
-
-    child->parent = NULL;
-    child->name   = NULL;
+    (*child->vTable->removed) (child);
+    (*child->vTable->removeObject) (child);
 }
 
 static void
@@ -278,13 +274,16 @@ forEachDisplayObject (CompObject	      *object,
 		      ChildObjectCallBackProc proc,
 		      void		      *closure)
 {
-    CompDisplay	*d;
+    if (object->parent)
+    {
+	CompDisplay *d;
 
-    CORE (object->parent);
+	CORE (object->parent);
 
-    for (d = c->displays; d; d = d->next)
-	if (!(*proc) (&d->u.base, closure))
-	    return FALSE;
+	for (d = c->displays; d; d = d->next)
+	    if (!(*proc) (&d->u.base, closure))
+		return FALSE;
+    }
 
     return TRUE;
 }

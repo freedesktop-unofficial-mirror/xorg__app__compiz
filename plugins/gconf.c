@@ -374,14 +374,10 @@ gconfHandleSignal (CompObject *object,
 
     if (strcmp (interface, "object") == 0)
     {
-	if (strcmp (name,      "childObjectAdded") == 0 &&
-	    strcmp (signature, "o")		   == 0)
+	if (strcmp (name,      "interfaceAdded") == 0 &&
+	    strcmp (signature, "s")		 == 0)
 	{
-	    CompObject *child;
-
-	    child = compLookupObject (source, value[0].s);
-	    if (child)
-		gconfReloadObjectTree (child, (void *) c);
+	    gconfReloadInterface (source, value[0].s, 0, NULL, (void *) c);
 	}
     }
     else if (strcmp (interface, "properties") == 0)

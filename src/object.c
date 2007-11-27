@@ -34,10 +34,10 @@
 #include <compiz/core.h>
 
 static const CSignal objectTypeSignal[] = {
-    C_SIGNAL (interfaceAdded,     "s", CompObjectVTable),
-    C_SIGNAL (interfaceRemoved,   "s", CompObjectVTable),
-    C_SIGNAL (childObjectAdded,   "o", CompObjectVTable),
-    C_SIGNAL (childObjectRemoved, "o", CompObjectVTable)
+    C_SIGNAL (inserted,         "",  CompObjectVTable),
+    C_SIGNAL (removed,          "",  CompObjectVTable),
+    C_SIGNAL (interfaceAdded,   "s", CompObjectVTable),
+    C_SIGNAL (interfaceRemoved, "s", CompObjectVTable)
 };
 
 static const CSignal signalObjectSignal[] = {
@@ -157,6 +157,79 @@ compObjectFini (CompObject           *object,
     }
 
     (*type->funcs.fini) (object);
+}
+
+typedef struct _InsertObjectContext {
+    CompObject *parent;
+    const char *name;
+} InsertObjectContext;
+
+static CompBool
+baseObjectInsertObject (CompObject *object,
+			void       *closure)
+{
+    InsertObjectContext *pCtx = (InsertObjectContext *) closure;
+
+    (*object->vTable->insertObject) (object, pCtx->parent, pCtx->name);
+
+    return TRUE;
+}
+
+static void
+noopInsertObject (CompObject *object,
+		  CompObject *parent,
+		  const char *name)
+{
+    InsertObjectContext ctx;
+
+    ctx.parent = parent;
+    ctx.name   = name;
+
+    (*object->vTable->forBaseObject) (object,
+				      baseObjectInsertObject,
+				      (void *) &ctx);
+}
+
+static CompBool
+baseObjectRemoveObject (CompObject *object,
+			void       *closure)
+{
+    (*object->vTable->removeObject) (object);
+    return TRUE;
+}
+
+static void
+noopRemoveObject (CompObject *object)
+{
+    (*object->vTable->forBaseObject) (object, baseObjectRemoveObject, NULL);
+}
+
+static CompBool
+baseObjectInserted (CompObject *object,
+		    void       *closure)
+{
+    (*object->vTable->inserted) (object);
+    return TRUE;
+}
+
+static void
+noopInserted (CompObject *object)
+{
+    (*object->vTable->forBaseObject) (object, baseObjectInserted, NULL);
+}
+
+static CompBool
+baseObjectRemoved (CompObject *object,
+		    void       *closure)
+{
+    (*object->vTable->removed) (object);
+    return TRUE;
+}
+
+static void
+noopRemoved (CompObject *object)
+{
+    (*object->vTable->forBaseObject) (object, baseObjectRemoved, NULL);
 }
 
 typedef struct _ForEachInterfaceContext {
@@ -329,35 +402,6 @@ noopInterfaceRemoved (CompObject *object,
 				      (void *) interface);
 }
 
-typedef struct _ForEachTypeContext {
-    TypeCallBackProc proc;
-    void	     *closure;
-} ForEachTypeContext;
-
-static CompBool
-baseObjectForEachType (CompObject *object,
-		       void       *closure)
-{
-    ForEachTypeContext *pCtx = (ForEachTypeContext *) closure;
-
-    return (*object->vTable->forEachType) (object, pCtx->proc, pCtx->closure);
-}
-
-static CompBool
-noopForEachType (CompObject	  *object,
-		 TypeCallBackProc proc,
-		 void	          *closure)
-{
-    ForEachTypeContext ctx;
-
-    ctx.proc    = proc;
-    ctx.closure = closure;
-
-    return (*object->vTable->forBaseObject) (object,
-					     baseObjectForEachType,
-					     (void *) &ctx);
-}
-
 typedef struct _ForEachChildObjectContext {
     ChildObjectCallBackProc proc;
     void		    *closure;
@@ -387,40 +431,6 @@ noopForEachChildObject (CompObject		*object,
     return (*object->vTable->forBaseObject) (object,
 					     baseObjectForEachChildObject,
 					     (void *) &ctx);
-}
-
-static CompBool
-baseObjectChildObjectAdded (CompObject *object,
-			    void       *closure)
-{
-    (*object->vTable->childObjectAdded) (object, (const char *) closure);
-    return TRUE;
-}
-
-static void
-noopChildObjectAdded (CompObject *object,
-		      const char *child)
-{
-    (*object->vTable->forBaseObject) (object,
-				      baseObjectChildObjectAdded,
-				      (void *) child);
-}
-
-static CompBool
-baseObjectChildObjectRemoved (CompObject *object,
-			      void       *closure)
-{
-    (*object->vTable->childObjectRemoved) (object, (const char *) closure);
-    return TRUE;
-}
-
-static void
-noopChildObjectRemoved (CompObject *object,
-			const char *child)
-{
-    (*object->vTable->forBaseObject) (object,
-				      baseObjectChildObjectRemoved,
-				      (void *) child);
 }
 
 typedef struct _ConnectContext {
@@ -1100,6 +1110,111 @@ cForBaseObject (CompObject	       *object,
     return status;
 }
 
+#define CHILD(data, child)		      \
+    ((CompObject *) ((data) + (child)->offset))
+
+void
+cInsertObject (CompObject *object,
+	       CompObject *parent,
+	       const char *name)
+{
+    CompObject *child;
+    CContext   ctx;
+    int        i, j;
+
+    CCONTEXT (object->vTable, &ctx);
+
+    noopInsertObject (object, parent, name);
+
+    for (i = 0; i < ctx.nInterface; i++)
+    {
+	for (j = 0; j < ctx.interface[i].nChild; j++)
+	{
+	    if (ctx.interface[i].child[j].objectType)
+	    {
+		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
+		(*child->vTable->insertObject) (child, object, child->name);
+	    }
+	}
+    }
+}
+
+void
+cRemoveObject (CompObject *object)
+{
+    CompObject *child;
+    CContext   ctx;
+    int        i, j;
+
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+    {
+	for (j = 0; j < ctx.interface[i].nChild; j++)
+	{
+	    if (ctx.interface[i].child[j].objectType)
+	    {
+		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
+		(*child->vTable->removeObject) (child);
+	    }
+	}
+    }
+
+    noopRemoveObject (object);
+}
+
+void
+cInserted (CompObject *object)
+{
+    CompObject *child;
+    CContext   ctx;
+    int        i, j;
+
+    CCONTEXT (object->vTable, &ctx);
+
+    noopInserted (object);
+
+    for (i = 0; i < ctx.nInterface; i++)
+    {
+	(*object->vTable->interfaceAdded) (object, ctx.interface[i].name);
+
+	for (j = 0; j < ctx.interface[i].nChild; j++)
+	{
+	    if (ctx.interface[i].child[j].objectType)
+	    {
+		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
+		(*child->vTable->inserted) (child);
+	    }
+	}
+    }
+}
+
+void
+cRemoved (CompObject *object)
+{
+    CompObject *child;
+    CContext   ctx;
+    int        i, j;
+
+    CCONTEXT (object->vTable, &ctx);
+
+    for (i = 0; i < ctx.nInterface; i++)
+    {
+	for (j = 0; j < ctx.interface[i].nChild; j++)
+	{
+	    if (ctx.interface[i].child[j].objectType)
+	    {
+		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
+		(*child->vTable->removed) (child);
+	    }
+	}
+
+	(*object->vTable->interfaceRemoved) (object, ctx.interface[i].name);
+    }
+
+    noopRemoved (object);
+}
+
 CompBool
 cForEachInterface (CompObject	         *object,
 		   InterfaceCallBackProc proc,
@@ -1120,9 +1235,6 @@ cForEachInterface (CompObject	         *object,
 
     return noopForEachInterface (object, proc, closure);
 }
-
-#define CHILD(data, child)		      \
-    ((CompObject *) ((data) + (child)->offset))
 
 CompBool
 cForEachChildObject (CompObject		     *object,
@@ -1313,22 +1425,6 @@ cForEachProp (CompObject       *object,
     return noopForEachProp (object, interface, proc, closure);
 }
 
-CompBool
-cForEachType (CompObject       *object,
-	      TypeCallBackProc proc,
-	      void	       *closure)
-{
-    CContext ctx;
-
-    CCONTEXT (object->vTable, &ctx);
-
-    if (ctx.type)
-	if (!(*proc) (object, ctx.type, closure))
-	    return FALSE;
-
-    return noopForEachType (object, proc, closure);
-}
-
 static int
 getVersion (CompObject *object,
 	    const char *interface)
@@ -1367,25 +1463,44 @@ forBaseObject (CompObject	      *object,
 }
 
 static void
+insertObject (CompObject *object,
+	      CompObject *parent,
+	      const char *name)
+{
+    object->parent = parent;
+    object->name   = name;
+}
+
+static void
+removeObject (CompObject *object)
+{
+    object->parent = NULL;
+    object->name   = NULL;
+}
+
+static void
+inserted (CompObject *object)
+{
+    EMIT_EXT_SIGNAL (object,
+		     object->signal[COMP_OBJECT_SIGNAL_INSERTED],
+		     "object", "inserted", "");
+}
+
+static void
+removed (CompObject *object)
+{
+    EMIT_EXT_SIGNAL (object,
+		     object->signal[COMP_OBJECT_SIGNAL_REMOVED],
+		     "object", "inserted", "");
+}
+
+static void
 interfaceAdded (CompObject *object,
 		const char *interface)
 {
     EMIT_EXT_SIGNAL (object,
 		     object->signal[COMP_OBJECT_SIGNAL_INTERFACE_ADDED],
 		     "object", "interfaceAdded", "s", interface);
-}
-
-void
-cInterfacesAdded (CompObject	   *object,
-		  const CInterface *interface,
-		  int		   nInterface)
-{
-    while (nInterface--)
-    {
-	(*object->vTable->interfaceAdded) (object, interface->name);
-
-	interface++;
-    }
 }
 
 static void
@@ -1395,37 +1510,6 @@ interfaceRemoved (CompObject *object,
     EMIT_EXT_SIGNAL (object,
 		     object->signal[COMP_OBJECT_SIGNAL_INTERFACE_REMOVED],
 		     "object", "interfaceRemoved", "s", interface);
-}
-
-void
-cInterfacesRemoved (CompObject	     *object,
-		    const CInterface *interface,
-		    int		     nInterface)
-{
-    interface += (nInterface - 1);
-
-    while (nInterface--)
-    {
-	(*object->vTable->interfaceAdded) (object, interface->name);
-
-	interface--;
-    }
-}
-
-static void
-childObjectAdded (CompObject *object,
-		  const char *child)
-{
-    EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_ADDED],
-		     "object", "childObjectAdded", "o", child);
-}
-
-static void
-childObjectRemoved (CompObject *object,
-		    const char *child)
-{
-    EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_CHILD_REMOVED],
-		     "object", "childObjectRemoved", "o", child);
 }
 
 static CompBool
@@ -2582,11 +2666,15 @@ cGetMetadata (CompObject *object,
 }
 
 static CompObjectVTable objectVTable = {
-    .forBaseObject      = forBaseObject,
-    .interfaceAdded     = interfaceAdded,
-    .interfaceRemoved   = interfaceRemoved,
-    .childObjectAdded   = childObjectAdded,
-    .childObjectRemoved = childObjectRemoved,
+    .forBaseObject = forBaseObject,
+
+    .insertObject = insertObject,
+    .removeObject = removeObject,
+    .inserted     = inserted,
+    .removed      = removed,
+
+    .interfaceAdded   = interfaceAdded,
+    .interfaceRemoved = interfaceRemoved,
 
     .signal.connect    = connect,
     .signal.disconnect = disconnect,
@@ -2643,6 +2731,11 @@ finiObject (CompObject *object)
 static void
 initObjectVTable (CompObjectVTable *vTable)
 {
+    ENSURE (vTable, insertObject, noopInsertObject);
+    ENSURE (vTable, removeObject, noopRemoveObject);
+    ENSURE (vTable, inserted,     noopInserted);
+    ENSURE (vTable, removed,      noopRemoved);
+
     ENSURE (vTable, forEachInterface, noopForEachInterface);
     ENSURE (vTable, forEachMethod,    noopForEachMethod);
     ENSURE (vTable, forEachSignal,    noopForEachSignal);
@@ -2650,11 +2743,7 @@ initObjectVTable (CompObjectVTable *vTable)
     ENSURE (vTable, interfaceAdded,   noopInterfaceAdded);
     ENSURE (vTable, interfaceRemoved, noopInterfaceRemoved);
 
-    ENSURE (vTable, forEachType, noopForEachType);
-
     ENSURE (vTable, forEachChildObject, noopForEachChildObject);
-    ENSURE (vTable, childObjectAdded,   noopChildObjectAdded);
-    ENSURE (vTable, childObjectRemoved, noopChildObjectRemoved);
 
     ENSURE (vTable, signal.connect,    noopConnect);
     ENSURE (vTable, signal.disconnect, noopDisconnect);
@@ -3992,8 +4081,7 @@ cObjectChildrenInit (CompObject	      *object,
 		    return FALSE;
 		}
 
-		child->parent = object;
-		child->name   = interface[i].child[j].name;
+		child->name = interface[i].child[j].name;
 	    }
 	}
     }
@@ -4100,12 +4188,15 @@ cInitObjectVTable (CompObjectVTable *vTable,
 
     ENSURE (vTable, forBaseObject, cForBaseObject);
 
+    ENSURE (vTable, insertObject, cInsertObject);
+    ENSURE (vTable, removeObject, cRemoveObject);
+    ENSURE (vTable, inserted,     cInserted);
+    ENSURE (vTable, removed,      cRemoved);
+
     ENSURE (vTable, forEachInterface, cForEachInterface);
     ENSURE (vTable, forEachMethod,    cForEachMethod);
     ENSURE (vTable, forEachSignal,    cForEachSignal);
     ENSURE (vTable, forEachProp,      cForEachProp);
-
-    ENSURE (vTable, forEachType, cForEachType);
 
     ENSURE (vTable, forEachChildObject, cForEachChildObject);
 

@@ -212,6 +212,20 @@ cForBaseObject (CompObject	       *object,
 		BaseObjectCallBackProc proc,
 		void		       *closure);
 
+void
+cInsertObject (CompObject *object,
+	       CompObject *parent,
+	       const char *name);
+
+void
+cRemoveObject (CompObject *object);
+
+void
+cInserted (CompObject *object);
+
+void
+cRemoved (CompObject *object);
+
 CompBool
 cForEachInterface (CompObject	         *object,
 		   InterfaceCallBackProc proc,
@@ -234,16 +248,6 @@ cForEachProp (CompObject       *object,
 	      const char       *interface,
 	      PropCallBackProc proc,
 	      void	       *closure);
-
-void
-cInterfacesAdded (CompObject	   *object,
-		  const CInterface *interface,
-		  int		   nInterface);
-
-void
-cInterfacesRemoved (CompObject	     *object,
-		    const CInterface *interface,
-		    int		     nInterface);
 
 CompBool
 cForEachType (CompObject       *object,

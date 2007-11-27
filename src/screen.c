@@ -1433,13 +1433,16 @@ forEachWindowObject (CompObject	             *object,
 		     ChildObjectCallBackProc proc,
 		     void		     *closure)
 {
-    CompWindow	*w;
+    if (object->parent)
+    {
+	CompWindow *w;
 
-    SCREEN (object->parent);
+	SCREEN (object->parent);
 
-    for (w = s->windows; w; w = w->next)
-	if (!(*proc) (&w->base, closure))
-	    return FALSE;
+	for (w = s->windows; w; w = w->next)
+	    if (!(*proc) (&w->base, closure))
+		return FALSE;
+    }
 
     return TRUE;
 }

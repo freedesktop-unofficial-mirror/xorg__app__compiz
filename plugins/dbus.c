@@ -752,18 +752,12 @@ dbusPropChanged (CompObject *object,
     va_end (ap);
 
     /* register and unregister objects */
-    if (strcmp (interface, "object") == 0 && strcmp (signature, "o") == 0)
+    if (strcmp (interface, "object") == 0)
     {
-	CompObject *child;
-
-	child = compLookupObject (source, value[0].s);
-	if (child)
-	{
-	    if (strcmp (name, "childObjectAdded") == 0)
-		dbusRegisterObjectTree (child, (void *) c);
-	    else if (strcmp (name, "childObjectRemoved") == 0)
-		dbusUnregisterObjectTree (child, (void *) c);
-	}
+	if (strcmp (name, "inserted") == 0)
+	    dbusRegisterObject (c, source);
+	else if (strcmp (name, "removed") == 0)
+	    dbusUnregisterObject (c, source);
     }
 
     dbusInterface = malloc (strlen (COMPIZ_DBUS_INTERFACE_BASE) +
