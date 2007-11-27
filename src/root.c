@@ -55,29 +55,80 @@ rootForBaseObject (CompObject	       *object,
     return status;
 }
 
+typedef struct _HandleSignalContext {
+    const char *path;
+    CompSignal *signal;
+} HandleSignalContext;
+
+static CompBool
+handleSignal (CompObject *object,
+	      void	 *closure)
+{
+    HandleSignalContext *pCtx = (HandleSignalContext *) closure;
+    int			i;
+
+    for (i = 0; pCtx->path[i] && object->name[i]; i++)
+	if (pCtx->path[i] != object->name[i])
+	    break;
+
+    if (object->name[i] == '\0')
+    {
+	if (pCtx->path[i] == '/')
+	{
+	    HandleSignalContext ctx;
+
+	    ctx.path   = &pCtx->path[++i];
+	    ctx.signal = pCtx->signal;
+
+	    (*object->vTable->forEachChildObject) (object,
+						   handleSignal,
+						   (void *) &ctx);
+	}
+	else if (pCtx->path[i] != '\0')
+	{
+	    return TRUE;
+	}
+
+	(*object->vTable->signal.signal) (object, &pCtx->path[i],
+					  pCtx->signal->interface,
+					  pCtx->signal->name,
+					  pCtx->signal->signature,
+					  pCtx->signal->value,
+					  pCtx->signal->nValue);
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
 static void
 processSignals (CompRoot *r)
 {
     while (r->signal.head)
     {
-	CompSignal *s = r->signal.head;
-	CompObject *source, *node;
+	HandleSignalContext ctx;
+	CompSignal	    *s = r->signal.head;
 
 	if (s->next)
 	    r->signal.head = s->next;
 	else
 	    r->signal.head = r->signal.tail = NULL;
 
-	source = compLookupObject (&r->u.base.base, s->path);
+	ctx.path   = s->path;
+	ctx.signal = s;
 
-	for (node = source; node; node = node->parent)
-	    (*node->vTable->signal.signal) (node,
-					    source,
-					    s->interface,
-					    s->name,
-					    s->signature,
-					    s->value,
-					    s->nValue);
+	(*r->u.base.base.vTable->forEachChildObject) (&r->u.base.base,
+						      handleSignal,
+						      (void *) &ctx);
+
+	(*r->u.base.base.vTable->signal.signal) (&r->u.base.base,
+						 s->path,
+						 s->interface,
+						 s->name,
+						 s->signature,
+						 s->value,
+						 s->nValue);
 
 	free (s);
     }

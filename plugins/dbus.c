@@ -728,8 +728,9 @@ dbusPropChanged (CompObject *object,
 		 void	    *data,
 		 ...)
 {
-    CompObject	 *source;
-    char	 *path, *dbusInterface;
+    DBusMessage  *signal;
+    char	 *dbusPath, *dbusInterface;
+    const char	 *path;
     const char	 *interface;
     const char	 *name;
     const char	 *signature;
@@ -742,7 +743,7 @@ dbusPropChanged (CompObject *object,
 
     va_start (ap, data);
 
-    source    = va_arg (ap, CompObject *);
+    path      = va_arg (ap, const char *);
     interface = va_arg (ap, const char *);
     name      = va_arg (ap, const char *);
     signature = va_arg (ap, const char *);
@@ -754,10 +755,22 @@ dbusPropChanged (CompObject *object,
     /* register and unregister objects */
     if (strcmp (interface, "object") == 0)
     {
+	CompObject *source;
+
 	if (strcmp (name, "inserted") == 0)
-	    dbusRegisterObject (c, source);
+	{
+	    source = compLookupObject (object, path);
+	    if (source)
+		dbus_connection_register_object_path (dc->connection, path,
+						      &dbusObjectPathVTable,
+						      (void *) source);
+	}
 	else if (strcmp (name, "removed") == 0)
-	    dbusUnregisterObject (c, source);
+	{
+	    source = compLookupObject (object, path);
+	    if (source)
+		dbus_connection_unregister_object_path (dc->connection, path);
+	}
     }
 
     dbusInterface = malloc (strlen (COMPIZ_DBUS_INTERFACE_BASE) +
@@ -767,56 +780,67 @@ dbusPropChanged (CompObject *object,
 
     sprintf (dbusInterface, "%s%s", COMPIZ_DBUS_INTERFACE_BASE, interface);
 
-    path = dbusGetObjectPath (source);
-    if (path)
+    if (*path)
     {
-	DBusMessage *signal;
-
-	signal = dbus_message_new_signal (path, dbusInterface, name);
-	if (signal)
+	dbusPath = malloc (strlen (COMPIZ_DBUS_PATH_ROOT) +
+			   strlen (path) + 2);
+	if (!dbusPath)
 	{
-	    DBusMessageIter iter;
-	    int		    i;
-
-	    dbus_message_iter_init_append (signal, &iter);
-
-	    for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
-	    {
-		switch (signature[0]) {
-		case COMP_TYPE_BOOLEAN:
-		case COMP_TYPE_INT32:
-		case COMP_TYPE_DOUBLE:
-		case COMP_TYPE_STRING:
-		    dbus_message_iter_append_basic (&iter,
-						    signature[0],
-						    &value[i]);
-		    break;
-		case COMP_TYPE_OBJECT: {
-		    char *dbusPath;
-
-		    dbusPath = malloc (strlen (path) + strlen (value[i].s) +
-				       2);
-		    if (dbusPath)
-		    {
-			sprintf (dbusPath, "%s/%s", path, value[i].s);
-			dbus_message_iter_append_basic (&iter,
-							DBUS_TYPE_OBJECT_PATH,
-							&dbusPath);
-
-			free (dbusPath);
-		    }
-		} break;
-		}
-	    }
-
-	    if (strcmp (dbus_message_get_signature (signal), signature) == 0)
-		dbus_connection_send (dc->connection, signal, NULL);
-
-	    dbus_message_unref (signal);
+	    free (dbusInterface);
+	    return;
 	}
 
-	free (path);
+	sprintf (dbusPath, "%s/%s", COMPIZ_DBUS_PATH_ROOT, path);
     }
+    else
+    {
+	dbusPath = COMPIZ_DBUS_PATH_ROOT;
+    }
+
+    signal = dbus_message_new_signal (dbusPath, dbusInterface, name);
+    if (signal)
+    {
+	DBusMessageIter iter;
+	int		i;
+
+	dbus_message_iter_init_append (signal, &iter);
+
+	for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
+	{
+	    switch (signature[0]) {
+	    case COMP_TYPE_BOOLEAN:
+	    case COMP_TYPE_INT32:
+	    case COMP_TYPE_DOUBLE:
+	    case COMP_TYPE_STRING:
+		dbus_message_iter_append_basic (&iter,
+						signature[0],
+						&value[i]);
+		break;
+	    case COMP_TYPE_OBJECT: {
+		char *p;
+
+		p = malloc (strlen (dbusPath) + strlen (value[i].s) + 2);
+		if (p)
+		{
+		    sprintf (p, "%s/%s", dbusPath, value[i].s);
+		    dbus_message_iter_append_basic (&iter,
+						    DBUS_TYPE_OBJECT_PATH,
+						    &p);
+
+		    free (p);
+		}
+	    } break;
+	    }
+	}
+
+	if (strcmp (dbus_message_get_signature (signal), signature) == 0)
+	    dbus_connection_send (dc->connection, signal, NULL);
+
+	dbus_message_unref (signal);
+    }
+
+    if (*path)
+	free (dbusPath);
 
     free (dbusInterface);
 }

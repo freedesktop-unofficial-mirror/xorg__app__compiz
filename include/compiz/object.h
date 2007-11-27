@@ -237,24 +237,18 @@ typedef void (*DisconnectProc) (CompObject *object,
 				size_t     offset,
 				int	   index);
 
-/* the signal signal should be emitted for each normal signal
-   with a name, signature and named interface. signal signals
-   propogate to a root objects. source should be set to the
-   object that is emitting the original signal and args should
-   be the list of arguments. any signal handler connecting to
-   this signal must use the va_copy macro before using args. */
-typedef void (*SignalSignalProc) (CompObject   *object,
-				  CompObject   *source,
-				  const char   *interface,
-				  const char   *name,
-				  const char   *signature,
-				  CompAnyValue *value,
-				  int	       nValue);
+typedef void (*SignalProc) (CompObject   *object,
+			    const char   *source,
+			    const char   *interface,
+			    const char   *name,
+			    const char   *signature,
+			    CompAnyValue *value,
+			    int	         nValue);
 
 typedef struct _CompSignalVTable {
-    ConnectProc      connect;
-    DisconnectProc   disconnect;
-    SignalSignalProc signal;
+    ConnectProc    connect;
+    DisconnectProc disconnect;
+    SignalProc     signal;
 } CompSignalVTable;
 
 typedef int (*GetVersionProc) (CompObject *object,

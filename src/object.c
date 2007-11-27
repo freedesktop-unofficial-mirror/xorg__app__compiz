@@ -515,7 +515,7 @@ noopDisconnect (CompObject *object,
 }
 
 typedef struct _SignalContext {
-    CompObject   *source;
+    const char   *source;
     const char   *interface;
     const char   *name;
     const char   *signature;

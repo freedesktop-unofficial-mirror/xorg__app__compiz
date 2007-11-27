@@ -352,6 +352,7 @@ gconfHandleSignal (CompObject *object,
 		   ...)
 {
     CompObject	 *source;
+    const char	 *path;
     const char	 *interface;
     const char	 *name;
     const char	 *signature;
@@ -363,7 +364,7 @@ gconfHandleSignal (CompObject *object,
 
     va_start (ap, data);
 
-    source    = va_arg (ap, CompObject *);
+    path      = va_arg (ap, const char *);
     interface = va_arg (ap, const char *);
     name      = va_arg (ap, const char *);
     signature = va_arg (ap, const char *);
@@ -377,13 +378,19 @@ gconfHandleSignal (CompObject *object,
 	if (strcmp (name,      "interfaceAdded") == 0 &&
 	    strcmp (signature, "s")		 == 0)
 	{
-	    gconfReloadInterface (source, value[0].s, 0, NULL, (void *) c);
+	    source = compLookupObject (object, path);
+	    if (source)
+		gconfReloadInterface (source, value[0].s, 0, NULL, (void *) c);
 	}
     }
     else if (strcmp (interface, "properties") == 0)
     {
 	if (strncmp (signature, "ss", 2) == 0)
-	    gconfPropChanged (c, source, name, signature, value, nValue);
+	{
+	    source = compLookupObject (object, path);
+	    if (source)
+		gconfPropChanged (c, source, name, signature, value, nValue);
+	}
     }
 }
 
