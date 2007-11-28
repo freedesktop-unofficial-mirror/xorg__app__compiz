@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 #include <compiz/object.h>
 #include <compiz/c-object.h>
@@ -542,7 +543,7 @@ baseObjectSignal (CompObject *object,
 
 static void
 noopSignal (CompObject   *object,
-	    CompObject   *source,
+	    const char   *source,
 	    const char   *interface,
 	    const char   *name,
 	    const char   *signature,
@@ -1667,7 +1668,7 @@ disconnect (CompObject *object,
 
 static void
 signal (CompObject   *object,
-	CompObject   *source,
+	const char   *source,
 	const char   *interface,
 	const char   *name,
 	const char   *signature,
@@ -3629,6 +3630,144 @@ compInvokeMethod (CompObject *object,
     va_end (ap);
 
     return status;
+}
+
+int
+compSerializeMethodCall (CompObject *observer,
+			 CompObject *target,
+			 const char *interface,
+			 const char *name,
+			 const char *signature,
+			 va_list    args,
+			 void	    *data,
+			 int	    size)
+{
+    CompObject *node;
+    char       *str, *ptr;
+    int	       pathSize = 0;
+    int	       interfaceSize = strlen (interface) + 1;
+    int	       nameSize = strlen (name) + 1;
+    int	       signatureSize = strlen (signature) + 1;
+    int	       valueSize = 0;
+    int	       nValue = 0;
+    int	       requiredSize, i;
+    va_list    ap;
+
+    for (node = target; node; node = node->parent)
+    {
+	if (node == observer)
+	    break;
+
+	pathSize += strlen (node->name) + 1;
+    }
+
+    assert (node);
+
+    va_copy (ap, args);
+
+    for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
+    {
+	switch (signature[i]) {
+	case COMP_TYPE_BOOLEAN:
+	    va_arg (ap, CompBool);
+	    break;
+	case COMP_TYPE_INT32:
+	    va_arg (ap, int32_t);
+	    break;
+	case COMP_TYPE_DOUBLE:
+	    va_arg (ap, double);
+	    break;
+	case COMP_TYPE_STRING:
+	case COMP_TYPE_OBJECT:
+	    str = va_arg (ap, char *);
+	    if (str)
+		valueSize += strlen (str) + 1;
+	    break;
+	}
+
+	nValue++;
+    }
+
+    va_end (ap);
+
+    requiredSize = sizeof (CompSerializedMethodCallHeader) +
+	pathSize + interfaceSize + nameSize + signatureSize +
+	sizeof (CompAnyValue) * nValue + valueSize;
+
+    if (requiredSize <= size)
+    {
+	CompSerializedMethodCallHeader *header = data;
+	int			       offset;
+
+	header->path = (char *) (header + 1);
+
+	offset = pathSize;
+	header->path[offset - 1] = '\0';
+
+	for (node = target; node; node = node->parent)
+	{
+	    int len;
+
+	    if (node == observer)
+		break;
+
+	    if (offset-- < pathSize)
+		header->path[offset] = '/';
+
+	    len = strlen (node->name);
+	    offset -= len;
+	    memcpy (&header->path[offset], node->name, len);
+	}
+
+	header->interface = (char *) (header->path + pathSize);
+	strcpy (header->interface, interface);
+
+	header->name = (char *) (header->interface + interfaceSize);
+	strcpy (header->name, name);
+
+	header->signature = (char *) (header->name + nameSize);
+	strcpy (header->signature, signature);
+
+	header->value  = (CompAnyValue *) (header->signature + signatureSize);
+	header->nValue = nValue;
+
+	ptr = (char *) (header->value + nValue);
+
+	va_copy (ap, args);
+
+	for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
+	{
+	    switch (signature[i]) {
+	    case COMP_TYPE_BOOLEAN:
+		header->value[i].b = va_arg (ap, CompBool);
+		break;
+	    case COMP_TYPE_INT32:
+		header->value[i].i = va_arg (ap, int32_t);
+		break;
+	    case COMP_TYPE_DOUBLE:
+		header->value[i].d = va_arg (ap, double);
+		break;
+	    case COMP_TYPE_STRING:
+	    case COMP_TYPE_OBJECT:
+		str = va_arg (ap, char *);
+		if (str)
+		{
+		    header->value[i].s = ptr;
+		    strcpy (header->value[i].s, str);
+		    ptr += strlen (str) + 1;
+		}
+		else
+		{
+		    header->value[i].s = NULL;
+		}
+		break;
+	    }
+	}
+
+	va_end (ap);
+    }
+
+    return requiredSize;
 }
 
 static CompBool

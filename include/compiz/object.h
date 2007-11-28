@@ -506,6 +506,25 @@ compInvokeMethod (CompObject *object,
 		  const char *out,
 		  ...);
 
+typedef struct _CompSerializedMethodCallHeader {
+    char	 *path;
+    char	 *interface;
+    char	 *name;
+    char	 *signature;
+    CompAnyValue *value;
+    int		 nValue;
+} CompSerializedMethodCallHeader;
+
+int
+compSerializeMethodCall (CompObject *observer,
+			 CompObject *target,
+			 const char *interface,
+			 const char *name,
+			 const char *signature,
+			 va_list    args,
+			 void	    *data,
+			 int	    size);
+
 COMPIZ_END_DECLS
 
 #endif

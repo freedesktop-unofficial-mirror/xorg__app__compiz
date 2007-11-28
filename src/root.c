@@ -30,12 +30,8 @@
 
 struct _CompSignal {
     struct _CompSignal *next;
-    char	       *path;
-    char	       *interface;
-    char	       *name;
-    char	       *signature;
-    CompAnyValue       *value;
-    int		       nValue;
+
+    CompSerializedMethodCallHeader *header;
 };
 
 static CompBool
@@ -90,11 +86,11 @@ handleSignal (CompObject *object,
 	}
 
 	(*object->vTable->signal.signal) (object, &pCtx->path[i],
-					  pCtx->signal->interface,
-					  pCtx->signal->name,
-					  pCtx->signal->signature,
-					  pCtx->signal->value,
-					  pCtx->signal->nValue);
+					  pCtx->signal->header->interface,
+					  pCtx->signal->header->name,
+					  pCtx->signal->header->signature,
+					  pCtx->signal->header->value,
+					  pCtx->signal->header->nValue);
 
 	return FALSE;
     }
@@ -115,7 +111,7 @@ processSignals (CompRoot *r)
 	else
 	    r->signal.head = r->signal.tail = NULL;
 
-	ctx.path   = s->path;
+	ctx.path   = s->header->path;
 	ctx.signal = s;
 
 	(*r->u.base.base.vTable->forEachChildObject) (&r->u.base.base,
@@ -123,12 +119,12 @@ processSignals (CompRoot *r)
 						      (void *) &ctx);
 
 	(*r->u.base.base.vTable->signal.signal) (&r->u.base.base,
-						 s->path,
-						 s->interface,
-						 s->name,
-						 s->signature,
-						 s->value,
-						 s->nValue);
+						 s->header->path,
+						 s->header->interface,
+						 s->header->name,
+						 s->header->signature,
+						 s->header->value,
+						 s->header->nValue);
 
 	free (s);
     }
@@ -219,130 +215,48 @@ emitSignalSignal (CompObject *object,
 		  const char *signature,
 		  ...)
 {
-    CompRoot   *r = NULL;
     CompObject *node;
     CompSignal *signal;
-    char       *data, *str;
-    int        pathSize = 0;
-    int	       interfaceSize = strlen (interface) + 1;
-    int	       nameSize = strlen (name) + 1;
-    int	       signatureSize = strlen (signature) + 1;
-    int	       valueSize = 0;
-    int	       nValue = 0;
-    int	       i, offset;
+    int	       size;
     va_list    args;
 
-    for (node = object; node->parent; node = node->parent)
-	pathSize += strlen (node->name) + 1;
-
-    r = (CompRoot *) node;
+    for (node = object; node->parent; node = node->parent);
 
     va_start (args, signature);
 
-    for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
-    {
-	switch (signature[i]) {
-	case COMP_TYPE_BOOLEAN:
-	    va_arg (args, CompBool);
-	    break;
-	case COMP_TYPE_INT32:
-	    va_arg (args, int32_t);
-	    break;
-	case COMP_TYPE_DOUBLE:
-	    va_arg (args, double);
-	    break;
-	case COMP_TYPE_STRING:
-	case COMP_TYPE_OBJECT:
-	    str = va_arg (args, char *);
-	    if (str)
-		valueSize += strlen (str) + 1;
-	    break;
-	}
+    size = compSerializeMethodCall (node,
+				    object,
+				    interface,
+				    name,
+				    signature,
+				    args,
+				    NULL,
+				    0);
 
-	nValue++;
+    signal = malloc (sizeof (CompSignal) + size);
+    if (signal)
+    {
+	ROOT (node);
+
+	signal->next   = NULL;
+	signal->header = (CompSerializedMethodCallHeader *) (signal + 1);
+
+	compSerializeMethodCall (node,
+				 object,
+				 interface,
+				 name,
+				 signature,
+				 args,
+				 signal->header,
+				 size);
+
+	if (r->signal.tail)
+	    r->signal.tail->next = signal;
+	else
+	    r->signal.head = signal;
+
+	r->signal.tail = signal;
     }
 
     va_end (args);
-
-    signal = malloc (sizeof (CompSignal) +
-		     pathSize +
-		     interfaceSize +
-		     nameSize +
-		     signatureSize +
-		     sizeof (CompAnyValue) * nValue +
-		     valueSize);
-    if (!signal)
-	return;
-
-    signal->next = NULL;
-    signal->path = (char *) (signal + 1);
-
-    offset = pathSize;
-    signal->path[offset - 1] = '\0';
-
-    for (node = object; node->parent; node = node->parent)
-    {
-	int len;
-
-	if (offset-- < pathSize)
-	    signal->path[offset] = '/';
-
-	len = strlen (node->name);
-	offset -= len;
-	memcpy (&signal->path[offset], node->name, len);
-    }
-
-    signal->interface = (char *) (signal->path + pathSize);
-    strcpy (signal->interface, interface);
-
-    signal->name = (char *) (signal->interface + interfaceSize);
-    strcpy (signal->name, name);
-
-    signal->signature = (char *) (signal->name + nameSize);
-    strcpy (signal->signature, signature);
-
-    signal->value  = (CompAnyValue *) (signal->signature + signatureSize);
-    signal->nValue = nValue;
-
-    data = (char *) (signal->value + nValue);
-
-    va_start (args, signature);
-
-    for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
-    {
-	switch (signature[i]) {
-	case COMP_TYPE_BOOLEAN:
-	    signal->value[i].b = va_arg (args, CompBool);
-	    break;
-	case COMP_TYPE_INT32:
-	    signal->value[i].i = va_arg (args, int32_t);
-	    break;
-	case COMP_TYPE_DOUBLE:
-	    signal->value[i].d = va_arg (args, double);
-	    break;
-	case COMP_TYPE_STRING:
-	case COMP_TYPE_OBJECT:
-	    str = va_arg (args, char *);
-	    if (str)
-	    {
-		signal->value[i].s = data;
-		strcpy (signal->value[i].s, str);
-		data += strlen (str) + 1;
-	    }
-	    else
-	    {
-		signal->value[i].s = NULL;
-	    }
-	    break;
-	}
-    }
-
-    va_end (args);
-
-    if (r->signal.tail)
-	r->signal.tail->next = signal;
-    else
-	r->signal.head = signal;
-
-    r->signal.tail = signal;
 }
