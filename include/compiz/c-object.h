@@ -45,10 +45,12 @@ typedef struct _CSignal {
     const char *name;
     const char *out;
     size_t     offset;
+    int        index;
+    const char *interface;
 } CSignal;
 
-#define C_SIGNAL(name, out, vtable)	     \
-    { # name, out, offsetof (vtable, name) }
+#define C_SIGNAL(name, out, vtable)		      \
+    { # name, out, offsetof (vtable, name), 0, NULL }
 
 typedef struct _CProp {
     const char *name;
@@ -126,7 +128,7 @@ typedef struct _CInterface {
     size_t	  offset;
     const CMethod *method;
     int		  nMethod;
-    const CSignal *signal;
+    CSignal       **signal;
     int		  nSignal;
     CBoolProp     *boolProp;
     int		  nBoolProp;
@@ -164,6 +166,7 @@ typedef struct _CContext {
     int			 nInterface;
     const CompObjectType *type;
     char		 *data;
+    size_t	         signalVecOffset;
     CompObjectVTableVec	 *vtStore;
     int			 version;
 } CContext;
@@ -201,6 +204,22 @@ typedef struct _CObjectPrivate {
 	    (InitObjectProc) name ## Init ## type,		 \
 	    (FiniObjectProc) name ## Fini ## type }
 
+#define C_EMIT_SIGNAL(object, prototype, vec, signal, ...)		\
+    if ((signal)->out)							\
+    {									\
+	if (vec)							\
+	    EMIT_SIGNAL (object, prototype,				\
+			 (vec)[(signal)->index], ##__VA_ARGS__); 	\
+									\
+	emitSignalSignal (object, (signal)->interface, (signal)->name,	\
+			  (signal)->out, ##__VA_ARGS__);		\
+    }									\
+    else if (vec)							\
+    {									\
+	EMIT_SIGNAL (object, prototype,					\
+		     (vec)[(signal)->index], ##__VA_ARGS__);		\
+    }
+
 
 void
 cInitObjectVTable (CompObjectVTable *vTable,
@@ -231,6 +250,22 @@ cForEachInterface (CompObject	         *object,
 		   InterfaceCallBackProc proc,
 		   void		         *closure);
 
+int
+cConnect (CompObject *object,
+	  const char *interface,
+	  size_t     offset,
+	  CompObject *descendant,
+	  const char *descendantInterface,
+	  size_t     descendantOffset,
+	  const char *details,
+	  va_list    args);
+
+void
+cDisconnect (CompObject *object,
+	     const char *interface,
+	     size_t     offset,
+	     int	id);
+
 CompBool
 cForEachMethod (CompObject	   *object,
 		const char	   *interface,
@@ -247,11 +282,6 @@ CompBool
 cForEachProp (CompObject       *object,
 	      const char       *interface,
 	      PropCallBackProc proc,
-	      void	       *closure);
-
-CompBool
-cForEachType (CompObject       *object,
-	      TypeCallBackProc proc,
 	      void	       *closure);
 
 CompBool

@@ -2499,7 +2499,7 @@ static CompObjectType displayObjectType = {
 };
 
 static void
-displayGetCContect (CompObject *object,
+displayGetCContext (CompObject *object,
 		    CContext   *ctx)
 {
     DISPLAY (object);
@@ -2520,7 +2520,7 @@ getDisplayObjectType (void)
     if (!init)
     {
 	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface),
-			&displayObjectVTable.base, displayGetCContect,
+			&displayObjectVTable.base, displayGetCContext,
 			displayObjectType.initVTable);
 	init = TRUE;
     }

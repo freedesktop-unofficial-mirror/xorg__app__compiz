@@ -427,25 +427,12 @@ typedef struct _CompSignalHandler {
     CompSerializedMethodCallHeader *header;
 } CompSignalHandler;
 
-#define COMP_OBJECT_SIGNAL_INSERTED          0
-#define COMP_OBJECT_SIGNAL_REMOVED           1
-#define COMP_OBJECT_SIGNAL_INTERFACE_ADDED   2
-#define COMP_OBJECT_SIGNAL_INTERFACE_REMOVED 3
-#define COMP_OBJECT_SIGNAL_SIGNAL            4
-#define COMP_OBJECT_SIGNAL_BOOL_CHANGED      5
-#define COMP_OBJECT_SIGNAL_INT_CHANGED       6
-#define COMP_OBJECT_SIGNAL_DOUBLE_CHANGED    7
-#define COMP_OBJECT_SIGNAL_STRING_CHANGED    8
-#define COMP_OBJECT_SIGNAL_NUM               9
-
 struct _CompObject {
     const CompObjectVTable *vTable;
     const char		   *name;
     CompObject		   *parent;
-
-    CompSignalHandler *signal[COMP_OBJECT_SIGNAL_NUM];
-
-    CompPrivate	*privates;
+    CompSignalHandler      **signalVec;
+    CompPrivate		   *privates;
 
     CompObjectTypeID id;
 };
@@ -457,12 +444,12 @@ emitSignalSignal (CompObject *object,
 		  const char *signature,
 		  ...);
 
-#define VCALL(object, offset, prototype, ...)				\
+#define INVOKE_HANDLER_PROC(object, offset, prototype, ...)		\
     (*(*((prototype *)							\
 	 (((char *) (object)->vTable) +					\
 	  offset)))) (object, ##__VA_ARGS__)
 
-#define EMIT_INT_SIGNAL(object, type, handlers, ...)			\
+#define EMIT_SIGNAL(object, type, handlers, ...)			\
     do {								\
 	CompSignalHandler   *handler = handlers;			\
 	CompObjectVTableVec save;					\
@@ -474,23 +461,19 @@ emitSignalSignal (CompObject *object,
 		save.vTable = handler->object->vTable;			\
 									\
 		UNWRAP (handler, handler->object, vTable);		\
-		VCALL (handler->object, handler->offset,		\
-		       type, ##__VA_ARGS__);				\
+		INVOKE_HANDLER_PROC (handler->object, handler->offset,	\
+				     type, ##__VA_ARGS__);		\
 		WRAP (handler, handler->object, vTable, save.vTable);	\
 	    }								\
 	    else							\
 	    {								\
-		VCALL (handler->object, handler->offset,		\
-		       type, ##__VA_ARGS__);				\
+		INVOKE_HANDLER_PROC (handler->object, handler->offset,	\
+				     type, ##__VA_ARGS__);		\
 	    }								\
 									\
 	    handler = handler->next;					\
 	}								\
     } while (0)
-
-#define EMIT_SIGNAL(object, type, handlers, interface, name, signature, ...) \
-    EMIT_INT_SIGNAL (object, type, handlers, ##__VA_ARGS__);		     \
-    emitSignalSignal (object, interface, name, signature, ##__VA_ARGS__)
 
 
 CompObjectType *
