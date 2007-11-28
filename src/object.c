@@ -1532,6 +1532,18 @@ removed (CompObject *object)
     C_EMIT_SIGNAL (object, RemovedProc, object->signalVec, &removedSignal);
 }
 
+static int
+getSignalVecSize (const CInterface *interface,
+		  int		   nInterface)
+{
+    int	i, size = 0;
+
+    for (i = 0; i < nInterface; i++)
+	size += interface[i].nSignal;
+
+    return size;
+}
+
 static void
 interfaceAdded (CompObject *object,
 		const char *interface)
@@ -1544,6 +1556,52 @@ static void
 interfaceRemoved (CompObject *object,
 		  const char *interface)
 {
+    CompObject *node;
+
+    for (node = object; node; node = node->parent)
+    {
+	if (node->signalVec)
+	{
+	    int	n;
+
+	    n = getSignalVecSize (objectInterface, N_ELEMENTS (objectInterface));
+	    while (n--)
+	    {
+		CompSignalHandler *handler, *prev;
+
+		prev    = NULL;
+		handler = node->signalVec[n];
+
+		while (handler)
+		{
+		    if (handler->object == object)
+		    {
+			if (strcmp (handler->header->interface, interface) == 0)
+			{
+			    if (prev)
+			    {
+				prev->next = handler->next;
+				free (handler);
+				handler = prev->next;
+			    }
+			    else
+			    {
+				node->signalVec[n] = handler->next;
+				free (handler);
+				handler = node->signalVec[n];
+			    }
+
+			    continue;
+			}
+		    }
+
+		    prev    = handler;
+		    handler = handler->next;
+		}
+	    }
+	}
+    }
+
     C_EMIT_SIGNAL (object, InterfaceRemovedProc, object->signalVec,
 		   &interfaceRemovedSignal, interface);
 }
@@ -1584,18 +1642,6 @@ signalIndex (const char	      *name,
     return FALSE;
 }
 
-static int
-getSignalsVecSize (const CInterface *interface,
-		   int		    nInterface)
-{
-    int	i, size = 0;
-
-    for (i = 0; i < nInterface; i++)
-	size += interface[i].nSignal;
-
-    return size;
-}
-
 static CompSignalHandler **
 getSignalsVec (const CInterface *interface,
 	       int		nInterface,
@@ -1609,7 +1655,7 @@ getSignalsVec (const CInterface *interface,
 	CompSignalHandler **vec;
 	int		  size;
 
-	size = getSignalsVecSize (interface, nInterface);
+	size = getSignalVecSize (interface, nInterface);
 	if (!size)
 	    return NULL;
 
