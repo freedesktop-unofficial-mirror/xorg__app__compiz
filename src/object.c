@@ -1513,12 +1513,22 @@ removeObject (CompObject *object)
 static void
 inserted (CompObject *object)
 {
+    int i;
+
     C_EMIT_SIGNAL (object, InsertedProc, object->signalVec, &insertedSignal);
+
+    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
+	(*object->vTable->interfaceAdded) (object, objectInterface[i].name);
 }
 
 static void
 removed (CompObject *object)
 {
+    int i;
+
+    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
+	(*object->vTable->interfaceRemoved) (object, objectInterface[i].name);
+
     C_EMIT_SIGNAL (object, RemovedProc, object->signalVec, &removedSignal);
 }
 
