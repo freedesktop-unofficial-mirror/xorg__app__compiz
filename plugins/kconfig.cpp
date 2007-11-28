@@ -40,7 +40,6 @@ typedef struct _KconfigCore {
     CompTimeoutHandle   syncHandle;
     CompTimeoutHandle   reloadHandle;
     CompFileWatchHandle fileWatch;
-    int		        signalHandle;
 } KconfigCore;
 
 #define GET_KCONFIG_CORE(c)					 \
@@ -309,18 +308,6 @@ kconfigInitCore (CompCore *c)
     if (!kc->config)
 	return FALSE;
 
-    kc->signalHandle =
-	(*c->u.base.u.base.vTable->signal.connect) (&c->u.base.u.base, "signal",
-						    offsetof (CompSignalVTable,
-							      signal),
-						    kconfigHandleSignal,
-						    NULL);
-    if (kc->signalHandle < 0)
-    {
-	delete kc->config;
-	return FALSE;
-    }
-
     kc->reloadHandle = compAddTimeout (0, kconfigRcReload, 0);
     kc->syncHandle   = 0;
     kc->fileWatch    = 0;
@@ -356,11 +343,6 @@ kconfigFiniCore (CompCore *c)
 
     if (kc->fileWatch)
 	removeFileWatch (kc->fileWatch);
-
-    (*c->u.base.u.base.vTable->signal.disconnect) (&c->u.base.u.base, "signal",
-						   offsetof (CompSignalVTable,
-							     signal),
-						   kc->signalHandle);
 
     delete kc->config;
 }

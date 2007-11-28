@@ -222,15 +222,14 @@ typedef void (*ChildObjectAddedProc) (CompObject *object,
 typedef void (*ChildObjectRemovedProc) (CompObject *object,
 					const char *name);
 
-typedef void (*SignalHandlerProc) (CompObject *object,
-				   void	      *data,
-				   ...);
-
-typedef int (*ConnectProc) (CompObject	      *object,
-			    const char	      *interface,
-			    size_t	      offset,
-			    SignalHandlerProc proc,
-			    void	      *data);
+typedef int (*ConnectProc) (CompObject *object,
+			    const char *interface,
+			    size_t     offset,
+			    CompObject *descendant,
+			    const char *descendantInterface,
+			    size_t     descendantOffset,
+			    const char *details,
+			    va_list    args);
 
 typedef void (*DisconnectProc) (CompObject *object,
 				const char *interface,
@@ -409,11 +408,23 @@ void
 compObjectFini (CompObject           *object,
 		const CompObjectType *type);
 
+typedef struct _CompSerializedMethodCallHeader {
+    char	 *path;
+    char	 *interface;
+    char	 *name;
+    char	 *signature;
+    CompAnyValue *value;
+    int		 nValue;
+} CompSerializedMethodCallHeader;
+
 typedef struct _CompSignalHandler {
-    struct _CompSignalHandler *next;
-    int			      id;
-    SignalHandlerProc	      proc;
-    void		      *data;
+    struct _CompSignalHandler	   *next;
+    int				   id;
+    CompObject			   *object;
+    const CompObjectVTable	   *vTable;
+    size_t			   offset;
+    MethodMarshalProc		   marshal;
+    CompSerializedMethodCallHeader *header;
 } CompSignalHandler;
 
 #define COMP_OBJECT_SIGNAL_INSERTED          0
@@ -446,20 +457,41 @@ emitSignalSignal (CompObject *object,
 		  const char *signature,
 		  ...);
 
-#define EMIT_SIGNAL(object, handlers, ...)			     \
-    do {							     \
-	CompSignalHandler *handler = handlers;			     \
-								     \
-	while (handler)						     \
-	{							     \
-	    (*handler->proc) (object, handler->data, ##__VA_ARGS__); \
-	    handler = handler->next;				     \
-	}							     \
+#define VCALL(object, offset, prototype, ...)				\
+    (*(*((prototype *)							\
+	 (((char *) (object)->vTable) +					\
+	  offset)))) (object, ##__VA_ARGS__)
+
+#define EMIT_INT_SIGNAL(object, type, handlers, ...)			\
+    do {								\
+	CompSignalHandler   *handler = handlers;			\
+	CompObjectVTableVec save;					\
+									\
+	while (handler)							\
+	{								\
+	    if (handler->vTable)					\
+	    {								\
+		save.vTable = handler->object->vTable;			\
+									\
+		UNWRAP (handler, handler->object, vTable);		\
+		VCALL (handler->object, handler->offset,		\
+		       type, ##__VA_ARGS__);				\
+		WRAP (handler, handler->object, vTable, save.vTable);	\
+	    }								\
+	    else							\
+	    {								\
+		VCALL (handler->object, handler->offset,		\
+		       type, ##__VA_ARGS__);				\
+	    }								\
+									\
+	    handler = handler->next;					\
+	}								\
     } while (0)
 
-#define EMIT_EXT_SIGNAL(object, handlers, interface, name, signature, ...) \
-    EMIT_SIGNAL (object, handlers, ##__VA_ARGS__);			   \
+#define EMIT_SIGNAL(object, type, handlers, interface, name, signature, ...) \
+    EMIT_INT_SIGNAL (object, type, handlers, ##__VA_ARGS__);		     \
     emitSignalSignal (object, interface, name, signature, ##__VA_ARGS__)
+
 
 CompObjectType *
 getObjectType (void);
@@ -506,18 +538,9 @@ compInvokeMethod (CompObject *object,
 		  const char *out,
 		  ...);
 
-typedef struct _CompSerializedMethodCallHeader {
-    char	 *path;
-    char	 *interface;
-    char	 *name;
-    char	 *signature;
-    CompAnyValue *value;
-    int		 nValue;
-} CompSerializedMethodCallHeader;
-
 int
 compSerializeMethodCall (CompObject *observer,
-			 CompObject *target,
+			 CompObject *subject,
 			 const char *interface,
 			 const char *name,
 			 const char *signature,

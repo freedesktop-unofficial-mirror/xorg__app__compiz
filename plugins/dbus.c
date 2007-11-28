@@ -33,16 +33,24 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
+#define COMPIZ_DBUS_VERSION 20071123
+
 #define COMPIZ_DBUS_SERVICE_NAME   "org.freedesktop.compiz"
 #define COMPIZ_DBUS_INTERFACE_BASE "org.freedesktop.compiz."
 #define COMPIZ_DBUS_PATH_ROOT	   "/org/freedesktop/compiz"
 
 static int dbusCorePrivateIndex;
 
+typedef struct _DBusCoreVTable {
+    CompCoreVTable base;
+    SignalProc     emitSignal;
+} DBusCoreVTable;
+
 typedef struct _DBusCore {
+    CompObjectVTableVec object;
+
     DBusConnection    *connection;
     CompWatchFdHandle watchFdHandle;
-    int		      signalHandle;
 } DBusCore;
 
 #define GET_DBUS_CORE(c)			           \
@@ -51,6 +59,10 @@ typedef struct _DBusCore {
 #define DBUS_CORE(c)		     \
     DBusCore *dc = GET_DBUS_CORE (c)
 
+
+static CInterface dbusCoreInterface[] = {
+    C_INTERFACE (dbus, Core, DBusCoreVTable, _, _, _, _, _, _, _, _)
+};
 
 static char *
 dbusGetObjectPath (CompObject *object)
@@ -724,33 +736,19 @@ dbusUnregisterObjectTree (CompObject *object,
 }
 
 static void
-dbusPropChanged (CompObject *object,
-		 void	    *data,
-		 ...)
+dbusEmitSignal (CompObject   *object,
+		const char   *path,
+		const char   *interface,
+		const char   *name,
+		const char   *signature,
+		CompAnyValue *value,
+		int	     nValue)
 {
-    DBusMessage  *signal;
-    char	 *dbusPath, *dbusInterface;
-    const char	 *path;
-    const char	 *interface;
-    const char	 *name;
-    const char	 *signature;
-    CompAnyValue *value;
-    int		 nValue;
-    va_list      ap;
+    DBusMessage *signal;
+    char	*dbusPath, *dbusInterface;
 
     CORE (object);
     DBUS_CORE (c);
-
-    va_start (ap, data);
-
-    path      = va_arg (ap, const char *);
-    interface = va_arg (ap, const char *);
-    name      = va_arg (ap, const char *);
-    signature = va_arg (ap, const char *);
-    value     = va_arg (ap, CompAnyValue *);
-    nValue    = va_arg (ap, int);
-
-    va_end (ap);
 
     /* register and unregister objects */
     if (strcmp (interface, "object") == 0)
@@ -897,6 +895,10 @@ dbusProcessMessages (void *data)
     return TRUE;
 }
 
+static DBusCoreVTable dbusCoreObjectVTable = {
+    .emitSignal = dbusEmitSignal
+};
+
 static CompBool
 dbusInitCore (CompCore *c)
 {
@@ -909,6 +911,10 @@ dbusInitCore (CompCore *c)
     if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
+   if (!cObjectInterfaceInit (&c->u.base.u.base,
+			      &dbusCoreObjectVTable.base.base.base))
+	return FALSE;
+
     dbus_error_init (&error);
 
     dc->connection = dbus_bus_get (DBUS_BUS_SESSION, &error);
@@ -918,6 +924,7 @@ dbusInitCore (CompCore *c)
 			"dbus_bus_get error: %s", error.message);
 
 	dbus_error_free (&error);
+	cObjectInterfaceFini (&c->u.base.u.base);
 	return FALSE;
     }
 
@@ -925,21 +932,15 @@ dbusInitCore (CompCore *c)
 
     status = dbus_connection_get_unix_fd (dc->connection, &fd);
     if (!status)
+    {
+	cObjectInterfaceFini (&c->u.base.u.base);
 	return FALSE;
+    }
 
     dc->watchFdHandle = compAddWatchFd (fd,
 					POLLIN | POLLPRI | POLLHUP | POLLERR,
 					dbusProcessMessages,
 					c);
-
-    dc->signalHandle =
-	(*c->u.base.u.base.vTable->signal.connect) (&c->u.base.u.base, "signal",
-						    offsetof (CompSignalVTable,
-							      signal),
-						    dbusPropChanged,
-						    NULL);
-    if (dc->signalHandle < 0)
-	return FALSE;
 
     dbusRequestName (c, COMPIZ_DBUS_SERVICE_NAME);
 
@@ -953,30 +954,47 @@ dbusFiniCore (CompCore *c)
 {
     DBUS_CORE (c);
 
-    (*c->u.base.u.base.vTable->signal.disconnect) (&c->u.base.u.base, "signal",
-						   offsetof (CompSignalVTable,
-							     signal),
-						   dc->signalHandle);
-
     dbusUnregisterObjectTree (&c->u.base.u.base, (void *) c);
 
     dbusReleaseName (c, COMPIZ_DBUS_SERVICE_NAME);
 
     compRemoveWatchFd (dc->watchFdHandle);
+
+    cObjectInterfaceFini (&c->u.base.u.base);
+}
+
+static void
+dbusCoreGetCContext (CompObject *object,
+		     CContext   *ctx)
+{
+    DBUS_CORE (GET_CORE (object));
+
+    ctx->interface  = dbusCoreInterface;
+    ctx->nInterface = N_ELEMENTS (dbusCoreInterface);
+    ctx->type	    = NULL;
+    ctx->data	    = (char *) dc;
+    ctx->vtStore    = &dc->object;
+    ctx->version    = COMPIZ_DBUS_VERSION;
 }
 
 static CObjectPrivate dbusObj[] = {
-    C_OBJECT_PRIVATE ("core", dbus, Core, DBusCore, X, _)
+    C_OBJECT_PRIVATE ("core", dbus, Core, DBusCore, X, X)
 };
 
 static CompBool
 dbusInsert (CompObject *parent,
 	    CompBranch *branch)
 {
-    printf ("dbusInsert\n");
-
     if (!cObjectInitPrivates (dbusObj, N_ELEMENTS (dbusObj)))
 	return FALSE;
+
+    (*parent->vTable->signal.connect) (parent,
+				       "signal",
+				       offsetof (CompSignalVTable, signal),
+				       &branch->u.base,
+				       "dbus",
+				       offsetof (DBusCoreVTable, emitSignal),
+				       NULL, (va_list) 0);
 
     return TRUE;
 }
@@ -986,8 +1004,6 @@ dbusRemove (CompObject *parent,
 	    CompBranch *branch)
 {
     cObjectFiniPrivates (dbusObj, N_ELEMENTS (dbusObj));
-
-    printf ("dbusRemove\n");
 }
 
 static Bool

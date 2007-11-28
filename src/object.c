@@ -435,11 +435,14 @@ noopForEachChildObject (CompObject		*object,
 }
 
 typedef struct _ConnectContext {
-    const char        *interface;
-    size_t	      offset;
-    SignalHandlerProc proc;
-    void	      *data;
-    int		      result;
+    const char *interface;
+    size_t     offset;
+    CompObject *descendant;
+    const char *descendantInterface;
+    size_t     descendantOffset;
+    const char *details;
+    va_list    args;
+    int	       result;
 } ConnectContext;
 
 static CompBool
@@ -448,28 +451,38 @@ baseObjectConnect (CompObject *object,
 {
     ConnectContext *pCtx = (ConnectContext *) closure;
 
-    pCtx->result = (*object->vTable->signal.connect) (object,
-						      pCtx->interface,
-						      pCtx->offset,
-						      pCtx->proc,
-						      pCtx->data);
+    pCtx->result =
+	(*object->vTable->signal.connect) (object,
+					   pCtx->interface,
+					   pCtx->offset,
+					   pCtx->descendant,
+					   pCtx->descendantInterface,
+					   pCtx->descendantOffset,
+					   pCtx->details,
+					   pCtx->args);
 
     return TRUE;
 }
 
 static int
-noopConnect (CompObject	       *object,
-	     const char        *interface,
-	     size_t	       offset,
-	     SignalHandlerProc proc,
-	     void	       *data)
+noopConnect (CompObject *object,
+	     const char *interface,
+	     size_t     offset,
+	     CompObject *descendant,
+	     const char *descendantInterface,
+	     size_t     descendantOffset,
+	     const char *details,
+	     va_list	args)
 {
     ConnectContext ctx;
 
-    ctx.interface = interface;
-    ctx.offset    = offset;
-    ctx.proc      = proc;
-    ctx.data      = data;
+    ctx.interface           = interface;
+    ctx.offset              = offset;
+    ctx.descendant          = descendant;
+    ctx.descendantInterface = descendantInterface;
+    ctx.descendantOffset    = descendantOffset;
+    ctx.details             = details;
+    ctx.args                = args;
 
     (*object->vTable->forBaseObject) (object,
 				      baseObjectConnect,
@@ -1482,35 +1495,35 @@ removeObject (CompObject *object)
 static void
 inserted (CompObject *object)
 {
-    EMIT_EXT_SIGNAL (object,
-		     object->signal[COMP_OBJECT_SIGNAL_INSERTED],
-		     "object", "inserted", "");
+    EMIT_SIGNAL (object, InsertedProc,
+		 object->signal[COMP_OBJECT_SIGNAL_INSERTED],
+		 "object", "inserted", "");
 }
 
 static void
 removed (CompObject *object)
 {
-    EMIT_EXT_SIGNAL (object,
-		     object->signal[COMP_OBJECT_SIGNAL_REMOVED],
-		     "object", "removed", "");
+    EMIT_SIGNAL (object, RemovedProc,
+		 object->signal[COMP_OBJECT_SIGNAL_REMOVED],
+		 "object", "removed", "");
 }
 
 static void
 interfaceAdded (CompObject *object,
 		const char *interface)
 {
-    EMIT_EXT_SIGNAL (object,
-		     object->signal[COMP_OBJECT_SIGNAL_INTERFACE_ADDED],
-		     "object", "interfaceAdded", "s", interface);
+    EMIT_SIGNAL (object, InterfaceAddedProc,
+		 object->signal[COMP_OBJECT_SIGNAL_INTERFACE_ADDED],
+		 "object", "interfaceAdded", "s", interface);
 }
 
 static void
 interfaceRemoved (CompObject *object,
 		  const char *interface)
 {
-    EMIT_EXT_SIGNAL (object,
-		     object->signal[COMP_OBJECT_SIGNAL_INTERFACE_REMOVED],
-		     "object", "interfaceRemoved", "s", interface);
+    EMIT_SIGNAL (object, InterfaceRemovedProc,
+		 object->signal[COMP_OBJECT_SIGNAL_INTERFACE_REMOVED],
+		 "object", "interfaceRemoved", "s", interface);
 }
 
 static CompBool
@@ -1518,7 +1531,8 @@ signalIndex (const char	      *name,
 	     const CInterface *interface,
 	     int	      nInterface,
 	     size_t	      offset,
-	     int	      *index)
+	     int	      *index,
+	     const char	      **signature)
 {
     int i, j, count = 0;
 
@@ -1530,14 +1544,22 @@ signalIndex (const char	      *name,
 	    {
 		if (offset == interface[i].signal[j].offset)
 		{
+		    if (signature)
+			*signature = interface[i].signal[j].out;
+
 		    *index = count;
+
 		    return TRUE;
 		}
 
 		count++;
 	    }
 
+	    if (signature)
+		*signature = NULL;
+
 	    *index = -1;
+
 	    return TRUE;
 	}
 
@@ -1547,6 +1569,76 @@ signalIndex (const char	      *name,
     return FALSE;
 }
 
+typedef struct _HandleConnectContext {
+    const char		   *interface;
+    size_t		   offset;
+    char		   *in;
+    CompBool		   out;
+    const CompObjectVTable *vTable;
+    MethodMarshalProc	   marshal;
+} HandleConnectContext;
+
+static CompBool
+connectMethod (CompObject	 *object,
+	       const char	 *name,
+	       const char	 *in,
+	       const char	 *out,
+	       size_t		 offset,
+	       MethodMarshalProc marshal,
+	       void		 *closure)
+{
+    HandleConnectContext *pCtx = (HandleConnectContext *) closure;
+
+    if (offset != pCtx->offset)
+	return TRUE;
+
+    if (out[0] != '\0')
+    {
+	pCtx->out = TRUE;
+	return FALSE;
+    }
+
+    pCtx->out     = FALSE;
+    pCtx->in      = strdup (in);
+    pCtx->offset  = offset;
+    pCtx->marshal = marshal;
+
+    return FALSE;
+}
+
+static CompBool
+connectInterface (CompObject	       *object,
+		  const char	       *name,
+		  size_t	       offset,
+		  const CompObjectType *type,
+		  void		       *closure)
+{
+    HandleConnectContext *pCtx = (HandleConnectContext *) closure;
+
+    if (strcmp (name, pCtx->interface) == 0)
+    {
+	if (!(*object->vTable->forEachMethod) (object, name, connectMethod,
+					       closure))
+	{
+	    /* method must not have any output arguments */
+	    if (pCtx->out)
+		return TRUE;
+	}
+
+	/* need vTable if interface is not part of object type */
+	if (!type)
+	    pCtx->vTable = object->vTable;
+
+	/* add interface vTable offset to method offset set by
+	   connectMethod function */
+	pCtx->offset += offset;
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
 static int
 handleConnect (CompObject	 *object,
 	       const CInterface  *interface,
@@ -1554,24 +1646,77 @@ handleConnect (CompObject	 *object,
 	       CompSignalHandler **vec,
 	       const char	 *name,
 	       size_t		 offset,
-	       SignalHandlerProc proc,
-	       void		 *data)
+	       CompObject	 *descendant,
+	       const char	 *descendantInterface,
+	       size_t		 descendantOffset,
+	       const char	 *details,
+	       va_list		 args)
 {
-    int	index;
+    const char *in;
+    int	       index;
 
-    if (signalIndex (name, interface, nInterface, offset, &index))
+    if (signalIndex (name, interface, nInterface, offset, &index, &in))
     {
-	CompSignalHandler *handler;
+	HandleConnectContext ctx;
+	CompSignalHandler    *handler;
+	int		     size = 0;
 
 	if (index < 0)
 	    return -1;
 
-	handler = malloc (sizeof (CompSignalHandler));
+	/* make sure details match if signal got a signature */
+	if (in && details && strncmp (in, details, strlen (details)))
+	    return -1;
+
+	if (!details)
+	    details = "";
+
+	ctx.interface = descendantInterface;
+	ctx.in	      = NULL;
+	ctx.vTable    = NULL;
+	ctx.offset    = descendantOffset;
+	ctx.marshal   = NULL;
+
+	if ((*descendant->vTable->forEachInterface) (descendant,
+						     connectInterface,
+						     (void *) &ctx))
+	    return -1;
+
+	/* make sure signatures match */
+	if (ctx.in && in && strcmp (ctx.in, in))
+	{
+	    free (ctx.in);
+	    return -1;
+	}
+
+	size = compSerializeMethodCall (object,
+					descendant,
+					descendantInterface,
+					name,
+					details,
+					args,
+					NULL,
+					0);
+
+	handler = malloc (sizeof (CompSignalHandler) + size);
 	if (!handler)
 	    return -1;
 
-	handler->proc = proc;
-	handler->data = data;
+	handler->next    = NULL;
+	handler->object  = descendant;
+	handler->vTable  = ctx.vTable;
+	handler->offset  = ctx.offset;
+	handler->marshal = ctx.marshal;
+	handler->header  = (CompSerializedMethodCallHeader *) (handler + 1);
+
+	compSerializeMethodCall (object,
+				 descendant,
+				 descendantInterface,
+				 name,
+				 details,
+				 args,
+				 handler->header,
+				 size);
 
 	if (vec[index])
 	{
@@ -1590,7 +1735,9 @@ handleConnect (CompObject	 *object,
     }
     else
     {
-	return noopConnect (object, name, offset, proc, data);
+	return noopConnect (object, name, offset,
+			    descendant, descendantInterface, descendantOffset,
+			    details, args);
     }
 }
 
@@ -1605,7 +1752,7 @@ handleDisconnect (CompObject	    *object,
 {
     int	index;
 
-    if (signalIndex (name, interface, nInterface, offset, &index))
+    if (signalIndex (name, interface, nInterface, offset, &index, NULL))
     {
 	CompSignalHandler *handler, *prev = NULL;
 
@@ -1637,19 +1784,25 @@ handleDisconnect (CompObject	    *object,
 }
 
 static int
-connect (CompObject	   *object,
-	 const char        *interface,
-	 size_t		   offset,
-	 SignalHandlerProc proc,
-	 void		   *data)
+connect (CompObject *object,
+	 const char *interface,
+	 size_t     offset,
+	 CompObject *descendant,
+	 const char *descendantInterface,
+	 size_t     descendantOffset,
+	 const char *details,
+	 va_list    args)
 {
     return handleConnect (object,
 			  objectInterface, N_ELEMENTS (objectInterface),
 			  object->signal,
 			  interface,
 			  offset,
-			  proc,
-			  data);
+			  descendant,
+			  descendantInterface,
+			  descendantOffset,
+			  details,
+			  args);
 }
 
 static void
@@ -1675,9 +1828,9 @@ signal (CompObject   *object,
 	CompAnyValue *value,
 	int	     nValue)
 {
-    EMIT_SIGNAL (object,
-		 object->signal[COMP_OBJECT_SIGNAL_SIGNAL],
-		 source, interface, name, signature, value, nValue);
+    EMIT_INT_SIGNAL (object, SignalProc,
+		     object->signal[COMP_OBJECT_SIGNAL_SIGNAL],
+		     source, interface, name, signature, value, nValue);
 }
 
 static CompBool
@@ -1867,9 +2020,10 @@ boolPropChanged (CompObject *object,
 		 const char *name,
 		 CompBool   value)
 {
-    EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_BOOL_CHANGED],
-		     "properties", "boolChanged", "ssb",
-		     interface, name, value);
+    EMIT_SIGNAL (object, BoolPropChangedProc,
+		 object->signal[COMP_OBJECT_SIGNAL_BOOL_CHANGED],
+		 "properties", "boolChanged", "ssb",
+		 interface, name, value);
 }
 
 static CompBool
@@ -2079,9 +2233,10 @@ intPropChanged (CompObject *object,
 		const char *name,
 		int32_t    value)
 {
-    EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_INT_CHANGED],
-		     "properties", "intChanged", "ssi",
-		     interface, name, value);
+    EMIT_SIGNAL (object, IntPropChangedProc,
+		 object->signal[COMP_OBJECT_SIGNAL_INT_CHANGED],
+		 "properties", "intChanged", "ssi",
+		 interface, name, value);
 }
 
 static CompBool
@@ -2291,9 +2446,10 @@ doublePropChanged (CompObject *object,
 		   const char *name,
 		   double     value)
 {
-    EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_DOUBLE_CHANGED],
-		     "properties", "doubleChanged", "ssd",
-		     interface, name, value);
+    EMIT_SIGNAL (object, DoublePropChangedProc,
+		 object->signal[COMP_OBJECT_SIGNAL_DOUBLE_CHANGED],
+		 "properties", "doubleChanged", "ssd",
+		 interface, name, value);
 }
 
 static CompBool
@@ -2510,9 +2666,10 @@ stringPropChanged (CompObject *object,
 		   const char *name,
 		   const char *value)
 {
-    EMIT_EXT_SIGNAL (object, object->signal[COMP_OBJECT_SIGNAL_STRING_CHANGED],
-		     "properties", "stringChanged", "sss",
-		     interface, name, value);
+    EMIT_SIGNAL (object, StringPropChangedProc,
+		 object->signal[COMP_OBJECT_SIGNAL_STRING_CHANGED],
+		 "properties", "stringChanged", "sss",
+		 interface, name, value);
 }
 
 #define HOME_DATADIR   ".compiz-0/data"
@@ -3634,7 +3791,7 @@ compInvokeMethod (CompObject *object,
 
 int
 compSerializeMethodCall (CompObject *observer,
-			 CompObject *target,
+			 CompObject *subject,
 			 const char *interface,
 			 const char *name,
 			 const char *signature,
@@ -3653,7 +3810,7 @@ compSerializeMethodCall (CompObject *observer,
     int	       requiredSize, i;
     va_list    ap;
 
-    for (node = target; node; node = node->parent)
+    for (node = subject; node; node = node->parent)
     {
 	if (node == observer)
 	    break;
@@ -3704,7 +3861,7 @@ compSerializeMethodCall (CompObject *observer,
 	offset = pathSize;
 	header->path[offset - 1] = '\0';
 
-	for (node = target; node; node = node->parent)
+	for (node = subject; node; node = node->parent)
 	{
 	    int len;
 

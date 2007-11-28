@@ -29,19 +29,25 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
-static CompMetadata gconfMetadata;
+#define COMPIZ_GCONF_VERSION 20071123
 
 #define APP_NAME        "compiz"
 #define MAX_PATH_LENGTH 1024
 
 static int gconfCorePrivateIndex;
 
+typedef struct _GConfCoreVTable {
+    CompCoreVTable base;
+    SignalProc     handleSignal;
+} GConfCoreVTable;
+
 typedef struct _GConfCore {
+    CompObjectVTableVec object;
+
     GConfClient *client;
     guint	cnxn;
 
     CompTimeoutHandle reloadHandle;
-    int		      signalHandle;
 } GConfCore;
 
 #define GET_GCONF_CORE(c)				     \
@@ -50,6 +56,10 @@ typedef struct _GConfCore {
 #define GCONF_CORE(c)		       \
     GConfCore *gc = GET_GCONF_CORE (c)
 
+
+static CInterface gconfCoreInterface[] = {
+    C_INTERFACE (gconf, Core, GConfCoreVTable, _, _, _, _, _, _, _, _)
+};
 
 static gchar *
 gconfGetObjectPath (CompObject *object)
@@ -347,31 +357,17 @@ gconfPropChanged (CompCore     *c,
 }
 
 static void
-gconfHandleSignal (CompObject *object,
-		   void	      *data,
-		   ...)
+gconfHandleSignal (CompObject   *object,
+		   const char   *path,
+		   const char   *interface,
+		   const char   *name,
+		   const char   *signature,
+		   CompAnyValue *value,
+		   int	        nValue)
 {
-    CompObject	 *source;
-    const char	 *path;
-    const char	 *interface;
-    const char	 *name;
-    const char	 *signature;
-    CompAnyValue *value;
-    int		 nValue;
-    va_list      ap;
+    CompObject *source;
 
     CORE (object);
-
-    va_start (ap, data);
-
-    path      = va_arg (ap, const char *);
-    interface = va_arg (ap, const char *);
-    name      = va_arg (ap, const char *);
-    signature = va_arg (ap, const char *);
-    value     = va_arg (ap, CompAnyValue *);
-    nValue    = va_arg (ap, int);
-
-    va_end (ap);
 
     if (strcmp (interface, "object") == 0)
     {
@@ -394,6 +390,10 @@ gconfHandleSignal (CompObject *object,
     }
 }
 
+static GConfCoreVTable gconfCoreObjectVTable = {
+    .handleSignal = gconfHandleSignal
+};
+
 static CompBool
 gconfInitCore (CompCore *c)
 {
@@ -402,13 +402,8 @@ gconfInitCore (CompCore *c)
     if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    gc->signalHandle =
-	(*c->u.base.u.base.vTable->signal.connect) (&c->u.base.u.base, "signal",
-						    offsetof (CompSignalVTable,
-							      signal),
-						    gconfHandleSignal,
-						    NULL);
-    if (gc->signalHandle < 0)
+   if (!cObjectInterfaceInit (&c->u.base.u.base,
+			      &gconfCoreObjectVTable.base.base.base))
 	return FALSE;
 
     g_type_init ();
@@ -433,11 +428,6 @@ gconfFiniCore (CompCore *c)
 {
     GCONF_CORE (c);
 
-    (*c->u.base.u.base.vTable->signal.disconnect) (&c->u.base.u.base, "signal",
-						   offsetof (CompSignalVTable,
-							     signal),
-						   gc->signalHandle);
-
     if (gc->reloadHandle)
 	compRemoveTimeout (gc->reloadHandle);
 
@@ -446,35 +436,63 @@ gconfFiniCore (CompCore *c)
 
     gconf_client_remove_dir (gc->client, "/apps/" APP_NAME, NULL);
     gconf_client_clear_cache (gc->client);
+
+    cObjectInterfaceFini (&c->u.base.u.base);
+}
+
+static void
+gconfCoreGetCContext (CompObject *object,
+		      CContext   *ctx)
+{
+    GCONF_CORE (GET_CORE (object));
+
+    ctx->interface  = gconfCoreInterface;
+    ctx->nInterface = N_ELEMENTS (gconfCoreInterface);
+    ctx->type	    = NULL;
+    ctx->data	    = (char *) gc;
+    ctx->vtStore    = &gc->object;
+    ctx->version    = COMPIZ_GCONF_VERSION;
 }
 
 static CObjectPrivate gconfObj[] = {
-    C_OBJECT_PRIVATE ("core", gconf, Core, GConfCore, X, _)
+    C_OBJECT_PRIVATE ("core", gconf, Core, GConfCore, X, X)
 };
+
+static CompBool
+gconfInsert (CompObject *parent,
+	     CompBranch *branch)
+{
+    if (!cObjectInitPrivates (gconfObj, N_ELEMENTS (gconfObj)))
+	return FALSE;
+
+    (*parent->vTable->signal.connect) (parent,
+				       "signal",
+				       offsetof (CompSignalVTable, signal),
+				       &branch->u.base,
+				       "gconf",
+				       offsetof (GConfCoreVTable,
+						 handleSignal),
+				       NULL, (va_list) 0);
+
+    return TRUE;
+}
+
+static void
+gconfRemove (CompObject *parent,
+	     CompBranch *branch)
+{
+    cObjectFiniPrivates (gconfObj, N_ELEMENTS (gconfObj));
+}
 
 static Bool
 gconfInit (CompPlugin *p)
 {
-    if (!compInitObjectMetadataFromInfo (&gconfMetadata, p->vTable->name,
-					 0, 0))
-	return FALSE;
-
-    compAddMetadataFromFile (&gconfMetadata, p->vTable->name);
-
-    if (!cObjectInitPrivates (gconfObj, N_ELEMENTS (gconfObj)))
-    {
-	compFiniMetadata (&gconfMetadata);
-	return FALSE;
-    }
-
     return TRUE;
 }
 
 static void
 gconfFini (CompPlugin *p)
 {
-    cObjectFiniPrivates (gconfObj, N_ELEMENTS (gconfObj));
-    compFiniMetadata (&gconfMetadata);
 }
 
 CompPluginVTable gconfVTable = {
@@ -485,7 +503,9 @@ CompPluginVTable gconfVTable = {
     0, /* InitObject */
     0, /* FiniObject */
     0, /* GetObjectOptions */
-    0  /* SetObjectOption */
+    0, /* SetObjectOption */
+    gconfInsert,
+    gconfRemove
 };
 
 CompPluginVTable *
