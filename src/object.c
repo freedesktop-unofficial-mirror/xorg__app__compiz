@@ -4182,14 +4182,21 @@ compCheckEqualityOfValuesAndArgs (const char   *signature,
 	case COMP_TYPE_DOUBLE:
 	    equal = (va_arg (args, double) == value[i].d);
 	    break;
-	case COMP_TYPE_STRING:
-	case COMP_TYPE_OBJECT: {
+	case COMP_TYPE_STRING: {
 	    char *s = va_arg (args, char *);
 
 	    if (s && value[i].s)
 		equal = (strcmp (s, value[i].s) == 0);
 	    else
 		equal = (s == value[i].s);
+	} break;
+	case COMP_TYPE_OBJECT: {
+	    char *s = va_arg (args, char *);
+
+	    /* '//*' can be used to match any object, complete XPath
+	       expression support could be added later */
+	    if (strcmp (value[i].s, "//*") != 0)
+		equal = (strcmp (s, value[i].s) == 0);
 	} break;
 	}
     }
