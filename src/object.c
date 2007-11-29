@@ -1643,10 +1643,10 @@ signalIndex (const char	      *name,
 }
 
 static CompSignalHandler **
-getSignalsVec (const CInterface *interface,
-	       int		nInterface,
-	       char		*data,
-	       size_t		signalVecOffset)
+getSignalVec (const CInterface *interface,
+	      int	       nInterface,
+	      char	       *data,
+	      size_t	       signalVecOffset)
 {
     CompSignalHandler ***pVec = (CompSignalHandler ***) (data + signalVecOffset);
 
@@ -1796,7 +1796,7 @@ handleConnect (CompObject	 *object,
 	if (ctx.in)
 	    free (ctx.in);
 
-	vec = getSignalsVec (interface, nInterface, data, signalVecOffset);
+	vec = getSignalVec (interface, nInterface, data, signalVecOffset);
 	if (!vec)
 	    return -1;
 
