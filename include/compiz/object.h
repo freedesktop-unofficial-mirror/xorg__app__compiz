@@ -237,7 +237,7 @@ typedef void (*DisconnectProc) (CompObject *object,
 				int	   index);
 
 typedef void (*SignalProc) (CompObject   *object,
-			    const char   *source,
+			    const char   *path,
 			    const char   *interface,
 			    const char   *name,
 			    const char   *signature,

@@ -550,7 +550,7 @@ noopDisconnect (CompObject *object,
 }
 
 typedef struct _SignalContext {
-    const char   *source;
+    const char   *path;
     const char   *interface;
     const char   *name;
     const char   *signature;
@@ -565,7 +565,7 @@ baseObjectSignal (CompObject *object,
     SignalContext *pCtx = (SignalContext *) closure;
 
     (*object->vTable->signal.signal) (object,
-				      pCtx->source,
+				      pCtx->path,
 				      pCtx->interface,
 				      pCtx->name,
 				      pCtx->signature,
@@ -577,7 +577,7 @@ baseObjectSignal (CompObject *object,
 
 static void
 noopSignal (CompObject   *object,
-	    const char   *source,
+	    const char   *path,
 	    const char   *interface,
 	    const char   *name,
 	    const char   *signature,
@@ -586,7 +586,7 @@ noopSignal (CompObject   *object,
 {
     SignalContext ctx;
 
-    ctx.source    = source;
+    ctx.path      = path;
     ctx.interface = interface;
     ctx.name      = name;
     ctx.signature = signature;
@@ -2059,7 +2059,7 @@ disconnect (CompObject *object,
 
 static void
 signal (CompObject   *object,
-	const char   *source,
+	const char   *path,
 	const char   *interface,
 	const char   *name,
 	const char   *signature,
@@ -2067,7 +2067,7 @@ signal (CompObject   *object,
 	int	     nValue)
 {
     C_EMIT_SIGNAL (object, SignalProc, 0, &signalSignal,
-		   source, interface, name, signature, value, nValue);
+		   path, interface, name, signature, value, nValue);
 }
 
 static CompBool
