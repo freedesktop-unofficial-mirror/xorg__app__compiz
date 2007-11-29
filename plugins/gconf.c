@@ -466,14 +466,13 @@ gconfInsert (CompObject *parent,
     if (!cObjectInitPrivates (gconfObj, N_ELEMENTS (gconfObj)))
 	return FALSE;
 
-    (*parent->vTable->signal.connect) (parent,
-				       "signal",
-				       offsetof (CompSignalVTable, signal),
-				       &branch->u.base,
-				       "gconf",
-				       offsetof (GConfCoreVTable,
-						 handleSignal),
-				       NULL, (va_list) 0);
+    compConnect (parent,
+		 "signal",
+		 offsetof (CompSignalVTable, signal),
+		 &branch->u.base,
+		 "gconf",
+		 offsetof (GConfCoreVTable, handleSignal),
+		 NULL);
 
     return TRUE;
 }

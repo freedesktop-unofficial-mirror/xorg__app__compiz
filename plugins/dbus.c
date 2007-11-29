@@ -989,13 +989,13 @@ dbusInsert (CompObject *parent,
     if (!cObjectInitPrivates (dbusObj, N_ELEMENTS (dbusObj)))
 	return FALSE;
 
-    (*parent->vTable->signal.connect) (parent,
-				       "signal",
-				       offsetof (CompSignalVTable, signal),
-				       &branch->u.base,
-				       "dbus",
-				       offsetof (DBusCoreVTable, emitSignal),
-				       NULL, (va_list) 0);
+    compConnect (parent,
+		 "signal",
+		 offsetof (CompSignalVTable, signal),
+		 &branch->u.base,
+		 "dbus",
+		 offsetof (DBusCoreVTable, emitSignal),
+		 NULL);
 
     return TRUE;
 }
