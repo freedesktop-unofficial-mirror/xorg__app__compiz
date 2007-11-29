@@ -449,6 +449,12 @@ emitSignalSignal (CompObject *object,
 	 (((char *) (object)->vTable) +					\
 	  (offset))))) (object, ##__VA_ARGS__)
 
+#define MATCHING_DETAILS(handler, ...)					\
+    ((!(handler)->header->signature) ||					\
+     compCheckEqualityOfValuesAndArgs ((handler)->header->signature,	\
+				       (handler)->header->value,	\
+				       ##__VA_ARGS__))
+
 #define EMIT_SIGNAL(object, type, vOffset, ...)				\
     if ((object)->signalVec)						\
     {									\
@@ -457,19 +463,25 @@ emitSignalSignal (CompObject *object,
 									\
 	while (handler)							\
 	{								\
-	    if (handler->vTable)					\
+	    if (MATCHING_DETAILS (handler, ##__VA_ARGS__))		\
 	    {								\
-		save.vTable = handler->object->vTable;			\
+		if (handler->vTable)					\
+		{							\
+		    save.vTable = handler->object->vTable;		\
 									\
-		UNWRAP (handler, handler->object, vTable);		\
-		INVOKE_HANDLER_PROC (handler->object, handler->offset,	\
-				     type, ##__VA_ARGS__);		\
-		WRAP (handler, handler->object, vTable, save.vTable);	\
-	    }								\
-	    else							\
-	    {								\
-		INVOKE_HANDLER_PROC (handler->object, handler->offset,	\
-				     type, ##__VA_ARGS__);		\
+		    UNWRAP (handler, handler->object, vTable);		\
+		    INVOKE_HANDLER_PROC (handler->object,		\
+					 handler->offset,		\
+					 type, ##__VA_ARGS__);		\
+		    WRAP (handler, handler->object, vTable,		\
+			  save.vTable);					\
+		}							\
+		else							\
+		{							\
+		    INVOKE_HANDLER_PROC (handler->object,		\
+					 handler->offset,		\
+					 type, ##__VA_ARGS__);		\
+		}							\
 	    }								\
 									\
 	    handler = handler->next;					\
@@ -541,6 +553,11 @@ void
 compFreeSignalVecRange (CompObject *object,
 			int	   size,
 			int	   offset);
+
+CompBool
+compCheckEqualityOfValuesAndArgs (const char   *signature,
+				  CompAnyValue *value,
+				  ...);
 
 COMPIZ_END_DECLS
 

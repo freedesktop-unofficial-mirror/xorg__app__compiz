@@ -4159,6 +4159,46 @@ compSerializeMethodCall (CompObject *observer,
     return requiredSize;
 }
 
+CompBool
+compCheckEqualityOfValuesAndArgs (const char   *signature,
+				  CompAnyValue *value,
+				  ...)
+{
+    CompBool equal = TRUE;
+    va_list  args;
+    int      i;
+
+    va_start (args, value);
+
+    for (i = 0; equal && signature[i] != COMP_TYPE_INVALID; i++)
+    {
+	switch (signature[i]) {
+	case COMP_TYPE_BOOLEAN:
+	    equal = (!va_arg (args, CompBool) == !value[i].b);
+	    break;
+	case COMP_TYPE_INT32:
+	    equal = (va_arg (args, int32_t) == value[i].i);
+	    break;
+	case COMP_TYPE_DOUBLE:
+	    equal = (va_arg (args, double) == value[i].d);
+	    break;
+	case COMP_TYPE_STRING:
+	case COMP_TYPE_OBJECT: {
+	    char *s = va_arg (args, char *);
+
+	    if (s && value[i].s)
+		equal = (strcmp (s, value[i].s) == 0);
+	    else
+		equal = (s == value[i].s);
+	} break;
+	}
+    }
+
+    va_end (args);
+
+    return equal;
+}
+
 static CompBool
 setIndex (int *index,
 	  int value)
