@@ -447,11 +447,12 @@ emitSignalSignal (CompObject *object,
 #define INVOKE_HANDLER_PROC(object, offset, prototype, ...)		\
     (*(*((prototype *)							\
 	 (((char *) (object)->vTable) +					\
-	  offset)))) (object, ##__VA_ARGS__)
+	  (offset))))) (object, ##__VA_ARGS__)
 
-#define EMIT_SIGNAL(object, type, handlers, ...)			\
-    do {								\
-	CompSignalHandler   *handler = handlers;			\
+#define EMIT_SIGNAL(object, type, vOffset, ...)				\
+    if ((object)->signalVec)						\
+    {									\
+	CompSignalHandler   *handler = object->signalVec[(vOffset)];	\
 	CompObjectVTableVec save;					\
 									\
 	while (handler)							\
@@ -473,7 +474,7 @@ emitSignalSignal (CompObject *object,
 									\
 	    handler = handler->next;					\
 	}								\
-    } while (0)
+    }
 
 
 CompObjectType *
@@ -530,6 +531,16 @@ compSerializeMethodCall (CompObject *observer,
 			 va_list    args,
 			 void	    *data,
 			 int	    size);
+
+CompSignalHandler **
+compGetSignalVecRange (CompObject *object,
+		       int	  size,
+		       int	  *offset);
+
+void
+compFreeSignalVecRange (CompObject *object,
+			int	   size,
+			int	   offset);
 
 COMPIZ_END_DECLS
 

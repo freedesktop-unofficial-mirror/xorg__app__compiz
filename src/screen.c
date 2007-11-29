@@ -1709,6 +1709,7 @@ screenGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (screenInterface);
     ctx->type	    = &screenObjectType;
     ctx->data	    = (char *) s;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &s->object;
     ctx->version    = COMPIZ_SCREEN_VERSION;
 }

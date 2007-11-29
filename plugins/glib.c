@@ -241,6 +241,7 @@ glibCoreGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (glibCoreInterface);
     ctx->type	    = NULL;
     ctx->data	    = (char *) gc;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &gc->object;
     ctx->version    = COMPIZ_GLIB_VERSION;
 }

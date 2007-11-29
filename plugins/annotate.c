@@ -795,6 +795,7 @@ annoDisplayGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (annoDisplayInterface);
     ctx->type	    = NULL;
     ctx->data	    = (char *) ad;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &ad->object;
     ctx->version    = COMPIZ_ANNOTATE_VERSION;
 }
@@ -848,6 +849,7 @@ annoScreenGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (annoScreenInterface);
     ctx->type	    = NULL;
     ctx->data	    = (char *) as;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &as->object;
     ctx->version    = COMPIZ_ANNOTATE_VERSION;
 }

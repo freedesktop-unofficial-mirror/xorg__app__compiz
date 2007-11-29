@@ -2508,6 +2508,7 @@ displayGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (displayInterface);
     ctx->type	    = &displayObjectType;
     ctx->data	    = (char *) d;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &d->object;
     ctx->version    = COMPIZ_DISPLAY_VERSION;
 }

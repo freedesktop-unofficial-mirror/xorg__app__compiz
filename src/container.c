@@ -94,6 +94,7 @@ containerGetCContect (CompObject *object,
     ctx->nInterface = N_ELEMENTS (containerInterface);
     ctx->type	    = &containerObjectType;
     ctx->data	    = (char *) c;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &c->object;
     ctx->version    = COMPIZ_CONTAINER_VERSION;
 }

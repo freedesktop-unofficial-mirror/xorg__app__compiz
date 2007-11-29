@@ -132,6 +132,7 @@ branchGetCContect (CompObject *object,
     ctx->nInterface = N_ELEMENTS (branchInterface);
     ctx->type	    = &branchObjectType;
     ctx->data	    = (char *) b;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &b->object;
     ctx->version    = COMPIZ_BRANCH_VERSION;
 }

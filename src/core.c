@@ -424,6 +424,7 @@ coreGetCContect (CompObject *object,
     ctx->nInterface = N_ELEMENTS (coreInterface);
     ctx->type	    = &coreObjectType;
     ctx->data	    = (char *) c;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &c->object;
     ctx->version    = COMPIZ_CORE_VERSION;
 }

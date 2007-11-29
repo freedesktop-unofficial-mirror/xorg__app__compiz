@@ -71,6 +71,7 @@ propGetCContect (CompObject *object,
     ctx->nInterface = N_ELEMENTS (propInterface);
     ctx->type	    = &propObjectType;
     ctx->data	    = (char *) p;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &p->object;
     ctx->version    = COMPIZ_PROP_VERSION;
 }

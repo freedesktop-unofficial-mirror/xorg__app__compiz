@@ -79,6 +79,7 @@ pointerGetCContect (CompObject *object,
     ctx->nInterface = N_ELEMENTS (pointerInterface);
     ctx->type	    = &pointerObjectType;
     ctx->data	    = (char *) p;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &p->object;
     ctx->version    = COMPIZ_POINTER_VERSION;
 }

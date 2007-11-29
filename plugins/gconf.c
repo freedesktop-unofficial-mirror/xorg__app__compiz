@@ -450,6 +450,7 @@ gconfCoreGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (gconfCoreInterface);
     ctx->type	    = NULL;
     ctx->data	    = (char *) gc;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &gc->object;
     ctx->version    = COMPIZ_GCONF_VERSION;
 }

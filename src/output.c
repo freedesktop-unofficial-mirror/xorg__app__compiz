@@ -71,6 +71,7 @@ outputGetCContect (CompObject *object,
     ctx->nInterface = N_ELEMENTS (outputInterface);
     ctx->type	    = &outputObjectType;
     ctx->data	    = (char *) o;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &o->object;
     ctx->version    = COMPIZ_OUTPUT_VERSION;
 }

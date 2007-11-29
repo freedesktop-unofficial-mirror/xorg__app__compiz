@@ -166,7 +166,7 @@ typedef struct _CContext {
     int			 nInterface;
     const CompObjectType *type;
     char		 *data;
-    size_t	         signalVecOffset;
+    int			 svOffset;
     CompObjectVTableVec	 *vtStore;
     int			 version;
 } CContext;
@@ -204,20 +204,19 @@ typedef struct _CObjectPrivate {
 	    (InitObjectProc) name ## Init ## type,		 \
 	    (FiniObjectProc) name ## Fini ## type }
 
-#define C_EMIT_SIGNAL(object, prototype, vec, signal, ...)		\
+#define C_EMIT_SIGNAL(object, prototype, offset, signal, ...)		\
     if ((signal)->out)							\
     {									\
-	if (vec)							\
-	    EMIT_SIGNAL (object, prototype,				\
-			 (vec)[(signal)->index], ##__VA_ARGS__); 	\
+	EMIT_SIGNAL (object, prototype,					\
+		     (offset) + (signal)->index, ##__VA_ARGS__);	\
 									\
 	emitSignalSignal (object, (signal)->interface, (signal)->name,	\
 			  (signal)->out, ##__VA_ARGS__);		\
     }									\
-    else if (vec)							\
+    else								\
     {									\
 	EMIT_SIGNAL (object, prototype,					\
-		     (vec)[(signal)->index], ##__VA_ARGS__);		\
+		     (offset) + (signal)->index, ##__VA_ARGS__);	\
     }
 
 

@@ -1101,6 +1101,7 @@ fuseCoreGetCContext (CompObject *object,
     ctx->type	    = NULL;
     ctx->data	    = (char *) fc;
     ctx->vtStore    = &fc->object;
+    ctx->svOffset   = 0;
     ctx->version    = COMPIZ_FUSE_VERSION;
 }
 

@@ -1842,6 +1842,7 @@ windowGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (windowInterface);
     ctx->type	    = &windowObjectType;
     ctx->data	    = (char *) w;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &w->object;
     ctx->version    = COMPIZ_WINDOW_VERSION;
 }

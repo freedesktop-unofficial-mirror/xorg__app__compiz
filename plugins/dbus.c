@@ -973,6 +973,7 @@ dbusCoreGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (dbusCoreInterface);
     ctx->type	    = NULL;
     ctx->data	    = (char *) dc;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &dc->object;
     ctx->version    = COMPIZ_DBUS_VERSION;
 }

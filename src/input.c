@@ -71,6 +71,7 @@ inputGetCContect (CompObject *object,
     ctx->nInterface = N_ELEMENTS (inputInterface);
     ctx->type	    = &inputObjectType;
     ctx->data	    = (char *) i;
+    ctx->svOffset   = 0;
     ctx->vtStore    = &i->object;
     ctx->version    = COMPIZ_INPUT_VERSION;
 }

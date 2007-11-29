@@ -97,6 +97,9 @@ static CInterface objectInterface[] = {
     C_INTERFACE (version,    Object, CompObjectVTable, X, X, _, _, _, _, _, _)
 };
 
+static CompSignalHandler lastSignalVecEntry  = { 0 };
+static CompSignalHandler emptySignalVecEntry = { 0 };
+
 static CompBool
 allocateObjectPrivates (CompObject		 *object,
 			const CompObjectType     *type,
@@ -1515,7 +1518,7 @@ inserted (CompObject *object)
 {
     int i;
 
-    C_EMIT_SIGNAL (object, InsertedProc, object->signalVec, &insertedSignal);
+    C_EMIT_SIGNAL (object, InsertedProc, 0, &insertedSignal);
 
     for (i = 0; i < N_ELEMENTS (objectInterface); i++)
 	(*object->vTable->interfaceAdded) (object, objectInterface[i].name);
@@ -1529,7 +1532,7 @@ removed (CompObject *object)
     for (i = 0; i < N_ELEMENTS (objectInterface); i++)
 	(*object->vTable->interfaceRemoved) (object, objectInterface[i].name);
 
-    C_EMIT_SIGNAL (object, RemovedProc, object->signalVec, &removedSignal);
+    C_EMIT_SIGNAL (object, RemovedProc, 0, &removedSignal);
 }
 
 static int
@@ -1548,8 +1551,8 @@ static void
 interfaceAdded (CompObject *object,
 		const char *interface)
 {
-    C_EMIT_SIGNAL (object, InterfaceAddedProc, object->signalVec,
-		   &interfaceAddedSignal, interface);
+    C_EMIT_SIGNAL (object, InterfaceAddedProc, 0, &interfaceAddedSignal,
+		   interface);
 }
 
 static void
@@ -1562,15 +1565,17 @@ interfaceRemoved (CompObject *object,
     {
 	if (node->signalVec)
 	{
-	    int	n;
+	    int i;
 
-	    n = getSignalVecSize (objectInterface, N_ELEMENTS (objectInterface));
-	    while (n--)
+	    for (i = 0; node->signalVec[i] != &lastSignalVecEntry; i++)
 	    {
 		CompSignalHandler *handler, *prev;
 
+		if (node->signalVec[i] == &emptySignalVecEntry)
+		    continue;
+
 		prev    = NULL;
-		handler = node->signalVec[n];
+		handler = node->signalVec[i];
 
 		while (handler)
 		{
@@ -1586,9 +1591,9 @@ interfaceRemoved (CompObject *object,
 			    }
 			    else
 			    {
-				node->signalVec[n] = handler->next;
+				node->signalVec[i] = handler->next;
 				free (handler);
-				handler = node->signalVec[n];
+				handler = node->signalVec[i];
 			    }
 
 			    continue;
@@ -1602,8 +1607,8 @@ interfaceRemoved (CompObject *object,
 	}
     }
 
-    C_EMIT_SIGNAL (object, InterfaceRemovedProc, object->signalVec,
-		   &interfaceRemovedSignal, interface);
+    C_EMIT_SIGNAL (object, InterfaceRemovedProc, 0, &interfaceRemovedSignal,
+		   interface);
 }
 
 static CompBool
@@ -1642,33 +1647,85 @@ signalIndex (const char	      *name,
     return FALSE;
 }
 
-static CompSignalHandler **
-getSignalVec (const CInterface *interface,
-	      int	       nInterface,
-	      char	       *data,
-	      size_t	       signalVecOffset)
+CompSignalHandler **
+compGetSignalVecRange (CompObject *object,
+		       int	  size,
+		       int	  *offset)
 {
-    CompSignalHandler ***pVec = (CompSignalHandler ***) (data + signalVecOffset);
+    CompSignalHandler **vec;
+    int		      start = 0;
 
-    if (!*pVec)
+    if (object->signalVec)
     {
-	CompSignalHandler **vec;
-	int		  size;
+	int i, empty = 0;
 
-	size = getSignalVecSize (interface, nInterface);
+	if (!offset)
+	    return object->signalVec;
+
+	if (*offset)
+	    return &object->signalVec[*offset];
+
 	if (!size)
 	    return NULL;
 
-	vec = calloc (size, sizeof (CompSignalHandler **));
-	if (!vec)
-	    return NULL;
+	/* find empty slot */
+	for (i = 0; object->signalVec[i] != &lastSignalVecEntry; i++)
+	{
+	    if (object->signalVec[i] == &emptySignalVecEntry)
+	    {
+		empty++;
 
-	*pVec = vec;
+		if (empty == size)
+		{
+		    start = i - size + 1;
+
+		    memset (&object->signalVec[start], 0,
+			    sizeof (CompSignalHandler **) * size);
+
+		    *offset = start;
+
+		    return &object->signalVec[start];
+		}
+	    }
+	    else
+	    {
+		empty = 0;
+	    }
+	}
+
+	start = i;
+    }
+    else
+    {
+	if (offset)
+	    start = getSignalVecSize (objectInterface,
+				      N_ELEMENTS (objectInterface));
     }
 
-    return *pVec;
+    vec = realloc (object->signalVec, sizeof (CompSignalHandler **) *
+		   (start + size + 1));
+    if (!vec)
+	return NULL;
+
+    memset (&vec[start], 0, sizeof (CompSignalHandler **) * size);
+
+    vec[start + size] = &lastSignalVecEntry;
+    object->signalVec = vec;
+
+    if (offset)
+	*offset = start;
+
+    return &object->signalVec[start];
 }
 
+void
+compFreeSignalVecRange (CompObject *object,
+			int	   size,
+			int	   offset)
+{
+    while (size--)
+	object->signalVec[offset + size] = &emptySignalVecEntry;
+}
 
 typedef struct _HandleConnectContext {
     const char		   *interface;
@@ -1745,7 +1802,7 @@ handleConnect (CompObject	 *object,
 	       const CInterface  *interface,
 	       int		 nInterface,
 	       char		 *data,
-	       size_t		 signalVecOffset,
+	       size_t		 svOffset,
 	       const char	 *name,
 	       size_t		 offset,
 	       CompObject	 *descendant,
@@ -1762,7 +1819,7 @@ handleConnect (CompObject	 *object,
     {
 	HandleConnectContext ctx;
 	CompSignalHandler    *handler;
-	int		     size = 0;
+	int		     size;
 	CompSignalHandler    **vec;
 
 	if (index < 0)
@@ -1796,7 +1853,9 @@ handleConnect (CompObject	 *object,
 	if (ctx.in)
 	    free (ctx.in);
 
-	vec = getSignalVec (interface, nInterface, data, signalVecOffset);
+	vec = compGetSignalVecRange (object,
+				     getSignalVecSize (interface, nInterface),
+				     (int *) (data + svOffset));
 	if (!vec)
 	    return -1;
 
@@ -1854,7 +1913,7 @@ handleDisconnect (CompObject	    *object,
 		  const CInterface  *interface,
 		  int		    nInterface,
 		  char		    *data,
-		  size_t	    signalVecOffset,
+		  size_t	    svOffset,
 		  const char	    *name,
 		  size_t	    offset,
 		  int		    id)
@@ -1864,11 +1923,19 @@ handleDisconnect (CompObject	    *object,
     if (signalIndex (name, interface, nInterface, offset, &index, NULL))
     {
 	CompSignalHandler *handler, *prev = NULL;
-	CompSignalHandler **vec =
-	    *((CompSignalHandler ***) (data + signalVecOffset));
+	int		  *offset = (int *) (data + svOffset);
+	CompSignalHandler **vec = object->signalVec;
 
-	if (index < 0 || !vec)
+	if (index < 0)
 	    return TRUE;
+
+	if (offset)
+	{
+	    if (!*offset)
+		return TRUE;
+
+	    object->signalVec += *offset;
+	}
 
 	for (handler = vec[index]; handler; handler = handler->next)
 	{
@@ -1911,7 +1978,7 @@ cConnect (CompObject *object,
 
     if (handleConnect (object,
 		       ctx.interface, ctx.nInterface,
-		       ctx.data, ctx.signalVecOffset,
+		       ctx.data, ctx.svOffset,
 		       interface,
 		       offset,
 		       descendant,
@@ -1939,7 +2006,7 @@ cDisconnect (CompObject *object,
 
     if (handleDisconnect (object,
 			  ctx.interface, ctx.nInterface,
-			  ctx.data, ctx.signalVecOffset,
+			  ctx.data, ctx.svOffset,
 			  interface,
 			  offset,
 			  id))
@@ -1962,7 +2029,7 @@ connect (CompObject *object,
 
     if (handleConnect (object,
 		       objectInterface, N_ELEMENTS (objectInterface),
-		       (char *) object, offsetof (CompObject, signalVec),
+		       NULL, 0,
 		       interface,
 		       offset,
 		       descendant,
@@ -1984,7 +2051,7 @@ disconnect (CompObject *object,
 {
     handleDisconnect (object,
 		      objectInterface, N_ELEMENTS (objectInterface),
-		      (char *) object, offsetof (CompObject, signalVec),
+		      NULL, 0,
 		      interface,
 		      offset,
 		      id);
@@ -1999,7 +2066,7 @@ signal (CompObject   *object,
 	CompAnyValue *value,
 	int	     nValue)
 {
-    C_EMIT_SIGNAL (object, SignalProc, object->signalVec, &signalSignal,
+    C_EMIT_SIGNAL (object, SignalProc, 0, &signalSignal,
 		   source, interface, name, signature, value, nValue);
 }
 
@@ -2190,8 +2257,8 @@ boolPropChanged (CompObject *object,
 		 const char *name,
 		 CompBool   value)
 {
-    C_EMIT_SIGNAL (object, BoolPropChangedProc, object->signalVec,
-		   &boolChangedSignal, interface, name, value);
+    C_EMIT_SIGNAL (object, BoolPropChangedProc, 0, &boolChangedSignal,
+		   interface, name, value);
 }
 
 static CompBool
@@ -2401,8 +2468,8 @@ intPropChanged (CompObject *object,
 		const char *name,
 		int32_t    value)
 {
-    C_EMIT_SIGNAL (object, IntPropChangedProc, object->signalVec,
-		   &intChangedSignal, interface, name, value);
+    C_EMIT_SIGNAL (object, IntPropChangedProc, 0, &intChangedSignal,
+		   interface, name, value);
 }
 
 static CompBool
@@ -2612,8 +2679,8 @@ doublePropChanged (CompObject *object,
 		   const char *name,
 		   double     value)
 {
-    C_EMIT_SIGNAL (object, DoublePropChangedProc, object->signalVec,
-		   &doubleChangedSignal, interface, name, value);
+    C_EMIT_SIGNAL (object, DoublePropChangedProc, 0, &doubleChangedSignal,
+		   interface, name, value);
 }
 
 static CompBool
@@ -2830,8 +2897,8 @@ stringPropChanged (CompObject *object,
 		   const char *name,
 		   const char *value)
 {
-    C_EMIT_SIGNAL (object, StringPropChangedProc, object->signalVec,
-		   &stringChangedSignal, interface, name, value);
+    C_EMIT_SIGNAL (object, StringPropChangedProc, 0, &stringChangedSignal,
+		   interface, name, value);
 }
 
 #define HOME_DATADIR   ".compiz-0/data"
@@ -3106,13 +3173,13 @@ static void
 objectGetCContext (CompObject *object,
 		   CContext   *ctx)
 {
-    ctx->interface       = objectInterface;
-    ctx->nInterface      = N_ELEMENTS (objectInterface);
-    ctx->type	         = &objectType;
-    ctx->data	         = (char *) object;
-    ctx->signalVecOffset = offsetof (CompObject, signalVec);
-    ctx->vtStore         = NULL;
-    ctx->version         = COMPIZ_OBJECT_VERSION;
+    ctx->interface  = objectInterface;
+    ctx->nInterface = N_ELEMENTS (objectInterface);
+    ctx->type	    = &objectType;
+    ctx->data	    = (char *) object;
+    ctx->svOffset   = 0;
+    ctx->vtStore    = NULL;
+    ctx->version    = COMPIZ_OBJECT_VERSION;
 }
 
 CompObjectType *
@@ -4632,6 +4699,17 @@ cObjectInterfaceFini (CompObject *object)
 			   ctx.data,
 			   ctx.interface,
 			   ctx.nInterface);
+
+    if (ctx.svOffset)
+    {
+	int offset = *((int *) (ctx.data + ctx.svOffset));
+
+	if (offset)
+	    compFreeSignalVecRange (object,
+				    getSignalVecSize (ctx.interface,
+						      ctx.nInterface),
+				    offset);
+    }
 }
 
 CompBool
