@@ -559,6 +559,22 @@ compCheckEqualityOfValuesAndArgs (const char   *signature,
 				  CompAnyValue *value,
 				  ...);
 
+int
+compConnect (CompObject *object,
+	     const char *interface,
+	     size_t     offset,
+	     CompObject *descendant,
+	     const char *descendantInterface,
+	     size_t     descendantOffset,
+	     const char *details,
+	     ...);
+
+void
+compDisconnect (CompObject *object,
+		const char *interface,
+		size_t     offset,
+		int	   index);
+
 COMPIZ_END_DECLS
 
 #endif

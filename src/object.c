@@ -4199,6 +4199,47 @@ compCheckEqualityOfValuesAndArgs (const char   *signature,
     return equal;
 }
 
+int
+compConnect (CompObject *object,
+	     const char *interface,
+	     size_t     offset,
+	     CompObject *descendant,
+	     const char *descendantInterface,
+	     size_t     descendantOffset,
+	     const char *details,
+	     ...)
+{
+    va_list args;
+    int     index;
+
+    va_start (args, details);
+
+    index = (*object->vTable->signal.connect) (object,
+					       interface,
+					       offset,
+					       descendant,
+					       descendantInterface,
+					       descendantOffset,
+					       details,
+					       args);
+
+    va_end (args);
+
+    return index;
+}
+
+void
+compDisconnect (CompObject *object,
+		const char *interface,
+		size_t     offset,
+		int	   index)
+{
+    (*object->vTable->signal.disconnect) (object,
+					  interface,
+					  offset,
+					  index);
+}
+
 static CompBool
 setIndex (int *index,
 	  int value)
