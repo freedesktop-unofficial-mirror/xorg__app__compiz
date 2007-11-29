@@ -1890,16 +1890,18 @@ handleConnect (CompObject	 *object,
 
 	if (vec[index])
 	{
-	    handler->next = vec[index];
-	    handler->id   = vec[index]->id + 1;
+	    CompSignalHandler *last;
+
+	    for (last = vec[index]; last->next; last = last->next);
+
+	    handler->id = last->id + 1;
+	    last->next  = handler;
 	}
 	else
 	{
-	    handler->next = NULL;
-	    handler->id   = 1;
+	    handler->id = 1;
+	    vec[index]  = handler;
 	}
-
-	vec[index] = handler;
 
 	*id = handler->id;
 	return TRUE;
