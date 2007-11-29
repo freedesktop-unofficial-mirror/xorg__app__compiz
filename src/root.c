@@ -209,11 +209,11 @@ getRootObjectType (void)
 }
 
 void
-emitSignalSignal (CompObject *object,
-		  const char *interface,
-		  const char *name,
-		  const char *signature,
-		  ...)
+compEmitSignedSignal (CompObject *object,
+		      const char *interface,
+		      const char *name,
+		      const char *signature,
+		      ...)
 {
     CompObject *node;
     CompSignal *signal;

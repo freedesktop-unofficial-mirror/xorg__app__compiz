@@ -26,7 +26,7 @@
 #ifndef _COMPIZ_C_OBJECT_H
 #define _COMPIZ_C_OBJECT_H
 
-#include <compiz/object.h>
+#include <compiz/root.h>
 
 COMPIZ_BEGIN_DECLS
 
@@ -210,8 +210,9 @@ typedef struct _CObjectPrivate {
 	EMIT_SIGNAL (object, prototype,					\
 		     (offset) + (signal)->index, ##__VA_ARGS__);	\
 									\
-	emitSignalSignal (object, (signal)->interface, (signal)->name,	\
-			  (signal)->out, ##__VA_ARGS__);		\
+	compEmitSignedSignal (object,					\
+			      (signal)->interface, (signal)->name,	\
+			      (signal)->out, ##__VA_ARGS__);		\
     }									\
     else								\
     {									\

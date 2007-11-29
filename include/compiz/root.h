@@ -66,6 +66,13 @@ struct _CompRoot {
 CompObjectType *
 getRootObjectType (void);
 
+void
+compEmitSignedSignal (CompObject *object,
+		      const char *interface,
+		      const char *name,
+		      const char *signature,
+		      ...);
+
 COMPIZ_END_DECLS
 
 #endif
