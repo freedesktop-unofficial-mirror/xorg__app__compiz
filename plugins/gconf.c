@@ -36,18 +36,41 @@
 
 static int gconfCorePrivateIndex;
 
+typedef void (*GConfSignalProc) (CompObject   *object,
+				 const char   *interface,
+				 const char   *name,
+				 const char   *signature,
+				 CompAnyValue *value,
+				 int	      nValue,
+				 CompObject   *descendant);
+
+typedef void (*GConfPropSignalProc) (CompObject	  *object,
+				     const char	  *interface,
+				     const char	  *name,
+				     CompAnyValue *value,
+				     CompObject   *descendant);
+
 typedef struct _GConfCoreVTable {
     CompCoreVTable base;
-    SignalProc     handleSignal;
+
+    GConfSignalProc     signal;
+    SignalProc	        signalDelegate;
+    GConfSignalProc     loadInterface;
+    GConfPropSignalProc propSignal;
+    GConfSignalProc	propSignalDelegate;
+    GConfPropSignalProc storeBoolProp;
+    GConfPropSignalProc storeIntProp;
+    GConfPropSignalProc storeDoubleProp;
+    GConfPropSignalProc storeStringProp;
 } GConfCoreVTable;
 
 typedef struct _GConfCore {
     CompObjectVTableVec object;
 
-    GConfClient *client;
-    guint	cnxn;
-
+    GConfClient       *client;
+    guint	      cnxn;
     CompTimeoutHandle reloadHandle;
+    int		      signalOffset;
 } GConfCore;
 
 #define GET_GCONF_CORE(c)				     \
@@ -57,8 +80,16 @@ typedef struct _GConfCore {
     GConfCore *gc = GET_GCONF_CORE (c)
 
 
+static CSignal gconfSignal = C_SIGNAL (signal, 0, GConfCoreVTable);
+static CSignal gconfPropSignal = C_SIGNAL (propSignal, 0, GConfCoreVTable);
+
+static CSignal *gconfCoreSignal[] = {
+    &gconfSignal,
+    &gconfPropSignal
+};
+
 static CInterface gconfCoreInterface[] = {
-    C_INTERFACE (gconf, Core, GConfCoreVTable, _, _, _, _, _, _, _, _)
+    C_INTERFACE (gconf, Core, GConfCoreVTable, _, _, X, _, _, _, _, _)
 };
 
 static gchar *
@@ -303,95 +334,181 @@ gconfKeyChanged (GConfClient *client,
 }
 
 static void
-gconfPropChanged (CompCore     *c,
-		  CompObject   *object,
-		  const char   *signal,
-		  const char   *signature,
-		  CompAnyValue *value,
-		  int	       nValue)
+gconfSignalImpl (CompObject   *object,
+		 const char   *interface,
+		 const char   *name,
+		 const char   *signature,
+		 CompAnyValue *value,
+		 int	      nValue,
+		 CompObject   *descendant)
 {
-    GConfValue *gvalue = NULL;
-    const char *interface = value[0].s;
-    const char *name = value[1].s;
+    GCONF_CORE (GET_CORE (object));
 
-    if (signature[2] == 'b' && strcmp (signal, "boolChanged") == 0)
-    {
-	gvalue = gconf_value_new (GCONF_VALUE_BOOL);
-	if (gvalue)
-	    gconf_value_set_bool (gvalue, value[2].b);
-    }
-    else if (signature[2] == 'i' && strcmp (signal, "intChanged") == 0)
-    {
-	gvalue = gconf_value_new (GCONF_VALUE_INT);
-	if (gvalue)
-	    gconf_value_set_int (gvalue, value[2].i);
-    }
-    else if (signature[2] == 'd' && strcmp (signal, "doubleChanged") == 0)
-    {
-	gvalue = gconf_value_new (GCONF_VALUE_FLOAT);
-	if (gvalue)
-	    gconf_value_set_float (gvalue, value[2].d);
-    }
-    else if (signature[2] == 's' && strcmp (signal, "stringChanged") == 0)
-    {
-	gvalue = gconf_value_new (GCONF_VALUE_STRING);
-	if (gvalue)
-	    gconf_value_set_string (gvalue, value[2].s);
-    }
+    C_EMIT_SIGNAL (object, GConfSignalProc, gc->signalOffset, &gconfSignal,
+		   interface, name, signature, value, nValue, descendant);
+}
 
+static void
+gconfSignalDelegate (CompObject   *object,
+		     const char   *path,
+		     const char   *interface,
+		     const char   *name,
+		     const char   *signature,
+		     CompAnyValue *value,
+		     int	  nValue)
+{
+    CompObject *descendant;
+
+    descendant = compLookupObject (object,
+				   compTranslateObjectPath (object->parent,
+							    object, path));
+    if (descendant)
+	gconfSignalImpl (object,
+			 interface, name, signature,
+			 value, nValue,
+			 descendant);
+}
+
+static void
+gconfLoadInterface (CompObject   *object,
+		    const char   *interface,
+		    const char   *name,
+		    const char   *signature,
+		    CompAnyValue *value,
+		    int		 nValue,
+		    CompObject   *descendant)
+{
+    gconfReloadInterface (descendant, value[0].s, 0, NULL, (void *) object);
+}
+
+static void
+gconfPropSignalImpl (CompObject   *object,
+		     const char   *interface,
+		     const char   *name,
+		     CompAnyValue *value,
+		     CompObject   *descendant)
+{
+    GCONF_CORE (GET_CORE (object));
+
+    C_EMIT_SIGNAL (object, GConfPropSignalProc, gc->signalOffset,
+		   &gconfPropSignal,
+		   interface, name, value, descendant);
+}
+
+static void
+gconfPropSignalDelegate (CompObject   *object,
+			 const char   *interface,
+			 const char   *name,
+			 const char   *signature,
+			 CompAnyValue *value,
+			 int	      nValue,
+			 CompObject   *descendant)
+{
+    gconfPropSignalImpl (object, value[0].s, value[1].s, &value[2],
+			 descendant);
+}
+
+static void
+gconfStoreProp (CompObject *object,
+		CompObject *descendant,
+		const char *interface,
+		const char *name,
+		GConfValue *gvalue)
+{
+    gchar *key;
+
+    GCONF_CORE (GET_CORE (object));
+
+    key = gconfGetKey (descendant, interface, name);
+    if (key)
+    {
+	gconf_client_set (gc->client, key, gvalue, NULL);
+	g_free (key);
+    }
+}
+
+static void
+gconfStoreBoolProp (CompObject   *object,
+		    const char   *interface,
+		    const char   *name,
+		    CompAnyValue *value,
+		    CompObject   *descendant)
+{
+    GConfValue *gvalue;
+
+    gvalue = gconf_value_new (GCONF_VALUE_BOOL);
     if (gvalue)
     {
-	gchar *key;
-
-	GCONF_CORE (c);
-
-	key = gconfGetKey (object, interface, name);
-	if (key)
-	{
-	    gconf_client_set (gc->client, key, gvalue, NULL);
-	    g_free (key);
-	}
-
+	gconf_value_set_bool (gvalue, value->b);
+	gconfStoreProp (object, descendant, interface, name, gvalue);
 	gconf_value_free (gvalue);
     }
 }
 
 static void
-gconfHandleSignal (CompObject   *object,
-		   const char   *path,
+gconfStoreIntProp (CompObject   *object,
 		   const char   *interface,
 		   const char   *name,
-		   const char   *signature,
 		   CompAnyValue *value,
-		   int	        nValue)
+		   CompObject   *descendant)
 {
-    CompObject *source;
+    GConfValue *gvalue;
 
-    CORE (object);
-
-    if (strcmp (interface, "object") == 0)
+    gvalue = gconf_value_new (GCONF_VALUE_INT);
+    if (gvalue)
     {
-	if (strcmp (name,      "interfaceAdded") == 0 &&
-	    strcmp (signature, "s")		 == 0)
-	{
-	    source = compLookupObject (object, path);
-	    if (source)
-		gconfReloadInterface (source, value[0].s, 0, NULL, (void *) c);
-	}
+	gconf_value_set_int (gvalue, value->i);
+	gconfStoreProp (object, descendant, interface, name, gvalue);
+	gconf_value_free (gvalue);
     }
-    else if (strcmp (interface, "properties") == 0)
+}
+
+static void
+gconfStoreDoubleProp (CompObject   *object,
+		      const char   *interface,
+		      const char   *name,
+		      CompAnyValue *value,
+		      CompObject   *descendant)
+{
+    GConfValue *gvalue;
+
+    gvalue = gconf_value_new (GCONF_VALUE_FLOAT);
+    if (gvalue)
     {
-	if (strncmp (signature, "ss", 2) == 0)
-	{
-	    source = compLookupObject (object, path);
-	    if (source)
-		gconfPropChanged (c, source, name, signature, value, nValue);
-	}
+	gconf_value_set_float (gvalue, value->d);
+	gconfStoreProp (object, descendant, interface, name, gvalue);
+	gconf_value_free (gvalue);
+    }
+}
+
+static void
+gconfStoreStringProp (CompObject   *object,
+		      const char   *interface,
+		      const char   *name,
+		      CompAnyValue *value,
+		      CompObject   *descendant)
+{
+    GConfValue *gvalue;
+
+    gvalue = gconf_value_new (GCONF_VALUE_STRING);
+    if (gvalue)
+    {
+	gconf_value_set_string (gvalue, value->s);
+	gconfStoreProp (object, descendant, interface, name, gvalue);
+	gconf_value_free (gvalue);
     }
 }
 
 static GConfCoreVTable gconfCoreObjectVTable = {
-    .handleSignal = gconfHandleSignal
+    .signal             = gconfSignalImpl,
+    .signalDelegate     = gconfSignalDelegate,
+    .loadInterface      = gconfLoadInterface,
+    .propSignal         = gconfPropSignalImpl,
+    .propSignalDelegate = gconfPropSignalDelegate,
+    .storeBoolProp      = gconfStoreBoolProp,
+    .storeIntProp       = gconfStoreIntProp,
+    .storeDoubleProp    = gconfStoreDoubleProp,
+    .storeStringProp    = gconfStoreStringProp
 };
 
 static CompBool
@@ -402,8 +519,8 @@ gconfInitCore (CompCore *c)
     if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-   if (!cObjectInterfaceInit (&c->u.base.u.base,
-			      &gconfCoreObjectVTable.base.base.base))
+    if (!cObjectInterfaceInit (&c->u.base.u.base,
+			       &gconfCoreObjectVTable.base.base.base))
 	return FALSE;
 
     g_type_init ();
@@ -450,7 +567,7 @@ gconfCoreGetCContext (CompObject *object,
     ctx->nInterface = N_ELEMENTS (gconfCoreInterface);
     ctx->type	    = NULL;
     ctx->data	    = (char *) gc;
-    ctx->svOffset   = 0;
+    ctx->svOffset   = offsetof (GConfCore, signalOffset);
     ctx->vtStore    = &gc->object;
     ctx->version    = COMPIZ_GCONF_VERSION;
 }
@@ -463,16 +580,44 @@ static CompBool
 gconfInsert (CompObject *parent,
 	     CompBranch *branch)
 {
+    static const struct {
+	const char *signal;
+	size_t	   offset;
+    } properties[] = {
+	{ "boolPropChanged",   offsetof (GConfCoreVTable, storeBoolProp)   },
+	{ "intPropChanged",    offsetof (GConfCoreVTable, storeIntProp)    },
+	{ "doublePropChanged", offsetof (GConfCoreVTable, storeDoubleProp) },
+	{ "stringPropChanged", offsetof (GConfCoreVTable, storeStringProp) }
+    };
+    int i;
+
     if (!cObjectInitPrivates (gconfObj, N_ELEMENTS (gconfObj)))
 	return FALSE;
 
     compConnect (parent,
-		 "signal",
-		 offsetof (CompSignalVTable, signal),
+		 "signal", offsetof (CompSignalVTable, signal),
 		 &branch->u.base,
-		 "gconf",
-		 offsetof (GConfCoreVTable, handleSignal),
-		 NULL);
+		 "gconf", offsetof (GConfCoreVTable, signalDelegate),
+		 "o", "//*");
+
+    compConnect (&branch->u.base,
+		 "gconf", offsetof (GConfCoreVTable, signal),
+		 &branch->u.base,
+		 "gconf", offsetof (GConfCoreVTable, propSignalDelegate),
+		 "s", "properties");
+
+    compConnect (&branch->u.base,
+		 "gconf", offsetof (GConfCoreVTable, signal),
+		 &branch->u.base,
+		 "gconf", offsetof (GConfCoreVTable, loadInterface),
+		 "ss", "object", "interfaceAdded");
+
+    for (i = 0; i < N_ELEMENTS (properties); i++)
+	compConnect (&branch->u.base,
+		     "gconf", offsetof (GConfCoreVTable, propSignal),
+		     &branch->u.base,
+		     "gconf", properties[i].offset,
+		     "s", properties[i].signal);
 
     return TRUE;
 }
