@@ -449,7 +449,7 @@ struct _CompObject {
 				       ##__VA_ARGS__))
 
 #define EMIT_SIGNAL(object, type, vOffset, ...)				\
-    if ((object)->signalVec)						\
+    do									\
     {									\
 	CompSignalHandler   *handler = object->signalVec[(vOffset)];	\
 	CompObjectVTableVec save;					\
@@ -479,7 +479,7 @@ struct _CompObject {
 									\
 	    handler = handler->next;					\
 	}								\
-    }
+    } while (0)
 
 
 CompObjectType *
@@ -567,6 +567,11 @@ compDisconnect (CompObject *object,
 		const char *interface,
 		size_t     offset,
 		int	   index);
+
+const char *
+compTranslateObjectPath (CompObject *ancestor,
+			 CompObject *descendant,
+			 const char *path);
 
 COMPIZ_END_DECLS
 

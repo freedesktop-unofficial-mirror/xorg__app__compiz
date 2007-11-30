@@ -204,21 +204,28 @@ typedef struct _CObjectPrivate {
 	    (InitObjectProc) name ## Init ## type,		 \
 	    (FiniObjectProc) name ## Fini ## type }
 
-#define C_EMIT_SIGNAL(object, prototype, offset, signal, ...)		\
+#define C_EMIT_SIGNAL_INT(object, prototype, offset, vec, signal, ...)	\
     if ((signal)->out)							\
     {									\
-	EMIT_SIGNAL (object, prototype,					\
-		     (offset) + (signal)->index, ##__VA_ARGS__);	\
+	if (vec)							\
+	{								\
+	    EMIT_SIGNAL (object, prototype,				\
+			 (offset) + (signal)->index, ##__VA_ARGS__);	\
+	}								\
 									\
 	compEmitSignedSignal (object,					\
 			      (signal)->interface, (signal)->name,	\
 			      (signal)->out, ##__VA_ARGS__);		\
     }									\
-    else								\
+    else if (vec)							\
     {									\
 	EMIT_SIGNAL (object, prototype,					\
 		     (offset) + (signal)->index, ##__VA_ARGS__);	\
     }
+
+#define C_EMIT_SIGNAL(object, prototype, offset, signal, ...)		\
+    C_EMIT_SIGNAL_INT (object, prototype, offset, offset,		\
+		       signal, ##__VA_ARGS__)
 
 
 void

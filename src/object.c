@@ -1518,7 +1518,8 @@ inserted (CompObject *object)
 {
     int i;
 
-    C_EMIT_SIGNAL (object, InsertedProc, 0, &insertedSignal);
+    C_EMIT_SIGNAL_INT (object, InsertedProc, 0, object->signalVec,
+		       &insertedSignal);
 
     for (i = 0; i < N_ELEMENTS (objectInterface); i++)
 	(*object->vTable->interfaceAdded) (object, objectInterface[i].name);
@@ -1532,7 +1533,8 @@ removed (CompObject *object)
     for (i = 0; i < N_ELEMENTS (objectInterface); i++)
 	(*object->vTable->interfaceRemoved) (object, objectInterface[i].name);
 
-    C_EMIT_SIGNAL (object, RemovedProc, 0, &removedSignal);
+    C_EMIT_SIGNAL_INT (object, RemovedProc, 0, object->signalVec,
+		       &removedSignal);
 }
 
 static int
@@ -1551,8 +1553,9 @@ static void
 interfaceAdded (CompObject *object,
 		const char *interface)
 {
-    C_EMIT_SIGNAL (object, InterfaceAddedProc, 0, &interfaceAddedSignal,
-		   interface);
+    C_EMIT_SIGNAL_INT (object, InterfaceAddedProc, 0, object->signalVec,
+		       &interfaceAddedSignal,
+		       interface);
 }
 
 static void
@@ -1607,8 +1610,9 @@ interfaceRemoved (CompObject *object,
 	}
     }
 
-    C_EMIT_SIGNAL (object, InterfaceRemovedProc, 0, &interfaceRemovedSignal,
-		   interface);
+    C_EMIT_SIGNAL_INT (object, InterfaceRemovedProc, 0, object->signalVec,
+		       &interfaceRemovedSignal,
+		       interface);
 }
 
 static CompBool
@@ -1707,7 +1711,10 @@ compGetSignalVecRange (CompObject *object,
     if (!vec)
 	return NULL;
 
-    memset (&vec[start], 0, sizeof (CompSignalHandler **) * size);
+    if (object->signalVec)
+	memset (&vec[start], 0, sizeof (CompSignalHandler **) * size);
+    else
+	memset (vec, 0, sizeof (CompSignalHandler **) * (size + start));
 
     vec[start + size] = &lastSignalVecEntry;
     object->signalVec = vec;
@@ -2068,8 +2075,8 @@ signal (CompObject   *object,
 	CompAnyValue *value,
 	int	     nValue)
 {
-    C_EMIT_SIGNAL (object, SignalProc, 0, &signalSignal,
-		   path, interface, name, signature, value, nValue);
+    C_EMIT_SIGNAL_INT (object, SignalProc, 0, object->signalVec, &signalSignal,
+		       path, interface, name, signature, value, nValue);
 }
 
 static CompBool
@@ -2259,8 +2266,9 @@ boolPropChanged (CompObject *object,
 		 const char *name,
 		 CompBool   value)
 {
-    C_EMIT_SIGNAL (object, BoolPropChangedProc, 0, &boolChangedSignal,
-		   interface, name, value);
+    C_EMIT_SIGNAL_INT (object, BoolPropChangedProc, 0, object->signalVec,
+		       &boolChangedSignal,
+		       interface, name, value);
 }
 
 static CompBool
@@ -2470,8 +2478,9 @@ intPropChanged (CompObject *object,
 		const char *name,
 		int32_t    value)
 {
-    C_EMIT_SIGNAL (object, IntPropChangedProc, 0, &intChangedSignal,
-		   interface, name, value);
+    C_EMIT_SIGNAL_INT (object, IntPropChangedProc, 0, object->signalVec,
+		       &intChangedSignal,
+		       interface, name, value);
 }
 
 static CompBool
@@ -2681,8 +2690,9 @@ doublePropChanged (CompObject *object,
 		   const char *name,
 		   double     value)
 {
-    C_EMIT_SIGNAL (object, DoublePropChangedProc, 0, &doubleChangedSignal,
-		   interface, name, value);
+    C_EMIT_SIGNAL_INT (object, DoublePropChangedProc, 0, object->signalVec,
+		       &doubleChangedSignal,
+		       interface, name, value);
 }
 
 static CompBool
@@ -2899,8 +2909,9 @@ stringPropChanged (CompObject *object,
 		   const char *name,
 		   const char *value)
 {
-    C_EMIT_SIGNAL (object, StringPropChangedProc, 0, &stringChangedSignal,
-		   interface, name, value);
+    C_EMIT_SIGNAL_INT (object, StringPropChangedProc, 0, object->signalVec,
+		       &stringChangedSignal,
+		       interface, name, value);
 }
 
 #define HOME_DATADIR   ".compiz-0/data"
@@ -4195,8 +4206,7 @@ compCheckEqualityOfValuesAndArgs (const char   *signature,
 	case COMP_TYPE_OBJECT: {
 	    char *s = va_arg (args, char *);
 
-	    /* '//*' can be used to match any object, complete XPath
-	       expression support could be added later */
+	    /* complete XPath expression support could be added later */
 	    if (strcmp (value[i].s, "//*") != 0)
 		equal = (strcmp (s, value[i].s) == 0);
 	} break;
@@ -4247,6 +4257,23 @@ compDisconnect (CompObject *object,
 					  interface,
 					  offset,
 					  index);
+}
+
+const char *
+compTranslateObjectPath (CompObject *ancestor,
+			 CompObject *descendant,
+			 const char *path)
+{
+    CompObject *node;
+    int	       n = 0;
+
+    for (node = descendant; node != ancestor; node = node->parent)
+	n += strlen (node->name) + 1;
+
+    if (n && path[n - 1] != '/')
+	return path + (n - 1);
+
+    return path + n;
 }
 
 static CompBool
@@ -4748,6 +4775,9 @@ cObjectInterfaceInit (CompObject	     *object,
     CContext ctx;
 
     CCONTEXT (vTable, &ctx);
+
+    if (ctx.svOffset)
+	*((int *) (ctx.data + ctx.svOffset)) = 0;
 
     if (!cObjectPropertiesInit (object,
 				ctx.data,
