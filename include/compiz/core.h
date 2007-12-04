@@ -751,6 +751,8 @@ struct _CompCore {
 #define GET_CORE(object) ((CompCore *) (object))
 #define CORE(object) CompCore *c = GET_CORE (object)
 
+#define CORE_TYPE_NAME "core"
+
 CompObjectType *
 getCoreObjectType (void);
 
@@ -1187,6 +1189,8 @@ struct _CompDisplay {
 
 #define GET_DISPLAY(object) ((CompDisplay *) (object))
 #define DISPLAY(object) CompDisplay *d = GET_DISPLAY (object)
+
+#define DISPLAY_TYPE_NAME "display"
 
 CompObjectType *
 getDisplayObjectType (void);
@@ -2298,6 +2302,8 @@ struct _CompScreen {
 #define GET_SCREEN(object) ((CompScreen *) (object))
 #define SCREEN(object) CompScreen *s = GET_SCREEN (object)
 
+#define SCREEN_TYPE_NAME "screen"
+
 CompObjectType *
 getScreenObjectType (void);
 
@@ -2743,6 +2749,8 @@ struct _CompWindow {
 
 #define GET_WINDOW(object) ((CompWindow *) (object))
 #define WINDOW(object) CompWindow *w = GET_WINDOW (object)
+
+#define WINDOW_TYPE_NAME "window"
 
 CompObjectType *
 getWindowObjectType (void);

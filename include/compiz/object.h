@@ -440,6 +440,8 @@ struct _CompObject {
 #define GET_OBJECT(object) ((CompObject *) (object))
 #define OBJECT(object) CompObject *o = GET_OBJECT (object)
 
+#define OBJECT_TYPE_NAME "object"
+
 #define INVOKE_HANDLER_PROC(object, offset, prototype, ...)		\
     (*(*((prototype *)							\
 	 (((char *) (object)->vTable) +					\
