@@ -90,3 +90,279 @@ getPropObjectType (void)
 
     return &propObjectType;
 }
+
+static CBoolProp boolPropTypeBoolProp[] = {
+    C_PROP (value, CompBoolProp)
+};
+
+static const CInterface boolPropInterface[] = {
+    C_INTERFACE (boolProp, Type, CompObjectVTable, _, _, _, X, _, _, _, _)
+};
+
+static CompObjectVTable boolPropObjectVTable = { 0 };
+
+static CompBool
+boolPropInitObject (CompObject *object)
+{
+    return cObjectInit (object, getPropObjectType (), &boolPropObjectVTable);
+}
+
+static void
+boolPropFiniObject (CompObject *object)
+{
+    cObjectFini (object, getPropObjectType ());
+}
+
+static void
+boolPropInitVTable (void *vTable)
+{
+    (*getPropObjectType ()->initVTable) (vTable);
+}
+
+static CompObjectType boolPropObjectType = {
+    BOOL_PROP_TYPE_NAME,
+    {
+	boolPropInitObject,
+	boolPropFiniObject
+    },
+    0,
+    NULL,
+    boolPropInitVTable
+};
+
+static void
+boolPropGetCContect (CompObject *object,
+		     CContext   *ctx)
+{
+    BOOL_PROP (object);
+
+    ctx->interface  = boolPropInterface;
+    ctx->nInterface = N_ELEMENTS (boolPropInterface);
+    ctx->type	    = &boolPropObjectType;
+    ctx->data	    = (char *) b;
+    ctx->svOffset   = 0;
+    ctx->vtStore    = &b->object;
+    ctx->version    = COMPIZ_PROP_VERSION;
+}
+
+CompObjectType *
+getBoolPropObjectType (void)
+{
+    static CompBool init = FALSE;
+
+    if (!init)
+    {
+	cInitObjectVTable (&boolPropObjectVTable, boolPropGetCContect,
+			   boolPropObjectType.initVTable);
+	init = TRUE;
+    }
+
+    return &boolPropObjectType;
+}
+
+static CIntProp intPropTypeIntProp[] = {
+    C_PROP (value, CompIntProp)
+};
+
+static const CInterface intPropInterface[] = {
+    C_INTERFACE (intProp, Type, CompObjectVTable, _, _, _, _, X, _, _, _)
+};
+
+static CompObjectVTable intPropObjectVTable = { 0 };
+
+static CompBool
+intPropInitObject (CompObject *object)
+{
+    return cObjectInit (object, getPropObjectType (), &intPropObjectVTable);
+}
+
+static void
+intPropFiniObject (CompObject *object)
+{
+    cObjectFini (object, getPropObjectType ());
+}
+
+static void
+intPropInitVTable (void *vTable)
+{
+    (*getPropObjectType ()->initVTable) (vTable);
+}
+
+static CompObjectType intPropObjectType = {
+    INT_PROP_TYPE_NAME,
+    {
+	intPropInitObject,
+	intPropFiniObject
+    },
+    0,
+    NULL,
+    intPropInitVTable
+};
+
+static void
+intPropGetCContect (CompObject *object,
+		    CContext   *ctx)
+{
+    INT_PROP (object);
+
+    ctx->interface  = intPropInterface;
+    ctx->nInterface = N_ELEMENTS (intPropInterface);
+    ctx->type	    = &intPropObjectType;
+    ctx->data	    = (char *) i;
+    ctx->svOffset   = 0;
+    ctx->vtStore    = &i->object;
+    ctx->version    = COMPIZ_PROP_VERSION;
+}
+
+CompObjectType *
+getIntPropObjectType (void)
+{
+    static CompBool init = FALSE;
+
+    if (!init)
+    {
+	cInitObjectVTable (&intPropObjectVTable, intPropGetCContect,
+			   intPropObjectType.initVTable);
+	init = TRUE;
+    }
+
+    return &intPropObjectType;
+}
+
+static CDoubleProp doublePropTypeDoubleProp[] = {
+    C_PROP (value, CompDoubleProp)
+};
+
+static const CInterface doublePropInterface[] = {
+    C_INTERFACE (doubleProp, Type, CompObjectVTable, _, _, _, _, _, X, _, _)
+};
+
+static CompObjectVTable doublePropObjectVTable = { 0 };
+
+static CompBool
+doublePropInitObject (CompObject *object)
+{
+    return cObjectInit (object, getPropObjectType (), &doublePropObjectVTable);
+}
+
+static void
+doublePropFiniObject (CompObject *object)
+{
+    cObjectFini (object, getPropObjectType ());
+}
+
+static void
+doublePropInitVTable (void *vTable)
+{
+    (*getPropObjectType ()->initVTable) (vTable);
+}
+
+static CompObjectType doublePropObjectType = {
+    DOUBLE_PROP_TYPE_NAME,
+    {
+	doublePropInitObject,
+	doublePropFiniObject
+    },
+    0,
+    NULL,
+    doublePropInitVTable
+};
+
+static void
+doublePropGetCContect (CompObject *object,
+		       CContext   *ctx)
+{
+    DOUBLE_PROP (object);
+
+    ctx->interface  = doublePropInterface;
+    ctx->nInterface = N_ELEMENTS (doublePropInterface);
+    ctx->type	    = &doublePropObjectType;
+    ctx->data	    = (char *) d;
+    ctx->svOffset   = 0;
+    ctx->vtStore    = &d->object;
+    ctx->version    = COMPIZ_PROP_VERSION;
+}
+
+CompObjectType *
+getDoublePropObjectType (void)
+{
+    static CompBool init = FALSE;
+
+    if (!init)
+    {
+	cInitObjectVTable (&doublePropObjectVTable, doublePropGetCContect,
+			   doublePropObjectType.initVTable);
+	init = TRUE;
+    }
+
+    return &doublePropObjectType;
+}
+
+static CStringProp stringPropTypeStringProp[] = {
+    C_PROP (value, CompStringProp)
+};
+
+static const CInterface stringPropInterface[] = {
+    C_INTERFACE (stringProp, Type, CompObjectVTable, _, _, _, _, _, _, X, _)
+};
+
+static CompObjectVTable stringPropObjectVTable = { 0 };
+
+static CompBool
+stringPropInitObject (CompObject *object)
+{
+    return cObjectInit (object, getPropObjectType (), &stringPropObjectVTable);
+}
+
+static void
+stringPropFiniObject (CompObject *object)
+{
+    cObjectFini (object, getPropObjectType ());
+}
+
+static void
+stringPropInitVTable (void *vTable)
+{
+    (*getPropObjectType ()->initVTable) (vTable);
+}
+
+static CompObjectType stringPropObjectType = {
+    STRING_PROP_TYPE_NAME,
+    {
+	stringPropInitObject,
+	stringPropFiniObject
+    },
+    0,
+    NULL,
+    stringPropInitVTable
+};
+
+static void
+stringPropGetCContect (CompObject *object,
+		       CContext   *ctx)
+{
+    STRING_PROP (object);
+
+    ctx->interface  = stringPropInterface;
+    ctx->nInterface = N_ELEMENTS (stringPropInterface);
+    ctx->type	    = &stringPropObjectType;
+    ctx->data	    = (char *) s;
+    ctx->svOffset   = 0;
+    ctx->vtStore    = &s->object;
+    ctx->version    = COMPIZ_PROP_VERSION;
+}
+
+CompObjectType *
+getStringPropObjectType (void)
+{
+    static CompBool init = FALSE;
+
+    if (!init)
+    {
+	cInitObjectVTable (&stringPropObjectVTable, stringPropGetCContect,
+			   stringPropObjectType.initVTable);
+	init = TRUE;
+    }
+
+    return &stringPropObjectType;
+}

@@ -46,6 +46,70 @@ typedef struct _CompProp {
 CompObjectType *
 getPropObjectType (void);
 
+typedef struct _CompBoolProp {
+    CompProp base;
+
+    CompObjectVTableVec object;
+
+    CompBool value;
+} CompBoolProp;
+
+#define GET_BOOL_PROP(object) ((CompBoolProp *) (object))
+#define BOOL_PROP(object) CompBoolProp *b = GET_BOOL_PROP (object)
+
+#define BOOL_PROP_TYPE_NAME "boolProp"
+
+CompObjectType *
+getBoolPropObjectType (void);
+
+typedef struct _CompIntProp {
+    CompProp base;
+
+    CompObjectVTableVec object;
+
+    int32_t value;
+} CompIntProp;
+
+#define GET_INT_PROP(object) ((CompIntProp *) (object))
+#define INT_PROP(object) CompIntProp *i = GET_INT_PROP (object)
+
+#define INT_PROP_TYPE_NAME "intProp"
+
+CompObjectType *
+getIntPropObjectType (void);
+
+typedef struct _CompDoubleProp {
+    CompProp base;
+
+    CompObjectVTableVec object;
+
+    double value;
+} CompDoubleProp;
+
+#define GET_DOUBLE_PROP(object) ((CompDoubleProp *) (object))
+#define DOUBLE_PROP(object) CompDoubleProp *d = GET_DOUBLE_PROP (object)
+
+#define DOUBLE_PROP_TYPE_NAME "doubleProp"
+
+CompObjectType *
+getDoublePropObjectType (void);
+
+typedef struct _CompStringProp {
+    CompProp base;
+
+    CompObjectVTableVec object;
+
+    char *value;
+} CompStringProp;
+
+#define GET_STRING_PROP(object) ((CompStringProp *) (object))
+#define STRING_PROP(object) CompStringProp *s = GET_STRING_PROP (object)
+
+#define STRING_PROP_TYPE_NAME "stringProp"
+
+CompObjectType *
+getStringPropObjectType (void);
+
 COMPIZ_END_DECLS
 
 #endif
