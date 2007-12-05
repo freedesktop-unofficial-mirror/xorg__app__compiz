@@ -404,7 +404,7 @@ coreInitVTable (CompCoreVTable *vTable)
 }
 
 static CompObjectType coreObjectType = {
-    "core",
+    CORE_TYPE_NAME,
     {
 	coreInitObject,
 	coreFiniObject
@@ -465,7 +465,7 @@ initCore (CompObject *parent)
     if (!compObjectInit (&core.u.base.u.base, getCoreObjectType ()))
 	return FALSE;
 
-    coreObjectAdd (parent, &core.u.base.u.base, "core");
+    coreObjectAdd (parent, &core.u.base.u.base, CORE_TYPE_NAME);
 
     corePlugin = loadPlugin ("core");
     if (!corePlugin)
