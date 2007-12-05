@@ -1106,8 +1106,8 @@ fuseCoreGetCContext (CompObject *object,
 }
 
 static CObjectPrivate fuseObj[] = {
-    C_OBJECT_PRIVATE ("object", fuse, Object, FuseObject, X, _),
-    C_OBJECT_PRIVATE ("core",   fuse, Core,   FuseCore,   X, X)
+    C_OBJECT_PRIVATE (OBJECT_TYPE_NAME, fuse, Object, FuseObject, X, _),
+    C_OBJECT_PRIVATE (CORE_TYPE_NAME,   fuse, Core,   FuseCore,   X, X)
 };
 
 static Bool

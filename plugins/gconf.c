@@ -102,7 +102,7 @@ gconfGetObjectPath (CompObject *object)
     else
 	parentPath = g_strdup ("/apps/" APP_NAME);
 
-    if (!object->name || strcmp (object->name, "core") == 0)
+    if (!object->name || strcmp (object->name, CORE_TYPE_NAME) == 0)
 	return parentPath;
 
     path = g_strdup_printf ("%s/%s", parentPath, object->name);
@@ -573,7 +573,7 @@ gconfCoreGetCContext (CompObject *object,
 }
 
 static CObjectPrivate gconfObj[] = {
-    C_OBJECT_PRIVATE ("core", gconf, Core, GConfCore, X, X)
+    C_OBJECT_PRIVATE (CORE_TYPE_NAME, gconf, Core, GConfCore, X, X)
 };
 
 static CompBool

@@ -114,7 +114,7 @@ dbusGetObjectPath (CompObject *object)
     if (!parentPath)
 	return NULL;
 
-    if (!object->name || strcmp (object->name, "core") == 0)
+    if (!object->name || strcmp (object->name, CORE_TYPE_NAME) == 0)
 	return parentPath;
 
     parentPathLen = strlen (parentPath);
@@ -1068,7 +1068,7 @@ dbusCoreGetCContext (CompObject *object,
 }
 
 static CObjectPrivate dbusObj[] = {
-    C_OBJECT_PRIVATE ("core", dbus, Core, DBusCore, X, X)
+    C_OBJECT_PRIVATE (CORE_TYPE_NAME, dbus, Core, DBusCore, X, X)
 };
 
 static CompBool

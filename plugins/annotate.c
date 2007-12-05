@@ -855,8 +855,8 @@ annoScreenGetCContext (CompObject *object,
 }
 
 static CObjectPrivate annoObj[] = {
-    C_OBJECT_PRIVATE ("display", anno, Display, AnnoDisplay, X, X),
-    C_OBJECT_PRIVATE ("screen",  anno, Screen,  AnnoScreen,  X, X)
+    C_OBJECT_PRIVATE (DISPLAY_TYPE_NAME, anno, Display, AnnoDisplay, X, X),
+    C_OBJECT_PRIVATE (SCREEN_TYPE_NAME,  anno, Screen,  AnnoScreen,  X, X)
 };
 
 static Bool

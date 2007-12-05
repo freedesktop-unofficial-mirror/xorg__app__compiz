@@ -247,7 +247,7 @@ glibCoreGetCContext (CompObject *object,
 }
 
 static CObjectPrivate glibObj[] = {
-    C_OBJECT_PRIVATE ("core", glib, Core, GLibCore, X, X)
+    C_OBJECT_PRIVATE (CORE_TYPE_NAME, glib, Core, GLibCore, X, X)
 };
 
 static Bool
