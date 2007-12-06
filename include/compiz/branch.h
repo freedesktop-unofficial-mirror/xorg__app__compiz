@@ -42,11 +42,6 @@ typedef struct _CompBranchVTable {
     ForEachTypeProc forEachType;
 } CompBranchVTable;
 
-typedef struct _CompObjectTypeInstance {
-    const CompObjectType *type;
-    CompObjectPrivates   p;
-} CompObjectTypeInstance;
-
 typedef struct _CompBranch {
     union {
 	CompObject	       base;
@@ -55,8 +50,7 @@ typedef struct _CompBranch {
 
     CompObjectVTableVec object;
 
-    CompObjectTypeInstance *instance;
-    int			   nInstance;
+    CompObjectFactory factory;
 } CompBranch;
 
 #define GET_BRANCH(object) ((CompBranch *) (object))

@@ -72,8 +72,8 @@ forEachType (CompObject	      *object,
 
     BRANCH (object);
 
-    for (i = 0; i < b->nInstance; i++)
-	if (!(*proc) (object, b->instance[i].type, closure))
+    for (i = 0; i < b->factory.nConstructor; i++)
+	if (!(*proc) (object, b->factory.constructor[i].type, closure))
 	    return FALSE;
 
     return TRUE;
@@ -91,8 +91,8 @@ branchInitObject (CompObject *object)
     if (!cObjectInit (&b->u.base, getObjectType (), &branchObjectVTable.base))
 	return FALSE;
 
-    b->instance  = NULL;
-    b->nInstance = 0;
+    b->factory.constructor  = NULL;
+    b->factory.nConstructor = 0;
 
     return TRUE;
 }
