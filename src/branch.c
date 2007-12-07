@@ -68,14 +68,6 @@ forEachType (CompObject	      *object,
 	     TypeCallBackProc proc,
 	     void	      *closure)
 {
-    int i;
-
-    BRANCH (object);
-
-    for (i = 0; i < b->factory.nConstructor; i++)
-	if (!(*proc) (object, b->factory.constructor[i].type, closure))
-	    return FALSE;
-
     return TRUE;
 }
 
