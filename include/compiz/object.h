@@ -213,14 +213,6 @@ typedef void (*InterfaceAddedProc) (CompObject *object,
 typedef void (*InterfaceRemovedProc) (CompObject *object,
 				      const char *interface);
 
-typedef CompBool (*TypeCallBackProc) (CompObject	   *object,
-				      const CompObjectType *type,
-				      void		   *closure);
-
-typedef CompBool (*ForEachTypeProc) (CompObject	      *object,
-				     TypeCallBackProc proc,
-				     void	      *closure);
-
 typedef CompBool (*ChildObjectCallBackProc) (CompObject *object,
 					     void	*closure);
 

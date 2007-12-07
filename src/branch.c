@@ -31,6 +31,7 @@ static const CInterface branchInterface[] = {
 };
 
 typedef struct _ForEachTypeContext {
+    const char       *interface;
     TypeCallBackProc proc;
     void	     *closure;
 } ForEachTypeContext;
@@ -43,11 +44,15 @@ baseObjectForEachType (CompObject *object,
 
     BRANCH (object);
 
-    return (*b->u.vTable->forEachType) (object, pCtx->proc, pCtx->closure);
+    return (*b->u.vTable->forEachType) (object,
+					pCtx->interface,
+					pCtx->proc,
+					pCtx->closure);
 }
 
 static CompBool
 noopForEachType (CompObject	  *object,
+		 const char       *interface,
 		 TypeCallBackProc proc,
 		 void	          *closure)
 {
@@ -55,8 +60,9 @@ noopForEachType (CompObject	  *object,
 
     BRANCH (object);
 
-    ctx.proc    = proc;
-    ctx.closure = closure;
+    ctx.interface = interface;
+    ctx.proc      = proc;
+    ctx.closure   = closure;
 
     return (*b->u.base.vTable->forBaseObject) (object,
 					       baseObjectForEachType,
@@ -65,6 +71,7 @@ noopForEachType (CompObject	  *object,
 
 static CompBool
 forEachType (CompObject	      *object,
+	     const char       *interface,
 	     TypeCallBackProc proc,
 	     void	      *closure)
 {

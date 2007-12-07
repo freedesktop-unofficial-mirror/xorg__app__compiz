@@ -32,6 +32,15 @@
 
 COMPIZ_BEGIN_DECLS
 
+typedef CompBool (*TypeCallBackProc) (CompObject	   *object,
+				      const CompObjectType *type,
+				      void		   *closure);
+
+typedef CompBool (*ForEachTypeProc) (CompObject	      *object,
+				     const char	      *interface,
+				     TypeCallBackProc proc,
+				     void	      *closure);
+
 typedef struct _CompBranchVTable {
     CompObjectVTable base;
 
