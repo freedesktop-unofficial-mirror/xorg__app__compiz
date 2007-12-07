@@ -62,7 +62,7 @@ static CompObjectType inputObjectType = {
 };
 
 static void
-inputGetCContect (CompObject *object,
+inputGetCContext (CompObject *object,
 		  CContext   *ctx)
 {
     INPUT (object);
@@ -83,7 +83,7 @@ getInputObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&inputObjectVTable, inputGetCContect,
+	cInitObjectVTable (&inputObjectVTable, inputGetCContext,
 			   inputObjectType.initVTable);
 	init = TRUE;
     }

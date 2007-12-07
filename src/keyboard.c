@@ -69,7 +69,7 @@ static CompObjectType keyboardObjectType = {
 };
 
 static void
-keyboardGetCContect (CompObject *object,
+keyboardGetCContext (CompObject *object,
 		   CContext   *ctx)
 {
     KEYBOARD (object);
@@ -90,7 +90,7 @@ getKeyboardObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&keyboardObjectVTable, keyboardGetCContect,
+	cInitObjectVTable (&keyboardObjectVTable, keyboardGetCContext,
 			   keyboardObjectType.initVTable);
 	init = TRUE;
     }

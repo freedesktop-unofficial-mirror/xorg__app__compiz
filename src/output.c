@@ -62,7 +62,7 @@ static CompObjectType outputObjectType = {
 };
 
 static void
-outputGetCContect (CompObject *object,
+outputGetCContext (CompObject *object,
 		   CContext   *ctx)
 {
     OUTPUT (object);
@@ -83,7 +83,7 @@ getOutputObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&outputObjectVTable, outputGetCContect,
+	cInitObjectVTable (&outputObjectVTable, outputGetCContext,
 			   outputObjectType.initVTable);
 	init = TRUE;
     }

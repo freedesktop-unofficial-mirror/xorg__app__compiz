@@ -62,7 +62,7 @@ static CompObjectType propObjectType = {
 };
 
 static void
-propGetCContect (CompObject *object,
+propGetCContext (CompObject *object,
 		 CContext   *ctx)
 {
     PROP (object);
@@ -83,7 +83,7 @@ getPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&propObjectVTable, propGetCContect,
+	cInitObjectVTable (&propObjectVTable, propGetCContext,
 			   propObjectType.initVTable);
 	init = TRUE;
     }
@@ -131,7 +131,7 @@ static CompObjectType boolPropObjectType = {
 };
 
 static void
-boolPropGetCContect (CompObject *object,
+boolPropGetCContext (CompObject *object,
 		     CContext   *ctx)
 {
     BOOL_PROP (object);
@@ -152,7 +152,7 @@ getBoolPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&boolPropObjectVTable, boolPropGetCContect,
+	cInitObjectVTable (&boolPropObjectVTable, boolPropGetCContext,
 			   boolPropObjectType.initVTable);
 	init = TRUE;
     }
@@ -200,7 +200,7 @@ static CompObjectType intPropObjectType = {
 };
 
 static void
-intPropGetCContect (CompObject *object,
+intPropGetCContext (CompObject *object,
 		    CContext   *ctx)
 {
     INT_PROP (object);
@@ -221,7 +221,7 @@ getIntPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&intPropObjectVTable, intPropGetCContect,
+	cInitObjectVTable (&intPropObjectVTable, intPropGetCContext,
 			   intPropObjectType.initVTable);
 	init = TRUE;
     }
@@ -269,7 +269,7 @@ static CompObjectType doublePropObjectType = {
 };
 
 static void
-doublePropGetCContect (CompObject *object,
+doublePropGetCContext (CompObject *object,
 		       CContext   *ctx)
 {
     DOUBLE_PROP (object);
@@ -290,7 +290,7 @@ getDoublePropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&doublePropObjectVTable, doublePropGetCContect,
+	cInitObjectVTable (&doublePropObjectVTable, doublePropGetCContext,
 			   doublePropObjectType.initVTable);
 	init = TRUE;
     }
@@ -338,7 +338,7 @@ static CompObjectType stringPropObjectType = {
 };
 
 static void
-stringPropGetCContect (CompObject *object,
+stringPropGetCContext (CompObject *object,
 		       CContext   *ctx)
 {
     STRING_PROP (object);
@@ -359,7 +359,7 @@ getStringPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&stringPropObjectVTable, stringPropGetCContect,
+	cInitObjectVTable (&stringPropObjectVTable, stringPropGetCContext,
 			   stringPropObjectType.initVTable);
 	init = TRUE;
     }

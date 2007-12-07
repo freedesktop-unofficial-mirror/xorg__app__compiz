@@ -70,7 +70,7 @@ static CompObjectType pointerObjectType = {
 };
 
 static void
-pointerGetCContect (CompObject *object,
+pointerGetCContext (CompObject *object,
 		   CContext   *ctx)
 {
     POINTER (object);
@@ -91,7 +91,7 @@ getPointerObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&pointerObjectVTable, pointerGetCContect,
+	cInitObjectVTable (&pointerObjectVTable, pointerGetCContext,
 			   pointerObjectType.initVTable);
 	init = TRUE;
     }

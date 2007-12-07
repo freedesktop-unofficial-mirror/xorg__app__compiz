@@ -123,7 +123,7 @@ static CompObjectType branchObjectType = {
 };
 
 static void
-branchGetCContect (CompObject *object,
+branchGetCContext (CompObject *object,
 		   CContext   *ctx)
 {
     BRANCH (object);
@@ -144,7 +144,7 @@ getBranchObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&branchObjectVTable.base, branchGetCContect,
+	cInitObjectVTable (&branchObjectVTable.base, branchGetCContext,
 			   branchObjectType.initVTable);
 	init = TRUE;
     }

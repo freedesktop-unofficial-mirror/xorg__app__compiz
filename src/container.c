@@ -85,7 +85,7 @@ static CompObjectType containerObjectType = {
 };
 
 static void
-containerGetCContect (CompObject *object,
+containerGetCContext (CompObject *object,
 		      CContext   *ctx)
 {
     CONTAINER (object);
@@ -106,7 +106,7 @@ getContainerObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&containerObjectVTable, containerGetCContect,
+	cInitObjectVTable (&containerObjectVTable, containerGetCContext,
 			   containerObjectType.initVTable);
 	init = TRUE;
     }

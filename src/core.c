@@ -415,7 +415,7 @@ static CompObjectType coreObjectType = {
 };
 
 static void
-coreGetCContect (CompObject *object,
+coreGetCContext (CompObject *object,
 		 CContext   *ctx)
 {
     CORE (object);
@@ -437,7 +437,7 @@ getCoreObjectType (void)
     if (!init)
     {
 	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface),
-			&coreObjectVTable.base.base, coreGetCContect,
+			&coreObjectVTable.base.base, coreGetCContext,
 			coreObjectType.initVTable);
 	init = TRUE;
     }
