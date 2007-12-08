@@ -110,12 +110,33 @@ noopRegisterType (CompBranch	       *b,
 					       (void *) &ctx);
 }
 
+static const CompObjectConstructor *
+lookupObjectConstructor (CompObjectFactory *factory,
+			 const char	   *name)
+{
+    int i;
+
+    for (i = 0; i < factory->nConstructor; i++)
+	if  (strcmp (name, factory->constructor[i]->type->name))
+	    return factory->constructor[i];
+
+    if (factory->master)
+	return lookupObjectConstructor (factory->master, name);
+
+    return NULL;
+}
+
 static CompBool
 registerType (CompBranch	   *b,
 	      const char	   *interface,
 	      const CompObjectType *type)
 {
-    CompObjectConstructor **constructor, *c, *base = NULL;
+    const CompObjectConstructor *base;
+    CompObjectConstructor	**constructor, *c;
+
+    base = lookupObjectConstructor (&b->factory, type->baseName);
+    if (!base)
+	return FALSE;
 
     constructor = realloc (b->factory.constructor,
 			   sizeof (CompObjectConstructor *) *
