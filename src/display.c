@@ -2488,7 +2488,7 @@ displayInitVTable (CompDisplayVTable *vTable)
 }
 
 static CompObjectType displayObjectType = {
-    "display",
+    DISPLAY_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	displayInitObject,
 	displayFiniObject

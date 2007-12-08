@@ -185,7 +185,7 @@ rootInitVTable (CompRootVTable *vTable)
 }
 
 static CompObjectType rootObjectType = {
-    ROOT_TYPE_NAME,
+    ROOT_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	rootInitObject,
 	rootFiniObject

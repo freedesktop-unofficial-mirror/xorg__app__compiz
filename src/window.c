@@ -1822,7 +1822,7 @@ windowInitVTable (void *vTable)
 }
 
 static CompObjectType windowObjectType = {
-    "window",
+    WINDOW_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	windowInitObject,
 	windowFiniObject

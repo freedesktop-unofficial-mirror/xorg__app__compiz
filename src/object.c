@@ -3172,7 +3172,7 @@ initObjectVTable (CompObjectVTable *vTable)
 }
 
 static CompObjectType objectType = {
-    "object",
+    OBJECT_TYPE_NAME, NULL,
     {
 	initObject,
 	finiObject

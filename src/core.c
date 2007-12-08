@@ -404,7 +404,7 @@ coreInitVTable (CompCoreVTable *vTable)
 }
 
 static CompObjectType coreObjectType = {
-    CORE_TYPE_NAME,
+    CORE_TYPE_NAME, BRANCH_TYPE_NAME,
     {
 	coreInitObject,
 	coreFiniObject

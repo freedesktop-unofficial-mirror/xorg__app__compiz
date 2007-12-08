@@ -59,7 +59,7 @@ pointerInitVTable (void *vTable)
 }
 
 static CompObjectType pointerObjectType = {
-    POINTER_TYPE_NAME,
+    POINTER_TYPE_NAME, INPUT_TYPE_NAME,
     {
 	pointerInitObject,
 	pointerFiniObject

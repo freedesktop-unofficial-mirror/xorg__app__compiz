@@ -58,7 +58,7 @@ keyboardInitVTable (void *vTable)
 }
 
 static CompObjectType keyboardObjectType = {
-    KEYBOARD_TYPE_NAME,
+    KEYBOARD_TYPE_NAME, INPUT_TYPE_NAME,
     {
 	keyboardInitObject,
 	keyboardFiniObject

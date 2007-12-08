@@ -51,7 +51,7 @@ propInitVTable (void *vTable)
 }
 
 static CompObjectType propObjectType = {
-    PROP_TYPE_NAME,
+    PROP_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	propInitObject,
 	propFiniObject
@@ -120,7 +120,7 @@ boolPropInitVTable (void *vTable)
 }
 
 static CompObjectType boolPropObjectType = {
-    BOOL_PROP_TYPE_NAME,
+    BOOL_PROP_TYPE_NAME, PROP_TYPE_NAME,
     {
 	boolPropInitObject,
 	boolPropFiniObject
@@ -189,7 +189,7 @@ intPropInitVTable (void *vTable)
 }
 
 static CompObjectType intPropObjectType = {
-    INT_PROP_TYPE_NAME,
+    INT_PROP_TYPE_NAME, PROP_TYPE_NAME,
     {
 	intPropInitObject,
 	intPropFiniObject
@@ -258,7 +258,7 @@ doublePropInitVTable (void *vTable)
 }
 
 static CompObjectType doublePropObjectType = {
-    DOUBLE_PROP_TYPE_NAME,
+    DOUBLE_PROP_TYPE_NAME, PROP_TYPE_NAME,
     {
 	doublePropInitObject,
 	doublePropFiniObject
@@ -327,7 +327,7 @@ stringPropInitVTable (void *vTable)
 }
 
 static CompObjectType stringPropObjectType = {
-    STRING_PROP_TYPE_NAME,
+    STRING_PROP_TYPE_NAME, PROP_TYPE_NAME,
     {
 	stringPropInitObject,
 	stringPropFiniObject

@@ -51,7 +51,7 @@ outputInitVTable (void *vTable)
 }
 
 static CompObjectType outputObjectType = {
-    OUTPUT_TYPE_NAME,
+    OUTPUT_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	outputInitObject,
 	outputFiniObject

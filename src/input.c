@@ -51,7 +51,7 @@ inputInitVTable (void *vTable)
 }
 
 static CompObjectType inputObjectType = {
-    INPUT_TYPE_NAME,
+    INPUT_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	inputInitObject,
 	inputFiniObject

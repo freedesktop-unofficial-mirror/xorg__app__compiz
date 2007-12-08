@@ -175,7 +175,7 @@ branchInitVTable (CompBranchVTable *vTable)
 }
 
 static CompObjectType branchObjectType = {
-    BRANCH_TYPE_NAME,
+    BRANCH_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	branchInitObject,
 	branchFiniObject

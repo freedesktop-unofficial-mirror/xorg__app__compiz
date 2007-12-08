@@ -1689,7 +1689,7 @@ screenInitVTable (void *vTable)
 }
 
 static CompObjectType screenObjectType = {
-    "screen",
+    SCREEN_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	screenInitObject,
 	screenFiniObject
