@@ -23,6 +23,8 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <stdlib.h>				\
+
 #include <compiz/branch.h>
 #include <compiz/c-object.h>
 
@@ -112,6 +114,20 @@ registerType (CompBranch	   *b,
 	      const char	   *interface,
 	      const CompObjectType *type)
 {
+    CompObjectConstructor *constructor, *base = NULL;
+
+    constructor = realloc (b->factory.constructor,
+			   sizeof (CompObjectConstructor) *
+			   (b->factory.nConstructor + 1));
+    if (!constructor)
+	return FALSE;
+
+    constructor[b->factory.nConstructor].base = base;
+    constructor[b->factory.nConstructor].type = type;
+
+    b->factory.constructor = constructor;
+    b->factory.nConstructor++;
+
     return TRUE;
 }
 
@@ -128,6 +144,7 @@ branchInitObject (CompObject *object)
     if (!cObjectInit (&b->u.base, getObjectType (), &branchObjectVTable.base))
 	return FALSE;
 
+    b->factory.master       = NULL;
     b->factory.constructor  = NULL;
     b->factory.nConstructor = 0;
 

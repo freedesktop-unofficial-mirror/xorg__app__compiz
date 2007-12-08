@@ -80,8 +80,9 @@ struct _CompObjectType {
 };
 
 typedef struct _CompObjectConstructor {
-    const CompObjectType *type;
-    CompObjectPrivates   privates;
+    struct _CompObjectConstructor *base;
+    const CompObjectType	  *type;
+    CompObjectPrivates		  privates;
 } CompObjectConstructor;
 
 typedef struct _CompObjectFactory {
