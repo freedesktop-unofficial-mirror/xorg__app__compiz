@@ -23,7 +23,8 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#include <stdlib.h>				\
+#include <stdlib.h>
+#include <string.h>
 
 #include <compiz/branch.h>
 #include <compiz/c-object.h>
@@ -114,19 +115,25 @@ registerType (CompBranch	   *b,
 	      const char	   *interface,
 	      const CompObjectType *type)
 {
-    CompObjectConstructor *constructor, *base = NULL;
+    CompObjectConstructor **constructor, *c, *base = NULL;
 
     constructor = realloc (b->factory.constructor,
-			   sizeof (CompObjectConstructor) *
+			   sizeof (CompObjectConstructor *) *
 			   (b->factory.nConstructor + 1));
     if (!constructor)
 	return FALSE;
 
-    constructor[b->factory.nConstructor].base = base;
-    constructor[b->factory.nConstructor].type = type;
-
     b->factory.constructor = constructor;
-    b->factory.nConstructor++;
+
+    c = malloc (sizeof (CompObjectConstructor) + strlen (interface) + 1);
+    if (!c)
+	return FALSE;
+
+    c->base	 = base;
+    c->type	 = type;
+    c->interface = (const char *) strcpy ((char *) (c + 1), interface);
+
+    b->factory.constructor[b->factory.nConstructor++] = c;
 
     return TRUE;
 }

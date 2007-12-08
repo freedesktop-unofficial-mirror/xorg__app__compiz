@@ -83,12 +83,13 @@ typedef struct _CompObjectConstructor {
     struct _CompObjectConstructor *base;
     const CompObjectType	  *type;
     CompObjectPrivates		  privates;
+    const char			  *interface;
 } CompObjectConstructor;
 
 typedef struct _CompObjectFactory {
     struct _CompObjectFactory *master;
 
-    CompObjectConstructor *constructor;
+    CompObjectConstructor **constructor;
     int			  nConstructor;
 } CompObjectFactory;
 
