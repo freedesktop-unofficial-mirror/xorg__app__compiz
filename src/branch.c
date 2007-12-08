@@ -132,6 +132,7 @@ registerType (CompBranch	   *b,
     c->base	 = base;
     c->type	 = type;
     c->interface = (const char *) strcpy ((char *) (c + 1), interface);
+    c->factory   = &b->factory;
 
     b->factory.constructor[b->factory.nConstructor++] = c;
 

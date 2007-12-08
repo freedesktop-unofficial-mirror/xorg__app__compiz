@@ -79,19 +79,21 @@ struct _CompObjectType {
     InitVTableProc     initVTable;
 };
 
+typedef struct _CompObjectFactory CompObjectFactory;
+
 typedef struct _CompObjectConstructor {
     struct _CompObjectConstructor *base;
     const CompObjectType	  *type;
     CompObjectPrivates		  privates;
     const char			  *interface;
+    CompObjectFactory		  *factory;
 } CompObjectConstructor;
 
-typedef struct _CompObjectFactory {
-    struct _CompObjectFactory *master;
-
+struct _CompObjectFactory {
+    CompObjectFactory	  *master;
     CompObjectConstructor **constructor;
     int			  nConstructor;
-} CompObjectFactory;
+};
 
 typedef unsigned int CompObjectTypeID;
 
