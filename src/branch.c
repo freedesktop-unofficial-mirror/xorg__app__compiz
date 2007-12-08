@@ -44,33 +44,31 @@ baseObjectForEachType (CompObject *object,
 
     BRANCH (object);
 
-    return (*b->u.vTable->forEachType) (object,
+    return (*b->u.vTable->forEachType) (b,
 					pCtx->interface,
 					pCtx->proc,
 					pCtx->closure);
 }
 
 static CompBool
-noopForEachType (CompObject	  *object,
+noopForEachType (CompBranch	  *b,
 		 const char       *interface,
 		 TypeCallBackProc proc,
 		 void	          *closure)
 {
     ForEachTypeContext ctx;
 
-    BRANCH (object);
-
     ctx.interface = interface;
     ctx.proc      = proc;
     ctx.closure   = closure;
 
-    return (*b->u.base.vTable->forBaseObject) (object,
+    return (*b->u.base.vTable->forBaseObject) (&b->u.base,
 					       baseObjectForEachType,
 					       (void *) &ctx);
 }
 
 static CompBool
-forEachType (CompObject	      *object,
+forEachType (CompBranch	      *b,
 	     const char       *interface,
 	     TypeCallBackProc proc,
 	     void	      *closure)
@@ -78,8 +76,48 @@ forEachType (CompObject	      *object,
     return TRUE;
 }
 
+typedef struct _RegisterTypeContext {
+    const char           *interface;
+    const CompObjectType *type;
+} RegisterTypeContext;
+
+static CompBool
+baseObjectRegisterType (CompObject *object,
+			void       *closure)
+{
+    RegisterTypeContext *pCtx = (RegisterTypeContext *) closure;
+
+    BRANCH (object);
+
+    return (*b->u.vTable->registerType) (b, pCtx->interface, pCtx->type);
+}
+
+static CompBool
+noopRegisterType (CompBranch	       *b,
+		  const char           *interface,
+		  const CompObjectType *type)
+{
+    RegisterTypeContext ctx;
+
+    ctx.interface = interface;
+    ctx.type      = type;
+
+    return (*b->u.base.vTable->forBaseObject) (&b->u.base,
+					       baseObjectRegisterType,
+					       (void *) &ctx);
+}
+
+static CompBool
+registerType (CompBranch	   *b,
+	      const char	   *interface,
+	      const CompObjectType *type)
+{
+    return TRUE;
+}
+
 static CompBranchVTable branchObjectVTable = {
-    .forEachType = forEachType
+    .forEachType  = forEachType,
+    .registerType = registerType
 };
 
 static CompBool
@@ -107,7 +145,8 @@ branchInitVTable (CompBranchVTable *vTable)
 {
     (*getObjectType ()->initVTable) (&vTable->base);
 
-    ENSURE (vTable, forEachType, noopForEachType);
+    ENSURE (vTable, forEachType,  noopForEachType);
+    ENSURE (vTable, registerType, noopRegisterType);
 }
 
 static CompObjectType branchObjectType = {

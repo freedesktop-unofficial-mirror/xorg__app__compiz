@@ -32,26 +32,33 @@
 
 COMPIZ_BEGIN_DECLS
 
-typedef CompBool (*TypeCallBackProc) (CompObject	   *object,
+typedef struct _CompBranch CompBranch;
+
+typedef CompBool (*TypeCallBackProc) (CompBranch	   *branch,
 				      const CompObjectType *type,
 				      void		   *closure);
 
-typedef CompBool (*ForEachTypeProc) (CompObject	      *object,
+typedef CompBool (*ForEachTypeProc) (CompBranch	      *branch,
 				     const char	      *interface,
 				     TypeCallBackProc proc,
 				     void	      *closure);
 
+typedef CompBool (*RegisterTypeProc) (CompBranch	   *branch,
+				      const char	   *interface,
+				      const CompObjectType *type);
+
 typedef struct _CompBranchVTable {
     CompObjectVTable base;
 
-    /* type function
+    /* type functions
 
        object types are provided by implementing forEachType
      */
-    ForEachTypeProc forEachType;
+    ForEachTypeProc  forEachType;
+    RegisterTypeProc registerType;
 } CompBranchVTable;
 
-typedef struct _CompBranch {
+struct _CompBranch {
     union {
 	CompObject	       base;
 	const CompBranchVTable *vTable;
@@ -60,7 +67,7 @@ typedef struct _CompBranch {
     CompObjectVTableVec object;
 
     CompObjectFactory factory;
-} CompBranch;
+};
 
 #define GET_BRANCH(object) ((CompBranch *) (object))
 #define BRANCH(object) CompBranch *b = GET_BRANCH (object)
