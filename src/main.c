@@ -244,20 +244,20 @@ main (int argc, char **argv)
     int	      displayNum;
     CompRoot  root;
 
-    CompObjectConstructor constructor[] = {
-	{ .type = getObjectType ()				     },
-	{ .type = getBranchObjectType (),    .base = &constructor[0] },
-	{ .type = getContainerObjectType (), .base = &constructor[0] },
-	{ .type = getRootObjectType (),      .base = &constructor[0] },
-	{ .type = getCoreObjectType (),      .base = &constructor[1] },
-	{ .type = getDisplayObjectType (),   .base = &constructor[0] },
-	{ .type = getScreenObjectType (),    .base = &constructor[0] },
-	{ .type = getWindowObjectType (),    .base = &constructor[0] }
+    CompObjectInstantiator instantiator[] = {
+	{ .type = getObjectType ()				      },
+	{ .type = getBranchObjectType (),    .base = &instantiator[0] },
+	{ .type = getContainerObjectType (), .base = &instantiator[0] },
+	{ .type = getRootObjectType (),      .base = &instantiator[0] },
+	{ .type = getCoreObjectType (),      .base = &instantiator[1] },
+	{ .type = getDisplayObjectType (),   .base = &instantiator[0] },
+	{ .type = getScreenObjectType (),    .base = &instantiator[0] },
+	{ .type = getWindowObjectType (),    .base = &instantiator[0] }
     };
 
     CompObjectFactory factory = {
-	.constructor  = constructor,
-	.nConstructor = N_ELEMENTS (constructor),
+	.instantiator  = instantiator,
+	.nInstantiator = N_ELEMENTS (instantiator),
     };
 
     programName = argv[0];

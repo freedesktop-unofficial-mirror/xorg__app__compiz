@@ -110,18 +110,18 @@ noopRegisterType (CompBranch	       *b,
 					       (void *) &ctx);
 }
 
-static const CompObjectConstructor *
-lookupObjectConstructor (const CompObjectFactory *factory,
-			 const char		 *name)
+static const CompObjectInstantiator *
+lookupObjectInstantiator (const CompObjectFactory *factory,
+			  const char		  *name)
 {
     int i;
 
-    for (i = 0; i < factory->nConstructor; i++)
-	if  (strcmp (name, factory->constructor[i].type->name))
-	    return &factory->constructor[i];
+    for (i = 0; i < factory->nInstantiator; i++)
+	if  (strcmp (name, factory->instantiator[i].type->name))
+	    return &factory->instantiator[i];
 
     if (factory->master)
-	return lookupObjectConstructor (factory->master, name);
+	return lookupObjectInstantiator (factory->master, name);
 
     return NULL;
 }
@@ -131,29 +131,29 @@ registerType (CompBranch	   *b,
 	      const char	   *interface,
 	      const CompObjectType *type)
 {
-    const CompObjectConstructor *base;
-    CompObjectConstructor	*constructor;
+    const CompObjectInstantiator *base;
+    CompObjectInstantiator	*instantiator;
 
-    base = lookupObjectConstructor (&b->factory, type->baseName);
+    base = lookupObjectInstantiator (&b->factory, type->baseName);
     if (!base)
 	return FALSE;
 
-    constructor = realloc (b->factory.constructor,
-			   sizeof (CompObjectConstructor) *
-			   (b->factory.nConstructor + 1));
-    if (!constructor)
+    instantiator = realloc (b->factory.instantiator,
+			   sizeof (CompObjectInstantiator) *
+			   (b->factory.nInstantiator + 1));
+    if (!instantiator)
 	return FALSE;
 
-    b->factory.constructor = constructor;
+    b->factory.instantiator = instantiator;
 
-    constructor[b->factory.nConstructor].interface = strdup (interface);
-    if (!constructor[b->factory.nConstructor].interface)
+    instantiator[b->factory.nInstantiator].interface = strdup (interface);
+    if (!instantiator[b->factory.nInstantiator].interface)
 	return FALSE;
 
-    constructor[b->factory.nConstructor].base = base;
-    constructor[b->factory.nConstructor].type = type;
+    instantiator[b->factory.nInstantiator].base = base;
+    instantiator[b->factory.nInstantiator].type = type;
 
-    b->factory.nConstructor++;
+    b->factory.nInstantiator++;
 
     return TRUE;
 }
@@ -172,9 +172,9 @@ branchInitObject (const CompObjectFactory *factory,
     if (!cObjectInterfaceInit (factory, object, &branchObjectVTable.base))
 	return FALSE;
 
-    b->factory.master       = factory;
-    b->factory.constructor  = NULL;
-    b->factory.nConstructor = 0;
+    b->factory.master        = factory;
+    b->factory.instantiator  = NULL;
+    b->factory.nInstantiator = 0;
 
     return TRUE;
 }
