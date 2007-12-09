@@ -150,13 +150,13 @@ registerType (CompBranch	   *b,
     if (!instantiator[b->factory.nInstantiator].interface)
 	return FALSE;
 
-    instantiator[b->factory.nInstantiator].base		      = base;
-    instantiator[b->factory.nInstantiator].type		      = type;
-    instantiator[b->factory.nInstantiator].privates.len	      = 0;
-    instantiator[b->factory.nInstantiator].privates.sizes     = 0;
-    instantiator[b->factory.nInstantiator].privates.totalSize = 0;
-    instantiator[b->factory.nInstantiator].privates.funcs     = 0;
-    instantiator[b->factory.nInstantiator].privates.nFuncs    = 0;
+    instantiator[b->factory.nInstantiator].base		   = base;
+    instantiator[b->factory.nInstantiator].type		   = type;
+    instantiator[b->factory.nInstantiator].size.len	   = 0;
+    instantiator[b->factory.nInstantiator].size.sizes      = 0;
+    instantiator[b->factory.nInstantiator].size.totalSize  = 0;
+    instantiator[b->factory.nInstantiator].privates.funcs  = 0;
+    instantiator[b->factory.nInstantiator].privates.nFuncs = 0;
 
     b->factory.nInstantiator++;
 

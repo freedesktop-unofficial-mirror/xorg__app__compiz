@@ -101,16 +101,14 @@ static CompSignalHandler lastSignalVecEntry  = { 0 };
 static CompSignalHandler emptySignalVecEntry = { 0 };
 
 static CompBool
-allocateObjectPrivates (CompObject		 *object,
-			const CompObjectType     *type,
-			const CompObjectPrivates *objectPrivates)
+allocateObjectPrivates (CompObject		     *object,
+			const CompObjectType         *type,
+			const CompObjectPrivatesSize *size)
 {
     CompPrivate *privates, **pPrivates = (CompPrivate **)
 	(((char *) object) + type->privatesOffset);
 
-    privates = allocatePrivates (objectPrivates->len,
-				 objectPrivates->sizes,
-				 objectPrivates->totalSize);
+    privates = allocatePrivates (size->len, size->sizes, size->totalSize);
     if (!privates)
 	return FALSE;
 
@@ -120,9 +118,9 @@ allocateObjectPrivates (CompObject		 *object,
 }
 
 static void
-freeObjectPrivates (CompObject		     *object,
-		    const CompObjectType     *type,
-		    const CompObjectPrivates *objectPrivates)
+freeObjectPrivates (CompObject		         *object,
+		    const CompObjectType         *type,
+		    const CompObjectPrivatesSize *size)
 {
     CompPrivate **pPrivates = (CompPrivate **)
 	(((char *) object) + type->privatesOffset);
@@ -143,8 +141,7 @@ finiObjectInstance (const CompObjectFactory      *factory,
 	while (--i >= 0)
 	    (*instantiator->privates.funcs[i].fini) (factory, object);
 
-	freeObjectPrivates (object, instantiator->type,
-			    &instantiator->privates);
+	freeObjectPrivates (object, instantiator->type, &instantiator->size);
     }
 
     (*instantiator->type->funcs.fini) (factory, object);
@@ -173,7 +170,7 @@ initObjectInstance (const CompObjectFactory      *factory,
 	return TRUE;
 
     if (!allocateObjectPrivates (object, instantiator->type,
-				 &instantiator->privates))
+				 &instantiator->size))
     {
 	(*instantiator->type->funcs.fini) (factory, object);
 	if (instantiator->base)
@@ -3350,9 +3347,9 @@ compObjectAllocatePrivateIndex (CompObjectType *type,
     if (!instantiator)
 	return FALSE;
 
-    return allocatePrivateIndex (&instantiator->privates.len,
-				 &instantiator->privates.sizes,
-				 &instantiator->privates.totalSize,
+    return allocatePrivateIndex (&instantiator->size.len,
+				 &instantiator->size.sizes,
+				 &instantiator->size.totalSize,
 				 size, forEachObjectPrivates,
 				 (void *) type);
 }
@@ -3365,9 +3362,9 @@ compObjectFreePrivateIndex (CompObjectType *type,
 
     instantiator = findObjectInstantiator (&core.u.base.factory, type);
 
-    freePrivateIndex (&instantiator->privates.len,
-		      &instantiator->privates.sizes,
-		      &instantiator->privates.totalSize,
+    freePrivateIndex (&instantiator->size.len,
+		      &instantiator->size.sizes,
+		      &instantiator->size.totalSize,
 		      forEachObjectPrivates,
 		      (void *) type,
 		      index);
@@ -3585,9 +3582,9 @@ cObjectInitPrivate (CompBranch	   *branch,
 
     instantiator->privates.funcs = funcs;
 
-    index = allocatePrivateIndex (&instantiator->privates.len,
-				  &instantiator->privates.sizes,
-				  &instantiator->privates.totalSize,
+    index = allocatePrivateIndex (&instantiator->size.len,
+				  &instantiator->size.sizes,
+				  &instantiator->size.totalSize,
 				  private->size, forEachObjectPrivates,
 				  (void *) instantiator->type);
     if (index < 0)
@@ -3609,9 +3606,9 @@ cObjectInitPrivate (CompBranch	   *branch,
 			   instantiator->type,
 			   &funcs[instantiator->privates.nFuncs]))
     {
-	freePrivateIndex (&instantiator->privates.len,
-			  &instantiator->privates.sizes,
-			  &instantiator->privates.totalSize,
+	freePrivateIndex (&instantiator->size.len,
+			  &instantiator->size.sizes,
+			  &instantiator->size.totalSize,
 			  forEachObjectPrivates,
 			  (void *) instantiator->type,
 			  index);
@@ -3642,9 +3639,9 @@ cObjectFiniPrivate (CompBranch	   *branch,
 		      instantiator->type,
 		      &instantiator->privates.funcs[instantiator->privates.nFuncs]);
 
-    freePrivateIndex (&instantiator->privates.len,
-		      &instantiator->privates.sizes,
-		      &instantiator->privates.totalSize,
+    freePrivateIndex (&instantiator->size.len,
+		      &instantiator->size.sizes,
+		      &instantiator->size.totalSize,
 		      forEachObjectPrivates,
 		      (void *) instantiator->type,
 		      index);

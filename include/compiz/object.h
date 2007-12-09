@@ -64,10 +64,13 @@ typedef struct _CompObjectFuncs {
     FiniObjectProc fini;
 } CompObjectFuncs;
 
+typedef struct _CompObjectPrivatesSize {
+    int	len;
+    int	*sizes;
+    int	totalSize;
+} CompObjectPrivatesSize;
+
 typedef struct _CompObjectPrivates {
-    int		    len;
-    int		    *sizes;
-    int		    totalSize;
     CompObjectFuncs *funcs;
     int		    nFuncs;
 } CompObjectPrivates;
@@ -86,6 +89,7 @@ typedef struct _CompObjectInstantiator {
     const struct _CompObjectInstantiator *base;
     const CompObjectType		 *type;
     CompObjectPrivates			 privates;
+    CompObjectPrivatesSize		 size;
     char				 *interface;
 } CompObjectInstantiator;
 
