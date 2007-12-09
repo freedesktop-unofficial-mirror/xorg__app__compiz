@@ -1730,14 +1730,6 @@ static CInterface windowInterface[] = {
 
 static CompObjectVTable windowObjectVTable = { 0 };
 
-static CompObjectPrivates windowObjectPrivates = {
-    0,
-    NULL,
-    0,
-    NULL,
-    0
-};
-
 static CompBool
 windowInitObject (const CompObjectFactory *factory,
 		  CompObject		  *object)
@@ -1779,7 +1771,6 @@ static CompObjectType windowObjectType = {
 	windowFiniObject
     },
     offsetof (CompWindow, privates),
-    &windowObjectPrivates,
     windowInitVTable
 };
 

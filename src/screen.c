@@ -1381,14 +1381,6 @@ initWindowWalker (CompScreen *screen,
 
 static CompObjectVTable screenObjectVTable = { 0 };
 
-static CompObjectPrivates screenObjectPrivates = {
-    0,
-    NULL,
-    0,
-    NULL,
-    0
-};
-
 static CompBool
 forEachWindowObject (CompObject	             *object,
 		     ChildObjectCallBackProc proc,
@@ -1658,7 +1650,6 @@ static CompObjectType screenObjectType = {
 	screenFiniObject
     },
     offsetof (CompScreen, privates),
-    &screenObjectPrivates,
     screenInitVTable
 };
 

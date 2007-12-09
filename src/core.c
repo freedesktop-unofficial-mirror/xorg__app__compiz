@@ -261,14 +261,6 @@ static CompCoreVTable coreObjectVTable = {
     .removeDisplay = removeDisplay
 };
 
-static CompObjectPrivates coreObjectPrivates = {
-    0,
-    NULL,
-    0,
-    NULL,
-    0
-};
-
 static CompBool
 forEachDisplayObject (CompObject	      *object,
 		      ChildObjectCallBackProc proc,
@@ -411,7 +403,6 @@ static CompObjectType coreObjectType = {
 	coreFiniObject
     },
     offsetof (CompCore, privates),
-    &coreObjectPrivates,
     (InitVTableProc) coreInitVTable
 };
 

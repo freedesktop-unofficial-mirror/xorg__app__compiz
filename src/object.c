@@ -138,13 +138,13 @@ finiObjectInstance (const CompObjectFactory      *factory,
 {
     if (instantiator->type->privatesOffset)
     {
-	int i = instantiator->type->privates->nFuncs;
+	int i = instantiator->privates.nFuncs;
 
 	while (--i >= 0)
-	    (*instantiator->type->privates->funcs[i].fini) (factory, object);
+	    (*instantiator->privates.funcs[i].fini) (factory, object);
 
 	freeObjectPrivates (object, instantiator->type,
-			    instantiator->type->privates);
+			    &instantiator->privates);
     }
 
     (*instantiator->type->funcs.fini) (factory, object);
@@ -173,7 +173,7 @@ initObjectInstance (const CompObjectFactory      *factory,
 	return TRUE;
 
     if (!allocateObjectPrivates (object, instantiator->type,
-				 instantiator->type->privates))
+				 &instantiator->privates))
     {
 	(*instantiator->type->funcs.fini) (factory, object);
 	if (instantiator->base)
@@ -182,15 +182,15 @@ initObjectInstance (const CompObjectFactory      *factory,
 	return FALSE;
     }
 
-    for (i = 0; i < instantiator->type->privates->nFuncs; i++)
-	if (!(*instantiator->type->privates->funcs[i].init) (factory, object))
+    for (i = 0; i < instantiator->privates.nFuncs; i++)
+	if (!(*instantiator->privates.funcs[i].init) (factory, object))
 	    break;
 
-    if (i == instantiator->type->privates->nFuncs)
+    if (i == instantiator->privates.nFuncs)
 	return TRUE;
 
     while (--i >= 0)
-	(*instantiator->type->privates->funcs[i].fini) (factory, object);
+	(*instantiator->privates.funcs[i].fini) (factory, object);
 
     (*instantiator->type->funcs.fini) (factory, object);
 
@@ -200,9 +200,9 @@ initObjectInstance (const CompObjectFactory      *factory,
     return FALSE;
 }
 
-static const CompObjectInstantiator *
-lookupObjectInstantiator (const CompObjectFactory *factory,
-			  const CompObjectType	 *type)
+static CompObjectInstantiator *
+findObjectInstantiator (const CompObjectFactory *factory,
+			const CompObjectType	*type)
 {
     int i;
 
@@ -211,7 +211,23 @@ lookupObjectInstantiator (const CompObjectFactory *factory,
 	    return &factory->instantiator[i];
 
     if (factory->master)
-	return lookupObjectInstantiator (factory->master, type);
+	return findObjectInstantiator (factory->master, type);
+
+    return NULL;
+}
+
+static CompObjectInstantiator *
+lookupObjectInstantiator (const CompObjectFactory *factory,
+			  const char		  *name)
+{
+    int i;
+
+    for (i = 0; i < factory->nInstantiator; i++)
+	if (strcmp (name, factory->instantiator[i].type->name) == 0)
+	    return &factory->instantiator[i];
+
+    if (factory->master)
+	return lookupObjectInstantiator (factory->master, name);
 
     return NULL;
 }
@@ -223,7 +239,7 @@ compObjectInit (const CompObjectFactory *factory,
 {
     const CompObjectInstantiator *instantiator;
 
-    instantiator = lookupObjectInstantiator (factory, type);
+    instantiator = findObjectInstantiator (factory, type);
     if (!instantiator)
 	return FALSE;
 
@@ -236,7 +252,7 @@ compObjectFini (const CompObjectFactory *factory,
 		const CompObjectType    *type)
 {
     finiObjectInstance (factory,
-			lookupObjectInstantiator (factory, type),
+			findObjectInstantiator (factory, type),
 			object);
 }
 
@@ -3160,14 +3176,6 @@ static CompObjectVTable objectVTable = {
     .metadata.get = getMetadata
 };
 
-static CompObjectPrivates objectPrivates = {
-    0,
-    NULL,
-    0,
-    NULL,
-    0
-};
-
 static CompBool
 initObject (const CompObjectFactory *factory,
 	    CompObject		    *object)
@@ -3239,7 +3247,6 @@ static CompObjectType objectType = {
 	finiObject
     },
     offsetof (CompObject, privates),
-    &objectPrivates,
     (InitVTableProc) initObjectVTable
 };
 
@@ -3337,9 +3344,15 @@ int
 compObjectAllocatePrivateIndex (CompObjectType *type,
 				int	       size)
 {
-    return allocatePrivateIndex (&type->privates->len,
-				 &type->privates->sizes,
-				 &type->privates->totalSize,
+    CompObjectInstantiator *instantiator;
+
+    instantiator = findObjectInstantiator (&core.u.base.factory, type);
+    if (!instantiator)
+	return FALSE;
+
+    return allocatePrivateIndex (&instantiator->privates.len,
+				 &instantiator->privates.sizes,
+				 &instantiator->privates.totalSize,
 				 size, forEachObjectPrivates,
 				 (void *) type);
 }
@@ -3348,9 +3361,13 @@ void
 compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index)
 {
-    freePrivateIndex (&type->privates->len,
-		      &type->privates->sizes,
-		      &type->privates->totalSize,
+    CompObjectInstantiator *instantiator;
+
+    instantiator = findObjectInstantiator (&core.u.base.factory, type);
+
+    freePrivateIndex (&instantiator->privates.len,
+		      &instantiator->privates.sizes,
+		      &instantiator->privates.totalSize,
 		      forEachObjectPrivates,
 		      (void *) type,
 		      index);
@@ -3552,43 +3569,56 @@ static CompBool
 cObjectInitPrivate (CompBranch	   *branch,
 		    CObjectPrivate *private)
 {
-    CompObjectType  *type;
-    CompObjectFuncs *funcs;
-    int		    index;
+    CompObjectInstantiator *instantiator;
+    CompObjectFuncs	   *funcs;
+    int			   index;
 
-    type = compObjectFindType (private->name);
-    if (!type)
+    instantiator = lookupObjectInstantiator (&branch->factory, private->name);
+    if (!instantiator)
 	return FALSE;
 
-    funcs = realloc (type->privates->funcs, (type->privates->nFuncs + 1) *
+    funcs = realloc (instantiator->privates.funcs,
+		     (instantiator->privates.nFuncs + 1) *
 		     sizeof (CompObjectFuncs));
     if (!funcs)
 	return FALSE;
 
-    type->privates->funcs = funcs;
+    instantiator->privates.funcs = funcs;
 
-    index = compObjectAllocatePrivateIndex (type, private->size);
+    index = allocatePrivateIndex (&instantiator->privates.len,
+				  &instantiator->privates.sizes,
+				  &instantiator->privates.totalSize,
+				  private->size, forEachObjectPrivates,
+				  (void *) instantiator->type);
     if (index < 0)
 	return FALSE;
 
     if (private->interface)
 	cInterfaceInit (private->interface, private->nInterface,
-			private->vTable, private->proc, type->initVTable);
+			private->vTable, private->proc,
+			instantiator->type->initVTable);
 
     *(private->pIndex) = index;
 
-    funcs[type->privates->nFuncs].init = private->init;
-    funcs[type->privates->nFuncs].fini = private->fini;
+    funcs[instantiator->privates.nFuncs].init = private->init;
+    funcs[instantiator->privates.nFuncs].fini = private->fini;
 
     /* initialize all objects of this type */
-    if (!initTypedObjects (&branch->factory, &core.u.base.u.base, type,
-			   &funcs[type->privates->nFuncs]))
+    if (!initTypedObjects (&branch->factory,
+			   &core.u.base.u.base,
+			   instantiator->type,
+			   &funcs[instantiator->privates.nFuncs]))
     {
-	compObjectFreePrivateIndex (type, index);
+	freePrivateIndex (&instantiator->privates.len,
+			  &instantiator->privates.sizes,
+			  &instantiator->privates.totalSize,
+			  forEachObjectPrivates,
+			  (void *) instantiator->type,
+			  index);
 	return FALSE;
     }
 
-    type->privates->nFuncs++;
+    instantiator->privates.nFuncs++;
 
     return TRUE;
 }
@@ -3597,28 +3627,32 @@ static void
 cObjectFiniPrivate (CompBranch	   *branch,
 		    CObjectPrivate *private)
 {
-    CompObjectType  *type;
-    CompObjectFuncs *funcs;
-    int		    index;
+    CompObjectInstantiator *instantiator;
+    CompObjectFuncs	   *funcs;
+    int			   index;
 
-    type = compObjectFindType (private->name);
-    if (!type)
-	return;
+    instantiator = lookupObjectInstantiator (&branch->factory, private->name);
 
     index = *(private->pIndex);
 
-    type->privates->nFuncs--;
+    instantiator->privates.nFuncs--;
 
     /* finalize all objects of this type */
-    finiTypedObjects (&branch->factory, &core.u.base.u.base, type,
-		      &type->privates->funcs[type->privates->nFuncs]);
+    finiTypedObjects (&branch->factory, &core.u.base.u.base,
+		      instantiator->type,
+		      &instantiator->privates.funcs[instantiator->privates.nFuncs]);
 
-    compObjectFreePrivateIndex (type, index);
+    freePrivateIndex (&instantiator->privates.len,
+		      &instantiator->privates.sizes,
+		      &instantiator->privates.totalSize,
+		      forEachObjectPrivates,
+		      (void *) instantiator->type,
+		      index);
 
-    funcs = realloc (type->privates->funcs, type->privates->nFuncs *
-		     sizeof (CompObjectFuncs));
+    funcs = realloc (instantiator->privates.funcs,
+		     instantiator->privates.nFuncs * sizeof (CompObjectFuncs));
     if (funcs)
-	type->privates->funcs = funcs;
+	instantiator->privates.funcs = funcs;
 
     if (private->interface)
 	cInterfaceFini (private->interface, private->nInterface);

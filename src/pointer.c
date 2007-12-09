@@ -67,7 +67,6 @@ static CompObjectType pointerObjectType = {
 	pointerFiniObject
     },
     0,
-    NULL,
     pointerInitVTable
 };
 

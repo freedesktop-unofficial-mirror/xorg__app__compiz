@@ -2365,14 +2365,6 @@ static CompDisplayVTable displayObjectVTable = {
     .removeScreen = removeScreen
 };
 
-static CompObjectPrivates displayObjectPrivates = {
-    0,
-    NULL,
-    0,
-    NULL,
-    0
-};
-
 static CompBool
 forEachScreenObject (CompObject	             *object,
 		     ChildObjectCallBackProc proc,
@@ -2481,7 +2473,6 @@ static CompObjectType displayObjectType = {
 	displayFiniObject
     },
     offsetof (CompDisplay, privates),
-    &displayObjectPrivates,
     (InitVTableProc) displayInitVTable
 };
 

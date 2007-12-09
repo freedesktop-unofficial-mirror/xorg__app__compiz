@@ -59,7 +59,6 @@ static CompObjectType propObjectType = {
 	propFiniObject
     },
     0,
-    NULL,
     propInitVTable
 };
 
@@ -130,7 +129,6 @@ static CompObjectType boolPropObjectType = {
 	boolPropFiniObject
     },
     0,
-    NULL,
     boolPropInitVTable
 };
 
@@ -201,7 +199,6 @@ static CompObjectType intPropObjectType = {
 	intPropFiniObject
     },
     0,
-    NULL,
     intPropInitVTable
 };
 
@@ -272,7 +269,6 @@ static CompObjectType doublePropObjectType = {
 	doublePropFiniObject
     },
     0,
-    NULL,
     doublePropInitVTable
 };
 
@@ -343,7 +339,6 @@ static CompObjectType stringPropObjectType = {
 	stringPropFiniObject
     },
     0,
-    NULL,
     stringPropInitVTable
 };
 

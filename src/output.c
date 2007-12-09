@@ -59,7 +59,6 @@ static CompObjectType outputObjectType = {
 	outputFiniObject
     },
     0,
-    NULL,
     outputInitVTable
 };
 

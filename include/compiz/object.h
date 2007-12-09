@@ -75,12 +75,11 @@ typedef struct _CompObjectPrivates {
 typedef void (*InitVTableProc) (void *vTable);
 
 struct _CompObjectType {
-    const char	       *name;
-    const char	       *baseName;
-    CompObjectFuncs    funcs;
-    size_t	       privatesOffset;
-    CompObjectPrivates *privates;
-    InitVTableProc     initVTable;
+    const char	    *name;
+    const char	    *baseName;
+    CompObjectFuncs funcs;
+    size_t	    privatesOffset;
+    InitVTableProc  initVTable;
 };
 
 typedef struct _CompObjectInstantiator {

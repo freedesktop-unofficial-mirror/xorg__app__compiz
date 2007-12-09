@@ -82,7 +82,6 @@ static CompObjectType containerObjectType = {
 	containerFiniObject
     },
     0,
-    NULL,
     containerInitVTable
 };
 

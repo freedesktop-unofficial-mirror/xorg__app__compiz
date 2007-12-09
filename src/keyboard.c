@@ -66,7 +66,6 @@ static CompObjectType keyboardObjectType = {
 	keyboardFiniObject
     },
     0,
-    NULL,
     keyboardInitVTable
 };
 

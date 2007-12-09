@@ -150,8 +150,11 @@ registerType (CompBranch	   *b,
     if (!instantiator[b->factory.nInstantiator].interface)
 	return FALSE;
 
-    instantiator[b->factory.nInstantiator].base = base;
-    instantiator[b->factory.nInstantiator].type = type;
+    instantiator[b->factory.nInstantiator].base		      = base;
+    instantiator[b->factory.nInstantiator].type		      = type;
+    instantiator[b->factory.nInstantiator].privates.len	      = 0;
+    instantiator[b->factory.nInstantiator].privates.sizes     = 0;
+    instantiator[b->factory.nInstantiator].privates.totalSize = 0;
 
     b->factory.nInstantiator++;
 
@@ -202,7 +205,6 @@ static CompObjectType branchObjectType = {
 	branchFiniObject
     },
     0,
-    NULL,
     (InitVTableProc) branchInitVTable
 };
 
