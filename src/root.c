@@ -149,14 +149,15 @@ forCoreObject (CompObject	       *object,
 }
 
 static CompBool
-rootInitObject (CompObject *object)
+rootInitObject (const CompObjectFactory *factory,
+		CompObject		*object)
 {
     ROOT (object);
 
     r->signal.head = NULL;
     r->signal.tail = NULL;
 
-    if (!compObjectInit (&r->u.base.base, getContainerObjectType ()))
+    if (!compObjectInit (factory, &r->u.base.base, getContainerObjectType ()))
 	return FALSE;
 
     WRAP (&r->object, object, vTable, &rootObjectVTable.base);
@@ -169,13 +170,14 @@ rootInitObject (CompObject *object)
 }
 
 static void
-rootFiniObject (CompObject *object)
+rootFiniObject (const CompObjectFactory *factory,
+		CompObject		*object)
 {
     ROOT (object);
 
     UNWRAP (&r->object, object, vTable);
 
-    compObjectFini (object, getContainerObjectType ());
+    compObjectFini (factory, object, getContainerObjectType ());
 }
 
 static void

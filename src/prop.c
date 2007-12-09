@@ -33,15 +33,17 @@ static const CInterface propInterface[] = {
 static CompObjectVTable propObjectVTable = { 0 };
 
 static CompBool
-propInitObject (CompObject *object)
+propInitObject (const CompObjectFactory *factory,
+		CompObject		*object)
 {
-    return cObjectInit (object, getObjectType (), &propObjectVTable);
+    return cObjectInit (factory, object, getObjectType (), &propObjectVTable);
 }
 
 static void
-propFiniObject (CompObject *object)
+propFiniObject (const CompObjectFactory *factory,
+		CompObject		*object)
 {
-    cObjectFini (object, getObjectType ());
+    cObjectFini (factory, object, getObjectType ());
 }
 
 static void
@@ -102,15 +104,18 @@ static const CInterface boolPropInterface[] = {
 static CompObjectVTable boolPropObjectVTable = { 0 };
 
 static CompBool
-boolPropInitObject (CompObject *object)
+boolPropInitObject (const CompObjectFactory *factory,
+		    CompObject		    *object)
 {
-    return cObjectInit (object, getPropObjectType (), &boolPropObjectVTable);
+    return cObjectInit (factory, object, getPropObjectType (),
+			&boolPropObjectVTable);
 }
 
 static void
-boolPropFiniObject (CompObject *object)
+boolPropFiniObject (const CompObjectFactory *factory,
+		    CompObject		    *object)
 {
-    cObjectFini (object, getPropObjectType ());
+    cObjectFini (factory, object, getPropObjectType ());
 }
 
 static void
@@ -171,15 +176,18 @@ static const CInterface intPropInterface[] = {
 static CompObjectVTable intPropObjectVTable = { 0 };
 
 static CompBool
-intPropInitObject (CompObject *object)
+intPropInitObject (const CompObjectFactory *factory,
+		   CompObject		   *object)
 {
-    return cObjectInit (object, getPropObjectType (), &intPropObjectVTable);
+    return cObjectInit (factory, object, getPropObjectType (),
+			&intPropObjectVTable);
 }
 
 static void
-intPropFiniObject (CompObject *object)
+intPropFiniObject (const CompObjectFactory *factory,
+		   CompObject		   *object)
 {
-    cObjectFini (object, getPropObjectType ());
+    cObjectFini (factory, object, getPropObjectType ());
 }
 
 static void
@@ -240,15 +248,18 @@ static const CInterface doublePropInterface[] = {
 static CompObjectVTable doublePropObjectVTable = { 0 };
 
 static CompBool
-doublePropInitObject (CompObject *object)
+doublePropInitObject (const CompObjectFactory *factory,
+		      CompObject	      *object)
 {
-    return cObjectInit (object, getPropObjectType (), &doublePropObjectVTable);
+    return cObjectInit (factory, object, getPropObjectType (),
+			&doublePropObjectVTable);
 }
 
 static void
-doublePropFiniObject (CompObject *object)
+doublePropFiniObject (const CompObjectFactory *factory,
+		      CompObject	      *object)
 {
-    cObjectFini (object, getPropObjectType ());
+    cObjectFini (factory, object, getPropObjectType ());
 }
 
 static void
@@ -309,15 +320,18 @@ static const CInterface stringPropInterface[] = {
 static CompObjectVTable stringPropObjectVTable = { 0 };
 
 static CompBool
-stringPropInitObject (CompObject *object)
+stringPropInitObject (const CompObjectFactory *factory,
+		      CompObject	      *object)
 {
-    return cObjectInit (object, getPropObjectType (), &stringPropObjectVTable);
+    return cObjectInit (factory, object, getPropObjectType (),
+			&stringPropObjectVTable);
 }
 
 static void
-stringPropFiniObject (CompObject *object)
+stringPropFiniObject (const CompObjectFactory *factory,
+		      CompObject	      *object)
 {
-    cObjectFini (object, getPropObjectType ());
+    cObjectFini (factory, object, getPropObjectType ());
 }
 
 static void

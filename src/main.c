@@ -244,6 +244,18 @@ main (int argc, char **argv)
     int	      displayNum;
     CompRoot  root;
 
+    CompObjectConstructor constructor[] = {
+	{ .type = getObjectType ()	 },
+	{ .type = getBranchObjectType () },
+	{ .type = getRootObjectType ()   },
+	{ .type = getCoreObjectType ()   }
+    };
+
+    CompObjectFactory factory = {
+	.constructor  = constructor,
+	.nConstructor = N_ELEMENTS (constructor),
+    };
+
     programName = argv[0];
     programArgc = argc;
     programArgv = argv;
@@ -387,13 +399,13 @@ main (int argc, char **argv)
 
     compAddMetadataFromFile (&coreMetadata, "core");
 
-    if (!compObjectInit (&root.u.base.base, getRootObjectType ()))
+    if (!compObjectInit (&factory, &root.u.base.base, getRootObjectType ()))
 	return 1;
 
     /* XXX: until core object is moved into the root object */
     root.core = &core.u.base.u.base;
 
-    if (!initCore (&root.u.base.base))
+    if (!initCore (&factory, &root.u.base.base))
 	return 1;
 
     if (!disableSm)
@@ -419,9 +431,9 @@ main (int argc, char **argv)
     if (!disableSm)
 	closeSession ();
 
-    finiCore (&root.u.base.base);
+    finiCore (&factory, &root.u.base.base);
 
-    compObjectFini (&root.u.base.base, getRootObjectType ());
+    compObjectFini (&factory, &root.u.base.base, getRootObjectType ());
 
     xmlCleanupParser ();
 

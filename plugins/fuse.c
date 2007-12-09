@@ -1035,7 +1035,8 @@ static CInterface fuseCoreInterface[] = {
 static CompCoreVTable fuseCoreObjectVTable = { { { 0 } } };
 
 static CompBool
-fuseInitCore (CompCore *c)
+fuseInitCore (const CompObjectFactory *factory,
+	      CompCore		      *c)
 {
     struct sigaction sa;
 
@@ -1044,7 +1045,7 @@ fuseInitCore (CompCore *c)
     if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    if (!cObjectInterfaceInit (&c->u.base.u.base,
+    if (!cObjectInterfaceInit (factory, &c->u.base.u.base,
 			       &fuseCoreObjectVTable.base.base))
 	return FALSE;
 
@@ -1056,7 +1057,7 @@ fuseInitCore (CompCore *c)
 
     if (sigaction (SIGPIPE, &sa, NULL) == -1)
     {
-	cObjectInterfaceFini (&c->u.base.u.base);
+	cObjectInterfaceFini (factory, &c->u.base.u.base);
 	return FALSE;
     }
 
@@ -1065,7 +1066,7 @@ fuseInitCore (CompCore *c)
 				     (void *) c);
     if (!fc->session)
     {
-	cObjectInterfaceFini (&c->u.base.u.base);
+	cObjectInterfaceFini (factory, &c->u.base.u.base);
 	return FALSE;
     }
 
@@ -1079,13 +1080,14 @@ fuseInitCore (CompCore *c)
 }
 
 static void
-fuseFiniCore (CompCore *c)
+fuseFiniCore (const CompObjectFactory *factory,
+	      CompCore		      *c)
 {
     FUSE_CORE (c);
 
     fuseUnmount (c);
 
-    cObjectInterfaceFini (&c->u.base.u.base);
+    cObjectInterfaceFini (factory, &c->u.base.u.base);
 
     fuse_session_destroy (fc->session);
 }
@@ -1110,19 +1112,32 @@ static CObjectPrivate fuseObj[] = {
     C_OBJECT_PRIVATE (CORE_TYPE_NAME,   fuse, Core,   FuseCore,   X, X)
 };
 
-static Bool
-fuseInit (CompPlugin *p)
+static CompBool
+fuseInsert (CompObject *parent,
+	    CompBranch *branch)
 {
-    if (!cObjectInitPrivates (fuseObj, N_ELEMENTS (fuseObj)))
+    if (!cObjectInitPrivates (branch, fuseObj, N_ELEMENTS (fuseObj)))
 	return FALSE;
 
     return TRUE;
 }
 
 static void
+fuseRemove (CompObject *parent,
+	    CompBranch *branch)
+{
+    cObjectFiniPrivates (branch, fuseObj, N_ELEMENTS (fuseObj));
+}
+
+static Bool
+fuseInit (CompPlugin *p)
+{
+    return TRUE;
+}
+
+static void
 fuseFini (CompPlugin *p)
 {
-    cObjectFiniPrivates (fuseObj, N_ELEMENTS (fuseObj));
 }
 
 CompPluginVTable fuseVTable = {
@@ -1133,7 +1148,9 @@ CompPluginVTable fuseVTable = {
     0, /* InitObject */
     0, /* FiniObject */
     0, /* GetObjectOptions */
-    0  /* SetObjectOption */
+    0, /* SetObjectOption */
+    fuseInsert,
+    fuseRemove
 };
 
 CompPluginVTable *

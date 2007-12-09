@@ -745,7 +745,8 @@ static const CompMetadataOptionInfo annoDisplayOptionInfo[] = {
 static CompDisplayVTable annoDisplayObjectVTable = { { 0 } };
 
 static CompBool
-annoInitDisplay (CompDisplay *d)
+annoInitDisplay (const CompObjectFactory *factory,
+		 CompDisplay		 *d)
 {
     ANNO_DISPLAY (d);
 
@@ -762,7 +763,8 @@ annoInitDisplay (CompDisplay *d)
     ad->lineWidth   = 3.0;
     ad->strokeWidth = 1.0;
 
-    if (!cObjectInterfaceInit (&d->u.base, &annoDisplayObjectVTable.base))
+    if (!cObjectInterfaceInit (factory, &d->u.base,
+			       &annoDisplayObjectVTable.base))
     {
 	compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 	return FALSE;
@@ -774,13 +776,14 @@ annoInitDisplay (CompDisplay *d)
 }
 
 static void
-annoFiniDisplay (CompDisplay *d)
+annoFiniDisplay (const CompObjectFactory *factory,
+		 CompDisplay		 *d)
 {
     ANNO_DISPLAY (d);
 
     UNWRAP (ad, d, handleEvent);
 
-    cObjectInterfaceFini (&d->u.base);
+    cObjectInterfaceFini (factory, &d->u.base);
 
     compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 }
@@ -859,6 +862,23 @@ static CObjectPrivate annoObj[] = {
     C_OBJECT_PRIVATE (SCREEN_TYPE_NAME,  anno, Screen,  AnnoScreen,  X, X)
 };
 
+static CompBool
+annoInsert (CompObject *parent,
+	    CompBranch *branch)
+{
+    if (!cObjectInitPrivates (branch, annoObj, N_ELEMENTS (annoObj)))
+	return FALSE;
+
+    return TRUE;
+}
+
+static void
+annoRemove (CompObject *parent,
+	    CompBranch *branch)
+{
+    cObjectFiniPrivates (branch, annoObj, N_ELEMENTS (annoObj));
+}
+
 static Bool
 annoInit (CompPlugin *p)
 {
@@ -871,19 +891,12 @@ annoInit (CompPlugin *p)
 
     compAddMetadataFromFile (&annoMetadata, p->vTable->name);
 
-    if (!cObjectInitPrivates (annoObj, N_ELEMENTS (annoObj)))
-    {
-	compFiniMetadata (&annoMetadata);
-	return FALSE;
-    }
-
     return TRUE;
 }
 
 static void
 annoFini (CompPlugin *p)
 {
-    cObjectFiniPrivates (annoObj, N_ELEMENTS (annoObj));
     compFiniMetadata (&annoMetadata);
 }
 
@@ -895,7 +908,9 @@ static CompPluginVTable annoVTable = {
     0, /* InitObject */
     0, /* FiniObject */
     0, /* GetObjectOptions */
-    0  /* SetObjectOption */
+    0, /* SetObjectOption */
+    annoInsert,
+    annoRemove
 };
 
 CompPluginVTable *

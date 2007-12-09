@@ -1279,57 +1279,6 @@ releaseWindow (CompWindow *w)
     }
 }
 
-static void
-freeWindow (CompWindow *w)
-{
-    releaseWindow (w);
-
-    compObjectFini (&w->base, getWindowObjectType ());
-
-    if (w->syncAlarm)
-	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
-
-    if (w->syncWaitHandle)
-	compRemoveTimeout (w->syncWaitHandle);
-
-    destroyTexture (w->screen, w->texture);
-
-    if (w->frame)
-	XDestroyWindow (w->screen->display->display, w->frame);
-
-    if (w->clip)
-	XDestroyRegion (w->clip);
-
-    if (w->region)
-	XDestroyRegion (w->region);
-
-    if (w->sizeDamage)
-	free (w->damageRects);
-
-    if (w->vertices)
-	free (w->vertices);
-
-    if (w->indices)
-	free (w->indices);
-
-    if (w->struts)
-	free (w->struts);
-
-    if (w->icon)
-	freeWindowIcons (w);
-
-    if (w->startupId)
-	free (w->startupId);
-
-    if (w->resName)
-	free (w->resName);
-
-    if (w->resClass)
-	free (w->resClass);
-
-    free (w);
-}
-
 void
 damageTransformedWindowRect (CompWindow *w,
 			     float	xScale,
@@ -1790,11 +1739,12 @@ static CompObjectPrivates windowObjectPrivates = {
 };
 
 static CompBool
-windowInitObject (CompObject *object)
+windowInitObject (const CompObjectFactory *factory,
+		  CompObject		  *object)
 {
     WINDOW (object);
 
-    if (!cObjectInit (&w->base, getObjectType (), &windowObjectVTable))
+    if (!cObjectInit (factory, &w->base, getObjectType (), &windowObjectVTable))
 	return FALSE;
 
     w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
@@ -1805,14 +1755,15 @@ windowInitObject (CompObject *object)
 }
 
 static void
-windowFiniObject (CompObject *object)
+windowFiniObject (const CompObjectFactory *factory,
+		  CompObject		  *object)
 {
     WINDOW (object);
 
     if (w->objectName)
 	free (w->objectName);
 
-    cObjectFini (&w->base, getObjectType ());
+    cObjectFini (factory, &w->base, getObjectType ());
 }
 
 static void
@@ -1881,6 +1832,8 @@ addWindow (CompScreen *screen,
 	   Window     aboveId)
 {
     CompWindow *w;
+
+    BRANCH (screen->display->u.base.parent);
 
     w = (CompWindow *) malloc (sizeof (CompWindow));
     if (!w)
@@ -1991,23 +1944,23 @@ addWindow (CompScreen *screen,
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
-    if (!compObjectInit (&w->base, getWindowObjectType ()))
-    {
-	free (w);
-	return;
-    }
-
     w->region = XCreateRegion ();
     if (!w->region)
     {
-	freeWindow (w);
+	free (w);
 	return;
     }
 
     w->clip = XCreateRegion ();
     if (!w->clip)
     {
-	freeWindow (w);
+	free (w);
+	return;
+    }
+
+    if (!compObjectInit (&b->factory, &w->base, getWindowObjectType ()))
+    {
+	free (w);
 	return;
     }
 
@@ -2253,6 +2206,8 @@ addWindow (CompScreen *screen,
 void
 removeWindow (CompWindow *w)
 {
+    BRANCH (w->screen->display->u.base.parent);
+
     unhookWindowFromScreen (w->screen, w);
 
     if (!w->destroyed)
@@ -2307,7 +2262,52 @@ removeWindow (CompWindow *w)
 
     objectFiniPlugins (&w->base);
 
-    freeWindow (w);
+    releaseWindow (w);
+
+    compObjectFini (&b->factory, &w->base, getWindowObjectType ());
+
+    if (w->syncAlarm)
+	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
+
+    if (w->syncWaitHandle)
+	compRemoveTimeout (w->syncWaitHandle);
+
+    destroyTexture (w->screen, w->texture);
+
+    if (w->frame)
+	XDestroyWindow (w->screen->display->display, w->frame);
+
+    if (w->clip)
+	XDestroyRegion (w->clip);
+
+    if (w->region)
+	XDestroyRegion (w->region);
+
+    if (w->sizeDamage)
+	free (w->damageRects);
+
+    if (w->vertices)
+	free (w->vertices);
+
+    if (w->indices)
+	free (w->indices);
+
+    if (w->struts)
+	free (w->struts);
+
+    if (w->icon)
+	freeWindowIcons (w);
+
+    if (w->startupId)
+	free (w->startupId);
+
+    if (w->resName)
+	free (w->resName);
+
+    if (w->resClass)
+	free (w->resClass);
+
+    free (w);
 }
 
 void

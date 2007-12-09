@@ -512,14 +512,15 @@ static GConfCoreVTable gconfCoreObjectVTable = {
 };
 
 static CompBool
-gconfInitCore (CompCore *c)
+gconfInitCore (const CompObjectFactory *factory,
+	       CompCore		       *c)
 {
     GCONF_CORE (c);
 
     if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    if (!cObjectInterfaceInit (&c->u.base.u.base,
+    if (!cObjectInterfaceInit (factory, &c->u.base.u.base,
 			       &gconfCoreObjectVTable.base.base.base))
 	return FALSE;
 
@@ -541,7 +542,8 @@ gconfInitCore (CompCore *c)
 }
 
 static void
-gconfFiniCore (CompCore *c)
+gconfFiniCore (const CompObjectFactory *factory,
+	       CompCore		       *c)
 {
     GCONF_CORE (c);
 
@@ -554,7 +556,7 @@ gconfFiniCore (CompCore *c)
     gconf_client_remove_dir (gc->client, "/apps/" APP_NAME, NULL);
     gconf_client_clear_cache (gc->client);
 
-    cObjectInterfaceFini (&c->u.base.u.base);
+    cObjectInterfaceFini (factory, &c->u.base.u.base);
 }
 
 static void
@@ -591,7 +593,7 @@ gconfInsert (CompObject *parent,
     };
     int i;
 
-    if (!cObjectInitPrivates (gconfObj, N_ELEMENTS (gconfObj)))
+    if (!cObjectInitPrivates (branch, gconfObj, N_ELEMENTS (gconfObj)))
 	return FALSE;
 
     compConnect (parent,
@@ -626,7 +628,7 @@ static void
 gconfRemove (CompObject *parent,
 	     CompBranch *branch)
 {
-    cObjectFiniPrivates (gconfObj, N_ELEMENTS (gconfObj));
+    cObjectFiniPrivates (branch, gconfObj, N_ELEMENTS (gconfObj));
 }
 
 static Bool

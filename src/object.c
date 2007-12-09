@@ -132,12 +132,13 @@ freeObjectPrivates (CompObject		     *object,
 }
 
 CompBool
-compObjectInit (CompObject           *object,
-		const CompObjectType *type)
+compObjectInit (const CompObjectFactory *factory,
+		CompObject		*object,
+		const CompObjectType	*type)
 {
     int i;
 
-    if (!(*type->funcs.init) (object))
+    if (!(*type->funcs.init) (factory, object))
 	return FALSE;
 
     if (!type->privatesOffset)
@@ -145,40 +146,41 @@ compObjectInit (CompObject           *object,
 
     if (!allocateObjectPrivates (object, type, type->privates))
     {
-	(*type->funcs.fini) (object);
+	(*type->funcs.fini) (factory, object);
 	return FALSE;
     }
 
     for (i = 0; i < type->privates->nFuncs; i++)
-	if (!(*type->privates->funcs[i].init) (object))
+	if (!(*type->privates->funcs[i].init) (factory, object))
 	    break;
 
     if (i == type->privates->nFuncs)
 	return TRUE;
 
     while (--i >= 0)
-	(*type->privates->funcs[i].fini) (object);
+	(*type->privates->funcs[i].fini) (factory, object);
 
-    (*type->funcs.fini) (object);
+    (*type->funcs.fini) (factory, object);
 
     return FALSE;
 }
 
 void
-compObjectFini (CompObject           *object,
-		const CompObjectType *type)
+compObjectFini (const CompObjectFactory *factory,
+		CompObject              *object,
+		const CompObjectType    *type)
 {
     if (type->privatesOffset)
     {
 	int i = type->privates->nFuncs;
 
 	while (--i >= 0)
-	    (*type->privates->funcs[i].fini) (object);
+	    (*type->privates->funcs[i].fini) (factory, object);
 
 	freeObjectPrivates (object, type, type->privates);
     }
 
-    (*type->funcs.fini) (object);
+    (*type->funcs.fini) (factory, object);
 }
 
 typedef struct _InsertObjectContext {
@@ -3110,7 +3112,8 @@ static CompObjectPrivates objectPrivates = {
 };
 
 static CompBool
-initObject (CompObject *object)
+initObject (const CompObjectFactory *factory,
+	    CompObject		    *object)
 {
     object->vTable    = &objectVTable;
     object->parent    = NULL;
@@ -3123,7 +3126,8 @@ initObject (CompObject *object)
 }
 
 static void
-finiObject (CompObject *object)
+finiObject (const CompObjectFactory *factory,
+	    CompObject		    *object)
 {
     if (object->signalVec)
 	free (object->signalVec);
@@ -3351,9 +3355,10 @@ topObjectType (CompObject	    *object,
 }
 
 typedef struct _InitObjectContext {
-    CompObjectType  *type;
-    CompObjectFuncs *funcs;
-    CompObject      *object;
+    const CompObjectFactory *factory;
+    const CompObjectType    *type;
+    CompObjectFuncs	    *funcs;
+    CompObject		    *object;
 } InitObjectContext;
 
 static CompBool
@@ -3368,7 +3373,7 @@ initBaseObject (CompObject *object,
 					 (void *) &type);
 
     if (type == pCtx->type)
-	return (*pCtx->funcs->init) (object);
+	return (*pCtx->funcs->init) (pCtx->factory, object);
     else
 	return (*object->vTable->forBaseObject) (object,
 						 initBaseObject,
@@ -3387,7 +3392,7 @@ finiBaseObject (CompObject *object,
 					 (void *) &type);
 
     if (type == pCtx->type)
-	(*pCtx->funcs->fini) (object);
+	(*pCtx->funcs->fini) (pCtx->factory, object);
     else
 	(*object->vTable->forBaseObject) (object,
 					  finiBaseObject,
@@ -3397,14 +3402,16 @@ finiBaseObject (CompObject *object,
 }
 
 static CompBool
-initTypedObjects (CompObject	  *o,
-		  CompObjectType  *type,
-		  CompObjectFuncs *funcs);
+initTypedObjects (const CompObjectFactory *factory,
+		  CompObject              *object,
+		  const CompObjectType    *type,
+		  CompObjectFuncs	  *funcs);
 
 static CompBool
-finiTypedObjects (CompObject	 *o,
-		  CompObjectType *type,
-		  CompObjectFuncs *funcs);
+finiTypedObjects (const CompObjectFactory *factory,
+		  CompObject              *object,
+		  const CompObjectType    *type,
+		  CompObjectFuncs	  *funcs);
 
 static CompBool
 initObjectTree (CompObject *object,
@@ -3414,7 +3421,7 @@ initObjectTree (CompObject *object,
 
     pCtx->object = object;
 
-    return initTypedObjects (object, pCtx->type, pCtx->funcs);
+    return initTypedObjects (pCtx->factory, object, pCtx->type, pCtx->funcs);
 }
 
 static CompBool
@@ -3427,19 +3434,21 @@ finiObjectTree (CompObject *object,
     if (pCtx->object == object)
 	return FALSE;
 
-    return finiTypedObjects (object, pCtx->type, pCtx->funcs);
+    return finiTypedObjects (pCtx->factory, object, pCtx->type, pCtx->funcs);
 }
 
 static CompBool
-initTypedObjects (CompObject	  *object,
-		  CompObjectType  *type,
-		  CompObjectFuncs *funcs)
+initTypedObjects (const CompObjectFactory *factory,
+		  CompObject              *object,
+		  const CompObjectType    *type,
+		  CompObjectFuncs	  *funcs)
 {
     InitObjectContext ctx;
 
-    ctx.type   = type;
-    ctx.funcs  = funcs;
-    ctx.object = NULL;
+    ctx.factory = factory;
+    ctx.type    = type;
+    ctx.funcs   = funcs;
+    ctx.object  = NULL;
 
     if (!initBaseObject (object, (void *) &ctx))
 	return FALSE;
@@ -3461,15 +3470,17 @@ initTypedObjects (CompObject	  *object,
 }
 
 static CompBool
-finiTypedObjects (CompObject	  *object,
-		  CompObjectType  *type,
-		  CompObjectFuncs *funcs)
+finiTypedObjects (const CompObjectFactory *factory,
+		  CompObject              *object,
+		  const CompObjectType    *type,
+		  CompObjectFuncs	  *funcs)
 {
     InitObjectContext ctx;
 
-    ctx.type   = type;
-    ctx.funcs  = funcs;
-    ctx.object = NULL;
+    ctx.factory = factory;
+    ctx.type    = type;
+    ctx.funcs   = funcs;
+    ctx.object  = NULL;
 
     (*object->vTable->forEachChildObject) (object,
 					   finiObjectTree,
@@ -3481,7 +3492,8 @@ finiTypedObjects (CompObject	  *object,
 }
 
 static CompBool
-cObjectInitPrivate (CObjectPrivate *private)
+cObjectInitPrivate (CompBranch	   *branch,
+		    CObjectPrivate *private)
 {
     CompObjectType  *type;
     CompObjectFuncs *funcs;
@@ -3512,7 +3524,7 @@ cObjectInitPrivate (CObjectPrivate *private)
     funcs[type->privates->nFuncs].fini = private->fini;
 
     /* initialize all objects of this type */
-    if (!initTypedObjects (&core.u.base.u.base, type,
+    if (!initTypedObjects (&branch->factory, &core.u.base.u.base, type,
 			   &funcs[type->privates->nFuncs]))
     {
 	compObjectFreePrivateIndex (type, index);
@@ -3525,7 +3537,8 @@ cObjectInitPrivate (CObjectPrivate *private)
 }
 
 static void
-cObjectFiniPrivate (CObjectPrivate *private)
+cObjectFiniPrivate (CompBranch	   *branch,
+		    CObjectPrivate *private)
 {
     CompObjectType  *type;
     CompObjectFuncs *funcs;
@@ -3540,7 +3553,7 @@ cObjectFiniPrivate (CObjectPrivate *private)
     type->privates->nFuncs--;
 
     /* finalize all objects of this type */
-    finiTypedObjects (&core.u.base.u.base, type,
+    finiTypedObjects (&branch->factory, &core.u.base.u.base, type,
 		      &type->privates->funcs[type->privates->nFuncs]);
 
     compObjectFreePrivateIndex (type, index);
@@ -3555,19 +3568,20 @@ cObjectFiniPrivate (CObjectPrivate *private)
 }
 
 CompBool
-cObjectInitPrivates (CObjectPrivate *private,
+cObjectInitPrivates (CompBranch	    *branch,
+		     CObjectPrivate *private,
 		     int	    nPrivate)
 {
     int	i;
 
     for (i = 0; i < nPrivate; i++)
-	if (!cObjectInitPrivate (&private[i]))
+	if (!cObjectInitPrivate (branch, &private[i]))
 	    break;
 
     if (i < nPrivate)
     {
 	if (i)
-	    cObjectFiniPrivates (private, i - 1);
+	    cObjectFiniPrivates (branch, private, i - 1);
 
 	return FALSE;
     }
@@ -3576,13 +3590,14 @@ cObjectInitPrivates (CObjectPrivate *private,
 }
 
 void
-cObjectFiniPrivates (CObjectPrivate *private,
+cObjectFiniPrivates (CompBranch	    *branch,
+		     CObjectPrivate *private,
 		     int	    nPrivate)
 {
     int	n = nPrivate;
 
     while (n--)
-	cObjectFiniPrivate (&private[n]);
+	cObjectFiniPrivate (branch, &private[n]);
 }
 
 typedef struct _ForInterfaceContext {
@@ -4715,10 +4730,11 @@ cObjectPropertiesFini (CompObject	*object,
 }
 
 CompBool
-cObjectChildrenInit (CompObject	      *object,
-		     char	      *data,
-		     const CInterface *interface,
-		     int	      nInterface)
+cObjectChildrenInit (const CompObjectFactory *factory,
+		     CompObject		     *object,
+		     char		     *data,
+		     const CInterface	     *interface,
+		     int		     nInterface)
 {
     CompObject *child;
     int	       i, j;
@@ -4731,16 +4747,19 @@ cObjectChildrenInit (CompObject	      *object,
 	    {
 		child = CHILD (data, &interface[i].child[j]);
 
-		if (!compObjectInit (child, interface[i].child[j].objectType))
+		if (!compObjectInit (factory, child,
+				     interface[i].child[j].objectType))
 		{
 		    while (j--)
 			if (interface[i].child[j].objectType)
-			    compObjectFini (CHILD (data,
+			    compObjectFini (factory,
+					    CHILD (data,
 						   &interface[i].child[j]),
 					    interface[i].child[j].objectType);
 
 		    while (i--)
-			cObjectChildrenFini (object, data, &interface[i], 1);
+			cObjectChildrenFini (factory, object, data,
+					     &interface[i], 1);
 
 		    return FALSE;
 		}
@@ -4754,23 +4773,25 @@ cObjectChildrenInit (CompObject	      *object,
 }
 
 void
-cObjectChildrenFini (CompObject	      *object,
-		     char	      *data,
-		     const CInterface *interface,
-		     int	      nInterface)
+cObjectChildrenFini (const CompObjectFactory *factory,
+		     CompObject		     *object,
+		     char		     *data,
+		     const CInterface	     *interface,
+		     int		     nInterface)
 {
     int i, j;
 
     for (i = 0; i < nInterface; i++)
 	for (j = 0; j < interface[i].nChild; j++)
 	    if (interface[i].child[j].objectType)
-		compObjectFini (CHILD (data, &interface[i].child[j]),
+		compObjectFini (factory, CHILD (data, &interface[i].child[j]),
 				interface[i].child[j].objectType);
 }
 
 CompBool
-cObjectInterfaceInit (CompObject	     *object,
-		      const CompObjectVTable *vTable)
+cObjectInterfaceInit (const CompObjectFactory *factory,
+		      CompObject	      *object,
+		      const CompObjectVTable  *vTable)
 {
     CContext ctx;
 
@@ -4785,7 +4806,7 @@ cObjectInterfaceInit (CompObject	     *object,
 				ctx.nInterface))
 	return FALSE;
 
-    if (!cObjectChildrenInit (object,
+    if (!cObjectChildrenInit (factory, object,
 			      ctx.data,
 			      ctx.interface,
 			      ctx.nInterface))
@@ -4803,7 +4824,8 @@ cObjectInterfaceInit (CompObject	     *object,
 }
 
 void
-cObjectInterfaceFini (CompObject *object)
+cObjectInterfaceFini (const CompObjectFactory *factory,
+		      CompObject	      *object)
 {
     CContext ctx;
 
@@ -4811,7 +4833,7 @@ cObjectInterfaceFini (CompObject *object)
 
     UNWRAP (ctx.vtStore, object, vTable);
 
-    cObjectChildrenFini (object,
+    cObjectChildrenFini (factory, object,
 			 ctx.data,
 			 ctx.interface,
 			 ctx.nInterface);
@@ -4833,16 +4855,17 @@ cObjectInterfaceFini (CompObject *object)
 }
 
 CompBool
-cObjectInit (CompObject	            *object,
-	     const CompObjectType   *baseType,
-	     const CompObjectVTable *vTable)
+cObjectInit (const CompObjectFactory *factory,
+	     CompObject	             *object,
+	     const CompObjectType    *baseType,
+	     const CompObjectVTable  *vTable)
 {
-    if (!compObjectInit (object, baseType))
+    if (!compObjectInit (factory, object, baseType))
 	return FALSE;
 
-    if (!cObjectInterfaceInit (object, vTable))
+    if (!cObjectInterfaceInit (factory, object, vTable))
     {
-	compObjectFini (object, baseType);
+	compObjectFini (factory, object, baseType);
 	return FALSE;
     }
 
@@ -4850,11 +4873,12 @@ cObjectInit (CompObject	            *object,
 }
 
 void
-cObjectFini (CompObject	          *object,
-	     const CompObjectType *baseType)
+cObjectFini (const CompObjectFactory *factory,
+	     CompObject		     *object,
+	     const CompObjectType    *baseType)
 {
-    cObjectInterfaceFini (object);
-    compObjectFini (object, baseType);
+    cObjectInterfaceFini (factory, object);
+    compObjectFini (factory, object, baseType);
 }
 
 void

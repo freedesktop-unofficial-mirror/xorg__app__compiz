@@ -32,8 +32,6 @@
 
 #define COMPIZ_GLIB_VERSION 20071116
 
-static CompMetadata glibMetadata;
-
 static int glibCorePrivateIndex;
 
 typedef struct _GLibWatch {
@@ -195,7 +193,8 @@ static GLibCoreVTable glibCoreObjectVTable = {
 };
 
 static CompBool
-glibInitCore (CompCore *c)
+glibInitCore (const CompObjectFactory *factory,
+	      CompCore		      *c)
 {
     GLIB_CORE (c);
 
@@ -206,7 +205,7 @@ glibInitCore (CompCore *c)
     gc->fdsSize	      = 0;
     gc->timeoutHandle = 0;
 
-    if (!cObjectInterfaceInit (&c->u.base.u.base,
+    if (!cObjectInterfaceInit (factory, &c->u.base.u.base,
 			       &glibCoreObjectVTable.base.base.base))
 	return FALSE;
 
@@ -216,7 +215,8 @@ glibInitCore (CompCore *c)
 }
 
 static void
-glibFiniCore (CompCore *c)
+glibFiniCore (const CompObjectFactory *factory,
+	      CompCore		      *c)
 {
     GLIB_CORE (c);
 
@@ -228,7 +228,7 @@ glibFiniCore (CompCore *c)
     if (gc->fds)
 	free (gc->fds);
 
-    cObjectInterfaceFini (&c->u.base.u.base);
+    cObjectInterfaceFini (factory, &c->u.base.u.base);
 }
 
 static void
@@ -250,28 +250,32 @@ static CObjectPrivate glibObj[] = {
     C_OBJECT_PRIVATE (CORE_TYPE_NAME, glib, Core, GLibCore, X, X)
 };
 
+static CompBool
+glibInsert (CompObject *parent,
+	    CompBranch *branch)
+{
+    if (!cObjectInitPrivates (branch, glibObj, N_ELEMENTS (glibObj)))
+	return FALSE;
+
+    return TRUE;
+}
+
+static void
+glibRemove (CompObject *parent,
+	    CompBranch *branch)
+{
+    cObjectFiniPrivates (branch, glibObj, N_ELEMENTS (glibObj));
+}
+
 static Bool
 glibInit (CompPlugin *p)
 {
-    if (!compInitObjectMetadataFromInfo (&glibMetadata, p->vTable->name, 0, 0))
-	return FALSE;
-
-    compAddMetadataFromFile (&glibMetadata, p->vTable->name);
-
-    if (!cObjectInitPrivates (glibObj, N_ELEMENTS (glibObj)))
-    {
-	compFiniMetadata (&glibMetadata);
-	return FALSE;
-    }
-
     return TRUE;
 }
 
 static void
 glibFini (CompPlugin *p)
 {
-    cObjectFiniPrivates (glibObj, N_ELEMENTS (glibObj));
-    compFiniMetadata (&glibMetadata);
 }
 
 CompPluginVTable glibVTable = {
@@ -282,7 +286,9 @@ CompPluginVTable glibVTable = {
     0, /* InitObject */
     0, /* FiniObject */
     0, /* GetObjectOptions */
-    0  /* SetObjectOption */
+    0, /* SetObjectOption */
+    glibInsert,
+    glibRemove
 };
 
 CompPluginVTable *

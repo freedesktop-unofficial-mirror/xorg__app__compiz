@@ -2360,21 +2360,6 @@ addScreenToDisplay (CompDisplay *display,
     addScreenActions (s);
 }
 
-static void
-freeDisplay (CompDisplay *d)
-{
-    free (d->hostName);
-
-    compObjectFini (&d->u.base, getDisplayObjectType ());
-
-    compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
-
-    if (d->screenInfo)
-	XFree (d->screenInfo);
-
-    free (d);
-}
-
 static CompDisplayVTable displayObjectVTable = {
     .addScreen	  = addScreen,
     .removeScreen = removeScreen
@@ -2408,13 +2393,15 @@ forEachScreenObject (CompObject	             *object,
 }
 
 static CompBool
-displayInitObject (CompObject *object)
+displayInitObject (const CompObjectFactory *factory,
+		   CompObject		   *object)
 {
     int i;
 
     DISPLAY (object);
 
-    if (!cObjectInit (&d->u.base, getObjectType (), &displayObjectVTable.base))
+    if (!cObjectInit (factory, &d->u.base, getObjectType (),
+		      &displayObjectVTable.base))
 	return FALSE;
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
@@ -2468,14 +2455,15 @@ displayInitObject (CompObject *object)
 }
 
 static void
-displayFiniObject (CompObject *object)
+displayFiniObject (const CompObjectFactory *factory,
+		   CompObject		   *object)
 {
     DISPLAY (object);
 
     if (d->objectName)
 	free (d->objectName);
 
-    cObjectFini (&d->u.base, getObjectType ());
+    cObjectFini (factory, &d->u.base, getObjectType ());
 }
 
 static void
@@ -2560,7 +2548,7 @@ addDisplayOld (CompCore   *c,
     if (!d)
 	return FALSE;
 
-    if (!compObjectInit (&d->u.base, getDisplayObjectType ()))
+    if (!compObjectInit (&c->u.base.factory, &d->u.base, getDisplayObjectType ()))
     {
 	free (d);
 	return FALSE;
@@ -2569,7 +2557,7 @@ addDisplayOld (CompCore   *c,
     d->hostName = strdup (hostName);
     if (!d->hostName)
     {
-	compObjectFini (&d->u.base, getDisplayObjectType ());
+	compObjectFini (&c->u.base.factory, &d->u.base, getDisplayObjectType ());
 	free (d);
 	return FALSE;
     }
@@ -2995,7 +2983,16 @@ removeDisplayOld (CompCore    *c,
     XSync (d->display, False);
     XCloseDisplay (d->display);
 
-    freeDisplay (d);
+    free (d->hostName);
+
+    compObjectFini (&c->u.base.factory, &d->u.base, getDisplayObjectType ());
+
+    compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
+
+    if (d->screenInfo)
+	XFree (d->screenInfo);
+
+    free (d);
 }
 
 Time

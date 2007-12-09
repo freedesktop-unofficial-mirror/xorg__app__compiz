@@ -30,8 +30,6 @@
 
 static KInstance *kInstance;
 
-static CompMetadata kconfigMetadata;
-
 static int kconfigCorePrivateIndex;
 
 typedef struct _KconfigCore {
@@ -295,7 +293,8 @@ kconfigRcChanged (const char *name,
 }
 
 static CompBool
-kconfigInitCore (CompCore *c)
+kconfigInitCore (const CompObjectFactory *factory,
+		 CompCore		 *c)
 {
     QString dir;
 
@@ -328,7 +327,8 @@ kconfigInitCore (CompCore *c)
 }
 
 static void
-kconfigFiniCore (CompCore *c)
+kconfigFiniCore (const CompObjectFactory *factory,
+		 CompCore		 *c)
 {
     KCONFIG_CORE (c);
 
@@ -348,8 +348,25 @@ kconfigFiniCore (CompCore *c)
 }
 
 static CObjectPrivate kconfigObj[] = {
-    C_OBJECT_PRIVATE ("core", kconfig, Core, KconfigCore, X, _)
+    C_OBJECT_PRIVATE (CORE_TYPE_NAME, kconfig, Core, KconfigCore, X, _)
 };
+
+static CompBool
+kconfigInsert (CompObject *parent,
+	       CompBranch *branch)
+{
+    if (!cObjectInitPrivates (branch, kconfigObj, N_ELEMENTS (kconfigObj)))
+	return FALSE;
+
+    return TRUE;
+}
+
+static void
+kconfigRemove (CompObject *parent,
+	       CompBranch *branch)
+{
+    cObjectFiniPrivates (branch, kconfigObj, N_ELEMENTS (kconfigObj));
+}
 
 static Bool
 kconfigInit (CompPlugin *p)
@@ -358,30 +375,12 @@ kconfigInit (CompPlugin *p)
     if (!kInstance)
 	return FALSE;
 
-    if (!compInitObjectMetadataFromInfo (&kconfigMetadata, p->vTable->name,
-					 0, 0))
-    {
-	delete kInstance;
-	return FALSE;
-    }
-
-    compAddMetadataFromFile (&kconfigMetadata, p->vTable->name);
-
-    if (!cObjectInitPrivates (kconfigObj, N_ELEMENTS (kconfigObj)))
-    {
-	compFiniMetadata (&kconfigMetadata);
-	delete kInstance;
-	return FALSE;
-    }
-
     return TRUE;
 }
 
 static void
 kconfigFini (CompPlugin *p)
 {
-    cObjectFiniPrivates (kconfigObj, N_ELEMENTS (kconfigObj));
-    compFiniMetadata (&kconfigMetadata);
     delete kInstance;
 }
 
@@ -393,7 +392,9 @@ CompPluginVTable kconfigVTable = {
     0, /* InitObject */
     0, /* FiniObject */
     0, /* GetObjectOptions */
-    0  /* SetObjectOption */
+    0, /* SetObjectOption */
+    kconfigInsert,
+    kconfigRemove
 };
 
 CompPluginVTable *

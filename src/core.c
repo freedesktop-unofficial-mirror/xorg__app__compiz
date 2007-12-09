@@ -305,11 +305,12 @@ forEachPluginObject (CompObject		     *object,
 }
 
 static CompBool
-coreInitObject (CompObject *object)
+coreInitObject (const CompObjectFactory *factory,
+		CompObject	        *object)
 {
     CORE (object);
 
-    if (!cObjectInit (&c->u.base.u.base, getBranchObjectType (),
+    if (!cObjectInit (factory, &c->u.base.u.base, getBranchObjectType (),
 		      &coreObjectVTable.base.base))
 	return FALSE;
 
@@ -324,7 +325,7 @@ coreInitObject (CompObject *object)
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	cObjectFini (&c->u.base.u.base, getObjectType ());
+	cObjectFini (factory, &c->u.base.u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -332,7 +333,7 @@ coreInitObject (CompObject *object)
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	cObjectFini (&c->u.base.u.base, getObjectType ());
+	cObjectFini (factory, &c->u.base.u.base, getObjectType ());
 	return FALSE;
     }
 
@@ -382,7 +383,8 @@ coreInitObject (CompObject *object)
 }
 
 static void
-coreFiniObject (CompObject *object)
+coreFiniObject (const CompObjectFactory *factory,
+		CompObject	        *object)
 {
     CORE (object);
 
@@ -391,7 +393,7 @@ coreFiniObject (CompObject *object)
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);
 
-    cObjectFini (&c->u.base.u.base, getObjectType ());
+    cObjectFini (factory, &c->u.base.u.base, getObjectType ());
 }
 
 static void
@@ -458,12 +460,15 @@ freeCorePrivateIndex (int index)
 }
 
 CompBool
-initCore (CompObject *parent)
+initCore (const CompObjectFactory *factory,
+	  CompObject	          *parent)
 {
     CompPlugin *corePlugin;
 
-    if (!compObjectInit (&core.u.base.u.base, getCoreObjectType ()))
+    if (!compObjectInit (factory, &core.u.base.u.base, getCoreObjectType ()))
 	return FALSE;
+
+    core.u.base.factory.master = factory;
 
     coreObjectAdd (parent, &core.u.base.u.base, CORE_TYPE_NAME);
 
@@ -472,7 +477,7 @@ initCore (CompObject *parent)
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't load core plugin");
-	compObjectFini (&core.u.base.u.base, getCoreObjectType ());
+	compObjectFini (factory, &core.u.base.u.base, getCoreObjectType ());
 	return FALSE;
     }
 
@@ -481,7 +486,7 @@ initCore (CompObject *parent)
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
 	unloadPlugin (corePlugin);
-	compObjectFini (&core.u.base.u.base, getCoreObjectType ());
+	compObjectFini (factory, &core.u.base.u.base, getCoreObjectType ());
 	return FALSE;
     }
 
@@ -489,7 +494,8 @@ initCore (CompObject *parent)
 }
 
 void
-finiCore (CompObject *parent)
+finiCore (const CompObjectFactory *factory,
+	  CompObject	          *parent)
 {
     while (core.displays)
 	(*core.u.vTable->removeDisplay) (&core,
@@ -501,7 +507,7 @@ finiCore (CompObject *parent)
 
     coreObjectRemove (parent, &core.u.base.u.base);
 
-    compObjectFini (&core.u.base.u.base, getCoreObjectType ());
+    compObjectFini (factory, &core.u.base.u.base, getCoreObjectType ());
 }
 
 void

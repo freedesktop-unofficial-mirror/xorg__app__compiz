@@ -989,7 +989,8 @@ static DBusCoreVTable dbusCoreObjectVTable = {
 };
 
 static CompBool
-dbusInitCore (CompCore *c)
+dbusInitCore (const CompObjectFactory *factory,
+	      CompCore		      *c)
 {
     DBusError   error;
     dbus_bool_t status;
@@ -1000,7 +1001,7 @@ dbusInitCore (CompCore *c)
     if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
 	return FALSE;
 
-    if (!cObjectInterfaceInit (&c->u.base.u.base,
+    if (!cObjectInterfaceInit (factory, &c->u.base.u.base,
 			       &dbusCoreObjectVTable.base.base.base))
 	return FALSE;
 
@@ -1013,7 +1014,7 @@ dbusInitCore (CompCore *c)
 			"dbus_bus_get error: %s", error.message);
 
 	dbus_error_free (&error);
-	cObjectInterfaceFini (&c->u.base.u.base);
+	cObjectInterfaceFini (factory, &c->u.base.u.base);
 	return FALSE;
     }
 
@@ -1022,7 +1023,7 @@ dbusInitCore (CompCore *c)
     status = dbus_connection_get_unix_fd (dc->connection, &fd);
     if (!status)
     {
-	cObjectInterfaceFini (&c->u.base.u.base);
+	cObjectInterfaceFini (factory, &c->u.base.u.base);
 	return FALSE;
     }
 
@@ -1039,7 +1040,8 @@ dbusInitCore (CompCore *c)
 }
 
 static void
-dbusFiniCore (CompCore *c)
+dbusFiniCore (const CompObjectFactory *factory,
+	      CompCore		      *c)
 {
     DBUS_CORE (c);
 
@@ -1049,7 +1051,7 @@ dbusFiniCore (CompCore *c)
 
     compRemoveWatchFd (dc->watchFdHandle);
 
-    cObjectInterfaceFini (&c->u.base.u.base);
+    cObjectInterfaceFini (factory, &c->u.base.u.base);
 }
 
 static void
@@ -1075,7 +1077,7 @@ static CompBool
 dbusInsert (CompObject *parent,
 	    CompBranch *branch)
 {
-    if (!cObjectInitPrivates (dbusObj, N_ELEMENTS (dbusObj)))
+    if (!cObjectInitPrivates (branch, dbusObj, N_ELEMENTS (dbusObj)))
 	return FALSE;
 
     compConnect (parent,
@@ -1115,7 +1117,7 @@ static void
 dbusRemove (CompObject *parent,
 	    CompBranch *branch)
 {
-    cObjectFiniPrivates (dbusObj, N_ELEMENTS (dbusObj));
+    cObjectFiniPrivates (branch, dbusObj, N_ELEMENTS (dbusObj));
 }
 
 static Bool

@@ -111,14 +111,14 @@ noopRegisterType (CompBranch	       *b,
 }
 
 static const CompObjectConstructor *
-lookupObjectConstructor (CompObjectFactory *factory,
-			 const char	   *name)
+lookupObjectConstructor (const CompObjectFactory *factory,
+			 const char		 *name)
 {
     int i;
 
     for (i = 0; i < factory->nConstructor; i++)
-	if  (strcmp (name, factory->constructor[i]->type->name))
-	    return factory->constructor[i];
+	if  (strcmp (name, factory->constructor[i].type->name))
+	    return &factory->constructor[i];
 
     if (factory->master)
 	return lookupObjectConstructor (factory->master, name);
@@ -132,30 +132,28 @@ registerType (CompBranch	   *b,
 	      const CompObjectType *type)
 {
     const CompObjectConstructor *base;
-    CompObjectConstructor	**constructor, *c;
+    CompObjectConstructor	*constructor;
 
     base = lookupObjectConstructor (&b->factory, type->baseName);
     if (!base)
 	return FALSE;
 
     constructor = realloc (b->factory.constructor,
-			   sizeof (CompObjectConstructor *) *
+			   sizeof (CompObjectConstructor) *
 			   (b->factory.nConstructor + 1));
     if (!constructor)
 	return FALSE;
 
     b->factory.constructor = constructor;
 
-    c = malloc (sizeof (CompObjectConstructor) + strlen (interface) + 1);
-    if (!c)
+    constructor[b->factory.nConstructor].interface = strdup (interface);
+    if (!constructor[b->factory.nConstructor].interface)
 	return FALSE;
 
-    c->base	 = base;
-    c->type	 = type;
-    c->interface = (const char *) strcpy ((char *) (c + 1), interface);
-    c->factory   = &b->factory;
+    constructor[b->factory.nConstructor].base = base;
+    constructor[b->factory.nConstructor].type = type;
 
-    b->factory.constructor[b->factory.nConstructor++] = c;
+    b->factory.nConstructor++;
 
     return TRUE;
 }
@@ -166,11 +164,13 @@ static CompBranchVTable branchObjectVTable = {
 };
 
 static CompBool
-branchInitObject (CompObject *object)
+branchInitObject (const CompObjectFactory *factory,
+		  CompObject		  *object)
 {
     BRANCH (object);
 
-    if (!cObjectInit (&b->u.base, getObjectType (), &branchObjectVTable.base))
+    if (!cObjectInit (factory, &b->u.base, getObjectType (),
+		      &branchObjectVTable.base))
 	return FALSE;
 
     b->factory.master       = NULL;
@@ -181,9 +181,10 @@ branchInitObject (CompObject *object)
 }
 
 static void
-branchFiniObject (CompObject *object)
+branchFiniObject (const CompObjectFactory *factory,
+		  CompObject		  *object)
 {
-    cObjectFini (object, getObjectType ());
+    cObjectFini (factory, object, getObjectType ());
 }
 
 static void

@@ -1379,45 +1379,6 @@ initWindowWalker (CompScreen *screen,
     walker->prev  = walkPrev;
 }
 
-static void
-freeScreen (CompScreen *s)
-{
-    compObjectFini (&s->base, getScreenObjectType ());
-
-    if (s->outputDev)
-    {
-	int i;
-
-	for (i = 0; i < s->nOutputDev; i++)
-	    if (s->outputDev[i].name)
-		free (s->outputDev[i].name);
-
-	free (s->outputDev);
-    }
-
-    if (s->clientList)
-	free (s->clientList);
-
-    if (s->desktopHintData)
-	free (s->desktopHintData);
-
-    if (s->buttonGrab)
-	free (s->buttonGrab);
-
-    if (s->keyGrab)
-	free (s->keyGrab);
-
-    if (s->snContext)
-	sn_monitor_context_unref (s->snContext);
-
-    if (s->damage)
-	XDestroyRegion (s->damage);
-
-    compFiniScreenOptions (s, s->opt, COMP_SCREEN_OPTION_NUM);
-
-    free (s);
-}
-
 static CompObjectVTable screenObjectVTable = { 0 };
 
 static CompObjectPrivates screenObjectPrivates = {
@@ -1448,13 +1409,14 @@ forEachWindowObject (CompObject	             *object,
 }
 
 static CompBool
-screenInitObject (CompObject *object)
+screenInitObject (const CompObjectFactory *factory,
+		  CompObject		  *object)
 {
     int i;
 
     SCREEN (object);
 
-    if (!cObjectInit (&s->base, getObjectType (), &screenObjectVTable))
+    if (!cObjectInit (factory, &s->base, getObjectType (), &screenObjectVTable))
 	return FALSE;
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
@@ -1672,14 +1634,15 @@ screenInitObject (CompObject *object)
 }
 
 static void
-screenFiniObject (CompObject *object)
+screenFiniObject (const CompObjectFactory *factory,
+		  CompObject		  *object)
 {
     SCREEN (object);
 
     if (s->objectName)
 	free (s->objectName);
 
-    cObjectFini (&s->base, getObjectType ());
+    cObjectFini (factory, &s->base, getObjectType ());
 }
 
 static void
@@ -1769,11 +1732,13 @@ addScreenOld (CompDisplay *display,
     GLfloat		 light0Position[] = { -0.5f, 0.5f, -9.0f, 1.0f };
     CompWindow		 *w;
 
+    BRANCH (display->u.base.parent);
+
     s = malloc (sizeof (CompScreen));
     if (!s)
 	return FALSE;
 
-    if (!compObjectInit (&s->base, getScreenObjectType ()))
+    if (!compObjectInit (&b->factory, &s->base, getScreenObjectType ()))
     {
 	free (s);
 	return FALSE;
@@ -2335,6 +2300,8 @@ removeScreenOld (CompScreen *s)
     CompScreen  *p;
     int		i;
 
+    BRANCH (d->u.base.parent);
+
     for (p = d->screens; p; p = p->next)
 	if (p->next == s)
 	    break;
@@ -2377,7 +2344,40 @@ removeScreenOld (CompScreen *s)
 
     XDestroyWindow (d->display, s->snSelectionWindow);
 
-    freeScreen (s);
+    compObjectFini (&b->factory, &s->base, getScreenObjectType ());
+
+    if (s->outputDev)
+    {
+	int i;
+
+	for (i = 0; i < s->nOutputDev; i++)
+	    if (s->outputDev[i].name)
+		free (s->outputDev[i].name);
+
+	free (s->outputDev);
+    }
+
+    if (s->clientList)
+	free (s->clientList);
+
+    if (s->desktopHintData)
+	free (s->desktopHintData);
+
+    if (s->buttonGrab)
+	free (s->buttonGrab);
+
+    if (s->keyGrab)
+	free (s->keyGrab);
+
+    if (s->snContext)
+	sn_monitor_context_unref (s->snContext);
+
+    if (s->damage)
+	XDestroyRegion (s->damage);
+
+    compFiniScreenOptions (s, s->opt, COMP_SCREEN_OPTION_NUM);
+
+    free (s);
 }
 
 void

@@ -27,6 +27,7 @@
 #define _COMPIZ_C_OBJECT_H
 
 #include <compiz/root.h>
+#include <compiz/branch.h>
 
 COMPIZ_BEGIN_DECLS
 
@@ -415,39 +416,47 @@ cObjectPropertiesFini (CompObject	*object,
 		       int		nInterface);
 
 CompBool
-cObjectChildrenInit (CompObject	      *object,
-		     char	      *data,
-		     const CInterface *interface,
-		     int	      nInterface);
+cObjectChildrenInit (const CompObjectFactory *factory,
+		     CompObject		     *object,
+		     char		     *data,
+		     const CInterface	     *interface,
+		     int		     nInterface);
 
 void
-cObjectChildrenFini (CompObject	      *object,
-		     char	      *data,
-		     const CInterface *interface,
-		     int	      nInterface);
+cObjectChildrenFini (const CompObjectFactory *factory,
+		     CompObject		     *object,
+		     char		     *data,
+		     const CInterface	     *interface,
+		     int		     nInterface);
 
 CompBool
-cObjectInterfaceInit (CompObject	     *object,
-		      const CompObjectVTable *vTable);
+cObjectInterfaceInit (const CompObjectFactory *factory,
+		      CompObject	      *object,
+		      const CompObjectVTable  *vTable);
 
 void
-cObjectInterfaceFini (CompObject *object);
+cObjectInterfaceFini (const CompObjectFactory *factory,
+		      CompObject	      *object);
 
 CompBool
-cObjectInit (CompObject	            *object,
-	     const CompObjectType   *baseType,
-	     const CompObjectVTable *vTable);
+cObjectInit (const CompObjectFactory *factory,
+	     CompObject	             *object,
+	     const CompObjectType    *baseType,
+	     const CompObjectVTable  *vTable);
 
 void
-cObjectFini (CompObject	          *object,
-	     const CompObjectType *baseType);
+cObjectFini (const CompObjectFactory *factory,
+	     CompObject		     *object,
+	     const CompObjectType    *baseType);
 
 CompBool
-cObjectInitPrivates (CObjectPrivate *privates,
+cObjectInitPrivates (CompBranch	    *branch,
+		     CObjectPrivate *privates,
 		     int	    nPrivates);
 
 void
-cObjectFiniPrivates (CObjectPrivate *privates,
+cObjectFiniPrivates (CompBranch	    *branch,
+		     CObjectPrivate *privates,
 		     int	    nPrivates);
 
 COMPIZ_END_DECLS

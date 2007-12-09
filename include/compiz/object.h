@@ -50,11 +50,14 @@ COMPIZ_BEGIN_DECLS
   - must also not begin with a digit
 */
 
-typedef struct _CompObject     CompObject;
-typedef struct _CompObjectType CompObjectType;
+typedef struct _CompObject        CompObject;
+typedef struct _CompObjectType    CompObjectType;
+typedef struct _CompObjectFactory CompObjectFactory;
 
-typedef CompBool (*InitObjectProc) (CompObject *object);
-typedef void     (*FiniObjectProc) (CompObject *object);
+typedef CompBool (*InitObjectProc) (const CompObjectFactory *factory,
+				    CompObject		    *object);
+typedef void     (*FiniObjectProc) (const CompObjectFactory *factory,
+				    CompObject		    *object);
 
 typedef struct _CompObjectFuncs {
     InitObjectProc init;
@@ -80,21 +83,17 @@ struct _CompObjectType {
     InitVTableProc     initVTable;
 };
 
-typedef struct _CompObjectFactory     CompObjectFactory;
-typedef struct _CompObjectConstructor CompObjectConstructor;
-
-struct _CompObjectConstructor {
-    const CompObjectConstructor *base;
-    const CompObjectType	*type;
-    CompObjectPrivates		privates;
-    const char			*interface;
-    CompObjectFactory		*factory;
-};
+typedef struct _CompObjectConstructor {
+    const struct _CompObjectConstructor *base;
+    const CompObjectType		*type;
+    CompObjectPrivates			privates;
+    char				*interface;
+} CompObjectConstructor;
 
 struct _CompObjectFactory {
-    CompObjectFactory	  *master;
-    CompObjectConstructor **constructor;
-    int			  nConstructor;
+    const CompObjectFactory *master;
+    CompObjectConstructor   *constructor;
+    int			    nConstructor;
 };
 
 typedef unsigned int CompObjectTypeID;
@@ -411,12 +410,14 @@ typedef struct _CompObjectVTableVec {
 } CompObjectVTableVec;
 
 CompBool
-compObjectInit (CompObject           *object,
-		const CompObjectType *type);
+compObjectInit (const CompObjectFactory *factory,
+		CompObject		*object,
+		const CompObjectType	*type);
 
 void
-compObjectFini (CompObject           *object,
-		const CompObjectType *type);
+compObjectFini (const CompObjectFactory *factory,
+		CompObject              *object,
+		const CompObjectType    *type);
 
 typedef struct _CompSerializedMethodCallHeader {
     char	 *path;
