@@ -439,17 +439,6 @@ cObjectInterfaceFini (const CompObjectFactory *factory,
 		      CompObject	      *object);
 
 CompBool
-cObjectInit (const CompObjectFactory *factory,
-	     CompObject	             *object,
-	     const CompObjectType    *baseType,
-	     const CompObjectVTable  *vTable);
-
-void
-cObjectFini (const CompObjectFactory *factory,
-	     CompObject		     *object,
-	     const CompObjectType    *baseType);
-
-CompBool
 cObjectInitPrivates (CompBranch	    *branch,
 		     CObjectPrivate *privates,
 		     int	    nPrivates);

@@ -245,10 +245,14 @@ main (int argc, char **argv)
     CompRoot  root;
 
     CompObjectConstructor constructor[] = {
-	{ .type = getObjectType ()	 },
-	{ .type = getBranchObjectType () },
-	{ .type = getRootObjectType ()   },
-	{ .type = getCoreObjectType ()   }
+	{ .type = getObjectType ()				     },
+	{ .type = getBranchObjectType (),    .base = &constructor[0] },
+	{ .type = getContainerObjectType (), .base = &constructor[0] },
+	{ .type = getRootObjectType (),      .base = &constructor[0] },
+	{ .type = getCoreObjectType (),      .base = &constructor[1] },
+	{ .type = getDisplayObjectType (),   .base = &constructor[0] },
+	{ .type = getScreenObjectType (),    .base = &constructor[0] },
+	{ .type = getWindowObjectType (),    .base = &constructor[0] }
     };
 
     CompObjectFactory factory = {

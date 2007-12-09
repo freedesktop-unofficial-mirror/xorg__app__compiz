@@ -169,11 +169,10 @@ branchInitObject (const CompObjectFactory *factory,
 {
     BRANCH (object);
 
-    if (!cObjectInit (factory, &b->u.base, getObjectType (),
-		      &branchObjectVTable.base))
+    if (!cObjectInterfaceInit (factory, object, &branchObjectVTable.base))
 	return FALSE;
 
-    b->factory.master       = NULL;
+    b->factory.master       = factory;
     b->factory.constructor  = NULL;
     b->factory.nConstructor = 0;
 
@@ -184,7 +183,7 @@ static void
 branchFiniObject (const CompObjectFactory *factory,
 		  CompObject		  *object)
 {
-    cObjectFini (factory, object, getObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void

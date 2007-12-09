@@ -54,8 +54,7 @@ containerInitObject (const CompObjectFactory *factory,
 {
     CONTAINER (object);
 
-    if (!cObjectInit (factory, &c->base, getObjectType (),
-		      &containerObjectVTable))
+    if (!cObjectInterfaceInit (factory, object, &containerObjectVTable))
 	return FALSE;
 
     c->forEachChildObject = NULL;
@@ -67,7 +66,7 @@ static void
 containerFiniObject (const CompObjectFactory *factory,
 		     CompObject		     *object)
 {
-    cObjectFini (factory, object, getObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void

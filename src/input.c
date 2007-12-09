@@ -36,14 +36,14 @@ static CompBool
 inputInitObject (const CompObjectFactory *factory,
 		 CompObject	         *object)
 {
-    return cObjectInit (factory, object, getObjectType (), &inputObjectVTable);
+    return cObjectInterfaceInit (factory, object, &inputObjectVTable);
 }
 
 static void
 inputFiniObject (const CompObjectFactory *factory,
 		 CompObject	         *object)
 {
-    cObjectFini (factory, object, getObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void

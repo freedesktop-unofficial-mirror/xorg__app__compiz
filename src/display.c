@@ -2400,8 +2400,7 @@ displayInitObject (const CompObjectFactory *factory,
 
     DISPLAY (object);
 
-    if (!cObjectInit (factory, &d->u.base, getObjectType (),
-		      &displayObjectVTable.base))
+    if (!cObjectInterfaceInit (factory, object, &displayObjectVTable.base))
 	return FALSE;
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
@@ -2463,7 +2462,7 @@ displayFiniObject (const CompObjectFactory *factory,
     if (d->objectName)
 	free (d->objectName);
 
-    cObjectFini (factory, &d->u.base, getObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void

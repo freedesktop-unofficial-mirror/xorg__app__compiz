@@ -38,8 +38,7 @@ pointerInitObject (const CompObjectFactory *factory,
 {
     POINTER (object);
 
-    if (!cObjectInit (factory, object, getInputObjectType (),
-		      &pointerObjectVTable))
+    if (!cObjectInterfaceInit (factory, object, &pointerObjectVTable))
 	return FALSE;
 
     p->x = 0;
@@ -52,7 +51,7 @@ static void
 pointerFiniObject (const CompObjectFactory *factory,
 		   CompObject	           *object)
 {
-    cObjectFini (factory, object, getInputObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void

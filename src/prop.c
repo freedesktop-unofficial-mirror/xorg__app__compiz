@@ -36,14 +36,14 @@ static CompBool
 propInitObject (const CompObjectFactory *factory,
 		CompObject		*object)
 {
-    return cObjectInit (factory, object, getObjectType (), &propObjectVTable);
+    return cObjectInterfaceInit (factory, object, &propObjectVTable);
 }
 
 static void
 propFiniObject (const CompObjectFactory *factory,
 		CompObject		*object)
 {
-    cObjectFini (factory, object, getObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void
@@ -107,15 +107,14 @@ static CompBool
 boolPropInitObject (const CompObjectFactory *factory,
 		    CompObject		    *object)
 {
-    return cObjectInit (factory, object, getPropObjectType (),
-			&boolPropObjectVTable);
+    return cObjectInterfaceInit (factory, object, &boolPropObjectVTable);
 }
 
 static void
 boolPropFiniObject (const CompObjectFactory *factory,
 		    CompObject		    *object)
 {
-    cObjectFini (factory, object, getPropObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void
@@ -179,15 +178,14 @@ static CompBool
 intPropInitObject (const CompObjectFactory *factory,
 		   CompObject		   *object)
 {
-    return cObjectInit (factory, object, getPropObjectType (),
-			&intPropObjectVTable);
+    return cObjectInterfaceInit (factory, object, &intPropObjectVTable);
 }
 
 static void
 intPropFiniObject (const CompObjectFactory *factory,
 		   CompObject		   *object)
 {
-    cObjectFini (factory, object, getPropObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void
@@ -251,15 +249,14 @@ static CompBool
 doublePropInitObject (const CompObjectFactory *factory,
 		      CompObject	      *object)
 {
-    return cObjectInit (factory, object, getPropObjectType (),
-			&doublePropObjectVTable);
+    return cObjectInterfaceInit (factory, object, &doublePropObjectVTable);
 }
 
 static void
 doublePropFiniObject (const CompObjectFactory *factory,
 		      CompObject	      *object)
 {
-    cObjectFini (factory, object, getPropObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void
@@ -323,15 +320,14 @@ static CompBool
 stringPropInitObject (const CompObjectFactory *factory,
 		      CompObject	      *object)
 {
-    return cObjectInit (factory, object, getPropObjectType (),
-			&stringPropObjectVTable);
+    return cObjectInterfaceInit (factory, object, &stringPropObjectVTable);
 }
 
 static void
 stringPropFiniObject (const CompObjectFactory *factory,
 		      CompObject	      *object)
 {
-    cObjectFini (factory, object, getPropObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void

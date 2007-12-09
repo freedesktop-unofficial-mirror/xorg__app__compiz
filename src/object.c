@@ -131,38 +131,103 @@ freeObjectPrivates (CompObject		     *object,
 	free (*pPrivates);
 }
 
+static void
+finiObjectInstance (const CompObjectFactory     *factory,
+		    const CompObjectConstructor *constructor,
+		    CompObject		        *object)
+{
+    if (constructor->type->privatesOffset)
+    {
+	int i = constructor->type->privates->nFuncs;
+
+	while (--i >= 0)
+	    (*constructor->type->privates->funcs[i].fini) (factory, object);
+
+	freeObjectPrivates (object, constructor->type,
+			    constructor->type->privates);
+    }
+
+    (*constructor->type->funcs.fini) (factory, object);
+}
+
+static CompBool
+initObjectInstance (const CompObjectFactory     *factory,
+		    const CompObjectConstructor *constructor,
+		    CompObject		        *object)
+{
+    int i;
+
+    if (constructor->base)
+	if (!initObjectInstance (factory, constructor->base, object))
+	    return FALSE;
+
+    if (!(*constructor->type->funcs.init) (factory, object))
+    {
+	if (constructor->base)
+	    finiObjectInstance (factory, constructor->base, object);
+
+	return FALSE;
+    }
+
+    if (!constructor->type->privatesOffset)
+	return TRUE;
+
+    if (!allocateObjectPrivates (object, constructor->type,
+				 constructor->type->privates))
+    {
+	(*constructor->type->funcs.fini) (factory, object);
+	if (constructor->base)
+	    finiObjectInstance (factory, constructor->base, object);
+
+	return FALSE;
+    }
+
+    for (i = 0; i < constructor->type->privates->nFuncs; i++)
+	if (!(*constructor->type->privates->funcs[i].init) (factory, object))
+	    break;
+
+    if (i == constructor->type->privates->nFuncs)
+	return TRUE;
+
+    while (--i >= 0)
+	(*constructor->type->privates->funcs[i].fini) (factory, object);
+
+    (*constructor->type->funcs.fini) (factory, object);
+
+    if (constructor->base)
+	finiObjectInstance (factory, constructor->base, object);
+
+    return FALSE;
+}
+
+static const CompObjectConstructor *
+lookupObjectConstructor (const CompObjectFactory *factory,
+			 const CompObjectType	 *type)
+{
+    int i;
+
+    for (i = 0; i < factory->nConstructor; i++)
+	if (type == factory->constructor[i].type)
+	    return &factory->constructor[i];
+
+    if (factory->master)
+	return lookupObjectConstructor (factory->master, type);
+
+    return NULL;
+}
+
 CompBool
 compObjectInit (const CompObjectFactory *factory,
 		CompObject		*object,
 		const CompObjectType	*type)
 {
-    int i;
+    const CompObjectConstructor *constructor;
 
-    if (!(*type->funcs.init) (factory, object))
+    constructor = lookupObjectConstructor (factory, type);
+    if (!constructor)
 	return FALSE;
 
-    if (!type->privatesOffset)
-	return TRUE;
-
-    if (!allocateObjectPrivates (object, type, type->privates))
-    {
-	(*type->funcs.fini) (factory, object);
-	return FALSE;
-    }
-
-    for (i = 0; i < type->privates->nFuncs; i++)
-	if (!(*type->privates->funcs[i].init) (factory, object))
-	    break;
-
-    if (i == type->privates->nFuncs)
-	return TRUE;
-
-    while (--i >= 0)
-	(*type->privates->funcs[i].fini) (factory, object);
-
-    (*type->funcs.fini) (factory, object);
-
-    return FALSE;
+    return initObjectInstance (factory, constructor, object);
 }
 
 void
@@ -170,17 +235,9 @@ compObjectFini (const CompObjectFactory *factory,
 		CompObject              *object,
 		const CompObjectType    *type)
 {
-    if (type->privatesOffset)
-    {
-	int i = type->privates->nFuncs;
-
-	while (--i >= 0)
-	    (*type->privates->funcs[i].fini) (factory, object);
-
-	freeObjectPrivates (object, type, type->privates);
-    }
-
-    (*type->funcs.fini) (factory, object);
+    finiObjectInstance (factory,
+			lookupObjectConstructor (factory, type),
+			object);
 }
 
 typedef struct _InsertObjectContext {
@@ -4852,33 +4909,6 @@ cObjectInterfaceFini (const CompObjectFactory *factory,
 						      ctx.nInterface),
 				    offset);
     }
-}
-
-CompBool
-cObjectInit (const CompObjectFactory *factory,
-	     CompObject	             *object,
-	     const CompObjectType    *baseType,
-	     const CompObjectVTable  *vTable)
-{
-    if (!compObjectInit (factory, object, baseType))
-	return FALSE;
-
-    if (!cObjectInterfaceInit (factory, object, vTable))
-    {
-	compObjectFini (factory, object, baseType);
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
-void
-cObjectFini (const CompObjectFactory *factory,
-	     CompObject		     *object,
-	     const CompObjectType    *baseType)
-{
-    cObjectInterfaceFini (factory, object);
-    compObjectFini (factory, object, baseType);
 }
 
 void

@@ -1416,7 +1416,7 @@ screenInitObject (const CompObjectFactory *factory,
 
     SCREEN (object);
 
-    if (!cObjectInit (factory, &s->base, getObjectType (), &screenObjectVTable))
+    if (!cObjectInterfaceInit (factory, object, &screenObjectVTable))
 	return FALSE;
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
@@ -1642,7 +1642,7 @@ screenFiniObject (const CompObjectFactory *factory,
     if (s->objectName)
 	free (s->objectName);
 
-    cObjectFini (factory, &s->base, getObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void
@@ -1732,7 +1732,7 @@ addScreenOld (CompDisplay *display,
     GLfloat		 light0Position[] = { -0.5f, 0.5f, -9.0f, 1.0f };
     CompWindow		 *w;
 
-    BRANCH (display->u.base.parent);
+    BRANCH (display->u.base.parent->parent);
 
     s = malloc (sizeof (CompScreen));
     if (!s)
@@ -2300,7 +2300,7 @@ removeScreenOld (CompScreen *s)
     CompScreen  *p;
     int		i;
 
-    BRANCH (d->u.base.parent);
+    BRANCH (d->u.base.parent->parent);
 
     for (p = d->screens; p; p = p->next)
 	if (p->next == s)

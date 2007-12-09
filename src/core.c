@@ -310,8 +310,7 @@ coreInitObject (const CompObjectFactory *factory,
 {
     CORE (object);
 
-    if (!cObjectInit (factory, &c->u.base.u.base, getBranchObjectType (),
-		      &coreObjectVTable.base.base))
+    if (!cObjectInterfaceInit (factory, object, &coreObjectVTable.base.base))
 	return FALSE;
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
@@ -325,7 +324,7 @@ coreInitObject (const CompObjectFactory *factory,
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	cObjectFini (factory, &c->u.base.u.base, getObjectType ());
+	cObjectInterfaceFini (factory, object);
 	return FALSE;
     }
 
@@ -333,7 +332,7 @@ coreInitObject (const CompObjectFactory *factory,
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	cObjectFini (factory, &c->u.base.u.base, getObjectType ());
+	cObjectInterfaceFini (factory, object);
 	return FALSE;
     }
 
@@ -393,7 +392,7 @@ coreFiniObject (const CompObjectFactory *factory,
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);
 
-    cObjectFini (factory, &c->u.base.u.base, getObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void
@@ -467,8 +466,6 @@ initCore (const CompObjectFactory *factory,
 
     if (!compObjectInit (factory, &core.u.base.u.base, getCoreObjectType ()))
 	return FALSE;
-
-    core.u.base.factory.master = factory;
 
     coreObjectAdd (parent, &core.u.base.u.base, CORE_TYPE_NAME);
 

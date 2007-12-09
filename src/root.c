@@ -157,14 +157,11 @@ rootInitObject (const CompObjectFactory *factory,
     r->signal.head = NULL;
     r->signal.tail = NULL;
 
-    if (!compObjectInit (factory, &r->u.base.base, getContainerObjectType ()))
-	return FALSE;
-
-    WRAP (&r->object, object, vTable, &rootObjectVTable.base);
-
     r->u.base.forEachChildObject = forCoreObject;
 
     r->core = NULL;
+
+    WRAP (&r->object, object, vTable, &rootObjectVTable.base);
 
     return TRUE;
 }
@@ -176,8 +173,6 @@ rootFiniObject (const CompObjectFactory *factory,
     ROOT (object);
 
     UNWRAP (&r->object, object, vTable);
-
-    compObjectFini (factory, object, getContainerObjectType ());
 }
 
 static void

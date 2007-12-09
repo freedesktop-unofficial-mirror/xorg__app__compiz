@@ -38,8 +38,7 @@ keyboardInitObject (const CompObjectFactory *factory,
 {
     KEYBOARD (object);
 
-    if (!cObjectInit (factory, object, getInputObjectType (),
-		      &keyboardObjectVTable))
+    if (!cObjectInterfaceInit (factory, object, &keyboardObjectVTable))
 	return FALSE;
 
     k->state = 0;
@@ -51,7 +50,7 @@ static void
 keyboardFiniObject (const CompObjectFactory *factory,
 		    CompObject	            *object)
 {
-    cObjectFini (factory, object, getInputObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void

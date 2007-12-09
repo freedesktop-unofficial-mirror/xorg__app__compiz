@@ -1744,7 +1744,7 @@ windowInitObject (const CompObjectFactory *factory,
 {
     WINDOW (object);
 
-    if (!cObjectInit (factory, &w->base, getObjectType (), &windowObjectVTable))
+    if (!cObjectInterfaceInit (factory, object, &windowObjectVTable))
 	return FALSE;
 
     w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
@@ -1763,7 +1763,7 @@ windowFiniObject (const CompObjectFactory *factory,
     if (w->objectName)
 	free (w->objectName);
 
-    cObjectFini (factory, &w->base, getObjectType ());
+    cObjectInterfaceFini (factory, object);
 }
 
 static void
@@ -1833,7 +1833,7 @@ addWindow (CompScreen *screen,
 {
     CompWindow *w;
 
-    BRANCH (screen->display->u.base.parent);
+    BRANCH (screen->display->u.base.parent->parent);
 
     w = (CompWindow *) malloc (sizeof (CompWindow));
     if (!w)
@@ -2206,7 +2206,7 @@ addWindow (CompScreen *screen,
 void
 removeWindow (CompWindow *w)
 {
-    BRANCH (w->screen->display->u.base.parent);
+    BRANCH (w->screen->display->u.base.parent->parent);
 
     unhookWindowFromScreen (w->screen, w);
 
