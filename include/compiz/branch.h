@@ -58,6 +58,18 @@ typedef struct _CompBranchVTable {
     RegisterTypeProc registerType;
 } CompBranchVTable;
 
+typedef struct _CompPrivatesSizeEntry {
+    const char		   *name;
+    CompObjectPrivatesSize size;
+} CompPrivatesSizeEntry;
+
+typedef struct _CompRootFactory {
+    CompObjectFactory base;
+
+    CompPrivatesSizeEntry *entry;
+    int			  nEntry;
+} CompRootFactory;
+
 struct _CompBranch {
     union {
 	CompObject	       base;

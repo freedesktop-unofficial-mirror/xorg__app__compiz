@@ -255,9 +255,9 @@ main (int argc, char **argv)
 	{ .type = getWindowObjectType (),    .base = &instantiator[0] }
     };
 
-    CompObjectFactory factory = {
-	.instantiator  = instantiator,
-	.nInstantiator = N_ELEMENTS (instantiator),
+    CompRootFactory factory = {
+	.base.instantiator  = instantiator,
+	.base.nInstantiator = N_ELEMENTS (instantiator),
     };
 
     programName = argv[0];
@@ -403,13 +403,14 @@ main (int argc, char **argv)
 
     compAddMetadataFromFile (&coreMetadata, "core");
 
-    if (!compObjectInit (&factory, &root.u.base.base, getRootObjectType ()))
+    if (!compObjectInit (&factory.base, &root.u.base.base,
+			 getRootObjectType ()))
 	return 1;
 
     /* XXX: until core object is moved into the root object */
     root.core = &core.u.base.u.base;
 
-    if (!initCore (&factory, &root.u.base.base))
+    if (!initCore (&factory.base, &root.u.base.base))
 	return 1;
 
     if (!disableSm)
@@ -435,9 +436,9 @@ main (int argc, char **argv)
     if (!disableSm)
 	closeSession ();
 
-    finiCore (&factory, &root.u.base.base);
+    finiCore (&factory.base, &root.u.base.base);
 
-    compObjectFini (&factory, &root.u.base.base, getRootObjectType ());
+    compObjectFini (&factory.base, &root.u.base.base, getRootObjectType ());
 
     xmlCleanupParser ();
 
