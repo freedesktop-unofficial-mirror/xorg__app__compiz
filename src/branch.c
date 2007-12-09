@@ -132,7 +132,7 @@ registerType (CompBranch	   *b,
 	      const CompObjectType *type)
 {
     const CompObjectInstantiator *base;
-    CompObjectInstantiator	*instantiator;
+    CompObjectInstantiator	 *instantiator;
 
     base = lookupObjectInstantiator (&b->factory, type->baseName);
     if (!base)
@@ -155,6 +155,8 @@ registerType (CompBranch	   *b,
     instantiator[b->factory.nInstantiator].privates.len	      = 0;
     instantiator[b->factory.nInstantiator].privates.sizes     = 0;
     instantiator[b->factory.nInstantiator].privates.totalSize = 0;
+    instantiator[b->factory.nInstantiator].privates.funcs     = 0;
+    instantiator[b->factory.nInstantiator].privates.nFuncs    = 0;
 
     b->factory.nInstantiator++;
 
