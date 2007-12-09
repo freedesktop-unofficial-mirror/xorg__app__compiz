@@ -869,7 +869,8 @@ static struct fuse_lowlevel_ops compiz_ll_oper = {
 };
 
 static CompBool
-fuseInitObject (CompObject *object)
+fuseInitObject (const CompObjectFactory *factory,
+		CompObject		*object)
 {
     FUSE_OBJECT (object);
 
@@ -880,7 +881,8 @@ fuseInitObject (CompObject *object)
 }
 
 static void
-fuseFiniObject (CompObject *object)
+fuseFiniObject (const CompObjectFactory *factory,
+		CompObject		*object)
 {
     FUSE_OBJECT (object);
 
