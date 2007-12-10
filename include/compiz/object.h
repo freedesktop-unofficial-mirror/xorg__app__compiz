@@ -413,14 +413,14 @@ typedef struct _CompObjectVTableVec {
 } CompObjectVTableVec;
 
 CompBool
-compObjectInit (const CompObjectFactory *factory,
-		CompObject		*object,
-		const CompObjectType	*type);
+compObjectInit (const CompObjectFactory	     *factory,
+		CompObject		     *object,
+		const CompObjectInstantiator *instantiator);
 
 void
-compObjectFini (const CompObjectFactory *factory,
-		CompObject              *object,
-		const CompObjectType    *type);
+compObjectFini (const CompObjectFactory      *factory,
+		CompObject		     *object,
+		const CompObjectInstantiator *instantiator);
 
 CompBool
 compObjectInitByType (const CompObjectFactory *factory,

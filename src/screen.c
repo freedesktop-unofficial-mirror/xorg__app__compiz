@@ -1729,7 +1729,7 @@ addScreenOld (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!compObjectInit (&b->factory, &s->base, getScreenObjectType ()))
+    if (!compObjectInitByType (&b->factory, &s->base, getScreenObjectType ()))
     {
 	free (s);
 	return FALSE;
@@ -2335,7 +2335,7 @@ removeScreenOld (CompScreen *s)
 
     XDestroyWindow (d->display, s->snSelectionWindow);
 
-    compObjectFini (&b->factory, &s->base, getScreenObjectType ());
+    compObjectFiniByType (&b->factory, &s->base, getScreenObjectType ());
 
     if (s->outputDev)
     {

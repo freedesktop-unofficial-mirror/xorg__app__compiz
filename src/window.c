@@ -1949,7 +1949,7 @@ addWindow (CompScreen *screen,
 	return;
     }
 
-    if (!compObjectInit (&b->factory, &w->base, getWindowObjectType ()))
+    if (!compObjectInitByType (&b->factory, &w->base, getWindowObjectType ()))
     {
 	free (w);
 	return;
@@ -2255,7 +2255,7 @@ removeWindow (CompWindow *w)
 
     releaseWindow (w);
 
-    compObjectFini (&b->factory, &w->base, getWindowObjectType ());
+    compObjectFiniByType (&b->factory, &w->base, getWindowObjectType ());
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);

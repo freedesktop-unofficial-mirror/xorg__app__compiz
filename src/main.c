@@ -625,9 +625,9 @@ main (int argc, char **argv)
 
     compAddMetadataFromFile (&coreMetadata, "core");
 
-    if (!compObjectInit (&context.factory.base,
-			 &context.root.u.base.base,
-			 getRootObjectType ()))
+    if (!compObjectInitByType (&context.factory.base,
+			       &context.root.u.base.base,
+			       getRootObjectType ()))
 	return 1;
 
     /* XXX: until core object is moved into the root object */
@@ -661,9 +661,9 @@ main (int argc, char **argv)
 
     finiCore (&context.factory.base, &context.root.u.base.base);
 
-    compObjectFini (&context.factory.base,
-		    &context.root.u.base.base,
-		    getRootObjectType ());
+    compObjectFiniByType (&context.factory.base,
+			  &context.root.u.base.base,
+			  getRootObjectType ());
 
     xmlCleanupParser ();
 

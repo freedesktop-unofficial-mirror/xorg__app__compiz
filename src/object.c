@@ -129,39 +129,21 @@ freeObjectPrivates (CompObject		         *object,
 	free (*pPrivates);
 }
 
-static void
-finiObjectInstance (const CompObjectFactory      *factory,
-		    const CompObjectInstantiator *instantiator,
-		    CompObject		         *object)
-{
-    if (instantiator->type->privatesOffset)
-    {
-	int i = instantiator->privates.nFuncs;
-
-	while (--i >= 0)
-	    (*instantiator->privates.funcs[i].fini) (factory, object);
-
-	freeObjectPrivates (object, instantiator->type, &instantiator->size);
-    }
-
-    (*instantiator->type->funcs.fini) (factory, object);
-}
-
-static CompBool
-initObjectInstance (const CompObjectFactory      *factory,
-		    const CompObjectInstantiator *instantiator,
-		    CompObject		         *object)
+CompBool
+compObjectInit (const CompObjectFactory      *factory,
+		CompObject		     *object,
+		const CompObjectInstantiator *instantiator)
 {
     int i;
 
     if (instantiator->base)
-	if (!initObjectInstance (factory, instantiator->base, object))
+	if (!compObjectInit (factory, object, instantiator->base))
 	    return FALSE;
 
     if (!(*instantiator->type->funcs.init) (factory, object))
     {
 	if (instantiator->base)
-	    finiObjectInstance (factory, instantiator->base, object);
+	    compObjectFini (factory, object, instantiator->base);
 
 	return FALSE;
     }
@@ -174,7 +156,7 @@ initObjectInstance (const CompObjectFactory      *factory,
     {
 	(*instantiator->type->funcs.fini) (factory, object);
 	if (instantiator->base)
-	    finiObjectInstance (factory, instantiator->base, object);
+	    compObjectFini (factory, object, instantiator->base);
 
 	return FALSE;
     }
@@ -192,9 +174,27 @@ initObjectInstance (const CompObjectFactory      *factory,
     (*instantiator->type->funcs.fini) (factory, object);
 
     if (instantiator->base)
-	finiObjectInstance (factory, instantiator->base, object);
+	compObjectFini (factory, object, instantiator->base);
 
     return FALSE;
+}
+
+void
+compObjectFini (const CompObjectFactory      *factory,
+		CompObject		     *object,
+		const CompObjectInstantiator *instantiator)
+{
+    if (instantiator->type->privatesOffset)
+    {
+	int i = instantiator->privates.nFuncs;
+
+	while (--i >= 0)
+	    (*instantiator->privates.funcs[i].fini) (factory, object);
+
+	freeObjectPrivates (object, instantiator->type, &instantiator->size);
+    }
+
+    (*instantiator->type->funcs.fini) (factory, object);
 }
 
 static CompObjectInstantiator *
@@ -230,30 +230,6 @@ lookupObjectInstantiator (const CompObjectFactory *factory,
 }
 
 CompBool
-compObjectInit (const CompObjectFactory *factory,
-		CompObject		*object,
-		const CompObjectType	*type)
-{
-    const CompObjectInstantiator *instantiator;
-
-    instantiator = findObjectInstantiator (factory, type);
-    if (!instantiator)
-	return FALSE;
-
-    return initObjectInstance (factory, instantiator, object);
-}
-
-void
-compObjectFini (const CompObjectFactory *factory,
-		CompObject              *object,
-		const CompObjectType    *type)
-{
-    finiObjectInstance (factory,
-			findObjectInstantiator (factory, type),
-			object);
-}
-
-CompBool
 compObjectInitByType (const CompObjectFactory *factory,
 		      CompObject	      *object,
 		      const CompObjectType    *type)
@@ -264,7 +240,7 @@ compObjectInitByType (const CompObjectFactory *factory,
     if (!instantiator)
 	return FALSE;
 
-    return initObjectInstance (factory, instantiator, object);
+    return compObjectInit (factory, object, instantiator);
 }
 
 void
@@ -272,9 +248,7 @@ compObjectFiniByType (const CompObjectFactory *factory,
 		      CompObject              *object,
 		      const CompObjectType    *type)
 {
-    finiObjectInstance (factory,
-			findObjectInstantiator (factory, type),
-			object);
+    compObjectFini (factory, object, findObjectInstantiator (factory, type));
 }
 
 CompBool
@@ -288,7 +262,7 @@ compObjectInitByTypeName (const CompObjectFactory *factory,
     if (!instantiator)
 	return FALSE;
 
-    return initObjectInstance (factory, instantiator, object);
+    return compObjectInit (factory, object, instantiator);
 }
 
 void
@@ -296,9 +270,7 @@ compObjectFiniByTypeName (const CompObjectFactory *factory,
 			  CompObject              *object,
 			  const char		  *name)
 {
-    finiObjectInstance (factory,
-			lookupObjectInstantiator (factory, name),
-			object);
+    compObjectFini (factory, object, lookupObjectInstantiator (factory, name));
 }
 
 typedef struct _InsertObjectContext {

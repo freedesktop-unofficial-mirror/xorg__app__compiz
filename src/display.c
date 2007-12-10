@@ -2538,7 +2538,8 @@ addDisplayOld (CompCore   *c,
     if (!d)
 	return FALSE;
 
-    if (!compObjectInit (&c->u.base.factory, &d->u.base, getDisplayObjectType ()))
+    if (!compObjectInitByType (&c->u.base.factory, &d->u.base,
+			       getDisplayObjectType ()))
     {
 	free (d);
 	return FALSE;
@@ -2547,7 +2548,8 @@ addDisplayOld (CompCore   *c,
     d->hostName = strdup (hostName);
     if (!d->hostName)
     {
-	compObjectFini (&c->u.base.factory, &d->u.base, getDisplayObjectType ());
+	compObjectFiniByType (&c->u.base.factory, &d->u.base,
+			      getDisplayObjectType ());
 	free (d);
 	return FALSE;
     }
@@ -2975,7 +2977,8 @@ removeDisplayOld (CompCore    *c,
 
     free (d->hostName);
 
-    compObjectFini (&c->u.base.factory, &d->u.base, getDisplayObjectType ());
+    compObjectFiniByType (&c->u.base.factory, &d->u.base,
+			  getDisplayObjectType ());
 
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 

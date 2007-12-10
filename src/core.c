@@ -455,7 +455,8 @@ initCore (const CompObjectFactory *factory,
 {
     CompPlugin *corePlugin;
 
-    if (!compObjectInit (factory, &core.u.base.u.base, getCoreObjectType ()))
+    if (!compObjectInitByType (factory, &core.u.base.u.base,
+			       getCoreObjectType ()))
 	return FALSE;
 
     coreObjectAdd (parent, &core.u.base.u.base, CORE_TYPE_NAME);
@@ -465,7 +466,8 @@ initCore (const CompObjectFactory *factory,
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't load core plugin");
-	compObjectFini (factory, &core.u.base.u.base, getCoreObjectType ());
+	compObjectFiniByType (factory, &core.u.base.u.base,
+			      getCoreObjectType ());
 	return FALSE;
     }
 
@@ -474,7 +476,8 @@ initCore (const CompObjectFactory *factory,
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
 	unloadPlugin (corePlugin);
-	compObjectFini (factory, &core.u.base.u.base, getCoreObjectType ());
+	compObjectFiniByType (factory, &core.u.base.u.base,
+			      getCoreObjectType ());
 	return FALSE;
     }
 
@@ -495,7 +498,7 @@ finiCore (const CompObjectFactory *factory,
 
     coreObjectRemove (parent, &core.u.base.u.base);
 
-    compObjectFini (factory, &core.u.base.u.base, getCoreObjectType ());
+    compObjectFiniByType (factory, &core.u.base.u.base, getCoreObjectType ());
 }
 
 void
