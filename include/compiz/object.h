@@ -89,6 +89,7 @@ struct _CompObjectType {
 };
 
 typedef struct _CompObjectInstantiator {
+    struct _CompObjectInstantiator *next;
     const struct _CompObjectInstantiator *base;
     const CompObjectType		 *type;
     CompObjectPrivates			 privates;
@@ -100,7 +101,6 @@ typedef struct _CompObjectInstantiator {
 struct _CompObjectFactory {
     const CompObjectFactory *master;
     CompObjectInstantiator  *instantiator;
-    int			    nInstantiator;
 };
 
 typedef unsigned int CompObjectTypeID;

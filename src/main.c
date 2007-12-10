@@ -310,13 +310,13 @@ updateFactory (CompObjectFactory      *factory,
 	       const char	      *name,
 	       CompObjectPrivatesSize *size)
 {
-    int	i;
+    CompObjectInstantiator *i;
 
-    for (i = 0; i < factory->nInstantiator; i++)
+    for (i = factory->instantiator; i; i = i->next)
     {
-	if (strcmp (factory->instantiator[i].type->name, name) == 0)
+	if (strcmp (i->type->name, name) == 0)
 	{
-	    factory->instantiator[i].size = *size;
+	    i->size = *size;
 	    break;
 	}
     }
@@ -464,20 +464,18 @@ main (int argc, char **argv)
     char      *hostName;
     int	      displayNum;
 
-    CompObjectInstantiator instantiator[] = {
-	{ .type = getObjectType ()				      },
-	{ .type = getBranchObjectType (),    .base = &instantiator[0] },
-	{ .type = getContainerObjectType (), .base = &instantiator[0] },
-	{ .type = getRootObjectType (),      .base = &instantiator[0] },
-	{ .type = getCoreObjectType (),      .base = &instantiator[1] },
-	{ .type = getDisplayObjectType (),   .base = &instantiator[0] },
-	{ .type = getScreenObjectType (),    .base = &instantiator[0] },
-	{ .type = getWindowObjectType (),    .base = &instantiator[0] }
+    const CompObjectType *coreTypes[] = {
+	getObjectType (),
+	getBranchObjectType (),
+	getContainerObjectType (),
+	getRootObjectType (),
+	getCoreObjectType (),
+	getDisplayObjectType (),
+	getScreenObjectType (),
+	getWindowObjectType (),
     };
 
     MainContext context = {
-	.factory.base.instantiator    = instantiator,
-	.factory.base.nInstantiator   = N_ELEMENTS (instantiator),
 	.factory.allocatePrivateIndex = mainAllocatePrivateIndex,
 	.factory.freePrivateIndex     = mainFreePrivateIndex
     };
@@ -485,6 +483,15 @@ main (int argc, char **argv)
     programName = argv[0];
     programArgc = argc;
     programArgv = argv;
+
+    for (i = 0; i < N_ELEMENTS (coreTypes); i++)
+    {
+	if (!compFactoryRegisterType (&context.factory.base, 0, coreTypes[i]))
+	{
+	    fprintf (stderr, "Failed to register core object types\n");
+	    return 1;
+	}
+    }
 
     signal (SIGHUP, signalHandler);
     signal (SIGCHLD, signalHandler);

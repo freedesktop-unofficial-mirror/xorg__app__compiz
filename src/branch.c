@@ -134,7 +134,6 @@ branchInitObject (const CompObjectFactory *factory,
 
     b->factory.master        = factory;
     b->factory.instantiator  = NULL;
-    b->factory.nInstantiator = 0;
 
     return TRUE;
 }

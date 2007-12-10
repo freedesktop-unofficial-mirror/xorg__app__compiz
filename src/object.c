@@ -201,11 +201,11 @@ static CompObjectInstantiator *
 findObjectInstantiator (const CompObjectFactory *factory,
 			const CompObjectType	*type)
 {
-    int i;
+    CompObjectInstantiator *i;
 
-    for (i = 0; i < factory->nInstantiator; i++)
-	if (type == factory->instantiator[i].type)
-	    return &factory->instantiator[i];
+    for (i = factory->instantiator; i; i = i->next)
+	if (type == i->type)
+	    return i;
 
     if (factory->master)
 	return findObjectInstantiator (factory->master, type);
@@ -217,11 +217,11 @@ static CompObjectInstantiator *
 lookupObjectInstantiator (const CompObjectFactory *factory,
 			  const char		  *name)
 {
-    int i;
+    CompObjectInstantiator *i;
 
-    for (i = 0; i < factory->nInstantiator; i++)
-	if (strcmp (name, factory->instantiator[i].type->name) == 0)
-	    return &factory->instantiator[i];
+    for (i = factory->instantiator; i; i = i->next)
+	if (strcmp (name, i->type->name) == 0)
+	    return i;
 
     if (factory->master)
 	return lookupObjectInstantiator (factory->master, name);
@@ -278,46 +278,56 @@ compFactoryRegisterType (CompObjectFactory    *factory,
 			 const char	      *interface,
 			 const CompObjectType *type)
 {
-    const CompObjectInstantiator *base;
+    const CompObjectInstantiator *base = NULL;
     CompObjectInstantiator	 *instantiator;
     CompObjectVTable		 *vTable;
     const CompFactory		 *master;
     const CompObjectFactory	 *f;
     int				 i;
 
-    base = lookupObjectInstantiator (factory, type->baseName);
-    if (!base)
-	return FALSE;
+    if (type->baseName)
+    {
+	base = lookupObjectInstantiator (factory, type->baseName);
+	if (!base)
+	    return FALSE;
+    }
 
-    instantiator = realloc (factory->instantiator,
-			    sizeof (CompObjectInstantiator) *
-			    (factory->nInstantiator + 1));
+    instantiator = malloc (sizeof (CompObjectInstantiator));
     if (!instantiator)
 	return FALSE;
 
-    factory->instantiator = instantiator;
-
     vTable = malloc (type->vTableSize);
     if (!vTable)
-	return FALSE;
-
-    instantiator[factory->nInstantiator].interface = strdup (interface);
-    if (!instantiator[factory->nInstantiator].interface)
     {
-	free (vTable);
+	free (instantiator);
 	return FALSE;
+    }
+
+    if (interface)
+    {
+	instantiator->interface = strdup (interface);
+	if (!instantiator->interface)
+	{
+	    free (vTable);
+	    free (instantiator);
+	    return FALSE;
+	}
+    }
+    else
+    {
+	instantiator->interface = NULL;
     }
 
     memcpy (vTable, type->vTable, type->vTableSize);
 
-    instantiator[factory->nInstantiator].base		 = base;
-    instantiator[factory->nInstantiator].type		 = type;
-    instantiator[factory->nInstantiator].size.len	 = 0;
-    instantiator[factory->nInstantiator].size.sizes      = 0;
-    instantiator[factory->nInstantiator].size.totalSize  = 0;
-    instantiator[factory->nInstantiator].privates.funcs  = 0;
-    instantiator[factory->nInstantiator].privates.nFuncs = 0;
-    instantiator[factory->nInstantiator].vTable		 = vTable;
+    instantiator->base		  = base;
+    instantiator->type		  = type;
+    instantiator->size.len	  = 0;
+    instantiator->size.sizes      = 0;
+    instantiator->size.totalSize  = 0;
+    instantiator->privates.funcs  = 0;
+    instantiator->privates.nFuncs = 0;
+    instantiator->vTable	  = vTable;
 
     for (f = factory; f->master; f = f->master);
     master = (const CompFactory *) f;
@@ -326,12 +336,13 @@ compFactoryRegisterType (CompObjectFactory    *factory,
     {
 	if (strcmp (master->entry[i].name, type->name) == 0)
 	{
-	    instantiator[factory->nInstantiator].size = master->entry[i].size;
+	    instantiator->size = master->entry[i].size;
 	    break;
 	}
     }
 
-    factory->nInstantiator++;
+    instantiator->next = factory->instantiator;
+    factory->instantiator = instantiator;
 
     return TRUE;
 }
