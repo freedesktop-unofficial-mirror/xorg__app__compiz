@@ -71,10 +71,10 @@ typedef struct _CompObjectPrivatesSize {
     int	totalSize;
 } CompObjectPrivatesSize;
 
-typedef struct _CompObjectPrivates {
-    CompObjectFuncs *funcs;
-    int		    nFuncs;
-} CompObjectPrivates;
+typedef struct _CompObjectPrivate {
+    CompObjectFuncs  funcs;
+    CompObjectVTable *vTable;
+} CompObjectPrivate;
 
 typedef void (*InitVTableProc) (void *vTable);
 
@@ -89,10 +89,11 @@ struct _CompObjectType {
 };
 
 typedef struct _CompObjectInstantiator {
-    struct _CompObjectInstantiator *next;
+    struct _CompObjectInstantiator       *next;
     const struct _CompObjectInstantiator *base;
     const CompObjectType		 *type;
-    CompObjectPrivates			 privates;
+    CompObjectPrivate			 *privates;
+    int					 nPrivates;
     CompObjectPrivatesSize		 size;
     char				 *interface;
     CompObjectVTable			 *vTable;
