@@ -1416,11 +1416,11 @@ resizeSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-resizeInit (CompPlugin *p)
+static CompBool
+resizeInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&resizeMetadata,
-					 p->vTable->name,
+					 "resize",
 					 resizeDisplayOptionInfo,
 					 RESIZE_DISPLAY_OPTION_NUM,
 					 0, 0))
@@ -1433,13 +1433,13 @@ resizeInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&resizeMetadata, p->vTable->name);
+    compAddMetadataFromFile (&resizeMetadata, "resize");
 
     return TRUE;
 }
 
 static void
-resizeFini (CompPlugin *p)
+resizeFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&resizeMetadata);

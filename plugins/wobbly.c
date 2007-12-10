@@ -2909,11 +2909,11 @@ wobblySetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-wobblyInit (CompPlugin *p)
+static CompBool
+wobblyInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&wobblyMetadata,
-					 p->vTable->name,
+					 "wobbly",
 					 wobblyDisplayOptionInfo,
 					 WOBBLY_DISPLAY_OPTION_NUM,
 					 wobblyScreenOptionInfo,
@@ -2927,13 +2927,13 @@ wobblyInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&wobblyMetadata, p->vTable->name);
+    compAddMetadataFromFile (&wobblyMetadata, "wobbly");
 
     return TRUE;
 }
 
 static void
-wobblyFini (CompPlugin *p)
+wobblyFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&wobblyMetadata);

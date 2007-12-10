@@ -267,15 +267,19 @@ glibRemove (CompObject *parent,
     cObjectFiniPrivates (branch, glibObj, N_ELEMENTS (glibObj));
 }
 
-static Bool
-glibInit (CompPlugin *p)
+static CompBool
+glibInit (CompFactory *factory)
 {
+    if (!cObjectAllocPrivateIndices (factory, glibObj, N_ELEMENTS (glibObj)))
+	return FALSE;
+
     return TRUE;
 }
 
 static void
-glibFini (CompPlugin *p)
+glibFini (CompFactory *factory)
 {
+    cObjectFreePrivateIndices (factory, glibObj, N_ELEMENTS (glibObj));
 }
 
 CompPluginVTable glibVTable = {

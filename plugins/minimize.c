@@ -1035,11 +1035,11 @@ minSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-minInit (CompPlugin *p)
+static CompBool
+minInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&minMetadata,
-					 p->vTable->name, 0, 0,
+					 "minimize", 0, 0,
 					 minScreenOptionInfo,
 					 MIN_SCREEN_OPTION_NUM))
 	return FALSE;
@@ -1051,13 +1051,13 @@ minInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&minMetadata, p->vTable->name);
+    compAddMetadataFromFile (&minMetadata, "minimize");
 
     return TRUE;
 }
 
 static void
-minFini (CompPlugin *p)
+minFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&minMetadata);

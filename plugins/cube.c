@@ -2375,11 +2375,11 @@ cubeSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-cubeInit (CompPlugin *p)
+static CompBool
+cubeInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&cubeMetadata,
-					 p->vTable->name,
+					 "cube",
 					 cubeDisplayOptionInfo,
 					 CUBE_DISPLAY_OPTION_NUM,
 					 cubeScreenOptionInfo,
@@ -2393,13 +2393,13 @@ cubeInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&cubeMetadata, p->vTable->name);
+    compAddMetadataFromFile (&cubeMetadata, "cube");
 
     return TRUE;
 }
 
 static void
-cubeFini (CompPlugin *p)
+cubeFini (CompFactory *factory)
 {
     freeCorePrivateIndex (cubeCorePrivateIndex);
     compFiniMetadata (&cubeMetadata);

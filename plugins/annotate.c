@@ -879,24 +879,30 @@ annoRemove (CompObject *parent,
     cObjectFiniPrivates (branch, annoObj, N_ELEMENTS (annoObj));
 }
 
-static Bool
-annoInit (CompPlugin *p)
+static CompBool
+annoInit (CompFactory *factory)
 {
-    if (!compInitPluginMetadataFromInfo (&annoMetadata,
-					 p->vTable->name,
+    if (!compInitPluginMetadataFromInfo (&annoMetadata, "annotate",
 					 annoDisplayOptionInfo,
 					 ANNO_DISPLAY_OPTION_NUM,
 					 0, 0))
 	return FALSE;
 
-    compAddMetadataFromFile (&annoMetadata, p->vTable->name);
+    if (!cObjectAllocPrivateIndices (factory, annoObj, N_ELEMENTS (annoObj)))
+    {
+	compFiniMetadata (&annoMetadata);
+	return FALSE;
+    }
+
+    compAddMetadataFromFile (&annoMetadata, "annotate");
 
     return TRUE;
 }
 
 static void
-annoFini (CompPlugin *p)
+annoFini (CompFactory *factory)
 {
+    cObjectFreePrivateIndices (factory, annoObj, N_ELEMENTS (annoObj));
     compFiniMetadata (&annoMetadata);
 }
 

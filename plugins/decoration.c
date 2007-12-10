@@ -1634,11 +1634,11 @@ decorSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-decorInit (CompPlugin *p)
+static CompBool
+decorInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&decorMetadata,
-					 p->vTable->name,
+					 "decoration",
 					 decorDisplayOptionInfo,
 					 DECOR_DISPLAY_OPTION_NUM,
 					 0, 0))
@@ -1651,13 +1651,13 @@ decorInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&decorMetadata, p->vTable->name);
+    compAddMetadataFromFile (&decorMetadata, "decoration");
 
     return TRUE;
 }
 
 static void
-decorFini (CompPlugin *p)
+decorFini (CompFactory *factory)
 {
     freeCorePrivateIndex (corePrivateIndex);
     compFiniMetadata (&decorMetadata);

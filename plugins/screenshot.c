@@ -573,11 +573,11 @@ shotSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-shotInit (CompPlugin *p)
+static CompBool
+shotInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&shotMetadata,
-					 p->vTable->name,
+					 "screenshot",
 					 shotDisplayOptionInfo,
 					 SHOT_DISPLAY_OPTION_NUM,
 					 0, 0))
@@ -590,13 +590,13 @@ shotInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&shotMetadata, p->vTable->name);
+    compAddMetadataFromFile (&shotMetadata, "screenshot");
 
     return TRUE;
 }
 
 static void
-shotFini (CompPlugin *p)
+shotFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&shotMetadata);

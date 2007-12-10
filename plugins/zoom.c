@@ -1148,11 +1148,11 @@ zoomSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-zoomInit (CompPlugin *p)
+static CompBool
+zoomInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&zoomMetadata,
-					 p->vTable->name,
+					 "zoom",
 					 zoomDisplayOptionInfo,
 					 ZOOM_DISPLAY_OPTION_NUM,
 					 zoomScreenOptionInfo,
@@ -1166,13 +1166,13 @@ zoomInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&zoomMetadata, p->vTable->name);
+    compAddMetadataFromFile (&zoomMetadata, "zoom");
 
     return TRUE;
 }
 
 static void
-zoomFini (CompPlugin *p)
+zoomFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&zoomMetadata);

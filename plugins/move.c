@@ -958,11 +958,11 @@ moveSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-moveInit (CompPlugin *p)
+static CompBool
+moveInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&moveMetadata,
-					 p->vTable->name,
+					 "move",
 					 moveDisplayOptionInfo,
 					 MOVE_DISPLAY_OPTION_NUM,
 					 0, 0))
@@ -975,13 +975,13 @@ moveInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&moveMetadata, p->vTable->name);
+    compAddMetadataFromFile (&moveMetadata, "move");
 
     return TRUE;
 }
 
 static void
-moveFini (CompPlugin *p)
+moveFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&moveMetadata);

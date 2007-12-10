@@ -1711,11 +1711,11 @@ placeSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-placeInit (CompPlugin *p)
+static CompBool
+placeInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&placeMetadata,
-					 p->vTable->name, 0, 0,
+					 "place", 0, 0,
 					 placeScreenOptionInfo,
 					 PLACE_SCREEN_OPTION_NUM))
 	return FALSE;
@@ -1727,13 +1727,13 @@ placeInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&placeMetadata, p->vTable->name);
+    compAddMetadataFromFile (&placeMetadata, "place");
 
     return TRUE;
 }
 
 static void
-placeFini (CompPlugin *p)
+placeFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&placeMetadata);

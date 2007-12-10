@@ -709,11 +709,11 @@ planeSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-planeInit (CompPlugin *p)
+static CompBool
+planeInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&planeMetadata,
-					 p->vTable->name,
+					 "plane",
 					 planeDisplayOptionInfo,
 					 PLANE_N_DISPLAY_OPTIONS,
 					 NULL, 0))
@@ -726,13 +726,13 @@ planeInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&planeMetadata, p->vTable->name);
+    compAddMetadataFromFile (&planeMetadata, "plane");
 
     return TRUE;
 }
 
 static void
-planeFini (CompPlugin *p)
+planeFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&planeMetadata);

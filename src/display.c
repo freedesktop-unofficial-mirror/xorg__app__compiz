@@ -1212,7 +1212,7 @@ updatePlugins (CompDisplay *d)
 
     for (j = 0; j < nPop; j++)
     {
-	pop[j] = popPlugin ();
+	pop[j] = popPlugin (&c->u.base);
 	c->plugin.list.nValue--;
 	free (c->plugin.list.value[c->plugin.list.nValue].s);
     }
@@ -1225,7 +1225,7 @@ updatePlugins (CompDisplay *d)
 	    if (pop[j] && strcmp (pop[j]->vTable->name,
 				  o->value.list.value[i].s) == 0)
 	    {
-		if (pushPlugin (pop[j]))
+		if (pushPlugin (pop[j], &c->u.base))
 		{
 		    p = pop[j];
 		    pop[j] = 0;
@@ -1239,7 +1239,7 @@ updatePlugins (CompDisplay *d)
 	    p = loadPlugin (o->value.list.value[i].s);
 	    if (p)
 	    {
-		if (!pushPlugin (p))
+		if (!pushPlugin (p, &c->u.base))
 		{
 		    unloadPlugin (p);
 		    p = 0;
@@ -1262,7 +1262,7 @@ updatePlugins (CompDisplay *d)
 	    }
 	    else
 	    {
-		p = popPlugin ();
+		p = popPlugin (&c->u.base);
 		unloadPlugin (p);
 	    }
 	}

@@ -253,6 +253,54 @@ compObjectFini (const CompObjectFactory *factory,
 			object);
 }
 
+CompBool
+compObjectInitByType (const CompObjectFactory *factory,
+		      CompObject	      *object,
+		      const CompObjectType    *type)
+{
+    const CompObjectInstantiator *instantiator;
+
+    instantiator = findObjectInstantiator (factory, type);
+    if (!instantiator)
+	return FALSE;
+
+    return initObjectInstance (factory, instantiator, object);
+}
+
+void
+compObjectFiniByType (const CompObjectFactory *factory,
+		      CompObject              *object,
+		      const CompObjectType    *type)
+{
+    finiObjectInstance (factory,
+			findObjectInstantiator (factory, type),
+			object);
+}
+
+CompBool
+compObjectInitByTypeName (const CompObjectFactory *factory,
+			  CompObject		  *object,
+			  const char		  *name)
+{
+    const CompObjectInstantiator *instantiator;
+
+    instantiator = lookupObjectInstantiator (factory, name);
+    if (!instantiator)
+	return FALSE;
+
+    return initObjectInstance (factory, instantiator, object);
+}
+
+void
+compObjectFiniByTypeName (const CompObjectFactory *factory,
+			  CompObject              *object,
+			  const char		  *name)
+{
+    finiObjectInstance (factory,
+			lookupObjectInstantiator (factory, name),
+			object);
+}
+
 typedef struct _InsertObjectContext {
     CompObject *parent;
     const char *name;
@@ -1237,7 +1285,7 @@ cInsertObject (CompObject *object,
     {
 	for (j = 0; j < ctx.interface[i].nChild; j++)
 	{
-	    if (ctx.interface[i].child[j].objectType)
+	    if (ctx.interface[i].child[j].type)
 	    {
 		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
 		(*child->vTable->insertObject) (child, object, child->name);
@@ -1259,7 +1307,7 @@ cRemoveObject (CompObject *object)
     {
 	for (j = 0; j < ctx.interface[i].nChild; j++)
 	{
-	    if (ctx.interface[i].child[j].objectType)
+	    if (ctx.interface[i].child[j].type)
 	    {
 		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
 		(*child->vTable->removeObject) (child);
@@ -1287,7 +1335,7 @@ cInserted (CompObject *object)
 
 	for (j = 0; j < ctx.interface[i].nChild; j++)
 	{
-	    if (ctx.interface[i].child[j].objectType)
+	    if (ctx.interface[i].child[j].type)
 	    {
 		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
 		(*child->vTable->inserted) (child);
@@ -1309,7 +1357,7 @@ cRemoved (CompObject *object)
     {
 	for (j = 0; j < ctx.interface[i].nChild; j++)
 	{
-	    if (ctx.interface[i].child[j].objectType)
+	    if (ctx.interface[i].child[j].type)
 	    {
 		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
 		(*child->vTable->removed) (child);
@@ -3275,138 +3323,87 @@ getObjectType (void)
     return &objectType;
 }
 
-typedef struct _ForEachObjectPrivatesContext {
-    CompObjectType       *type;
-    PrivatesCallBackProc proc;
-    void	         *data;
-} ForEachObjectPrivatesContext;
-
-static CompBool
-forEachInterfacePrivates (CompObject	       *object,
-			  const char	       *name,
-			  size_t	       offset,
-			  const CompObjectType *type,
-			  void		       *closure)
-{
-    ForEachObjectPrivatesContext *pCtx =
-	(ForEachObjectPrivatesContext *) closure;
-
-    if (type && type == pCtx->type)
-    {
-	CompPrivate **pPrivates = (CompPrivate **)
-	    (((char *) object) + type->privatesOffset);
-
-	return (*pCtx->proc) (pPrivates, pCtx->data);
-    }
-
-    return TRUE;
-}
-
-static CompBool
-forEachObjectPrivatesTree (CompObject *object,
-			   void	      *closure)
-{
-    if (!(*object->vTable->forEachInterface) (object,
-					      forEachInterfacePrivates,
-					      closure))
-	return FALSE;
-
-    return (*object->vTable->forEachChildObject) (object,
-						  forEachObjectPrivatesTree,
-						  closure);
-}
-
-static CompBool
-forEachObjectPrivates (PrivatesCallBackProc proc,
-		       void		    *data,
-		       void		    *closure)
-{
-    ForEachObjectPrivatesContext ctx;
-
-    ctx.type = (CompObjectType *) closure;
-    ctx.proc = proc;
-    ctx.data = data;
-
-    if (!(*core.u.base.u.base.vTable->forEachInterface) (&core.u.base.u.base,
-							 forEachInterfacePrivates,
-							 (void *) &ctx))
-	return FALSE;
-
-    return (*core.u.base.u.base.vTable->forEachChildObject) (&core.u.base.u.base,
-							     forEachObjectPrivatesTree,
-							     (void *) &ctx);
-}
-
 int
 compObjectAllocatePrivateIndex (CompObjectType *type,
 				int	       size)
 {
-    CompObjectInstantiator *instantiator;
+    const CompObjectFactory *f;
+    CompFactory		    *factory;
 
-    instantiator = findObjectInstantiator (&core.u.base.factory, type);
-    if (!instantiator)
-	return FALSE;
+    for (f = &core.u.base.factory; f->master; f = f->master);
+    factory = (CompFactory *) f;
 
-    return allocatePrivateIndex (&instantiator->size.len,
-				 &instantiator->size.sizes,
-				 &instantiator->size.totalSize,
-				 size, forEachObjectPrivates,
-				 (void *) type);
+    return (*factory->allocatePrivateIndex) (factory, type->name, size);
 }
 
 void
 compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index)
 {
-    CompObjectInstantiator *instantiator;
+    const CompObjectFactory *f;
+    CompFactory		    *factory;
 
-    instantiator = findObjectInstantiator (&core.u.base.factory, type);
+    for (f = &core.u.base.factory; f->master; f = f->master);
+    factory = (CompFactory *) f;
 
-    freePrivateIndex (&instantiator->size.len,
-		      &instantiator->size.sizes,
-		      &instantiator->size.totalSize,
-		      forEachObjectPrivates,
-		      (void *) type,
-		      index);
+    return (*factory->freePrivateIndex) (factory, type->name, index);
 }
 
-typedef struct _FindTypeContext {
-    const char	   *name;
-    CompObjectType *type;
-} FindTypeContext;
-
 static CompBool
-checkType (CompObjectType *type,
-	   void		  *closure)
+cObjectAllocPrivateIndex (CompFactory    *factory,
+			  CObjectPrivate *private)
 {
-    FindTypeContext *ctx = (FindTypeContext *) closure;
+    int	index;
 
-    if (strcmp (ctx->name, type->name) == 0)
+    index = (*factory->allocatePrivateIndex) (factory,
+					      private->name,
+					      private->size);
+    if (index < 0)
+	return FALSE;
+
+    *(private->pIndex) = index;
+
+    return TRUE;
+}
+
+static void
+cObjectFreePrivateIndex (CompFactory    *factory,
+			 CObjectPrivate *private)
+{
+    (*factory->freePrivateIndex) (factory, private->name, *(private->pIndex));
+}
+
+CompBool
+cObjectAllocPrivateIndices (CompFactory    *factory,
+			    CObjectPrivate *private,
+			    int	           nPrivate)
+{
+    int	i;
+
+    for (i = 0; i < nPrivate; i++)
+	if (!cObjectAllocPrivateIndex (factory, &private[i]))
+	    break;
+
+    if (i < nPrivate)
     {
-	ctx->type = type;
+	if (i)
+	    cObjectFreePrivateIndices (factory, private, i - 1);
+
 	return FALSE;
     }
 
     return TRUE;
 }
 
-CompObjectType *
-compObjectFindType (const char *name)
+void
+cObjectFreePrivateIndices (CompFactory	  *factory,
+			   CObjectPrivate *private,
+			   int		  nPrivate)
 {
-    FindTypeContext ctx;
+    int	n = nPrivate;
 
-    ctx.name = name;
-    ctx.type = NULL;
-
-    if (!checkType (getObjectType (), (void *) &ctx))
-	return ctx.type;
-
-    if (!checkType (getContainerObjectType (), (void *) &ctx))
-	return ctx.type;
-
-    (*core.forEachObjectType) (checkType, (void *) &ctx);
-
-    return ctx.type;
+    while (n--)
+	cObjectFreePrivateIndex (factory, &private[n]);
 }
 
 static CompBool
@@ -3568,7 +3565,6 @@ cObjectInitPrivate (CompBranch	   *branch,
 {
     CompObjectInstantiator *instantiator;
     CompObjectFuncs	   *funcs;
-    int			   index;
 
     instantiator = lookupObjectInstantiator (&branch->factory, private->name);
     if (!instantiator)
@@ -3582,38 +3578,19 @@ cObjectInitPrivate (CompBranch	   *branch,
 
     instantiator->privates.funcs = funcs;
 
-    index = allocatePrivateIndex (&instantiator->size.len,
-				  &instantiator->size.sizes,
-				  &instantiator->size.totalSize,
-				  private->size, forEachObjectPrivates,
-				  (void *) instantiator->type);
-    if (index < 0)
-	return FALSE;
-
     if (private->interface)
 	cInterfaceInit (private->interface, private->nInterface,
 			private->vTable, private->proc,
 			instantiator->type->initVTable);
 
-    *(private->pIndex) = index;
-
     funcs[instantiator->privates.nFuncs].init = private->init;
     funcs[instantiator->privates.nFuncs].fini = private->fini;
 
     /* initialize all objects of this type */
-    if (!initTypedObjects (&branch->factory,
-			   &core.u.base.u.base,
+    if (!initTypedObjects (&branch->factory, &branch->u.base,
 			   instantiator->type,
 			   &funcs[instantiator->privates.nFuncs]))
-    {
-	freePrivateIndex (&instantiator->size.len,
-			  &instantiator->size.sizes,
-			  &instantiator->size.totalSize,
-			  forEachObjectPrivates,
-			  (void *) instantiator->type,
-			  index);
 	return FALSE;
-    }
 
     instantiator->privates.nFuncs++;
 
@@ -3626,29 +3603,20 @@ cObjectFiniPrivate (CompBranch	   *branch,
 {
     CompObjectInstantiator *instantiator;
     CompObjectFuncs	   *funcs;
-    int			   index;
 
     instantiator = lookupObjectInstantiator (&branch->factory, private->name);
-
-    index = *(private->pIndex);
-
     instantiator->privates.nFuncs--;
 
-    /* finalize all objects of this type */
-    finiTypedObjects (&branch->factory, &core.u.base.u.base,
-		      instantiator->type,
-		      &instantiator->privates.funcs[instantiator->privates.nFuncs]);
+    funcs = instantiator->privates.funcs;
 
-    freePrivateIndex (&instantiator->size.len,
-		      &instantiator->size.sizes,
-		      &instantiator->size.totalSize,
-		      forEachObjectPrivates,
-		      (void *) instantiator->type,
-		      index);
+    /* finalize all objects of this type */
+    finiTypedObjects (&branch->factory, &branch->u.base,
+		      instantiator->type,
+		      &funcs[instantiator->privates.nFuncs]);
 
     funcs = realloc (instantiator->privates.funcs,
 		     instantiator->privates.nFuncs * sizeof (CompObjectFuncs));
-    if (funcs)
+    if (funcs || !instantiator->privates.nFuncs)
 	instantiator->privates.funcs = funcs;
 
     if (private->interface)
@@ -3828,6 +3796,35 @@ compObjectCheckVersion (CompObject *object,
     }
 
     return TRUE;
+}
+
+static CompBool
+interfaceIsPartOfType (CompObject	    *object,
+		       const char	    *name,
+		       size_t		    offset,
+		       const CompObjectType *type,
+		       void		    *closure)
+{
+    CompBool *partOfType = (CompBool *) closure;
+
+    *partOfType = (type) ? TRUE : FALSE;
+
+    return FALSE;
+}
+
+CompBool
+compObjectInterfaceIsPartOfType (CompObject *object,
+				 const char *interface)
+{
+    CompBool partOfType;
+
+    if (compForInterface (object,
+			  interface,
+			  interfaceIsPartOfType,
+			  &partOfType))
+	return FALSE;
+
+    return partOfType;
 }
 
 typedef struct _MethodCallContext {
@@ -4658,32 +4655,6 @@ cDefaultValuesFromFile (CInterface *interface,
     cVerfiyDefaultValues (interface, nInterface);
 }
 
-static CompBool
-cEnsureChildObjectTypes (CInterface *interface,
-			 int	    nInterface)
-{
-    int i, j;
-
-    for (i = 0; i < nInterface; i++)
-    {
-	for (j = 0; j < interface[i].nChild; j++)
-	{
-	    if (interface[i].child[j].objectType)
-		continue;
-
-	    if (interface[i].child[j].type)
-	    {
-		interface[i].child[j].objectType =
-		    compObjectFindType (interface[i].child[j].type);
-		if (!interface[i].child[j].objectType)
-		    return FALSE;
-	    }
-	}
-    }
-
-    return TRUE;
-}
-
 static void
 cInitSignals (CInterface *interface,
 	      int	 nInterface)
@@ -4709,9 +4680,6 @@ cInterfaceInit (CInterface	 *interface,
 		InitVTableProc   initVTable)
 {
     int i;
-
-    if (!cEnsureChildObjectTypes (interface, nInterface))
-	return FALSE;
 
     for (i = 0; i < nInterface; i++)
 	cDefaultValuesFromFile (&interface[i], 1, interface->name);
@@ -4831,19 +4799,22 @@ cObjectChildrenInit (const CompObjectFactory *factory,
     {
 	for (j = 0; j < interface[i].nChild; j++)
 	{
-	    if (interface[i].child[j].objectType)
-	    {
-		child = CHILD (data, &interface[i].child[j]);
+	    CChildObject *cChild = &interface[i].child[j];
 
-		if (!compObjectInit (factory, child,
-				     interface[i].child[j].objectType))
+	    if (cChild->type)
+	    {
+		child = CHILD (data, cChild);
+
+		if (!compObjectInitByTypeName (factory, child, cChild->type))
 		{
 		    while (j--)
-			if (interface[i].child[j].objectType)
-			    compObjectFini (factory,
-					    CHILD (data,
-						   &interface[i].child[j]),
-					    interface[i].child[j].objectType);
+		    {
+			cChild = &interface[i].child[j];
+			if (cChild->type)
+			    compObjectFiniByTypeName (factory,
+						      CHILD (data, cChild),
+						      cChild->type);
+		    }
 
 		    while (i--)
 			cObjectChildrenFini (factory, object, data,
@@ -4852,7 +4823,7 @@ cObjectChildrenInit (const CompObjectFactory *factory,
 		    return FALSE;
 		}
 
-		child->name = interface[i].child[j].name;
+		child->name = cChild->name;
 	    }
 	}
     }
@@ -4871,9 +4842,10 @@ cObjectChildrenFini (const CompObjectFactory *factory,
 
     for (i = 0; i < nInterface; i++)
 	for (j = 0; j < interface[i].nChild; j++)
-	    if (interface[i].child[j].objectType)
-		compObjectFini (factory, CHILD (data, &interface[i].child[j]),
-				interface[i].child[j].objectType);
+	    if (interface[i].child[j].type)
+		compObjectFiniByTypeName (factory,
+					  CHILD (data, &interface[i].child[j]),
+					  interface[i].child[j].type);
 }
 
 CompBool

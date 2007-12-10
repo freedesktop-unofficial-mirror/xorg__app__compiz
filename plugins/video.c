@@ -1276,11 +1276,11 @@ videoSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-videoInit (CompPlugin *p)
+static CompBool
+videoInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&videoMetadata,
-					 p->vTable->name,
+					 "video",
 					 videoDisplayOptionInfo,
 					 VIDEO_DISPLAY_OPTION_NUM,
 					 0, 0))
@@ -1293,13 +1293,13 @@ videoInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&videoMetadata, p->vTable->name);
+    compAddMetadataFromFile (&videoMetadata, "video");
 
     return TRUE;
 }
 
 static void
-videoFini (CompPlugin *p)
+videoFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&videoMetadata);

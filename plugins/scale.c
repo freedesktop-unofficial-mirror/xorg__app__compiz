@@ -2224,11 +2224,11 @@ scaleSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-scaleInit (CompPlugin *p)
+static CompBool
+scaleInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&scaleMetadata,
-					 p->vTable->name,
+					 "scale",
 					 scaleDisplayOptionInfo,
 					 SCALE_DISPLAY_OPTION_NUM,
 					 scaleScreenOptionInfo,
@@ -2242,13 +2242,13 @@ scaleInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&scaleMetadata, p->vTable->name);
+    compAddMetadataFromFile (&scaleMetadata, "scale");
 
     return TRUE;
 }
 
 static void
-scaleFini (CompPlugin *p)
+scaleFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (scaleDisplayPrivateIndex);
     compFiniMetadata (&scaleMetadata);

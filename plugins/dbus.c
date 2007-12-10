@@ -1120,15 +1120,19 @@ dbusRemove (CompObject *parent,
     cObjectFiniPrivates (branch, dbusObj, N_ELEMENTS (dbusObj));
 }
 
-static Bool
-dbusInit (CompPlugin *p)
+static CompBool
+dbusInit (CompFactory *factory)
 {
+    if (!cObjectAllocPrivateIndices (factory, dbusObj, N_ELEMENTS (dbusObj)))
+	return FALSE;
+
     return TRUE;
 }
 
 static void
-dbusFini (CompPlugin *p)
+dbusFini (CompFactory *factory)
 {
+    cObjectFreePrivateIndices (factory, dbusObj, N_ELEMENTS (dbusObj));
 }
 
 CompPluginVTable dbusVTable = {

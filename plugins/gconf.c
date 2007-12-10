@@ -121,8 +121,8 @@ gconfGetKey (CompObject  *object,
 
     path = gconfGetObjectPath (object);
 
-    /* use interface as prefix when it's not equal to a type name */
-    if (compObjectFindType (interface))
+    /* use interface as prefix when it's not part of type */
+    if (compObjectInterfaceIsPartOfType (object, interface))
 	key = g_strdup_printf ("%s/%s", path, name);
     else
 	key = g_strdup_printf ("%s/%s_%s", path, interface, name);
@@ -631,15 +631,19 @@ gconfRemove (CompObject *parent,
     cObjectFiniPrivates (branch, gconfObj, N_ELEMENTS (gconfObj));
 }
 
-static Bool
-gconfInit (CompPlugin *p)
+static CompBool
+gconfInit (CompFactory *factory)
 {
+    if (!cObjectAllocPrivateIndices (factory, gconfObj, N_ELEMENTS (gconfObj)))
+	return FALSE;
+
     return TRUE;
 }
 
 static void
-gconfFini (CompPlugin *p)
+gconfFini (CompFactory *factory)
 {
+    cObjectFreePrivateIndices (factory, gconfObj, N_ELEMENTS (gconfObj));
 }
 
 CompPluginVTable gconfVTable = {

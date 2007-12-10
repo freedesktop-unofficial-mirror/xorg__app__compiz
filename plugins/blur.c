@@ -2862,11 +2862,11 @@ blurSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-blurInit (CompPlugin *p)
+static CompBool
+blurInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&blurMetadata,
-					 p->vTable->name,
+					 "blur",
 					 blurDisplayOptionInfo,
 					 BLUR_DISPLAY_OPTION_NUM,
 					 blurScreenOptionInfo,
@@ -2880,13 +2880,13 @@ blurInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&blurMetadata, p->vTable->name);
+    compAddMetadataFromFile (&blurMetadata, "blur");
 
     return TRUE;
 }
 
 static void
-blurFini (CompPlugin *p)
+blurFini (CompFactory *factory)
 {
     freeCorePrivateIndex (corePrivateIndex);
     compFiniMetadata (&blurMetadata);

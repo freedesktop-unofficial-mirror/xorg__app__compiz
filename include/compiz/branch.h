@@ -63,12 +63,25 @@ typedef struct _CompPrivatesSizeEntry {
     CompObjectPrivatesSize size;
 } CompPrivatesSizeEntry;
 
-typedef struct _CompRootFactory {
+typedef struct _CompFactory CompFactory;
+
+typedef int (*AllocatePrivateIndexProc) (CompFactory *factory,
+					 const char  *name,
+					 int	     size);
+
+typedef void (*FreePrivateIndexProc) (CompFactory *factory,
+				      const char  *name,
+				      int	  index);
+
+struct _CompFactory {
     CompObjectFactory base;
+
+    AllocatePrivateIndexProc allocatePrivateIndex;
+    FreePrivateIndexProc     freePrivateIndex;
 
     CompPrivatesSizeEntry *entry;
     int			  nEntry;
-} CompRootFactory;
+};
 
 struct _CompBranch {
     union {
@@ -88,6 +101,16 @@ struct _CompBranch {
 
 CompObjectType *
 getBranchObjectType (void);
+
+int
+compAllocatePrivateIndex (CompFactory *factory,
+			  int	      size);
+
+void
+compFreePrivateIndex (CompFactory *factory,
+		      int	  index);
+
+
 
 COMPIZ_END_DECLS
 

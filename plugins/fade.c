@@ -870,10 +870,10 @@ fadeSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-fadeInit (CompPlugin *p)
+static CompBool
+fadeInit (CompFactory *factory)
 {
-    if (!compInitPluginMetadataFromInfo (&fadeMetadata, p->vTable->name, 0, 0,
+    if (!compInitPluginMetadataFromInfo (&fadeMetadata, "fade", 0, 0,
 					 fadeScreenOptionInfo,
 					 FADE_SCREEN_OPTION_NUM))
 	return FALSE;
@@ -885,13 +885,13 @@ fadeInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&fadeMetadata, p->vTable->name);
+    compAddMetadataFromFile (&fadeMetadata, "fade");
 
     return TRUE;
 }
 
 static void
-fadeFini (CompPlugin *p)
+fadeFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&fadeMetadata);

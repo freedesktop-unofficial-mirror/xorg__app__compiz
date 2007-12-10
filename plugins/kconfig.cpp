@@ -64,8 +64,8 @@ kconfigGroup (CompObject *object,
 {
     QString path = kconfigObjectPath (object);
 
-    /* include interface name when it's not equal to a type name */
-    if (compObjectFindType (interface))
+    /* include interface name when it's not part of type */
+    if (compObjectInterfaceIsPartOfType (object, interface))
 	return path;
 
     return path + "_" + QString (interface);
@@ -369,18 +369,26 @@ kconfigRemove (CompObject *parent,
 }
 
 static Bool
-kconfigInit (CompPlugin *p)
+kconfigInit (CompFactory *factory)
 {
     kInstance = new KInstance ("compiz-kconfig");
     if (!kInstance)
 	return FALSE;
 
+    if (!cObjectAllocPrivateIndices (factory, kconfigObj,
+				     N_ELEMENTS (kconfigObj)))
+    {
+	delete kInstance;
+	return FALSE;
+    }
+
     return TRUE;
 }
 
 static void
-kconfigFini (CompPlugin *p)
+kconfigFini (CompFactory *factory)
 {
+    cObjectFreePrivateIndices (factory, kconfigObj, N_ELEMENTS (kconfigObj));
     delete kInstance;
 }
 

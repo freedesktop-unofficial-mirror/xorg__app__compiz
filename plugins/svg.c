@@ -995,11 +995,11 @@ svgSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-svgInit (CompPlugin *p)
+static CompBool
+svgInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&svgMetadata,
-					 p->vTable->name,
+					 "svg",
 					 svgDisplayOptionInfo,
 					 SVG_DISPLAY_OPTION_NUM,
 					 0, 0))
@@ -1014,13 +1014,13 @@ svgInit (CompPlugin *p)
 
     rsvg_init ();
 
-    compAddMetadataFromFile (&svgMetadata, p->vTable->name);
+    compAddMetadataFromFile (&svgMetadata, "svg");
 
     return TRUE;
 }
 
 static void
-svgFini (CompPlugin *p)
+svgFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&svgMetadata);

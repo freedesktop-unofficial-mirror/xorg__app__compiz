@@ -2167,11 +2167,11 @@ switchSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-switchInit (CompPlugin *p)
+static CompBool
+switchInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&switchMetadata,
-					 p->vTable->name,
+					 "switcher",
 					 switchDisplayOptionInfo,
 					 SWITCH_DISPLAY_OPTION_NUM,
 					 switchScreenOptionInfo,
@@ -2185,13 +2185,13 @@ switchInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&switchMetadata, p->vTable->name);
+    compAddMetadataFromFile (&switchMetadata, "switcher");
 
     return TRUE;
 }
 
 static void
-switchFini (CompPlugin *p)
+switchFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&switchMetadata);

@@ -1965,11 +1965,11 @@ rotateSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-rotateInit (CompPlugin *p)
+static CompBool
+rotateInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&rotateMetadata,
-					 p->vTable->name,
+					 "rotate",
 					 rotateDisplayOptionInfo,
 					 ROTATE_DISPLAY_OPTION_NUM,
 					 rotateScreenOptionInfo,
@@ -1983,13 +1983,13 @@ rotateInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&rotateMetadata, p->vTable->name);
+    compAddMetadataFromFile (&rotateMetadata, "rotate");
 
     return TRUE;
 }
 
 static void
-rotateFini (CompPlugin *p)
+rotateFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&rotateMetadata);

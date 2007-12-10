@@ -1770,11 +1770,11 @@ waterSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-waterInit (CompPlugin *p)
+static CompBool
+waterInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&waterMetadata,
-					 p->vTable->name,
+					 "water",
 					 waterDisplayOptionInfo,
 					 WATER_DISPLAY_OPTION_NUM,
 					 0, 0))
@@ -1787,13 +1787,13 @@ waterInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&waterMetadata, p->vTable->name);
+    compAddMetadataFromFile (&waterMetadata, "water");
 
     return TRUE;
 }
 
 static void
-waterFini (CompPlugin *p)
+waterFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&waterMetadata);

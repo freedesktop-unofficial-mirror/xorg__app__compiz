@@ -1102,10 +1102,10 @@ iniFiniObject (CompPlugin *p,
     DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static Bool
-iniInit (CompPlugin *p)
+static CompBool
+iniInit (CompFactory *factory)
 {
-    if (!compInitPluginMetadataFromInfo (&iniMetadata, p->vTable->name,
+    if (!compInitPluginMetadataFromInfo (&iniMetadata, "ini",
 					 0, 0, 0, 0))
 	return FALSE;
 
@@ -1116,13 +1116,13 @@ iniInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&iniMetadata, p->vTable->name);
+    compAddMetadataFromFile (&iniMetadata, "ini");
 
     return TRUE;
 }
 
 static void
-iniFini (CompPlugin *p)
+iniFini (CompFactory *factory)
 {
     freeCorePrivateIndex (corePrivateIndex);
 }

@@ -875,11 +875,11 @@ cloneSetObjectOption (CompPlugin      *plugin,
 		     (plugin, object, name, value));
 }
 
-static Bool
-cloneInit (CompPlugin *p)
+static CompBool
+cloneInit (CompFactory *factory)
 {
     if (!compInitPluginMetadataFromInfo (&cloneMetadata,
-					 p->vTable->name,
+					 "clone",
 					 cloneDisplayOptionInfo,
 					 CLONE_DISPLAY_OPTION_NUM,
 					 0, 0))
@@ -892,13 +892,13 @@ cloneInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&cloneMetadata, p->vTable->name);
+    compAddMetadataFromFile (&cloneMetadata, "clone");
 
     return TRUE;
 }
 
 static void
-cloneFini (CompPlugin *p)
+cloneFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&cloneMetadata);

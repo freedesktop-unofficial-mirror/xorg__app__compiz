@@ -37,6 +37,11 @@
 #include <compiz/core.h>
 #include <compiz/root.h>
 
+typedef struct _MainContext {
+    CompFactory factory;
+    CompRoot    root;
+} MainContext;
+
 char *programName;
 char **programArgv;
 int  programArgc;
@@ -231,6 +236,222 @@ readCoreXmlCallback (void *context,
     return i;
 }
 
+typedef struct _ForEachObjectPrivatesContext {
+    const char		 *name;
+    PrivatesCallBackProc proc;
+    void	         *data;
+} ForEachObjectPrivatesContext;
+
+static CompBool
+forEachInterfacePrivates (CompObject	       *object,
+			  const char	       *name,
+			  size_t	       offset,
+			  const CompObjectType *type,
+			  void		       *closure)
+{
+    ForEachObjectPrivatesContext *pCtx =
+	(ForEachObjectPrivatesContext *) closure;
+
+    if (type && strcmp (type->name, pCtx->name) == 0)
+    {
+	CompPrivate **pPrivates = (CompPrivate **)
+	    (((char *) object) + type->privatesOffset);
+
+	return (*pCtx->proc) (pPrivates, pCtx->data);
+    }
+
+    return TRUE;
+}
+
+static CompBool
+forEachObjectPrivatesTree (CompObject *object,
+			   void	      *closure)
+{
+    if (!(*object->vTable->forEachInterface) (object,
+					      forEachInterfacePrivates,
+					      closure))
+	return FALSE;
+
+    return (*object->vTable->forEachChildObject) (object,
+						  forEachObjectPrivatesTree,
+						  closure);
+}
+
+typedef struct _PrivatesContext {
+    const char *name;
+    CompRoot   *root;
+} PrivatesContext;
+
+static CompBool
+forEachObjectPrivates (PrivatesCallBackProc proc,
+		       void		    *data,
+		       void		    *closure)
+{
+    ForEachObjectPrivatesContext ctx;
+    PrivatesContext		 *pCtx = (PrivatesContext *) closure;
+    CompObject			 *core = pCtx->root->core;
+
+    ctx.name = pCtx->name;
+    ctx.proc = proc;
+    ctx.data = data;
+
+    if (!(*core->vTable->forEachInterface) (core,
+					    forEachInterfacePrivates,
+					    (void *) &ctx))
+	return FALSE;
+
+    return (*core->vTable->forEachChildObject) (core,
+						forEachObjectPrivatesTree,
+						(void *) &ctx);
+}
+
+static void
+updateFactory (CompObjectFactory      *factory,
+	       const char	      *name,
+	       CompObjectPrivatesSize *size)
+{
+    int	i;
+
+    for (i = 0; i < factory->nInstantiator; i++)
+    {
+	if (strcmp (factory->instantiator[i].type->name, name) == 0)
+	{
+	    factory->instantiator[i].size = *size;
+	    break;
+	}
+    }
+}
+
+typedef struct _BranchContext {
+    const char		   *name;
+    CompObjectPrivatesSize *size;
+} BranchContext;
+
+static CompBool
+forBranchInterface (CompObject		 *object,
+		    const char		 *name,
+		    size_t		 offset,
+		    const CompObjectType *type,
+		    void		 *closure)
+{
+    BranchContext *pCtx = (BranchContext *) closure;
+
+    BRANCH (object);
+
+    updateFactory (&b->factory, pCtx->name, pCtx->size);
+
+    return TRUE;
+}
+
+static CompBool
+forEachBranchTree (CompObject *object,
+		   void       *closure)
+{
+    compForInterface (object, BRANCH_TYPE_NAME, forBranchInterface, closure);
+    return (*object->vTable->forEachChildObject) (object,
+						  forEachBranchTree,
+						  closure);
+}
+
+static void
+mainUpdatePrivatesSize (MainContext	       *m,
+			const char	       *name,
+			CompObjectPrivatesSize *size)
+{
+    BranchContext ctx;
+
+    ctx.name = name;
+    ctx.size = size;
+
+    updateFactory (&m->factory.base, name, size);
+
+    forEachBranchTree (m->root.core, (void *) &ctx);
+}
+
+static int
+mainAllocatePrivateIndex (CompFactory *factory,
+			  const char  *name,
+			  int         size)
+{
+    MainContext		  *m = (MainContext *) factory;
+    CompPrivatesSizeEntry *entry;
+    PrivatesContext	  ctx;
+    int			  index, i;
+
+    ctx.root = &m->root;
+    ctx.name = name;
+
+    for (i = 0; i < m->factory.nEntry; i++)
+    {
+	if (strcmp (m->factory.entry[i].name, name) == 0)
+	{
+	    index = allocatePrivateIndex (&m->factory.entry[i].size.len,
+					  &m->factory.entry[i].size.sizes,
+					  &m->factory.entry[i].size.totalSize,
+					  size, forEachObjectPrivates,
+					  (void *) &ctx);
+	    if (index >=0)
+		mainUpdatePrivatesSize (m, name, &m->factory.entry[i].size);
+
+	    return index;
+	}
+    }
+
+    entry = realloc (m->factory.entry, sizeof (CompPrivatesSizeEntry) *
+		     (m->factory.nEntry + 1));
+    if (!entry)
+	return -1;
+
+    m->factory.entry = entry;
+
+    entry[m->factory.nEntry].name = strdup (name);
+    if (!entry[m->factory.nEntry].name)
+	return -1;
+
+    entry[m->factory.nEntry].size.len	    = 0;
+    entry[m->factory.nEntry].size.sizes     = NULL;
+    entry[m->factory.nEntry].size.totalSize = 0;
+
+    i = m->factory.nEntry++;
+
+    index = allocatePrivateIndex (&m->factory.entry[i].size.len,
+				  &m->factory.entry[i].size.sizes,
+				  &m->factory.entry[i].size.totalSize,
+				  size, forEachObjectPrivates,
+				  (void *) &ctx);
+    if (index >= 0)
+	mainUpdatePrivatesSize (m, name, &m->factory.entry[i].size);
+
+    return index;
+}
+
+static void
+mainFreePrivateIndex (CompFactory *factory,
+		      const char  *name,
+		      int	  index)
+{
+    MainContext     *m = (MainContext *) factory;
+    PrivatesContext ctx;
+    int		    i;
+
+    ctx.root = &m->root;
+    ctx.name = name;
+
+    for (i = 0; i < m->factory.nEntry; i++)
+    {
+	if (strcmp (m->factory.entry[i].name, name) == 0)
+	{
+	    freePrivateIndex (&m->factory.entry[i].size.len,
+			      &m->factory.entry[i].size.sizes,
+			      &m->factory.entry[i].size.totalSize,
+			      forEachObjectPrivates,
+			      (void *) &ctx,
+			      index);
+	    mainUpdatePrivatesSize (m, name, &m->factory.entry[i].size);
+	}
+    }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -242,7 +463,6 @@ main (int argc, char **argv)
     char      *clientId = NULL;
     char      *hostName;
     int	      displayNum;
-    CompRoot  root;
 
     CompObjectInstantiator instantiator[] = {
 	{ .type = getObjectType ()				      },
@@ -255,9 +475,11 @@ main (int argc, char **argv)
 	{ .type = getWindowObjectType (),    .base = &instantiator[0] }
     };
 
-    CompRootFactory factory = {
-	.base.instantiator  = instantiator,
-	.base.nInstantiator = N_ELEMENTS (instantiator),
+    MainContext context = {
+	.factory.base.instantiator    = instantiator,
+	.factory.base.nInstantiator   = N_ELEMENTS (instantiator),
+	.factory.allocatePrivateIndex = mainAllocatePrivateIndex,
+	.factory.freePrivateIndex     = mainFreePrivateIndex
     };
 
     programName = argv[0];
@@ -403,14 +625,15 @@ main (int argc, char **argv)
 
     compAddMetadataFromFile (&coreMetadata, "core");
 
-    if (!compObjectInit (&factory.base, &root.u.base.base,
+    if (!compObjectInit (&context.factory.base,
+			 &context.root.u.base.base,
 			 getRootObjectType ()))
 	return 1;
 
     /* XXX: until core object is moved into the root object */
-    root.core = &core.u.base.u.base;
+    context.root.core = &core.u.base.u.base;
 
-    if (!initCore (&factory.base, &root.u.base.base))
+    if (!initCore (&context.factory.base, &context.root.u.base.base))
 	return 1;
 
     if (!disableSm)
@@ -431,14 +654,16 @@ main (int argc, char **argv)
 	free (hostName);
     }
 
-    eventLoop (&root);
+    eventLoop (&context.root);
 
     if (!disableSm)
 	closeSession ();
 
-    finiCore (&factory.base, &root.u.base.base);
+    finiCore (&context.factory.base, &context.root.u.base.base);
 
-    compObjectFini (&factory.base, &root.u.base.base, getRootObjectType ());
+    compObjectFini (&context.factory.base,
+		    &context.root.u.base.base,
+		    getRootObjectType ());
 
     xmlCleanupParser ();
 

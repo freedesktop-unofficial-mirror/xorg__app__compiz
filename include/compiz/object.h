@@ -422,6 +422,26 @@ compObjectFini (const CompObjectFactory *factory,
 		CompObject              *object,
 		const CompObjectType    *type);
 
+CompBool
+compObjectInitByType (const CompObjectFactory *factory,
+		      CompObject	      *object,
+		      const CompObjectType    *type);
+
+void
+compObjectFiniByType (const CompObjectFactory *factory,
+		      CompObject              *object,
+		      const CompObjectType    *type);
+
+CompBool
+compObjectInitByTypeName (const CompObjectFactory *factory,
+			  CompObject		  *object,
+			  const char		  *name);
+
+void
+compObjectFiniByTypeName (const CompObjectFactory *factory,
+			  CompObject              *object,
+			  const char		  *name);
+
 typedef struct _CompSerializedMethodCallHeader {
     char	 *path;
     char	 *interface;
@@ -512,9 +532,6 @@ void
 compObjectFreePrivateIndex (CompObjectType *type,
 			    int	           index);
 
-CompObjectType *
-compObjectFindType (const char *name);
-
 CompBool
 compForInterface (CompObject		*object,
 		  const char		*interface,
@@ -529,6 +546,10 @@ CompBool
 compObjectCheckVersion (CompObject *object,
 			const char *interface,
 			int	   version);
+
+CompBool
+compObjectInterfaceIsPartOfType (CompObject *object,
+				 const char *interface);
 
 CompBool
 compInvokeMethodWithArgs (CompObject *object,

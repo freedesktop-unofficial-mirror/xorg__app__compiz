@@ -33,14 +33,14 @@
 
 CompPlugin *plugins = 0;
 
-static Bool
-coreInit (CompPlugin *p)
+static CompBool
+coreInit (CompFactory *factory)
 {
     return TRUE;
 }
 
 static void
-coreFini (CompPlugin *p)
+coreFini (CompFactory *factory)
 {
 }
 
@@ -383,9 +383,16 @@ finiObjectTree (CompObject *o,
 }
 
 static Bool
-initPlugin (CompPlugin *p)
+initPlugin (CompPlugin *p,
+	    CompBranch *branch)
 {
-    if (!(*p->vTable->init) (p))
+    const CompObjectFactory *f;
+    CompFactory		    *factory;
+
+    for (f = &branch->factory; f->master; f = f->master);
+    factory = (CompFactory *) f;
+
+    if (!(*p->vTable->init) (factory))
     {
 	compLogMessage (NULL, "core", CompLogLevelError,
 			"InitPlugin '%s' failed", p->vTable->name);
@@ -394,9 +401,9 @@ initPlugin (CompPlugin *p)
 
     if (p->vTable->insert)
     {
-	if (!(*p->vTable->insert) (core.u.base.u.base.parent, &core.u.base))
+	if (!(*p->vTable->insert) (branch->u.base.parent, branch))
 	{
-	    (*p->vTable->fini) (p);
+	    (*p->vTable->fini) (factory);
 	    return FALSE;
 	}
     }
@@ -409,28 +416,28 @@ initPlugin (CompPlugin *p)
 
 	if (p->vTable->initObject)
 	{
-	    if (!(*p->vTable->initObject) (p, &core.u.base.u.base))
+	    if (!(*p->vTable->initObject) (p, &branch->u.base))
 	    {
 		compLogMessage (NULL, p->vTable->name, CompLogLevelError,
 				"InitObject failed");
-		(*p->vTable->fini) (p);
+		(*p->vTable->fini) (factory);
 
 		return FALSE;
 	    }
 	}
 
-	if (!(*core.u.base.u.base.vTable->forEachChildObject) (&core.u.base.u.base,
-							       initObjectTree,
-							       (void *) &ctx))
+	if (!(*branch->u.base.vTable->forEachChildObject) (&branch->u.base,
+							   initObjectTree,
+							   (void *) &ctx))
 	{
-	    (*core.u.base.u.base.vTable->forEachChildObject) (&core.u.base.u.base,
-							      finiObjectTree,
-							      (void *) &ctx);
+	    (*branch->u.base.vTable->forEachChildObject) (&branch->u.base,
+							  finiObjectTree,
+							  (void *) &ctx);
 
 	    if (p->vTable->initObject && p->vTable->finiObject)
-		(*p->vTable->finiObject) (p, &core.u.base.u.base);
+		(*p->vTable->finiObject) (p, &branch->u.base);
 
-	    (*p->vTable->fini) (p);
+	    (*p->vTable->fini) (factory);
 
 	    return FALSE;
 	}
@@ -440,11 +447,18 @@ initPlugin (CompPlugin *p)
 }
 
 static void
-finiPlugin (CompPlugin *p)
+finiPlugin (CompPlugin *p,
+	    CompBranch *branch)
 {
+    const CompObjectFactory *f;
+    CompFactory		    *factory;
+
+    for (f = &branch->factory; f->master; f = f->master);
+    factory = (CompFactory *) f;
+
     if (p->vTable->remove)
     {
-	(*p->vTable->remove) (core.u.base.u.base.parent, &core.u.base);
+	(*p->vTable->remove) (branch->u.base.parent, branch);
     }
     else
     {
@@ -453,15 +467,15 @@ finiPlugin (CompPlugin *p)
 	ctx.plugin = p;
 	ctx.object = NULL;
 
-	(*core.u.base.u.base.vTable->forEachChildObject) (&core.u.base.u.base,
-							  finiObjectTree,
-							  (void *) &ctx);
+	(*branch->u.base.vTable->forEachChildObject) (&branch->u.base,
+						      finiObjectTree,
+						      (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, &core.u.base.u.base);
+	    (*p->vTable->finiObject) (p, &branch->u.base);
     }
 
-    (*p->vTable->fini) (p);
+    (*p->vTable->fini) (factory);
 }
 
 CompBool
@@ -582,8 +596,9 @@ loadPlugin (const char *name)
     return 0;
 }
 
-Bool
-pushPlugin (CompPlugin *p)
+CompBool
+pushPlugin (CompPlugin *p,
+	    CompBranch *branch)
 {
     if (findActivePlugin (p->vTable->name))
     {
@@ -597,7 +612,7 @@ pushPlugin (CompPlugin *p)
     p->next = plugins;
     plugins = p;
 
-    if (!initPlugin (p))
+    if (!initPlugin (p, branch))
     {
 	compLogMessage (NULL, "core", CompLogLevelError,
 			"Couldn't activate plugin '%s'", p->vTable->name);
@@ -610,14 +625,14 @@ pushPlugin (CompPlugin *p)
 }
 
 CompPlugin *
-popPlugin (void)
+popPlugin (CompBranch *branch)
 {
     CompPlugin *p = plugins;
 
     if (!p)
 	return 0;
 
-    finiPlugin (p);
+    finiPlugin (p, branch);
 
     plugins = p->next;
 

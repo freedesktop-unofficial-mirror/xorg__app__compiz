@@ -1131,15 +1131,19 @@ fuseRemove (CompObject *parent,
     cObjectFiniPrivates (branch, fuseObj, N_ELEMENTS (fuseObj));
 }
 
-static Bool
-fuseInit (CompPlugin *p)
+static CompBool
+fuseInit (CompFactory *factory)
 {
+    if (!cObjectAllocPrivateIndices (factory, fuseObj, N_ELEMENTS (fuseObj)))
+	return FALSE;
+
     return TRUE;
 }
 
 static void
-fuseFini (CompPlugin *p)
+fuseFini (CompFactory *factory)
 {
+    cObjectFreePrivateIndices (factory, fuseObj, N_ELEMENTS (fuseObj));
 }
 
 CompPluginVTable fuseVTable = {

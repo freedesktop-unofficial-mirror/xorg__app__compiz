@@ -115,10 +115,9 @@ typedef struct _CStringProp {
 } CStringProp;
 
 typedef struct _CChildObject {
-    const char		 *name;
-    size_t		 offset;
-    const char		 *type;
-    const CompObjectType *objectType;
+    const char *name;
+    size_t     offset;
+    const char *type;
 } CChildObject;
 
 #define C_CHILD(name, object, type)	      \
@@ -447,6 +446,16 @@ void
 cObjectFiniPrivates (CompBranch	    *branch,
 		     CObjectPrivate *privates,
 		     int	    nPrivates);
+
+CompBool
+cObjectAllocPrivateIndices (CompFactory    *factory,
+			    CObjectPrivate *privates,
+			    int	           nPrivate);
+
+void
+cObjectFreePrivateIndices (CompFactory	  *factory,
+			   CObjectPrivate *privates,
+			   int		  nPrivate);
 
 COMPIZ_END_DECLS
 

@@ -3178,11 +3178,12 @@ loadPlugin (const char *plugin);
 void
 unloadPlugin (CompPlugin *p);
 
-Bool
-pushPlugin (CompPlugin *p);
+CompBool
+pushPlugin (CompPlugin *p,
+	    CompBranch *branch);
 
 CompPlugin *
-popPlugin (void);
+popPlugin (CompBranch *branch);
 
 CompPlugin *
 getPlugins (void);

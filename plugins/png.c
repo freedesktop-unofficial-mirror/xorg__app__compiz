@@ -525,10 +525,10 @@ pngFiniObject (CompPlugin *p,
     DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static Bool
-pngInit (CompPlugin *p)
+static CompBool
+pngInit (CompFactory *factory)
 {
-    if (!compInitPluginMetadataFromInfo (&pngMetadata, p->vTable->name,
+    if (!compInitPluginMetadataFromInfo (&pngMetadata, "png",
 					 0, 0, 0, 0))
 	return FALSE;
 
@@ -539,13 +539,13 @@ pngInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&pngMetadata, p->vTable->name);
+    compAddMetadataFromFile (&pngMetadata, "png");
 
     return TRUE;
 }
 
 static void
-pngFini (CompPlugin *p)
+pngFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&pngMetadata);

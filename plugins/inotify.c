@@ -266,10 +266,10 @@ inotifyFiniObject (CompPlugin *p,
     DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static Bool
-inotifyInit (CompPlugin *p)
+static CompBool
+inotifyInit (CompFactory *factory)
 {
-    if (!compInitPluginMetadataFromInfo (&inotifyMetadata, p->vTable->name,
+    if (!compInitPluginMetadataFromInfo (&inotifyMetadata, "inotify",
 					 0, 0, 0, 0))
 	return FALSE;
 
@@ -280,13 +280,13 @@ inotifyInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&inotifyMetadata, p->vTable->name);
+    compAddMetadataFromFile (&inotifyMetadata, "inotify");
 
     return TRUE;
 }
 
 static void
-inotifyFini (CompPlugin *p)
+inotifyFini (CompFactory *factory)
 {
     freeCorePrivateIndex (corePrivateIndex);
     compFiniMetadata (&inotifyMetadata);

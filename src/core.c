@@ -469,7 +469,7 @@ initCore (const CompObjectFactory *factory,
 	return FALSE;
     }
 
-    if (!pushPlugin (corePlugin))
+    if (!pushPlugin (corePlugin, &core.u.base))
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
@@ -491,7 +491,7 @@ finiCore (const CompObjectFactory *factory,
 					 core.displays->displayNum,
 					 NULL);
 
-    while (popPlugin ());
+    while (popPlugin (&core.u.base));
 
     coreObjectRemove (parent, &core.u.base.u.base);
 

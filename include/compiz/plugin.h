@@ -36,8 +36,8 @@ typedef struct _CompMetadata CompMetadata;
 
 typedef union _CompOptionValue CompOptionValue;
 
-typedef CompBool (*InitPluginProc) (CompPlugin *plugin);
-typedef void (*FiniPluginProc) (CompPlugin *plugin);
+typedef CompBool (*InitPluginProc) (CompFactory *factory);
+typedef void     (*FiniPluginProc) (CompFactory *factory);
 
 typedef CompMetadata *(*GetPluginMetadataProc) (CompPlugin *plugin);
 

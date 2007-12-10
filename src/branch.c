@@ -133,8 +133,8 @@ registerType (CompBranch	   *b,
 {
     const CompObjectInstantiator *base;
     CompObjectInstantiator	 *instantiator;
-    const CompObjectFactory	 *factory;
-    const CompRootFactory	 *root;
+    const CompFactory		 *factory;
+    const CompObjectFactory	 *f;
     int				 i;
 
     base = lookupObjectInstantiator (&b->factory, type->baseName);
@@ -161,14 +161,15 @@ registerType (CompBranch	   *b,
     instantiator[b->factory.nInstantiator].privates.funcs  = 0;
     instantiator[b->factory.nInstantiator].privates.nFuncs = 0;
 
-    for (factory = &b->factory; factory->master; factory = factory->master);
-    root = (const CompRootFactory *) factory;
+    for (f = &b->factory; f->master; f = f->master);
+    factory = (const CompFactory *) f;
 
-    for (i = 0; i < root->nEntry; i++)
+    for (i = 0; i < factory->nEntry; i++)
     {
-	if (strcmp (root->entry[i].name, type->name) == 0)
+	if (strcmp (factory->entry[i].name, type->name) == 0)
 	{
-	    instantiator[b->factory.nInstantiator].size = root->entry[i].size;
+	    instantiator[b->factory.nInstantiator].size =
+		factory->entry[i].size;
 	    break;
 	}
     }

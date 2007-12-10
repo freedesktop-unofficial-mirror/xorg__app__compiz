@@ -508,10 +508,10 @@ regexFiniObject (CompPlugin *p,
     DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static Bool
-regexInit (CompPlugin *p)
+static CompBool
+regexInit (CompFactory *factory)
 {
-    if (!compInitPluginMetadataFromInfo (&regexMetadata, p->vTable->name,
+    if (!compInitPluginMetadataFromInfo (&regexMetadata, "regex",
 					 0, 0, 0, 0))
 	return FALSE;
 
@@ -522,13 +522,13 @@ regexInit (CompPlugin *p)
 	return FALSE;
     }
 
-    compAddMetadataFromFile (&regexMetadata, p->vTable->name);
+    compAddMetadataFromFile (&regexMetadata, "regex");
 
     return TRUE;
 }
 
 static void
-regexFini (CompPlugin *p)
+regexFini (CompFactory *factory)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&regexMetadata);
