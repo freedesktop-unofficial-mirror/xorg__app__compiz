@@ -1771,7 +1771,9 @@ static CompObjectType windowObjectType = {
 	windowFiniObject
     },
     offsetof (CompWindow, privates),
-    windowInitVTable
+    windowInitVTable,
+    &windowObjectVTable,
+    sizeof (CompObjectVTable)
 };
 
 static void

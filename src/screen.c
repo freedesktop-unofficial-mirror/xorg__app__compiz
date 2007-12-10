@@ -1650,7 +1650,9 @@ static CompObjectType screenObjectType = {
 	screenFiniObject
     },
     offsetof (CompScreen, privates),
-    screenInitVTable
+    screenInitVTable,
+    &screenObjectVTable,
+    sizeof (CompObjectVTable)
 };
 
 static void

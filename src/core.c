@@ -403,7 +403,9 @@ static CompObjectType coreObjectType = {
 	coreFiniObject
     },
     offsetof (CompCore, privates),
-    (InitVTableProc) coreInitVTable
+    (InitVTableProc) coreInitVTable,
+    &coreObjectVTable.base.base,
+    sizeof (CompCoreVTable)
 };
 
 static void

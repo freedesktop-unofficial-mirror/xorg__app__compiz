@@ -53,6 +53,7 @@ COMPIZ_BEGIN_DECLS
 typedef struct _CompObject        CompObject;
 typedef struct _CompObjectType    CompObjectType;
 typedef struct _CompObjectFactory CompObjectFactory;
+typedef struct _CompObjectVTable  CompObjectVTable;
 
 typedef CompBool (*InitObjectProc) (const CompObjectFactory *factory,
 				    CompObject		    *object);
@@ -78,11 +79,13 @@ typedef struct _CompObjectPrivates {
 typedef void (*InitVTableProc) (void *vTable);
 
 struct _CompObjectType {
-    const char	    *name;
-    const char	    *baseName;
-    CompObjectFuncs funcs;
-    size_t	    privatesOffset;
-    InitVTableProc  initVTable;
+    const char	     *name;
+    const char	     *baseName;
+    CompObjectFuncs  funcs;
+    size_t	     privatesOffset;
+    InitVTableProc   initVTable;
+    CompObjectVTable *vTable;
+    size_t	     vTableSize;
 };
 
 typedef struct _CompObjectInstantiator {
@@ -364,7 +367,7 @@ typedef struct _CompMetadataVTable {
     GetMetadataProc get;
 } CompMetadataVTable;
 
-typedef struct _CompObjectVTable {
+struct _CompObjectVTable {
 
     /* base object function
 
@@ -406,7 +409,7 @@ typedef struct _CompObjectVTable {
     CompVersionVTable    version;
     CompPropertiesVTable properties;
     CompMetadataVTable   metadata;
-} CompObjectVTable;
+};
 
 typedef struct _CompObjectVTableVec {
     const CompObjectVTable *vTable;

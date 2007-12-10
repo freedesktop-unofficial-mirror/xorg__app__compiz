@@ -82,7 +82,9 @@ static CompObjectType containerObjectType = {
 	containerFiniObject
     },
     0,
-    containerInitVTable
+    containerInitVTable,
+    &containerObjectVTable,
+    sizeof (CompObjectVTable)
 };
 
 static void

@@ -223,7 +223,9 @@ static CompObjectType branchObjectType = {
 	branchFiniObject
     },
     0,
-    (InitVTableProc) branchInitVTable
+    (InitVTableProc) branchInitVTable,
+    &branchObjectVTable.base,
+    sizeof (CompBranchVTable)
 };
 
 static void

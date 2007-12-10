@@ -3264,7 +3264,9 @@ static CompObjectType objectType = {
 	finiObject
     },
     offsetof (CompObject, privates),
-    (InitVTableProc) initObjectVTable
+    (InitVTableProc) initObjectVTable,
+    &objectVTable,
+    sizeof (CompObjectVTable)
 };
 
 static void

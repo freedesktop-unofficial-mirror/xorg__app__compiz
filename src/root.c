@@ -188,7 +188,9 @@ static CompObjectType rootObjectType = {
 	rootFiniObject
     },
     0,
-    (InitVTableProc) rootInitVTable
+    (InitVTableProc) rootInitVTable,
+    &rootObjectVTable.base,
+    sizeof (CompRootVTable)
 };
 
 CompObjectType *

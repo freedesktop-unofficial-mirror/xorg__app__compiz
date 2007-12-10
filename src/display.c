@@ -2473,7 +2473,9 @@ static CompObjectType displayObjectType = {
 	displayFiniObject
     },
     offsetof (CompDisplay, privates),
-    (InitVTableProc) displayInitVTable
+    (InitVTableProc) displayInitVTable,
+    &displayObjectVTable.base,
+    sizeof (CompDisplayVTable)
 };
 
 static void
