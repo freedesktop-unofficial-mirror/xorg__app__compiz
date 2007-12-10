@@ -110,73 +110,12 @@ noopRegisterType (CompBranch	       *b,
 					       (void *) &ctx);
 }
 
-static const CompObjectInstantiator *
-lookupObjectInstantiator (const CompObjectFactory *factory,
-			  const char		  *name)
-{
-    int i;
-
-    for (i = 0; i < factory->nInstantiator; i++)
-	if  (strcmp (name, factory->instantiator[i].type->name))
-	    return &factory->instantiator[i];
-
-    if (factory->master)
-	return lookupObjectInstantiator (factory->master, name);
-
-    return NULL;
-}
-
 static CompBool
 registerType (CompBranch	   *b,
 	      const char	   *interface,
 	      const CompObjectType *type)
 {
-    const CompObjectInstantiator *base;
-    CompObjectInstantiator	 *instantiator;
-    const CompFactory		 *factory;
-    const CompObjectFactory	 *f;
-    int				 i;
-
-    base = lookupObjectInstantiator (&b->factory, type->baseName);
-    if (!base)
-	return FALSE;
-
-    instantiator = realloc (b->factory.instantiator,
-			    sizeof (CompObjectInstantiator) *
-			    (b->factory.nInstantiator + 1));
-    if (!instantiator)
-	return FALSE;
-
-    b->factory.instantiator = instantiator;
-
-    instantiator[b->factory.nInstantiator].interface = strdup (interface);
-    if (!instantiator[b->factory.nInstantiator].interface)
-	return FALSE;
-
-    instantiator[b->factory.nInstantiator].base		   = base;
-    instantiator[b->factory.nInstantiator].type		   = type;
-    instantiator[b->factory.nInstantiator].size.len	   = 0;
-    instantiator[b->factory.nInstantiator].size.sizes      = 0;
-    instantiator[b->factory.nInstantiator].size.totalSize  = 0;
-    instantiator[b->factory.nInstantiator].privates.funcs  = 0;
-    instantiator[b->factory.nInstantiator].privates.nFuncs = 0;
-
-    for (f = &b->factory; f->master; f = f->master);
-    factory = (const CompFactory *) f;
-
-    for (i = 0; i < factory->nEntry; i++)
-    {
-	if (strcmp (factory->entry[i].name, type->name) == 0)
-	{
-	    instantiator[b->factory.nInstantiator].size =
-		factory->entry[i].size;
-	    break;
-	}
-    }
-
-    b->factory.nInstantiator++;
-
-    return TRUE;
+    return compFactoryRegisterType (&b->factory, interface, type);
 }
 
 static CompBranchVTable branchObjectVTable = {

@@ -273,6 +273,69 @@ compObjectFiniByTypeName (const CompObjectFactory *factory,
     compObjectFini (factory, object, lookupObjectInstantiator (factory, name));
 }
 
+CompBool
+compFactoryRegisterType (CompObjectFactory    *factory,
+			 const char	      *interface,
+			 const CompObjectType *type)
+{
+    const CompObjectInstantiator *base;
+    CompObjectInstantiator	 *instantiator;
+    CompObjectVTable		 *vTable;
+    const CompFactory		 *master;
+    const CompObjectFactory	 *f;
+    int				 i;
+
+    base = lookupObjectInstantiator (factory, type->baseName);
+    if (!base)
+	return FALSE;
+
+    instantiator = realloc (factory->instantiator,
+			    sizeof (CompObjectInstantiator) *
+			    (factory->nInstantiator + 1));
+    if (!instantiator)
+	return FALSE;
+
+    factory->instantiator = instantiator;
+
+    vTable = malloc (type->vTableSize);
+    if (!vTable)
+	return FALSE;
+
+    instantiator[factory->nInstantiator].interface = strdup (interface);
+    if (!instantiator[factory->nInstantiator].interface)
+    {
+	free (vTable);
+	return FALSE;
+    }
+
+    memcpy (vTable, type->vTable, type->vTableSize);
+
+    instantiator[factory->nInstantiator].base		 = base;
+    instantiator[factory->nInstantiator].type		 = type;
+    instantiator[factory->nInstantiator].size.len	 = 0;
+    instantiator[factory->nInstantiator].size.sizes      = 0;
+    instantiator[factory->nInstantiator].size.totalSize  = 0;
+    instantiator[factory->nInstantiator].privates.funcs  = 0;
+    instantiator[factory->nInstantiator].privates.nFuncs = 0;
+    instantiator[factory->nInstantiator].vTable		 = vTable;
+
+    for (f = factory; f->master; f = f->master);
+    master = (const CompFactory *) f;
+
+    for (i = 0; i < master->nEntry; i++)
+    {
+	if (strcmp (master->entry[i].name, type->name) == 0)
+	{
+	    instantiator[factory->nInstantiator].size = master->entry[i].size;
+	    break;
+	}
+    }
+
+    factory->nInstantiator++;
+
+    return TRUE;
+}
+
 typedef struct _InsertObjectContext {
     CompObject *parent;
     const char *name;

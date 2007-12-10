@@ -94,6 +94,7 @@ typedef struct _CompObjectInstantiator {
     CompObjectPrivates			 privates;
     CompObjectPrivatesSize		 size;
     char				 *interface;
+    CompObjectVTable			 *vTable;
 } CompObjectInstantiator;
 
 struct _CompObjectFactory {
@@ -444,6 +445,11 @@ void
 compObjectFiniByTypeName (const CompObjectFactory *factory,
 			  CompObject              *object,
 			  const char		  *name);
+
+CompBool
+compFactoryRegisterType (CompObjectFactory    *factory,
+			 const char	      *interface,
+			 const CompObjectType *type);
 
 typedef struct _CompSerializedMethodCallHeader {
     char	 *path;
