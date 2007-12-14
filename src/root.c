@@ -190,6 +190,7 @@ static CompObjectType rootObjectType = {
     0,
     (InitVTableProc) rootInitVTable,
     &rootObjectVTable.base,
+    NULL,
     sizeof (CompRootVTable)
 };
 

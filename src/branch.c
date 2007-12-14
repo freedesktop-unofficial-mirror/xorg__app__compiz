@@ -145,6 +145,11 @@ branchFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
+static const CompBranchVTable noopBranchObjectVTable = {
+    .forEachType  = noopForEachType,
+    .registerType = noopRegisterType
+};
+
 static void
 branchInitVTable (CompBranchVTable *vTable)
 {
@@ -163,6 +168,7 @@ static CompObjectType branchObjectType = {
     0,
     (InitVTableProc) branchInitVTable,
     &branchObjectVTable.base,
+    &noopBranchObjectVTable.base,
     sizeof (CompBranchVTable)
 };
 

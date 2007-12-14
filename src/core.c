@@ -387,6 +387,11 @@ coreFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
+static const CompCoreVTable noopCoreObjectVTable = {
+    .addDisplay    = noopAddDisplay,
+    .removeDisplay = noopRemoveDisplay
+};
+
 static void
 coreInitVTable (CompCoreVTable *vTable)
 {
@@ -405,6 +410,7 @@ static CompObjectType coreObjectType = {
     offsetof (CompCore, privates),
     (InitVTableProc) coreInitVTable,
     &coreObjectVTable.base.base,
+    &noopCoreObjectVTable.base.base,
     sizeof (CompCoreVTable)
 };
 

@@ -2457,6 +2457,11 @@ displayFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
+static const CompDisplayVTable noopDisplayObjectVTable = {
+    .addScreen    = noopAddScreen,
+    .removeScreen = noopRemoveScreen
+};
+
 static void
 displayInitVTable (CompDisplayVTable *vTable)
 {
@@ -2475,6 +2480,7 @@ static CompObjectType displayObjectType = {
     offsetof (CompDisplay, privates),
     (InitVTableProc) displayInitVTable,
     &displayObjectVTable.base,
+    &noopDisplayObjectVTable.base,
     sizeof (CompDisplayVTable)
 };
 

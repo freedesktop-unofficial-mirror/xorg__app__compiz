@@ -84,6 +84,7 @@ static CompObjectType containerObjectType = {
     0,
     containerInitVTable,
     &containerObjectVTable,
+    NULL,
     sizeof (CompObjectVTable)
 };
 

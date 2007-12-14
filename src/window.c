@@ -1773,6 +1773,7 @@ static CompObjectType windowObjectType = {
     offsetof (CompWindow, privates),
     windowInitVTable,
     &windowObjectVTable,
+    NULL,
     sizeof (CompObjectVTable)
 };
 

@@ -3311,7 +3311,7 @@ finiObject (const CompObjectFactory *factory,
 	free (object->signalVec);
 }
 
-static const CompObjectVTable noopVTable = {
+static const CompObjectVTable noopObjectVTable = {
     .insertObject = noopInsertObject,
     .removeObject = noopRemoveObject,
     .inserted     = noopInserted,
@@ -3355,7 +3355,7 @@ static const CompObjectVTable noopVTable = {
 static void
 initObjectVTable (CompObjectVTable *vTable)
 {
-    vTableInit (vTable, &noopVTable, sizeof (CompObjectVTable));
+    vTableInit (vTable, &noopObjectVTable, sizeof (CompObjectVTable));
 }
 
 static CompObjectType objectType = {
@@ -3367,6 +3367,7 @@ static CompObjectType objectType = {
     offsetof (CompObject, privates),
     (InitVTableProc) initObjectVTable,
     &objectVTable,
+    &noopObjectVTable,
     sizeof (CompObjectVTable)
 };
 
