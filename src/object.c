@@ -347,6 +347,28 @@ compFactoryRegisterType (CompObjectFactory    *factory,
     return TRUE;
 }
 
+static void
+vTableInit (CompObjectVTable	   *vTable,
+	    const CompObjectVTable *noopVTable,
+	    int			   size)
+{
+    char		      *dVTable = (char *) vTable;
+    const char		      *sVTable = (const char *) noopVTable;
+    unsigned int              i;
+    static const unsigned int offset =
+	offsetof (CompObjectVTable, removed) -
+	offsetof (CompObjectVTable, inserted);
+
+    for (i = 0; i < size; i += offset)
+    {
+	ForBaseObjectProc *dst = (ForBaseObjectProc *) (dVTable + i);
+	ForBaseObjectProc *src = (ForBaseObjectProc *) (sVTable + i);
+
+	if (*src && !*dst)
+	    *dst = *src;
+    }
+}
+
 typedef struct _InsertObjectContext {
     CompObject *parent;
     const char *name;
@@ -3289,46 +3311,51 @@ finiObject (const CompObjectFactory *factory,
 	free (object->signalVec);
 }
 
+static const CompObjectVTable noopVTable = {
+    .insertObject = noopInsertObject,
+    .removeObject = noopRemoveObject,
+    .inserted     = noopInserted,
+    .removed      = noopRemoved,
+
+    .forEachInterface = noopForEachInterface,
+    .forEachMethod    = noopForEachMethod,
+    .forEachSignal    = noopForEachSignal,
+    .forEachProp      = noopForEachProp,
+
+    .interfaceAdded   = noopInterfaceAdded,
+    .interfaceRemoved = noopInterfaceRemoved,
+
+    .forEachChildObject = noopForEachChildObject,
+
+    .signal.connect    = noopConnect,
+    .signal.disconnect = noopDisconnect,
+    .signal.signal     = noopSignal,
+
+    .version.get = noopGetVersion,
+
+    .properties.getBool     = noopGetBoolProp,
+    .properties.setBool     = noopSetBoolProp,
+    .properties.boolChanged = noopBoolPropChanged,
+
+    .properties.getInt     = noopGetIntProp,
+    .properties.setInt     = noopSetIntProp,
+    .properties.intChanged = noopIntPropChanged,
+
+    .properties.getDouble     = noopGetDoubleProp,
+    .properties.setDouble     = noopSetDoubleProp,
+    .properties.doubleChanged = noopDoublePropChanged,
+
+    .properties.getString     = noopGetStringProp,
+    .properties.setString     = noopSetStringProp,
+    .properties.stringChanged = noopStringPropChanged,
+
+    .metadata.get = noopGetMetadata
+};
+
 static void
 initObjectVTable (CompObjectVTable *vTable)
 {
-    ENSURE (vTable, insertObject, noopInsertObject);
-    ENSURE (vTable, removeObject, noopRemoveObject);
-    ENSURE (vTable, inserted,     noopInserted);
-    ENSURE (vTable, removed,      noopRemoved);
-
-    ENSURE (vTable, forEachInterface, noopForEachInterface);
-    ENSURE (vTable, forEachMethod,    noopForEachMethod);
-    ENSURE (vTable, forEachSignal,    noopForEachSignal);
-    ENSURE (vTable, forEachProp,      noopForEachProp);
-    ENSURE (vTable, interfaceAdded,   noopInterfaceAdded);
-    ENSURE (vTable, interfaceRemoved, noopInterfaceRemoved);
-
-    ENSURE (vTable, forEachChildObject, noopForEachChildObject);
-
-    ENSURE (vTable, signal.connect,    noopConnect);
-    ENSURE (vTable, signal.disconnect, noopDisconnect);
-    ENSURE (vTable, signal.signal,     noopSignal);
-
-    ENSURE (vTable, version.get, noopGetVersion);
-
-    ENSURE (vTable, properties.getBool,     noopGetBoolProp);
-    ENSURE (vTable, properties.setBool,     noopSetBoolProp);
-    ENSURE (vTable, properties.boolChanged, noopBoolPropChanged);
-
-    ENSURE (vTable, properties.getInt,     noopGetIntProp);
-    ENSURE (vTable, properties.setInt,     noopSetIntProp);
-    ENSURE (vTable, properties.intChanged, noopIntPropChanged);
-
-    ENSURE (vTable, properties.getDouble,     noopGetDoubleProp);
-    ENSURE (vTable, properties.setDouble,     noopSetDoubleProp);
-    ENSURE (vTable, properties.doubleChanged, noopDoublePropChanged);
-
-    ENSURE (vTable, properties.getString,     noopGetStringProp);
-    ENSURE (vTable, properties.setString,     noopSetStringProp);
-    ENSURE (vTable, properties.stringChanged, noopStringPropChanged);
-
-    ENSURE (vTable, metadata.get, noopGetMetadata);
+    vTableInit (vTable, &noopVTable, sizeof (CompObjectVTable));
 }
 
 static CompObjectType objectType = {
@@ -4964,6 +4991,45 @@ cObjectInterfaceFini (const CompObjectFactory *factory,
     }
 }
 
+static const CompObjectVTable cVTable = {
+    .forBaseObject = cForBaseObject,
+
+    .insertObject = cInsertObject,
+    .removeObject = cRemoveObject,
+    .inserted     = cInserted,
+    .removed      = cRemoved,
+
+    .forEachInterface = cForEachInterface,
+    .forEachMethod    = cForEachMethod,
+    .forEachSignal    = cForEachSignal,
+    .forEachProp      = cForEachProp,
+
+    .forEachChildObject = cForEachChildObject,
+
+    .signal.connect    = cConnect,
+    .signal.disconnect = cDisconnect,
+
+    .version.get = cGetVersion,
+
+    .properties.getBool     = cGetBoolProp,
+    .properties.setBool     = cSetBoolProp,
+    .properties.boolChanged = cBoolPropChanged,
+
+    .properties.getInt     = cGetIntProp,
+    .properties.setInt     = cSetIntProp,
+    .properties.intChanged = cIntPropChanged,
+
+    .properties.getDouble     = cGetDoubleProp,
+    .properties.setDouble     = cSetDoubleProp,
+    .properties.doubleChanged = cDoublePropChanged,
+
+    .properties.getString     = cGetStringProp,
+    .properties.setString     = cSetStringProp,
+    .properties.stringChanged = cStringPropChanged,
+
+    .metadata.get = cGetMetadata
+};
+
 void
 cInitObjectVTable (CompObjectVTable *vTable,
 		   GetCContextProc  getCContext,
@@ -4971,42 +5037,7 @@ cInitObjectVTable (CompObjectVTable *vTable,
 {
     vTable->unused = (UnusedProc) getCContext;
 
-    ENSURE (vTable, forBaseObject, cForBaseObject);
-
-    ENSURE (vTable, insertObject, cInsertObject);
-    ENSURE (vTable, removeObject, cRemoveObject);
-    ENSURE (vTable, inserted,     cInserted);
-    ENSURE (vTable, removed,      cRemoved);
-
-    ENSURE (vTable, forEachInterface, cForEachInterface);
-    ENSURE (vTable, forEachMethod,    cForEachMethod);
-    ENSURE (vTable, forEachSignal,    cForEachSignal);
-    ENSURE (vTable, forEachProp,      cForEachProp);
-
-    ENSURE (vTable, forEachChildObject, cForEachChildObject);
-
-    ENSURE (vTable, signal.connect,    cConnect);
-    ENSURE (vTable, signal.disconnect, cDisconnect);
-
-    ENSURE (vTable, version.get, cGetVersion);
-
-    ENSURE (vTable, properties.getBool,     cGetBoolProp);
-    ENSURE (vTable, properties.setBool,     cSetBoolProp);
-    ENSURE (vTable, properties.boolChanged, cBoolPropChanged);
-
-    ENSURE (vTable, properties.getInt,     cGetIntProp);
-    ENSURE (vTable, properties.setInt,     cSetIntProp);
-    ENSURE (vTable, properties.intChanged, cIntPropChanged);
-
-    ENSURE (vTable, properties.getDouble,     cGetDoubleProp);
-    ENSURE (vTable, properties.setDouble,     cSetDoubleProp);
-    ENSURE (vTable, properties.doubleChanged, cDoublePropChanged);
-
-    ENSURE (vTable, properties.getString,     cGetStringProp);
-    ENSURE (vTable, properties.setString,     cSetStringProp);
-    ENSURE (vTable, properties.stringChanged, cStringPropChanged);
-
-    ENSURE (vTable, metadata.get, cGetMetadata);
+    vTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
 
     if (initVTable)
 	(*initVTable) (vTable);
