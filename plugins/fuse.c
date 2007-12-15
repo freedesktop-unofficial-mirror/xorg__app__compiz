@@ -652,7 +652,7 @@ compiz_opendir (fuse_req_t	      req,
 	FUSE_OBJECT (object);
 
 	fuseAddDirEntryObject (&entry, ".", object);
-	if (object->parent)
+	if (object != c)
 	    fuseAddDirEntryObject (&entry, "..", object->parent);
 
 	(*object->vTable->forEachChildObject) (object,
