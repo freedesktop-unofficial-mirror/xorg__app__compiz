@@ -1637,12 +1637,6 @@ screenFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-screenInitVTable (void *vTable)
-{
-    (*getObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType screenObjectType = {
     SCREEN_TYPE_NAME, OBJECT_TYPE_NAME,
     {
@@ -1650,10 +1644,9 @@ static CompObjectType screenObjectType = {
 	screenFiniObject
     },
     offsetof (CompScreen, privates),
-    screenInitVTable,
+    sizeof (CompObjectVTable),
     &screenObjectVTable,
-    NULL,
-    sizeof (CompObjectVTable)
+    NULL
 };
 
 static void
@@ -1679,8 +1672,7 @@ getScreenObjectType (void)
     if (!init)
     {
 	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface),
-			&screenObjectVTable, screenGetCContext,
-			screenObjectType.initVTable);
+			&screenObjectVTable, screenGetCContext);
 	init = TRUE;
     }
 

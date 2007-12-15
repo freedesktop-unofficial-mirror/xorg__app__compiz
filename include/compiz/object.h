@@ -83,10 +83,9 @@ struct _CompObjectType {
     const char		   *baseName;
     CompObjectFuncs	   funcs;
     size_t		   privatesOffset;
-    InitVTableProc	   initVTable;
+    size_t		   vTableSize;
     CompObjectVTable	   *vTable;
     const CompObjectVTable *noopVTable;
-    size_t		   vTableSize;
 };
 
 typedef struct _CompObjectInstantiator {

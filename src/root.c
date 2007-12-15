@@ -175,12 +175,6 @@ rootFiniObject (const CompObjectFactory *factory,
     UNWRAP (&r->object, object, vTable);
 }
 
-static void
-rootInitVTable (CompRootVTable *vTable)
-{
-    (*getContainerObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType rootObjectType = {
     ROOT_TYPE_NAME, OBJECT_TYPE_NAME,
     {
@@ -188,22 +182,14 @@ static CompObjectType rootObjectType = {
 	rootFiniObject
     },
     0,
-    (InitVTableProc) rootInitVTable,
+    sizeof (CompRootVTable),
     &rootObjectVTable.base,
-    NULL,
-    sizeof (CompRootVTable)
+    NULL
 };
 
 CompObjectType *
 getRootObjectType (void)
 {
-    static int init = 0;
-
-    if (!init)
-    {
-	rootInitVTable (&rootObjectVTable);
-	init = 1;
-    }
     return &rootObjectType;
 }
 

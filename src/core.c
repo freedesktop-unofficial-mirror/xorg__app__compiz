@@ -392,15 +392,6 @@ static const CompCoreVTable noopCoreObjectVTable = {
     .removeDisplay = noopRemoveDisplay
 };
 
-static void
-coreInitVTable (CompCoreVTable *vTable)
-{
-    (*getBranchObjectType ()->initVTable) (&vTable->base);
-
-    ENSURE (vTable, addDisplay,    noopAddDisplay);
-    ENSURE (vTable, removeDisplay, noopRemoveDisplay);
-}
-
 static CompObjectType coreObjectType = {
     CORE_TYPE_NAME, BRANCH_TYPE_NAME,
     {
@@ -408,10 +399,9 @@ static CompObjectType coreObjectType = {
 	coreFiniObject
     },
     offsetof (CompCore, privates),
-    (InitVTableProc) coreInitVTable,
+    sizeof (CompCoreVTable),
     &coreObjectVTable.base.base,
-    &noopCoreObjectVTable.base.base,
-    sizeof (CompCoreVTable)
+    &noopCoreObjectVTable.base.base
 };
 
 static void
@@ -437,8 +427,7 @@ getCoreObjectType (void)
     if (!init)
     {
 	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface),
-			&coreObjectVTable.base.base, coreGetCContext,
-			coreObjectType.initVTable);
+			&coreObjectVTable.base.base, coreGetCContext);
 	init = TRUE;
     }
 

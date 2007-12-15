@@ -2462,15 +2462,6 @@ static const CompDisplayVTable noopDisplayObjectVTable = {
     .removeScreen = noopRemoveScreen
 };
 
-static void
-displayInitVTable (CompDisplayVTable *vTable)
-{
-    (*getObjectType ()->initVTable) (&vTable->base);
-
-    ENSURE (vTable, addScreen,    noopAddScreen);
-    ENSURE (vTable, removeScreen, noopRemoveScreen);
-}
-
 static CompObjectType displayObjectType = {
     DISPLAY_TYPE_NAME, OBJECT_TYPE_NAME,
     {
@@ -2478,10 +2469,9 @@ static CompObjectType displayObjectType = {
 	displayFiniObject
     },
     offsetof (CompDisplay, privates),
-    (InitVTableProc) displayInitVTable,
+    sizeof (CompDisplayVTable),
     &displayObjectVTable.base,
-    &noopDisplayObjectVTable.base,
-    sizeof (CompDisplayVTable)
+    &noopDisplayObjectVTable.base
 };
 
 static void
@@ -2507,8 +2497,7 @@ getDisplayObjectType (void)
     if (!init)
     {
 	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface),
-			&displayObjectVTable.base, displayGetCContext,
-			displayObjectType.initVTable);
+			&displayObjectVTable.base, displayGetCContext);
 	init = TRUE;
     }
 

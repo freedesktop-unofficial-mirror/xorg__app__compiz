@@ -1758,12 +1758,6 @@ windowFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-windowInitVTable (void *vTable)
-{
-    (*getObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType windowObjectType = {
     WINDOW_TYPE_NAME, OBJECT_TYPE_NAME,
     {
@@ -1771,10 +1765,9 @@ static CompObjectType windowObjectType = {
 	windowFiniObject
     },
     offsetof (CompWindow, privates),
-    windowInitVTable,
+    sizeof (CompObjectVTable),
     &windowObjectVTable,
-    NULL,
-    sizeof (CompObjectVTable)
+    NULL
 };
 
 static void
@@ -1800,8 +1793,7 @@ getWindowObjectType (void)
     if (!init)
     {
 	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface),
-			&windowObjectVTable, windowGetCContext,
-			windowObjectType.initVTable);
+			&windowObjectVTable, windowGetCContext);
 	init = TRUE;
     }
 

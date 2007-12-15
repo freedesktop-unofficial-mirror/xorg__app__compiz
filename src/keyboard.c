@@ -53,12 +53,6 @@ keyboardFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-keyboardInitVTable (void *vTable)
-{
-    (*getInputObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType keyboardObjectType = {
     KEYBOARD_TYPE_NAME, INPUT_TYPE_NAME,
     {
@@ -66,7 +60,9 @@ static CompObjectType keyboardObjectType = {
 	keyboardFiniObject
     },
     0,
-    keyboardInitVTable
+    sizeof (CompObjectVTable),
+    &keyboardObjectVTable,
+    NULL
 };
 
 static void
@@ -91,8 +87,7 @@ getKeyboardObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&keyboardObjectVTable, keyboardGetCContext,
-			   keyboardObjectType.initVTable);
+	cInitObjectVTable (&keyboardObjectVTable, keyboardGetCContext);
 	init = TRUE;
     }
 

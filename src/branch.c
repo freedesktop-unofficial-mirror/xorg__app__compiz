@@ -150,15 +150,6 @@ static const CompBranchVTable noopBranchObjectVTable = {
     .registerType = noopRegisterType
 };
 
-static void
-branchInitVTable (CompBranchVTable *vTable)
-{
-    (*getObjectType ()->initVTable) (&vTable->base);
-
-    ENSURE (vTable, forEachType,  noopForEachType);
-    ENSURE (vTable, registerType, noopRegisterType);
-}
-
 static CompObjectType branchObjectType = {
     BRANCH_TYPE_NAME, OBJECT_TYPE_NAME,
     {
@@ -166,10 +157,9 @@ static CompObjectType branchObjectType = {
 	branchFiniObject
     },
     0,
-    (InitVTableProc) branchInitVTable,
+    sizeof (CompBranchVTable),
     &branchObjectVTable.base,
-    &noopBranchObjectVTable.base,
-    sizeof (CompBranchVTable)
+    &noopBranchObjectVTable.base
 };
 
 static void
@@ -194,8 +184,7 @@ getBranchObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&branchObjectVTable.base, branchGetCContext,
-			   branchObjectType.initVTable);
+	cInitObjectVTable (&branchObjectVTable.base, branchGetCContext);
 	init = TRUE;
     }
 

@@ -46,12 +46,6 @@ inputFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-inputInitVTable (void *vTable)
-{
-    (*getObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType inputObjectType = {
     INPUT_TYPE_NAME, OBJECT_TYPE_NAME,
     {
@@ -59,7 +53,9 @@ static CompObjectType inputObjectType = {
 	inputFiniObject
     },
     0,
-    inputInitVTable
+    sizeof (CompObjectVTable),
+    &inputObjectVTable,
+    NULL
 };
 
 static void
@@ -84,8 +80,7 @@ getInputObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&inputObjectVTable, inputGetCContext,
-			   inputObjectType.initVTable);
+	cInitObjectVTable (&inputObjectVTable, inputGetCContext);
 	init = TRUE;
     }
 

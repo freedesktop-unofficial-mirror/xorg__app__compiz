@@ -54,12 +54,6 @@ pointerFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-pointerInitVTable (void *vTable)
-{
-    (*getInputObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType pointerObjectType = {
     POINTER_TYPE_NAME, INPUT_TYPE_NAME,
     {
@@ -67,7 +61,9 @@ static CompObjectType pointerObjectType = {
 	pointerFiniObject
     },
     0,
-    pointerInitVTable
+    sizeof (CompObjectVTable),
+    &pointerObjectVTable,
+    NULL
 };
 
 static void
@@ -92,8 +88,7 @@ getPointerObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&pointerObjectVTable, pointerGetCContext,
-			   pointerObjectType.initVTable);
+	cInitObjectVTable (&pointerObjectVTable, pointerGetCContext);
 	init = TRUE;
     }
 

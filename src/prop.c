@@ -46,12 +46,6 @@ propFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-propInitVTable (void *vTable)
-{
-    (*getObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType propObjectType = {
     PROP_TYPE_NAME, OBJECT_TYPE_NAME,
     {
@@ -59,7 +53,9 @@ static CompObjectType propObjectType = {
 	propFiniObject
     },
     0,
-    propInitVTable
+    sizeof (CompObjectVTable),
+    &propObjectVTable,
+    NULL
 };
 
 static void
@@ -84,8 +80,7 @@ getPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&propObjectVTable, propGetCContext,
-			   propObjectType.initVTable);
+	cInitObjectVTable (&propObjectVTable, propGetCContext);
 	init = TRUE;
     }
 
@@ -116,12 +111,6 @@ boolPropFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-boolPropInitVTable (void *vTable)
-{
-    (*getPropObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType boolPropObjectType = {
     BOOL_PROP_TYPE_NAME, PROP_TYPE_NAME,
     {
@@ -129,7 +118,9 @@ static CompObjectType boolPropObjectType = {
 	boolPropFiniObject
     },
     0,
-    boolPropInitVTable
+    sizeof (CompObjectVTable),
+    &boolPropObjectVTable,
+    NULL
 };
 
 static void
@@ -154,8 +145,7 @@ getBoolPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&boolPropObjectVTable, boolPropGetCContext,
-			   boolPropObjectType.initVTable);
+	cInitObjectVTable (&boolPropObjectVTable, boolPropGetCContext);
 	init = TRUE;
     }
 
@@ -186,12 +176,6 @@ intPropFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-intPropInitVTable (void *vTable)
-{
-    (*getPropObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType intPropObjectType = {
     INT_PROP_TYPE_NAME, PROP_TYPE_NAME,
     {
@@ -199,7 +183,9 @@ static CompObjectType intPropObjectType = {
 	intPropFiniObject
     },
     0,
-    intPropInitVTable
+    sizeof (CompObjectVTable),
+    &intPropObjectVTable,
+    NULL
 };
 
 static void
@@ -224,8 +210,7 @@ getIntPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&intPropObjectVTable, intPropGetCContext,
-			   intPropObjectType.initVTable);
+	cInitObjectVTable (&intPropObjectVTable, intPropGetCContext);
 	init = TRUE;
     }
 
@@ -256,12 +241,6 @@ doublePropFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-doublePropInitVTable (void *vTable)
-{
-    (*getPropObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType doublePropObjectType = {
     DOUBLE_PROP_TYPE_NAME, PROP_TYPE_NAME,
     {
@@ -269,7 +248,9 @@ static CompObjectType doublePropObjectType = {
 	doublePropFiniObject
     },
     0,
-    doublePropInitVTable
+    sizeof (CompObjectVTable),
+    &doublePropObjectVTable,
+    NULL
 };
 
 static void
@@ -294,8 +275,7 @@ getDoublePropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&doublePropObjectVTable, doublePropGetCContext,
-			   doublePropObjectType.initVTable);
+	cInitObjectVTable (&doublePropObjectVTable, doublePropGetCContext);
 	init = TRUE;
     }
 
@@ -326,12 +306,6 @@ stringPropFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-stringPropInitVTable (void *vTable)
-{
-    (*getPropObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType stringPropObjectType = {
     STRING_PROP_TYPE_NAME, PROP_TYPE_NAME,
     {
@@ -339,7 +313,9 @@ static CompObjectType stringPropObjectType = {
 	stringPropFiniObject
     },
     0,
-    stringPropInitVTable
+    sizeof (CompObjectVTable),
+    &stringPropObjectVTable,
+    NULL
 };
 
 static void
@@ -364,8 +340,7 @@ getStringPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&stringPropObjectVTable, stringPropGetCContext,
-			   stringPropObjectType.initVTable);
+	cInitObjectVTable (&stringPropObjectVTable, stringPropGetCContext);
 	init = TRUE;
     }
 

@@ -69,12 +69,6 @@ containerFiniObject (const CompObjectFactory *factory,
     cObjectInterfaceFini (factory, object);
 }
 
-static void
-containerInitVTable (void *vTable)
-{
-    (*getObjectType ()->initVTable) (vTable);
-}
-
 static CompObjectType containerObjectType = {
     CONTAINER_TYPE_NAME, OBJECT_TYPE_NAME,
     {
@@ -82,10 +76,9 @@ static CompObjectType containerObjectType = {
 	containerFiniObject
     },
     0,
-    containerInitVTable,
+    sizeof (CompObjectVTable),
     &containerObjectVTable,
-    NULL,
-    sizeof (CompObjectVTable)
+    NULL
 };
 
 static void
@@ -110,8 +103,7 @@ getContainerObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&containerObjectVTable, containerGetCContext,
-			   containerObjectType.initVTable);
+	cInitObjectVTable (&containerObjectVTable, containerGetCContext);
 	init = TRUE;
     }
 

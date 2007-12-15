@@ -178,6 +178,7 @@ typedef struct _CObjectPrivate {
     const char	    *name;
     int		    *pIndex;
     int		    size;
+    int		    vTableSize;
     void	    *vTable;
     GetCContextProc proc;
     CInterface      *interface;
@@ -190,9 +191,10 @@ typedef struct _CObjectPrivate {
 #define C_INDEX_X(name, type, struct)		    \
     & name ## type ## PrivateIndex, sizeof (struct)
 
-#define C_VTABLE__(name, type) 0, 0, 0, 0
+#define C_VTABLE__(name, type) 0, 0, 0, 0, 0
 #define C_VTABLE_X(name, type)		       \
-    & name ## type ## ObjectVTable,	       \
+    sizeof (name ## type ## ObjectVTable),     \
+	& name ## type ## ObjectVTable,	       \
 	name ## type ## GetCContext,	       \
 	name ## type ## Interface,	       \
 	N_ELEMENTS (name ## type ## Interface)
@@ -230,8 +232,7 @@ typedef struct _CObjectPrivate {
 
 void
 cInitObjectVTable (CompObjectVTable *vTable,
-		   GetCContextProc  getCContext,
-		   InitVTableProc   initVTable);
+		   GetCContextProc  getCContext);
 
 CompBool
 cForBaseObject (CompObject	       *object,
@@ -395,8 +396,7 @@ CompBool
 cInterfaceInit (CInterface	 *interface,
 		int		 nInterface,
 		CompObjectVTable *vTable,
-		GetCContextProc  getCContext,
-		InitVTableProc   initVTable);
+		GetCContextProc  getCContext);
 
 void
 cInterfaceFini (CInterface *interface,
