@@ -242,31 +242,6 @@ fileWatchRemoved (CompCore      *core,
 {
 }
 
-static CompBool
-coreForEachObjectType (ObjectTypeCallBackProc proc,
-		       void		      *closure)
-{
-    if (!(*proc) (getObjectType (), closure))
-	return FALSE;
-
-    if (!(*proc) (getContainerObjectType (), closure))
-	return FALSE;
-
-    if (!(*proc) (getCoreObjectType (), closure))
-	return FALSE;
-
-    if (!(*proc) (getDisplayObjectType (), closure))
-	return FALSE;
-
-    if (!(*proc) (getScreenObjectType (), closure))
-	return FALSE;
-
-    if (!(*proc) (getWindowObjectType (), closure))
-	return FALSE;
-
-    return TRUE;
-}
-
 static CompCoreVTable coreObjectVTable = {
     .base.base.getProp = coreGetProp,
     .addDisplay	       = addDisplay,
@@ -364,8 +339,6 @@ coreInitObject (const CompObjectFactory *factory,
     c->nWatchFds	 = 0;
 
     gettimeofday (&c->lastTimeout, 0);
-
-    c->forEachObjectType = coreForEachObjectType;
 
     c->initPluginForObject = initCorePluginForObject;
     c->finiPluginForObject = finiCorePluginForObject;

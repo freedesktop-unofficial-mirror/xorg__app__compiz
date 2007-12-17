@@ -631,12 +631,6 @@ typedef void (*ObjectAddProc) (CompObject *parent,
 typedef void (*ObjectRemoveProc) (CompObject *parent,
 				  CompObject *object);
 
-typedef CompBool (*ObjectTypeCallBackProc) (CompObjectType *type,
-					    void	   *closure);
-
-typedef CompBool (*ForEachObjectTypeProc) (ObjectTypeCallBackProc proc,
-					   void			  *closure);
-
 #define NOTIFY_CREATE_MASK (1 << 0)
 #define NOTIFY_DELETE_MASK (1 << 1)
 #define NOTIFY_MOVE_MASK   (1 << 2)
@@ -729,8 +723,6 @@ struct _CompCore {
     CompWatchFdHandle lastWatchFdHandle;
     struct pollfd     *watchPollFds;
     int               nWatchFds;
-
-    ForEachObjectTypeProc forEachObjectType;
 
     InitPluginForObjectProc initPluginForObject;
     FiniPluginForObjectProc finiPluginForObject;
