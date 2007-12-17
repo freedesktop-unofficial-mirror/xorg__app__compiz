@@ -1708,6 +1708,13 @@ forBaseObject (CompObject	      *object,
 }
 
 static void
+getProp (CompObject   *object,
+	 unsigned int what,
+	 void	      *value)
+{
+}
+
+static void
 insertObject (CompObject *object,
 	      CompObject *parent,
 	      const char *name)
@@ -3277,6 +3284,8 @@ cGetMetadata (CompObject *object,
 
 static CompObjectVTable objectVTable = {
     .forBaseObject = forBaseObject,
+
+    .getProp = getProp,
 
     .insertObject = insertObject,
     .removeObject = removeObject,

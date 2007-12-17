@@ -469,6 +469,17 @@ static CInterface screenInterface[] = {
     C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, X, X, _, X, X)
 };
 
+static void
+screenGetProp (CompObject   *object,
+	       unsigned int what,
+	       void	    *value)
+{
+    switch (what) {
+    case COMP_ADDRESS_BASE_VTABLE_STORE:
+	*((CompObjectVTableVec **) value) = &GET_SCREEN (object)->object;
+    }
+}
+
 CompOption *
 getScreenOptions (CompPlugin *plugin,
 		  CompScreen *screen,
@@ -1379,7 +1390,9 @@ initWindowWalker (CompScreen *screen,
     walker->prev  = walkPrev;
 }
 
-static CompObjectVTable screenObjectVTable = { 0 };
+static CompObjectVTable screenObjectVTable = {
+    .getProp = screenGetProp
+};
 
 static CompBool
 forEachWindowObject (CompObject	             *object,

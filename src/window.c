@@ -1728,7 +1728,20 @@ static CInterface windowInterface[] = {
     C_INTERFACE (window, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
-static CompObjectVTable windowObjectVTable = { 0 };
+static void
+windowGetProp (CompObject   *object,
+	       unsigned int what,
+	       void	    *value)
+{
+    switch (what) {
+    case COMP_ADDRESS_BASE_VTABLE_STORE:
+	*((CompObjectVTableVec **) value) = &GET_WINDOW (object)->object;
+    }
+}
+
+static CompObjectVTable windowObjectVTable = {
+    .getProp = windowGetProp
+};
 
 static CompBool
 windowInitObject (const CompObjectFactory *factory,

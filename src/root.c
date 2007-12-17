@@ -51,6 +51,17 @@ rootForBaseObject (CompObject	       *object,
     return status;
 }
 
+static void
+rootGetProp (CompObject   *object,
+	     unsigned int what,
+	     void	  *value)
+{
+    switch (what) {
+    case COMP_ADDRESS_BASE_VTABLE_STORE:
+	*((CompObjectVTableVec **) value) = &GET_ROOT (object)->object;
+    }
+}
+
 typedef struct _HandleSignalContext {
     const char *path;
     CompSignal *signal;
@@ -132,6 +143,7 @@ processSignals (CompRoot *r)
 
 static CompRootVTable rootObjectVTable = {
     .base.forBaseObject = rootForBaseObject,
+    .base.getProp       = rootGetProp,
     .processSignals     = processSignals
 };
 

@@ -226,6 +226,17 @@ static CInterface displayInterface[] = {
     C_INTERFACE (display, Type, CompObjectVTable, _, X, _, X, X, _, _, X)
 };
 
+static void
+displayGetProp (CompObject   *object,
+		unsigned int what,
+		void	     *value)
+{
+    switch (what) {
+    case COMP_ADDRESS_BASE_VTABLE_STORE:
+	*((CompObjectVTableVec **) value) = &GET_DISPLAY (object)->object;
+    }
+}
+
 typedef struct _AddRemoveScreenContext {
     int  number;
     char **error;
@@ -2361,6 +2372,7 @@ addScreenToDisplay (CompDisplay *display,
 }
 
 static CompDisplayVTable displayObjectVTable = {
+    .base.getProp = displayGetProp,
     .addScreen	  = addScreen,
     .removeScreen = removeScreen
 };

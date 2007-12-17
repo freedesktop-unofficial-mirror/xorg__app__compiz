@@ -33,6 +33,17 @@ static const CInterface branchInterface[] = {
     C_INTERFACE (branch, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
+static void
+branchGetProp (CompObject   *object,
+	       unsigned int what,
+	       void	    *value)
+{
+    switch (what) {
+    case COMP_ADDRESS_BASE_VTABLE_STORE:
+	*((CompObjectVTableVec **) value) = &GET_BRANCH (object)->object;
+    }
+}
+
 typedef struct _ForEachTypeContext {
     const char       *interface;
     TypeCallBackProc proc;
@@ -119,6 +130,7 @@ registerType (CompBranch	   *b,
 }
 
 static CompBranchVTable branchObjectVTable = {
+    .base.getProp = branchGetProp,
     .forEachType  = forEachType,
     .registerType = registerType
 };
@@ -190,3 +202,15 @@ getBranchObjectType (void)
 
     return &branchObjectType;
 }
+
+#define FOR_BASE(object, ...)						\
+    do {								\
+	CompObjectVTable *__saveVTable = (object)->vTable;		\
+	CompObjectVTable **__vTable = (CompObjectVTable **)		\
+	    (*(object)->vTable->getAddress) (object,			\
+					     COMP_ADDRESS_BASE_VTABLE); \
+									\
+	(object)->vTable = *__vTable;					\
+	__VA_ARGS__;							\
+	(object)->vTable = __saveVTable;				\
+    } while (0)

@@ -49,6 +49,17 @@ static CInterface coreInterface[] = {
     C_INTERFACE (core, Type, CompObjectVTable, _, X, _, _, _, _, _, X)
 };
 
+static void
+coreGetProp (CompObject   *object,
+	     unsigned int what,
+	     void	  *value)
+{
+    switch (what) {
+    case COMP_ADDRESS_BASE_VTABLE_STORE:
+	*((CompObjectVTableVec **) value) = &GET_CORE (object)->object;
+    }
+}
+
 typedef struct _AddRemoveDisplayContext {
     const char *hostName;
     int	       displayNum;
@@ -257,8 +268,9 @@ coreForEachObjectType (ObjectTypeCallBackProc proc,
 }
 
 static CompCoreVTable coreObjectVTable = {
-    .addDisplay	   = addDisplay,
-    .removeDisplay = removeDisplay
+    .base.base.getProp = coreGetProp,
+    .addDisplay	       = addDisplay,
+    .removeDisplay     = removeDisplay
 };
 
 static CompBool

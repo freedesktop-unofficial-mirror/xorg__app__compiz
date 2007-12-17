@@ -30,6 +30,17 @@ static const CInterface containerInterface[] = {
     C_INTERFACE (container, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
+static void
+containerGetProp (CompObject   *object,
+		  unsigned int what,
+		  void	       *value)
+{
+    switch (what) {
+    case COMP_ADDRESS_BASE_VTABLE_STORE:
+	*((CompObjectVTableVec **) value) = &GET_CONTAINER (object)->object;
+    }
+}
+
 static CompBool
 containerForEachChildObject (CompObject		     *object,
 			     ChildObjectCallBackProc proc,
@@ -45,6 +56,7 @@ containerForEachChildObject (CompObject		     *object,
 }
 
 static CompObjectVTable containerObjectVTable = {
+    .getProp	        = containerGetProp,
     .forEachChildObject = containerForEachChildObject
 };
 

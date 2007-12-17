@@ -160,6 +160,12 @@ typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
 				       BaseObjectCallBackProc proc,
 				       void		      *closure);
 
+#define COMP_ADDRESS_BASE_VTABLE_STORE 0
+
+typedef void (*GetPropProc) (CompObject   *object,
+			     unsigned int what,
+			     void	  *value);
+
 typedef void (*UnusedProc) (CompObject *object);
 
 typedef void (*InsertObjectProc) (CompObject *object,
@@ -380,6 +386,8 @@ struct _CompObjectVTable {
     /* empty vtable entry that each implementer can
        use for its own purpose */
     UnusedProc unused;
+
+    GetPropProc getProp;
 
     /* object tree functions
 
