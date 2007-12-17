@@ -76,8 +76,6 @@ typedef struct _CompObjectPrivate {
     CompObjectVTable *vTable;
 } CompObjectPrivate;
 
-typedef void (*InitVTableProc) (void *vTable);
-
 struct _CompObjectType {
     const char		   *name;
     const char		   *baseName;
