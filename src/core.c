@@ -55,8 +55,19 @@ coreGetProp (CompObject   *object,
 	     void	  *value)
 {
     switch (what) {
-    case COMP_ADDRESS_BASE_VTABLE_STORE:
-	*((CompObjectVTableVec **) value) = &GET_CORE (object)->object;
+    case COMP_GET_PROP_C_CONTEXT: {
+	CContext *ctx = (CContext *) value;
+
+	CORE (object);
+
+	ctx->interface  = coreInterface;
+	ctx->nInterface = N_ELEMENTS (coreInterface);
+	ctx->type	= getCoreObjectType ();
+	ctx->data	= (char *) c;
+	ctx->svOffset   = 0;
+	ctx->vtStore    = &c->object;
+	ctx->version    = COMPIZ_CORE_VERSION;
+    }
     }
 }
 
@@ -391,21 +402,6 @@ static CompObjectType coreObjectType = {
     &noopCoreObjectVTable.base.base
 };
 
-static void
-coreGetCContext (CompObject *object,
-		 CContext   *ctx)
-{
-    CORE (object);
-
-    ctx->interface  = coreInterface;
-    ctx->nInterface = N_ELEMENTS (coreInterface);
-    ctx->type	    = &coreObjectType;
-    ctx->data	    = (char *) c;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &c->object;
-    ctx->version    = COMPIZ_CORE_VERSION;
-}
-
 CompObjectType *
 getCoreObjectType (void)
 {
@@ -413,7 +409,7 @@ getCoreObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&coreObjectVTable.base.base, coreGetCContext);
+	cInitObjectVTable (&coreObjectVTable.base.base);
 	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface));
 	init = TRUE;
     }

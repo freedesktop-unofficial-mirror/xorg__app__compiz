@@ -39,8 +39,19 @@ branchGetProp (CompObject   *object,
 	       void	    *value)
 {
     switch (what) {
-    case COMP_ADDRESS_BASE_VTABLE_STORE:
-	*((CompObjectVTableVec **) value) = &GET_BRANCH (object)->object;
+    case COMP_GET_PROP_C_CONTEXT: {
+	CContext *ctx = (CContext *) value;
+
+	BRANCH (object);
+
+	ctx->interface  = branchInterface;
+	ctx->nInterface = N_ELEMENTS (branchInterface);
+	ctx->type	= getBranchObjectType ();
+	ctx->data	= (char *) b;
+	ctx->svOffset   = 0;
+	ctx->vtStore    = &b->object;
+	ctx->version    = COMPIZ_BRANCH_VERSION;
+    }
     }
 }
 
@@ -176,21 +187,6 @@ static CompObjectType branchObjectType = {
     &noopBranchObjectVTable.base
 };
 
-static void
-branchGetCContext (CompObject *object,
-		   CContext   *ctx)
-{
-    BRANCH (object);
-
-    ctx->interface  = branchInterface;
-    ctx->nInterface = N_ELEMENTS (branchInterface);
-    ctx->type	    = &branchObjectType;
-    ctx->data	    = (char *) b;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &b->object;
-    ctx->version    = COMPIZ_BRANCH_VERSION;
-}
-
 CompObjectType *
 getBranchObjectType (void)
 {
@@ -198,7 +194,7 @@ getBranchObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&branchObjectVTable.base, branchGetCContext);
+	cInitObjectVTable (&branchObjectVTable.base);
 	init = TRUE;
     }
 

@@ -60,21 +60,6 @@ static CompObjectType outputObjectType = {
     NULL
 };
 
-static void
-outputGetCContext (CompObject *object,
-		   CContext   *ctx)
-{
-    OUTPUT (object);
-
-    ctx->interface  = outputInterface;
-    ctx->nInterface = N_ELEMENTS (outputInterface);
-    ctx->type	    = &outputObjectType;
-    ctx->data	    = (char *) o;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &o->object;
-    ctx->version    = COMPIZ_OUTPUT_VERSION;
-}
-
 CompObjectType *
 getOutputObjectType (void)
 {
@@ -82,7 +67,7 @@ getOutputObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&outputObjectVTable, outputGetCContext);
+	cInitObjectVTable (&outputObjectVTable);
 	init = TRUE;
     }
 

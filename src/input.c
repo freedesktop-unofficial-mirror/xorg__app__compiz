@@ -60,21 +60,6 @@ static CompObjectType inputObjectType = {
     NULL
 };
 
-static void
-inputGetCContext (CompObject *object,
-		  CContext   *ctx)
-{
-    INPUT (object);
-
-    ctx->interface  = inputInterface;
-    ctx->nInterface = N_ELEMENTS (inputInterface);
-    ctx->type	    = &inputObjectType;
-    ctx->data	    = (char *) i;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &i->object;
-    ctx->version    = COMPIZ_INPUT_VERSION;
-}
-
 CompObjectType *
 getInputObjectType (void)
 {
@@ -82,7 +67,7 @@ getInputObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&inputObjectVTable, inputGetCContext);
+	cInitObjectVTable (&inputObjectVTable);
 	init = TRUE;
     }
 

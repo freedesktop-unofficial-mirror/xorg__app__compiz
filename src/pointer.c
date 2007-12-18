@@ -68,21 +68,6 @@ static CompObjectType pointerObjectType = {
     NULL
 };
 
-static void
-pointerGetCContext (CompObject *object,
-		   CContext   *ctx)
-{
-    POINTER (object);
-
-    ctx->interface  = pointerInterface;
-    ctx->nInterface = N_ELEMENTS (pointerInterface);
-    ctx->type	    = &pointerObjectType;
-    ctx->data	    = (char *) p;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &p->object;
-    ctx->version    = COMPIZ_POINTER_VERSION;
-}
-
 CompObjectType *
 getPointerObjectType (void)
 {
@@ -90,7 +75,7 @@ getPointerObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&pointerObjectVTable, pointerGetCContext);
+	cInitObjectVTable (&pointerObjectVTable);
 	init = TRUE;
     }
 

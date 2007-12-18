@@ -1734,8 +1734,19 @@ windowGetProp (CompObject   *object,
 	       void	    *value)
 {
     switch (what) {
-    case COMP_ADDRESS_BASE_VTABLE_STORE:
-	*((CompObjectVTableVec **) value) = &GET_WINDOW (object)->object;
+    case COMP_GET_PROP_C_CONTEXT: {
+	CContext *ctx = (CContext *) value;
+
+	WINDOW (object);
+
+	ctx->interface  = windowInterface;
+	ctx->nInterface = N_ELEMENTS (windowInterface);
+	ctx->type	= getWindowObjectType ();
+	ctx->data	= (char *) w;
+	ctx->svOffset   = 0;
+	ctx->vtStore    = &w->object;
+	ctx->version    = COMPIZ_WINDOW_VERSION;
+    }
     }
 }
 
@@ -1785,21 +1796,6 @@ static CompObjectType windowObjectType = {
     NULL
 };
 
-static void
-windowGetCContext (CompObject *object,
-		   CContext   *ctx)
-{
-    WINDOW (object);
-
-    ctx->interface  = windowInterface;
-    ctx->nInterface = N_ELEMENTS (windowInterface);
-    ctx->type	    = &windowObjectType;
-    ctx->data	    = (char *) w;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &w->object;
-    ctx->version    = COMPIZ_WINDOW_VERSION;
-}
-
 CompObjectType *
 getWindowObjectType (void)
 {
@@ -1807,7 +1803,7 @@ getWindowObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&windowObjectVTable, windowGetCContext);
+	cInitObjectVTable (&windowObjectVTable);
 	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface));
 	init = TRUE;
     }

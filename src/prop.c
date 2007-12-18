@@ -60,21 +60,6 @@ static CompObjectType propObjectType = {
     NULL
 };
 
-static void
-propGetCContext (CompObject *object,
-		 CContext   *ctx)
-{
-    PROP (object);
-
-    ctx->interface  = propInterface;
-    ctx->nInterface = N_ELEMENTS (propInterface);
-    ctx->type	    = &propObjectType;
-    ctx->data	    = (char *) p;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &p->object;
-    ctx->version    = COMPIZ_PROP_VERSION;
-}
-
 CompObjectType *
 getPropObjectType (void)
 {
@@ -82,7 +67,7 @@ getPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&propObjectVTable, propGetCContext);
+	cInitObjectVTable (&propObjectVTable);
 	init = TRUE;
     }
 
@@ -127,21 +112,6 @@ static CompObjectType boolPropObjectType = {
     NULL
 };
 
-static void
-boolPropGetCContext (CompObject *object,
-		     CContext   *ctx)
-{
-    BOOL_PROP (object);
-
-    ctx->interface  = boolPropInterface;
-    ctx->nInterface = N_ELEMENTS (boolPropInterface);
-    ctx->type	    = &boolPropObjectType;
-    ctx->data	    = (char *) b;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &b->object;
-    ctx->version    = COMPIZ_PROP_VERSION;
-}
-
 CompObjectType *
 getBoolPropObjectType (void)
 {
@@ -149,7 +119,7 @@ getBoolPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&boolPropObjectVTable, boolPropGetCContext);
+	cInitObjectVTable (&boolPropObjectVTable);
 	init = TRUE;
     }
 
@@ -194,21 +164,6 @@ static CompObjectType intPropObjectType = {
     NULL
 };
 
-static void
-intPropGetCContext (CompObject *object,
-		    CContext   *ctx)
-{
-    INT_PROP (object);
-
-    ctx->interface  = intPropInterface;
-    ctx->nInterface = N_ELEMENTS (intPropInterface);
-    ctx->type	    = &intPropObjectType;
-    ctx->data	    = (char *) i;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &i->object;
-    ctx->version    = COMPIZ_PROP_VERSION;
-}
-
 CompObjectType *
 getIntPropObjectType (void)
 {
@@ -216,7 +171,7 @@ getIntPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&intPropObjectVTable, intPropGetCContext);
+	cInitObjectVTable (&intPropObjectVTable);
 	init = TRUE;
     }
 
@@ -261,21 +216,6 @@ static CompObjectType doublePropObjectType = {
     NULL
 };
 
-static void
-doublePropGetCContext (CompObject *object,
-		       CContext   *ctx)
-{
-    DOUBLE_PROP (object);
-
-    ctx->interface  = doublePropInterface;
-    ctx->nInterface = N_ELEMENTS (doublePropInterface);
-    ctx->type	    = &doublePropObjectType;
-    ctx->data	    = (char *) d;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &d->object;
-    ctx->version    = COMPIZ_PROP_VERSION;
-}
-
 CompObjectType *
 getDoublePropObjectType (void)
 {
@@ -283,7 +223,7 @@ getDoublePropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&doublePropObjectVTable, doublePropGetCContext);
+	cInitObjectVTable (&doublePropObjectVTable);
 	init = TRUE;
     }
 
@@ -328,21 +268,6 @@ static CompObjectType stringPropObjectType = {
     NULL
 };
 
-static void
-stringPropGetCContext (CompObject *object,
-		       CContext   *ctx)
-{
-    STRING_PROP (object);
-
-    ctx->interface  = stringPropInterface;
-    ctx->nInterface = N_ELEMENTS (stringPropInterface);
-    ctx->type	    = &stringPropObjectType;
-    ctx->data	    = (char *) s;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &s->object;
-    ctx->version    = COMPIZ_PROP_VERSION;
-}
-
 CompObjectType *
 getStringPropObjectType (void)
 {
@@ -350,7 +275,7 @@ getStringPropObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&stringPropObjectVTable, stringPropGetCContext);
+	cInitObjectVTable (&stringPropObjectVTable);
 	init = TRUE;
     }
 

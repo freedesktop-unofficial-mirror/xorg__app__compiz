@@ -232,8 +232,19 @@ displayGetProp (CompObject   *object,
 		void	     *value)
 {
     switch (what) {
-    case COMP_ADDRESS_BASE_VTABLE_STORE:
-	*((CompObjectVTableVec **) value) = &GET_DISPLAY (object)->object;
+    case COMP_GET_PROP_C_CONTEXT: {
+	CContext *ctx = (CContext *) value;
+
+	DISPLAY (object);
+
+	ctx->interface  = displayInterface;
+	ctx->nInterface = N_ELEMENTS (displayInterface);
+	ctx->type	= getDisplayObjectType ();
+	ctx->data	= (char *) d;
+	ctx->svOffset   = 0;
+	ctx->vtStore    = &d->object;
+	ctx->version    = COMPIZ_DISPLAY_VERSION;
+    }
     }
 }
 
@@ -2488,21 +2499,6 @@ static CompObjectType displayObjectType = {
     &noopDisplayObjectVTable.base
 };
 
-static void
-displayGetCContext (CompObject *object,
-		    CContext   *ctx)
-{
-    DISPLAY (object);
-
-    ctx->interface  = displayInterface;
-    ctx->nInterface = N_ELEMENTS (displayInterface);
-    ctx->type	    = &displayObjectType;
-    ctx->data	    = (char *) d;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &d->object;
-    ctx->version    = COMPIZ_DISPLAY_VERSION;
-}
-
 CompObjectType *
 getDisplayObjectType (void)
 {
@@ -2510,7 +2506,7 @@ getDisplayObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&displayObjectVTable.base, displayGetCContext);
+	cInitObjectVTable (&displayObjectVTable.base);
 	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface));
 	init = TRUE;
     }

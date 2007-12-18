@@ -67,21 +67,6 @@ static CompObjectType keyboardObjectType = {
     NULL
 };
 
-static void
-keyboardGetCContext (CompObject *object,
-		   CContext   *ctx)
-{
-    KEYBOARD (object);
-
-    ctx->interface  = keyboardInterface;
-    ctx->nInterface = N_ELEMENTS (keyboardInterface);
-    ctx->type	    = &keyboardObjectType;
-    ctx->data	    = (char *) k;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &k->object;
-    ctx->version    = COMPIZ_KEYBOARD_VERSION;
-}
-
 CompObjectType *
 getKeyboardObjectType (void)
 {
@@ -89,7 +74,7 @@ getKeyboardObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&keyboardObjectVTable, keyboardGetCContext);
+	cInitObjectVTable (&keyboardObjectVTable);
 	init = TRUE;
     }
 

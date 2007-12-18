@@ -171,8 +171,7 @@ typedef struct _CContext {
     int			 version;
 } CContext;
 
-typedef void (*GetCContextProc) (CompObject *object,
-				 CContext   *ctx);
+#define COMP_GET_PROP_C_CONTEXT 1024
 
 typedef struct _CObjectPrivate {
     const char	    *name;
@@ -180,7 +179,6 @@ typedef struct _CObjectPrivate {
     int		    size;
     int		    vTableSize;
     void	    *vTable;
-    GetCContextProc proc;
     CInterface      *interface;
     int		    nInterface;
     InitObjectProc  init;
@@ -231,8 +229,7 @@ typedef struct _CObjectPrivate {
 
 
 void
-cInitObjectVTable (CompObjectVTable *vTable,
-		   GetCContextProc  getCContext);
+cInitObjectVTable (CompObjectVTable *vTable);
 
 CompBool
 cForBaseObject (CompObject	       *object,

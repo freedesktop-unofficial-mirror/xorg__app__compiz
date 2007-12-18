@@ -1325,8 +1325,10 @@ noopGetMetadata (CompObject *object,
 					     (void *) &ctx);
 }
 
-#define CCONTEXT(vTable, pCtx)				   \
-    (*((GetCContextProc) (vTable)->unused)) (object, pCtx)
+#define CCONTEXT(vTable, pCtx)			   \
+    (*(vTable)->getProp) (object,		   \
+			  COMP_GET_PROP_C_CONTEXT, \
+			  (void *) pCtx)
 
 CompBool
 cForBaseObject (CompObject	       *object,
@@ -1703,6 +1705,19 @@ getProp (CompObject   *object,
 	 unsigned int what,
 	 void	      *value)
 {
+    switch (what) {
+    case COMP_GET_PROP_C_CONTEXT: {
+	CContext *ctx = (CContext *) value;
+
+	ctx->interface  = objectInterface;
+	ctx->nInterface = N_ELEMENTS (objectInterface);
+	ctx->type	= getObjectType ();
+	ctx->data	= (char *) object;
+	ctx->svOffset   = 0;
+	ctx->vtStore    = NULL;
+	ctx->version    = COMPIZ_OBJECT_VERSION;
+    }
+    }
 }
 
 static void
@@ -3388,19 +3403,6 @@ static CompObjectType objectType = {
     &noopObjectVTable
 };
 
-static void
-objectGetCContext (CompObject *object,
-		   CContext   *ctx)
-{
-    ctx->interface  = objectInterface;
-    ctx->nInterface = N_ELEMENTS (objectInterface);
-    ctx->type	    = &objectType;
-    ctx->data	    = (char *) object;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = NULL;
-    ctx->version    = COMPIZ_OBJECT_VERSION;
-}
-
 CompObjectType *
 getObjectType (void)
 {
@@ -3408,7 +3410,6 @@ getObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&objectVTable, objectGetCContext);
 	cInterfaceInit (objectInterface, N_ELEMENTS (objectInterface));
 	init = TRUE;
     }
@@ -3714,6 +3715,8 @@ cObjectInitPrivate (CompBranch	   *branch,
 
 	memcpy (instantiator->vTable, private->vTable, private->vTableSize);
 
+	cInitObjectVTable (instantiator->vTable);
+
 	for (p = &node->base; p; p = p->base)
 	{
 	    n = (const CompObjectInstantiatorNode *) p;
@@ -3722,8 +3725,6 @@ cObjectInitPrivate (CompBranch	   *branch,
 		vTableInit (instantiator->vTable, n->type->noopVTable,
 			    n->type->vTableSize);
 	}
-
-	cInitObjectVTable (instantiator->vTable, private->proc);
     }
     else
     {
@@ -5136,10 +5137,7 @@ static const CompObjectVTable cVTable = {
 };
 
 void
-cInitObjectVTable (CompObjectVTable *vTable,
-		   GetCContextProc  getCContext)
+cInitObjectVTable (CompObjectVTable *vTable)
 {
-    vTable->unused = (UnusedProc) getCContext;
-
     vTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
 }

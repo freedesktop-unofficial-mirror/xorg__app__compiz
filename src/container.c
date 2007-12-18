@@ -36,8 +36,19 @@ containerGetProp (CompObject   *object,
 		  void	       *value)
 {
     switch (what) {
-    case COMP_ADDRESS_BASE_VTABLE_STORE:
-	*((CompObjectVTableVec **) value) = &GET_CONTAINER (object)->object;
+    case COMP_GET_PROP_C_CONTEXT: {
+	CContext *ctx = (CContext *) value;
+
+	CONTAINER (object);
+
+	ctx->interface  = containerInterface;
+	ctx->nInterface = N_ELEMENTS (containerInterface);
+	ctx->type	= getContainerObjectType ();
+	ctx->data	= (char *) c;
+	ctx->svOffset   = 0;
+	ctx->vtStore    = &c->object;
+	ctx->version    = COMPIZ_CONTAINER_VERSION;
+    }
     }
 }
 
@@ -95,21 +106,6 @@ static CompObjectType containerObjectType = {
     NULL
 };
 
-static void
-containerGetCContext (CompObject *object,
-		      CContext   *ctx)
-{
-    CONTAINER (object);
-
-    ctx->interface  = containerInterface;
-    ctx->nInterface = N_ELEMENTS (containerInterface);
-    ctx->type	    = &containerObjectType;
-    ctx->data	    = (char *) c;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &c->object;
-    ctx->version    = COMPIZ_CONTAINER_VERSION;
-}
-
 CompObjectType *
 getContainerObjectType (void)
 {
@@ -117,7 +113,7 @@ getContainerObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&containerObjectVTable, containerGetCContext);
+	cInitObjectVTable (&containerObjectVTable);
 	init = TRUE;
     }
 

@@ -475,8 +475,19 @@ screenGetProp (CompObject   *object,
 	       void	    *value)
 {
     switch (what) {
-    case COMP_ADDRESS_BASE_VTABLE_STORE:
-	*((CompObjectVTableVec **) value) = &GET_SCREEN (object)->object;
+    case COMP_GET_PROP_C_CONTEXT: {
+	CContext *ctx = (CContext *) value;
+
+	SCREEN (object);
+
+	ctx->interface  = screenInterface;
+	ctx->nInterface = N_ELEMENTS (screenInterface);
+	ctx->type	= getScreenObjectType ();
+	ctx->data	= (char *) s;
+	ctx->svOffset   = 0;
+	ctx->vtStore    = &s->object;
+	ctx->version    = COMPIZ_SCREEN_VERSION;
+    }
     }
 }
 
@@ -1664,21 +1675,6 @@ static CompObjectType screenObjectType = {
     NULL
 };
 
-static void
-screenGetCContext (CompObject *object,
-		   CContext   *ctx)
-{
-    SCREEN (object);
-
-    ctx->interface  = screenInterface;
-    ctx->nInterface = N_ELEMENTS (screenInterface);
-    ctx->type	    = &screenObjectType;
-    ctx->data	    = (char *) s;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &s->object;
-    ctx->version    = COMPIZ_SCREEN_VERSION;
-}
-
 CompObjectType *
 getScreenObjectType (void)
 {
@@ -1686,7 +1682,7 @@ getScreenObjectType (void)
 
     if (!init)
     {
-	cInitObjectVTable (&screenObjectVTable, screenGetCContext);
+	cInitObjectVTable (&screenObjectVTable);
 	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface));
 	init = TRUE;
     }
