@@ -306,25 +306,25 @@ forEachObjectPrivates (PrivatesCallBackProc proc,
 }
 
 static void
-updateFactory (CompObjectFactory      *factory,
-	       const char	      *name,
-	       CompObjectPrivatesSize *size)
+updateFactory (CompObjectFactory  *factory,
+	       const char	  *name,
+	       CompObjectPrivates *privates)
 {
-    CompObjectInstantiator *i;
+    CompObjectInstantiatorNode *node;
 
-    for (i = factory->instantiator; i; i = i->next)
+    for (node = factory->instantiators; node; node = node->next)
     {
-	if (strcmp (i->type->name, name) == 0)
+	if (strcmp (node->type->name, name) == 0)
 	{
-	    i->size = *size;
+	    node->privates = *privates;
 	    break;
 	}
     }
 }
 
 typedef struct _BranchContext {
-    const char		   *name;
-    CompObjectPrivatesSize *size;
+    const char	       *name;
+    CompObjectPrivates *privates;
 } BranchContext;
 
 static CompBool
@@ -338,7 +338,7 @@ forBranchInterface (CompObject		 *object,
 
     BRANCH (object);
 
-    updateFactory (&b->factory, pCtx->name, pCtx->size);
+    updateFactory (&b->factory, pCtx->name, pCtx->privates);
 
     return TRUE;
 }
@@ -354,16 +354,16 @@ forEachBranchTree (CompObject *object,
 }
 
 static void
-mainUpdatePrivatesSize (MainContext	       *m,
-			const char	       *name,
-			CompObjectPrivatesSize *size)
+mainUpdatePrivatesSize (MainContext	   *m,
+			const char	   *name,
+			CompObjectPrivates *privates)
 {
     BranchContext ctx;
 
-    ctx.name = name;
-    ctx.size = size;
+    ctx.name     = name;
+    ctx.privates = privates;
 
-    updateFactory (&m->factory.base, name, size);
+    updateFactory (&m->factory.base, name, privates);
 
     forEachBranchTree (m->root.core, (void *) &ctx);
 }
@@ -373,54 +373,49 @@ mainAllocatePrivateIndex (CompFactory *factory,
 			  const char  *name,
 			  int         size)
 {
-    MainContext		  *m = (MainContext *) factory;
-    CompPrivatesSizeEntry *entry;
-    PrivatesContext	  ctx;
-    int			  index, i;
+    MainContext		   *m = (MainContext *) factory;
+    CompObjectPrivatesNode *node;
+    PrivatesContext	   ctx;
+    int			   index;
 
     ctx.root = &m->root;
     ctx.name = name;
 
-    for (i = 0; i < m->factory.nEntry; i++)
+    for (node = m->factory.privates; node; node = node->next)
     {
-	if (strcmp (m->factory.entry[i].name, name) == 0)
+	if (strcmp (node->name, name) == 0)
 	{
-	    index = allocatePrivateIndex (&m->factory.entry[i].size.len,
-					  &m->factory.entry[i].size.sizes,
-					  &m->factory.entry[i].size.totalSize,
+	    index = allocatePrivateIndex (&node->privates.len,
+					  &node->privates.sizes,
+					  &node->privates.totalSize,
 					  size, forEachObjectPrivates,
 					  (void *) &ctx);
-	    if (index >=0)
-		mainUpdatePrivatesSize (m, name, &m->factory.entry[i].size);
+	    if (index >= 0)
+		mainUpdatePrivatesSize (m, name, &node->privates);
 
 	    return index;
 	}
     }
 
-    entry = realloc (m->factory.entry, sizeof (CompPrivatesSizeEntry) *
-		     (m->factory.nEntry + 1));
-    if (!entry)
+    node = malloc (sizeof (CompObjectPrivatesNode) + strlen (name) + 1);
+    if (!node)
 	return -1;
 
-    m->factory.entry = entry;
+    node->next		     = m->factory.privates;
+    node->name		     = strcpy ((char *) (node + 1), name);
+    node->privates.len	     = 0;
+    node->privates.sizes     = NULL;
+    node->privates.totalSize = 0;
 
-    entry[m->factory.nEntry].name = strdup (name);
-    if (!entry[m->factory.nEntry].name)
-	return -1;
+    m->factory.privates = node;
 
-    entry[m->factory.nEntry].size.len	    = 0;
-    entry[m->factory.nEntry].size.sizes     = NULL;
-    entry[m->factory.nEntry].size.totalSize = 0;
-
-    i = m->factory.nEntry++;
-
-    index = allocatePrivateIndex (&m->factory.entry[i].size.len,
-				  &m->factory.entry[i].size.sizes,
-				  &m->factory.entry[i].size.totalSize,
+    index = allocatePrivateIndex (&node->privates.len,
+				  &node->privates.sizes,
+				  &node->privates.totalSize,
 				  size, forEachObjectPrivates,
 				  (void *) &ctx);
     if (index >= 0)
-	mainUpdatePrivatesSize (m, name, &m->factory.entry[i].size);
+	mainUpdatePrivatesSize (m, name, &node->privates);
 
     return index;
 }
@@ -430,24 +425,24 @@ mainFreePrivateIndex (CompFactory *factory,
 		      const char  *name,
 		      int	  index)
 {
-    MainContext     *m = (MainContext *) factory;
-    PrivatesContext ctx;
-    int		    i;
+    MainContext		   *m = (MainContext *) factory;
+    CompObjectPrivatesNode *node;
+    PrivatesContext	   ctx;
 
     ctx.root = &m->root;
     ctx.name = name;
 
-    for (i = 0; i < m->factory.nEntry; i++)
+    for (node = m->factory.privates; node; node = node->next)
     {
-	if (strcmp (m->factory.entry[i].name, name) == 0)
+	if (strcmp (node->name, name) == 0)
 	{
-	    freePrivateIndex (&m->factory.entry[i].size.len,
-			      &m->factory.entry[i].size.sizes,
-			      &m->factory.entry[i].size.totalSize,
+	    freePrivateIndex (&node->privates.len,
+			      &node->privates.sizes,
+			      &node->privates.totalSize,
 			      forEachObjectPrivates,
 			      (void *) &ctx,
 			      index);
-	    mainUpdatePrivatesSize (m, name, &m->factory.entry[i].size);
+	    mainUpdatePrivatesSize (m, name, &node->privates);
 	}
     }
 }

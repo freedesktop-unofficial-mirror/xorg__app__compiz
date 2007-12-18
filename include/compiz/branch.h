@@ -58,10 +58,11 @@ typedef struct _CompBranchVTable {
     RegisterTypeProc registerType;
 } CompBranchVTable;
 
-typedef struct _CompPrivatesSizeEntry {
-    const char		   *name;
-    CompObjectPrivatesSize size;
-} CompPrivatesSizeEntry;
+typedef struct _CompObjectPrivatesNode {
+    struct _CompObjectPrivatesNode *next;
+    const char			   *name;
+    CompObjectPrivates		   privates;
+} CompObjectPrivatesNode;
 
 typedef struct _CompFactory CompFactory;
 
@@ -79,8 +80,7 @@ struct _CompFactory {
     AllocatePrivateIndexProc allocatePrivateIndex;
     FreePrivateIndexProc     freePrivateIndex;
 
-    CompPrivatesSizeEntry *entry;
-    int			  nEntry;
+    CompObjectPrivatesNode *privates;
 };
 
 struct _CompBranch {

@@ -1414,14 +1414,15 @@ forEachWindowObject (CompObject	             *object,
 }
 
 static CompBool
-screenInitObject (const CompObjectFactory *factory,
-		  CompObject		  *object)
+screenInitObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
 {
     int i;
 
     SCREEN (object);
 
-    if (!cObjectInterfaceInit (factory, object, &screenObjectVTable))
+    if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
     s->windowContainer.forEachChildObject = forEachWindowObject;
@@ -1639,15 +1640,16 @@ screenInitObject (const CompObjectFactory *factory,
 }
 
 static void
-screenFiniObject (const CompObjectFactory *factory,
-		  CompObject		  *object)
+screenFiniObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
 {
     SCREEN (object);
 
     if (s->objectName)
 	free (s->objectName);
 
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static CompObjectType screenObjectType = {
@@ -1684,8 +1686,8 @@ getScreenObjectType (void)
 
     if (!init)
     {
-	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface),
-			&screenObjectVTable, screenGetCContext);
+	cInitObjectVTable (&screenObjectVTable, screenGetCContext);
+	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface));
 	init = TRUE;
     }
 

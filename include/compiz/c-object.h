@@ -393,10 +393,8 @@ cDefaultValuesFromFile (CInterface *interface,
 			const char *name);
 
 CompBool
-cInterfaceInit (CInterface	 *interface,
-		int		 nInterface,
-		CompObjectVTable *vTable,
-		GetCContextProc  getCContext);
+cInterfaceInit (CInterface *interface,
+		int	   nInterface);
 
 void
 cInterfaceFini (CInterface *interface,
@@ -429,13 +427,14 @@ cObjectChildrenFini (const CompObjectFactory *factory,
 		     int		     nInterface);
 
 CompBool
-cObjectInterfaceInit (const CompObjectFactory *factory,
-		      CompObject	      *object,
-		      const CompObjectVTable  *vTable);
+cObjectInit (const CompObjectInstantiator *instantiator,
+	     CompObject			  *object,
+	     const CompObjectFactory      *factory);
 
 void
-cObjectInterfaceFini (const CompObjectFactory *factory,
-		      CompObject	      *object);
+cObjectFini (const CompObjectInstantiator *instantiator,
+	     CompObject			  *object,
+	     const CompObjectFactory      *factory);
 
 CompBool
 cObjectInitPrivates (CompBranch	    *branch,

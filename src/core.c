@@ -284,12 +284,13 @@ forEachPluginObject (CompObject		     *object,
 }
 
 static CompBool
-coreInitObject (const CompObjectFactory *factory,
-		CompObject	        *object)
+coreInitObject (const CompObjectInstantiator *instantiator,
+		CompObject		     *object,
+		const CompObjectFactory      *factory)
 {
     CORE (object);
 
-    if (!cObjectInterfaceInit (factory, object, &coreObjectVTable.base.base))
+    if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
     c->displayContainer.forEachChildObject = forEachDisplayObject;
@@ -303,7 +304,7 @@ coreInitObject (const CompObjectFactory *factory,
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	cObjectInterfaceFini (factory, object);
+	cObjectFini (instantiator, object, factory);
 	return FALSE;
     }
 
@@ -311,7 +312,7 @@ coreInitObject (const CompObjectFactory *factory,
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	cObjectInterfaceFini (factory, object);
+	cObjectFini (instantiator, object, factory);
 	return FALSE;
     }
 
@@ -359,8 +360,9 @@ coreInitObject (const CompObjectFactory *factory,
 }
 
 static void
-coreFiniObject (const CompObjectFactory *factory,
-		CompObject	        *object)
+coreFiniObject (const CompObjectInstantiator *instantiator,
+		CompObject		     *object,
+		const CompObjectFactory      *factory)
 {
     CORE (object);
 
@@ -369,7 +371,7 @@ coreFiniObject (const CompObjectFactory *factory,
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);
 
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static const CompCoreVTable noopCoreObjectVTable = {
@@ -411,8 +413,8 @@ getCoreObjectType (void)
 
     if (!init)
     {
-	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface),
-			&coreObjectVTable.base.base, coreGetCContext);
+	cInitObjectVTable (&coreObjectVTable.base.base, coreGetCContext);
+	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface));
 	init = TRUE;
     }
 

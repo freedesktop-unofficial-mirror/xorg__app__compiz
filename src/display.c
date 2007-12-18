@@ -2397,14 +2397,15 @@ forEachScreenObject (CompObject	             *object,
 }
 
 static CompBool
-displayInitObject (const CompObjectFactory *factory,
-		   CompObject		   *object)
+displayInitObject (const CompObjectInstantiator *instantiator,
+		   CompObject		        *object,
+		   const CompObjectFactory      *factory)
 {
     int i;
 
     DISPLAY (object);
 
-    if (!cObjectInterfaceInit (factory, object, &displayObjectVTable.base))
+    if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
     d->screenContainer.forEachChildObject = forEachScreenObject;
@@ -2458,15 +2459,16 @@ displayInitObject (const CompObjectFactory *factory,
 }
 
 static void
-displayFiniObject (const CompObjectFactory *factory,
-		   CompObject		   *object)
+displayFiniObject (const CompObjectInstantiator *instantiator,
+		   CompObject		        *object,
+		   const CompObjectFactory      *factory)
 {
     DISPLAY (object);
 
     if (d->objectName)
 	free (d->objectName);
 
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static const CompDisplayVTable noopDisplayObjectVTable = {
@@ -2508,8 +2510,8 @@ getDisplayObjectType (void)
 
     if (!init)
     {
-	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface),
-			&displayObjectVTable.base, displayGetCContext);
+	cInitObjectVTable (&displayObjectVTable.base, displayGetCContext);
+	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface));
 	init = TRUE;
     }
 

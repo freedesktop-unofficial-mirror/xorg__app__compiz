@@ -136,25 +136,27 @@ static CompBranchVTable branchObjectVTable = {
 };
 
 static CompBool
-branchInitObject (const CompObjectFactory *factory,
-		  CompObject		  *object)
+branchInitObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
 {
     BRANCH (object);
 
-    if (!cObjectInterfaceInit (factory, object, &branchObjectVTable.base))
+    if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
     b->factory.master        = factory;
-    b->factory.instantiator  = NULL;
+    b->factory.instantiators = NULL;
 
     return TRUE;
 }
 
 static void
-branchFiniObject (const CompObjectFactory *factory,
-		  CompObject		  *object)
+branchFiniObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
 {
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static const CompBranchVTable noopBranchObjectVTable = {

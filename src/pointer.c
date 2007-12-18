@@ -33,12 +33,13 @@ static const CInterface pointerInterface[] = {
 static CompObjectVTable pointerObjectVTable = { 0 };
 
 static CompBool
-pointerInitObject (const CompObjectFactory *factory,
-		   CompObject	           *object)
+pointerInitObject (const CompObjectInstantiator *instantiator,
+		   CompObject		        *object,
+		   const CompObjectFactory      *factory)
 {
     POINTER (object);
 
-    if (!cObjectInterfaceInit (factory, object, &pointerObjectVTable))
+    if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
     p->x = 0;
@@ -48,10 +49,11 @@ pointerInitObject (const CompObjectFactory *factory,
 }
 
 static void
-pointerFiniObject (const CompObjectFactory *factory,
-		   CompObject	           *object)
+pointerFiniObject (const CompObjectInstantiator *instantiator,
+		   CompObject		        *object,
+		   const CompObjectFactory      *factory)
 {
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static CompObjectType pointerObjectType = {

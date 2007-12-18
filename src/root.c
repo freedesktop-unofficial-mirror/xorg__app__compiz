@@ -161,30 +161,41 @@ forCoreObject (CompObject	       *object,
 }
 
 static CompBool
-rootInitObject (const CompObjectFactory *factory,
-		CompObject		*object)
+rootInitObject (const CompObjectInstantiator *instantiator,
+		CompObject		     *object,
+		const CompObjectFactory      *factory)
 {
+    const CompObjectInstantiator *base = instantiator->base;
+
     ROOT (object);
 
     r->signal.head = NULL;
     r->signal.tail = NULL;
 
+    if (!(*base->funcs.init) (base, object, factory))
+	return FALSE;
+
     r->u.base.forEachChildObject = forCoreObject;
 
     r->core = NULL;
 
-    WRAP (&r->object, object, vTable, &rootObjectVTable.base);
+    WRAP (&r->object, object, vTable, instantiator->vTable);
 
     return TRUE;
 }
 
 static void
-rootFiniObject (const CompObjectFactory *factory,
-		CompObject		*object)
+rootFiniObject (const CompObjectInstantiator *instantiator,
+		CompObject		     *object,
+		const CompObjectFactory      *factory)
 {
+    const CompObjectInstantiator *base = instantiator->base;
+
     ROOT (object);
 
     UNWRAP (&r->object, object, vTable);
+
+    (*base->funcs.fini) (base, object, factory);
 }
 
 static CompObjectType rootObjectType = {

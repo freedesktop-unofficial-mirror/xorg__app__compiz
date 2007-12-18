@@ -61,12 +61,13 @@ static CompObjectVTable containerObjectVTable = {
 };
 
 static CompBool
-containerInitObject (const CompObjectFactory *factory,
-		     CompObject		     *object)
+containerInitObject (const CompObjectInstantiator *instantiator,
+		     CompObject			  *object,
+		     const CompObjectFactory      *factory)
 {
     CONTAINER (object);
 
-    if (!cObjectInterfaceInit (factory, object, &containerObjectVTable))
+    if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
     c->forEachChildObject = NULL;
@@ -75,10 +76,11 @@ containerInitObject (const CompObjectFactory *factory,
 }
 
 static void
-containerFiniObject (const CompObjectFactory *factory,
-		     CompObject		     *object)
+containerFiniObject (const CompObjectInstantiator *instantiator,
+		     CompObject			  *object,
+		     const CompObjectFactory      *factory)
 {
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static CompObjectType containerObjectType = {

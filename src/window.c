@@ -1744,12 +1744,13 @@ static CompObjectVTable windowObjectVTable = {
 };
 
 static CompBool
-windowInitObject (const CompObjectFactory *factory,
-		  CompObject		  *object)
+windowInitObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
 {
     WINDOW (object);
 
-    if (!cObjectInterfaceInit (factory, object, &windowObjectVTable))
+    if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
     w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
@@ -1760,15 +1761,16 @@ windowInitObject (const CompObjectFactory *factory,
 }
 
 static void
-windowFiniObject (const CompObjectFactory *factory,
-		  CompObject		  *object)
+windowFiniObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
 {
     WINDOW (object);
 
     if (w->objectName)
 	free (w->objectName);
 
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static CompObjectType windowObjectType = {
@@ -1805,8 +1807,8 @@ getWindowObjectType (void)
 
     if (!init)
     {
-	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface),
-			&windowObjectVTable, windowGetCContext);
+	cInitObjectVTable (&windowObjectVTable, windowGetCContext);
+	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface));
 	init = TRUE;
     }
 

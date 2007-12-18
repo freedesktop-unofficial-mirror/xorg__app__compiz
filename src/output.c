@@ -33,17 +33,19 @@ static const CInterface outputInterface[] = {
 static CompObjectVTable outputObjectVTable = { 0 };
 
 static CompBool
-outputInitObject (const CompObjectFactory *factory,
-		  CompObject	          *object)
+outputInitObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
 {
-    return cObjectInterfaceInit (factory, object, &outputObjectVTable);
+    return cObjectInit (instantiator, object, factory);
 }
 
 static void
-outputFiniObject (const CompObjectFactory *factory,
-		  CompObject	          *object)
+outputFiniObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
 {
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static CompObjectType outputObjectType = {

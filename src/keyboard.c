@@ -33,12 +33,13 @@ static const CInterface keyboardInterface[] = {
 static CompObjectVTable keyboardObjectVTable = { 0 };
 
 static CompBool
-keyboardInitObject (const CompObjectFactory *factory,
-		    CompObject	            *object)
+keyboardInitObject (const CompObjectInstantiator *instantiator,
+		    CompObject		         *object,
+		    const CompObjectFactory      *factory)
 {
     KEYBOARD (object);
 
-    if (!cObjectInterfaceInit (factory, object, &keyboardObjectVTable))
+    if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
     k->state = 0;
@@ -47,10 +48,11 @@ keyboardInitObject (const CompObjectFactory *factory,
 }
 
 static void
-keyboardFiniObject (const CompObjectFactory *factory,
-		    CompObject	            *object)
+keyboardFiniObject (const CompObjectInstantiator *instantiator,
+		    CompObject		         *object,
+		    const CompObjectFactory      *factory)
 {
-    cObjectInterfaceFini (factory, object);
+    cObjectFini (instantiator, object, factory);
 }
 
 static CompObjectType keyboardObjectType = {

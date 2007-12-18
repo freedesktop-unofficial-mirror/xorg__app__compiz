@@ -50,31 +50,29 @@ COMPIZ_BEGIN_DECLS
   - must also not begin with a digit
 */
 
-typedef struct _CompObject        CompObject;
-typedef struct _CompObjectType    CompObjectType;
-typedef struct _CompObjectFactory CompObjectFactory;
-typedef struct _CompObjectVTable  CompObjectVTable;
+typedef struct _CompObject	       CompObject;
+typedef struct _CompObjectType	       CompObjectType;
+typedef struct _CompObjectFactory      CompObjectFactory;
+typedef struct _CompObjectVTable       CompObjectVTable;
+typedef struct _CompObjectInstantiator CompObjectInstantiator;
 
-typedef CompBool (*InitObjectProc) (const CompObjectFactory *factory,
-				    CompObject		    *object);
-typedef void     (*FiniObjectProc) (const CompObjectFactory *factory,
-				    CompObject		    *object);
+typedef CompBool (*InitObjectProc) (const CompObjectInstantiator *i,
+				    CompObject			 *object,
+				    const CompObjectFactory	 *factory);
+typedef void     (*FiniObjectProc) (const CompObjectInstantiator *i,
+				    CompObject			 *object,
+				    const CompObjectFactory	 *factory);
 
 typedef struct _CompObjectFuncs {
     InitObjectProc init;
     FiniObjectProc fini;
 } CompObjectFuncs;
 
-typedef struct _CompObjectPrivatesSize {
+typedef struct _CompObjectPrivates {
     int	len;
     int	*sizes;
     int	totalSize;
-} CompObjectPrivatesSize;
-
-typedef struct _CompObjectPrivate {
-    CompObjectFuncs  funcs;
-    CompObjectVTable *vTable;
-} CompObjectPrivate;
+} CompObjectPrivates;
 
 struct _CompObjectType {
     const char		   *name;
@@ -86,20 +84,24 @@ struct _CompObjectType {
     const CompObjectVTable *noopVTable;
 };
 
-typedef struct _CompObjectInstantiator {
-    struct _CompObjectInstantiator       *next;
-    const struct _CompObjectInstantiator *base;
+struct _CompObjectInstantiator {
+    const CompObjectInstantiator *base;
+    CompObjectFuncs		 funcs;
+    CompObjectVTable		 *vTable;
+};
+
+typedef struct _CompObjectInstantiatorNode {
+    CompObjectInstantiator		 base;
+    struct _CompObjectInstantiatorNode   *next;
+    const CompObjectInstantiator	 *instantiator;
     const CompObjectType		 *type;
-    CompObjectPrivate			 *privates;
-    int					 nPrivates;
-    CompObjectPrivatesSize		 size;
+    CompObjectPrivates			 privates;
     char				 *interface;
-    CompObjectVTable			 *vTable;
-} CompObjectInstantiator;
+} CompObjectInstantiatorNode;
 
 struct _CompObjectFactory {
-    const CompObjectFactory *master;
-    CompObjectInstantiator  *instantiator;
+    const CompObjectFactory    *master;
+    CompObjectInstantiatorNode *instantiators;
 };
 
 typedef unsigned int CompObjectTypeID;
