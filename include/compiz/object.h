@@ -166,8 +166,6 @@ typedef void (*GetPropProc) (CompObject   *object,
 			     unsigned int what,
 			     void	  *value);
 
-typedef void (*UnusedProc) (CompObject *object);
-
 typedef void (*InsertObjectProc) (CompObject *object,
 				  CompObject *parent,
 				  const char *name);
@@ -382,10 +380,6 @@ struct _CompObjectVTable {
        must be implemented by each subtype
     */
     ForBaseObjectProc forBaseObject;
-
-    /* empty vtable entry that each implementer can
-       use for its own purpose */
-    UnusedProc unused;
 
     GetPropProc getProp;
 
