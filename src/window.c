@@ -1793,7 +1793,8 @@ getWindowObjectType (void)
     if (!init)
     {
 	cInitObjectVTable (&windowObjectVTable);
-	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface));
+	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface),
+			&windowObjectType);
 	init = TRUE;
     }
 

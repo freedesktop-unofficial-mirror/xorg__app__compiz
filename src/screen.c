@@ -1671,7 +1671,8 @@ getScreenObjectType (void)
     if (!init)
     {
 	cInitObjectVTable (&screenObjectVTable);
-	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface));
+	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface),
+			&screenObjectType);
 	init = TRUE;
     }
 

@@ -3389,7 +3389,8 @@ getObjectType (void)
 
     if (!init)
     {
-	cInterfaceInit (objectInterface, N_ELEMENTS (objectInterface));
+	cInterfaceInit (objectInterface, N_ELEMENTS (objectInterface),
+			&objectType);
 	init = TRUE;
     }
 
@@ -3689,6 +3690,9 @@ cObjectInitPrivate (CompBranch	   *branch,
     instantiator->funcs  = funcs;
     instantiator->vTable = (CompObjectVTable *) (instantiator + 1);
 
+    if (private->interface)
+	cInterfaceInit (private->interface, private->nInterface, NULL);
+
     if (private->vTableSize)
     {
 	const CompObjectInstantiatorNode *n;
@@ -3711,9 +3715,6 @@ cObjectInitPrivate (CompBranch	   *branch,
     {
 	instantiator->vTable = NULL;
     }
-
-    if (private->interface)
-	cInterfaceInit (private->interface, private->nInterface);
 
     /* initialize all objects of this type */
     if (!initTypedObjects (&branch->factory, &branch->u.base, node->type,
@@ -4802,13 +4803,17 @@ cInitSignals (CInterface *interface,
 }
 
 CompBool
-cInterfaceInit (CInterface *interface,
-		int	   nInterface)
+cInterfaceInit (CInterface	     *interface,
+		int		     nInterface,
+		const CompObjectType *type)
 {
     int i;
 
     for (i = 0; i < nInterface; i++)
+    {
+	interface->type = type;
 	cDefaultValuesFromFile (&interface[i], 1, interface->name);
+    }
 
     cInitSignals (interface, nInterface);
 

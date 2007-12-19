@@ -124,22 +124,23 @@ typedef struct _CChildObject {
     { # name, offsetof (object, name), type }
 
 typedef struct _CInterface {
-    const char	  *name;
-    size_t	  offset;
-    const CMethod *method;
-    int		  nMethod;
-    CSignal       **signal;
-    int		  nSignal;
-    CBoolProp     *boolProp;
-    int		  nBoolProp;
-    CIntProp      *intProp;
-    int		  nIntProp;
-    CDoubleProp   *doubleProp;
-    int		  nDoubleProp;
-    CStringProp   *stringProp;
-    int		  nStringProp;
-    CChildObject  *child;
-    int		  nChild;
+    const char		 *name;
+    const CompObjectType *type;
+    size_t		 offset;
+    const CMethod	 *method;
+    int			 nMethod;
+    CSignal		 **signal;
+    int			 nSignal;
+    CBoolProp		 *boolProp;
+    int			 nBoolProp;
+    CIntProp		 *intProp;
+    int			 nIntProp;
+    CDoubleProp		 *doubleProp;
+    int			 nDoubleProp;
+    CStringProp		 *stringProp;
+    int			 nStringProp;
+    CChildObject	 *child;
+    int			 nChild;
 } CInterface;
 
 #define C_OFFSET__(vtable, name) 0
@@ -151,7 +152,7 @@ typedef struct _CInterface {
 
 #define C_INTERFACE(name, type, vtable, offset, method, signal,		\
 		    bool, int, double, string, child)			\
-    { # name,								\
+    { # name, NULL,							\
 	    C_OFFSET_ ## offset (vtable, name),				\
 	    C_MEMBER_ ## method (name, type, Method),			\
 	    C_MEMBER_ ## signal (name, type, Signal),			\
@@ -392,8 +393,9 @@ cDefaultValuesFromFile (CInterface *interface,
 			const char *name);
 
 CompBool
-cInterfaceInit (CInterface *interface,
-		int	   nInterface);
+cInterfaceInit (CInterface	     *interface,
+		int		     nInterface,
+		const CompObjectType *type);
 
 void
 cInterfaceFini (CInterface *interface,

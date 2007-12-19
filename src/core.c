@@ -396,7 +396,8 @@ getCoreObjectType (void)
     if (!init)
     {
 	cInitObjectVTable (&coreObjectVTable.base.base);
-	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface));
+	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface),
+			&coreObjectType);
 	init = TRUE;
     }
 

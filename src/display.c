@@ -2496,7 +2496,8 @@ getDisplayObjectType (void)
     if (!init)
     {
 	cInitObjectVTable (&displayObjectVTable.base);
-	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface));
+	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface),
+			&displayObjectType);
 	init = TRUE;
     }
 
