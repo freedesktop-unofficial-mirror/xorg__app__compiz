@@ -135,56 +135,6 @@ compObjectInit (const CompObjectFactory      *factory,
 		const CompObjectInstantiator *instantiator)
 {
     return (*instantiator->funcs.init) (instantiator, object, factory);
-
-/*
-    if (instantiator->base)
-	if (!compObjectInit (factory, object, instantiator->base))
-	    return FALSE;
-
-    if (!(*instantiator->type->funcs.init) (factory, object))
-    {
-	if (instantiator->base)
-	    compObjectFini (factory, object, instantiator->base);
-
-	return FALSE;
-    }
-
-    if (instantiator->vTable)
-	object->vTable = instantiator->vTable;
-
-    if (!instantiator->type->privatesOffset)
-	return TRUE;
-
-    if (!allocateObjectPrivates (object, instantiator->type,
-				 &instantiator->size))
-    {
-	(*instantiator->type->funcs.fini) (factory, object);
-	if (instantiator->base)
-	    compObjectFini (factory, object, instantiator->base);
-
-	return FALSE;
-    }
-
-    for (i = 0; i < instantiator->nPrivates; i++)
-    {
-	if (!(*instantiator->privates[i].funcs.init) (factory, object))
-	    break;
-
-	if (instantiator->privates[i].vTable)
-	    object->vTable = instantiator->privates[i].vTable;
-    }
-
-    if (i == instantiator->nPrivates)
-	return TRUE;
-
-    while (--i >= 0)
-	(*instantiator->privates[i].funcs.fini) (factory, object);
-
-    (*instantiator->type->funcs.fini) (factory, object);
-
-    if (instantiator->base)
-	compObjectFini (factory, object, instantiator->base);
-*/
 }
 
 void
