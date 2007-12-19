@@ -40,7 +40,7 @@ branchGetProp (CompObject   *object,
 {
     cGetProp (&GET_BRANCH (object)->data.base,
 	      branchInterface, N_ELEMENTS (branchInterface),
-	      getBranchObjectType (), COMPIZ_BRANCH_VERSION,
+	      getBranchObjectType (), NULL, NULL, COMPIZ_BRANCH_VERSION,
 	      what, value);
 }
 

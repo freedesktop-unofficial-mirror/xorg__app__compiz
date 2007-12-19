@@ -37,7 +37,7 @@ containerGetProp (CompObject   *object,
 {
     cGetProp (&GET_CONTAINER (object)->data.base,
 	      containerInterface, N_ELEMENTS (containerInterface),
-	      getContainerObjectType (), COMPIZ_CONTAINER_VERSION,
+	      getContainerObjectType (), NULL, NULL, COMPIZ_CONTAINER_VERSION,
 	      what, value);
 }
 

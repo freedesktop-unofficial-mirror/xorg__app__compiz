@@ -1735,7 +1735,7 @@ windowGetProp (CompObject   *object,
 {
     cGetProp (&GET_WINDOW (object)->data.base,
 	      windowInterface, N_ELEMENTS (windowInterface),
-	      getWindowObjectType (), COMPIZ_WINDOW_VERSION,
+	      getWindowObjectType (), NULL, NULL, COMPIZ_WINDOW_VERSION,
 	      what, value);
 }
 

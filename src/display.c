@@ -234,7 +234,7 @@ displayGetProp (CompObject   *object,
 {
     cGetProp (&GET_DISPLAY (object)->data.base.base,
 	      displayInterface, N_ELEMENTS (displayInterface),
-	      getDisplayObjectType (), COMPIZ_DISPLAY_VERSION,
+	      getDisplayObjectType (), NULL, NULL, COMPIZ_DISPLAY_VERSION,
 	      what, value);
 }
 

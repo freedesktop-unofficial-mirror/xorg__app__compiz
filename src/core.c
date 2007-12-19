@@ -56,7 +56,7 @@ coreGetProp (CompObject   *object,
 {
     cGetProp (&GET_CORE (object)->data.base.base,
 	      coreInterface, N_ELEMENTS (coreInterface),
-	      getCoreObjectType (), COMPIZ_CORE_VERSION,
+	      getCoreObjectType (), NULL, NULL, COMPIZ_CORE_VERSION,
 	      what, value);
 }
 

@@ -161,28 +161,30 @@ typedef struct _CInterface {
 	    C_MEMBER_ ## string (name, type, StringProp),		\
 	    C_MEMBER_ ## child  (name, type, ChildObject) }
 
+typedef CompBool (*CInitObjectProc) (CompObject *object);
+typedef void     (*CFiniObjectProc) (CompObject	*object);
+
+typedef struct _CMetadata {
+    const CInterface     *interface;
+    int			 nInterface;
+    const CompObjectType *type;
+    CInitObjectProc	 init;
+    CFiniObjectProc	 fini;
+    int			 version;
+} CMetadata;
+
 #define COMP_PROP_C_BASE     1024
 #define COMP_PROP_C_DATA     (COMP_PROP_C_BASE + 0)
 #define COMP_PROP_C_METADATA (COMP_PROP_C_BASE + 2)
 
-typedef struct _CMetadata {
-    const CInterface       *interface;
-    int			   nInterface;
-    const CompObjectType   *type;
-    const CompObjectVTable *vTable;
-    int			   version;
-} CMetadata;
-
 typedef struct _CObjectPrivate {
-    const char	    *name;
-    int		    *pIndex;
-    int		    size;
-    int		    vTableSize;
-    void	    *vTable;
-    CInterface      *interface;
-    int		    nInterface;
-    InitObjectProc  init;
-    FiniObjectProc  fini;
+    const char *name;
+    int	       *pIndex;
+    int	       size;
+    int	       vTableSize;
+    void       *vTable;
+    CInterface *interface;
+    int	       nInterface;
 } CObjectPrivate;
 
 #define C_INDEX__(name, type, struct) 0, 0
@@ -424,6 +426,16 @@ cObjectChildrenFini (const CompObjectFactory *factory,
 		     int		     nInterface);
 
 CompBool
+cObjectInterfaceInit (const CompObjectInstantiator *instantiator,
+		      CompObject		   *object,
+		      const CompObjectFactory      *factory);
+
+void
+cObjectInterfaceFini (const CompObjectInstantiator *instantiator,
+		      CompObject		   *object,
+		      const CompObjectFactory      *factory);
+
+CompBool
 cObjectInit (const CompObjectInstantiator *instantiator,
 	     CompObject			  *object,
 	     const CompObjectFactory      *factory);
@@ -457,6 +469,8 @@ void
 cGetMetadataProp (const CInterface     *interface,
 		  int		       nInterface,
 		  const CompObjectType *type,
+		  CInitObjectProc      init,
+		  CFiniObjectProc      fini,
 		  int		       version,
 		  CMetadata	       *metadata);
 
@@ -465,6 +479,8 @@ cGetProp (CompInterfaceData    *data,
 	  const CInterface     *interface,
 	  int		       nInterface,
 	  const CompObjectType *type,
+	  CInitObjectProc      init,
+	  CFiniObjectProc      fini,
 	  int		       version,
 	  unsigned int	       what,
 	  void		       *value);
