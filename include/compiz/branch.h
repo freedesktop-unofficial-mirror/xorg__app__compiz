@@ -89,8 +89,7 @@ struct _CompBranch {
 	const CompBranchVTable *vTable;
     } u;
 
-    CompObjectVTableVec object;
-
+    CompObjectData    data;
     CompObjectFactory factory;
 };
 

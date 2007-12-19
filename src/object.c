@@ -1325,31 +1325,25 @@ noopGetMetadata (CompObject *object,
 					     (void *) &ctx);
 }
 
-#define CCONTEXT(vTable, pCtx)			   \
-    (*(vTable)->getProp) (object,		   \
-			  COMP_GET_PROP_C_CONTEXT, \
-			  (void *) pCtx)
-
 CompBool
 cForBaseObject (CompObject	       *object,
 		BaseObjectCallBackProc proc,
 		void		       *closure)
 {
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-    CContext		ctx;
+    const CompObjectVTable *vTable = object->vTable;
+    CompBool		   status;
 
-    CCONTEXT (object->vTable, &ctx);
-
-    UNWRAP (ctx.vtStore, object, vTable);
+    (*object->vTable->getProp) (object,
+				COMP_PROP_BASE_VTABLE,
+				(void *) &object->vTable);
     status = (*proc) (object, closure);
-    WRAP (ctx.vtStore, object, vTable, v.vTable);
+    object->vTable = vTable;
 
     return status;
 }
 
-#define CHILD(data, child)		      \
-    ((CompObject *) ((data) + (child)->offset))
+#define CHILD(data, child)				   \
+    ((CompObject *) (((char *) (data)) + (child)->offset))
 
 void
 cInsertObject (CompObject *object,
@@ -1357,20 +1351,22 @@ cInsertObject (CompObject *object,
 	       const char *name)
 {
     CompObject *child;
-    CContext   ctx;
+    CMetadata  m;
+    char       *data;
     int        i, j;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
     noopInsertObject (object, parent, name);
 
-    for (i = 0; i < ctx.nInterface; i++)
+    for (i = 0; i < m.nInterface; i++)
     {
-	for (j = 0; j < ctx.interface[i].nChild; j++)
+	for (j = 0; j < m.interface[i].nChild; j++)
 	{
-	    if (ctx.interface[i].child[j].type)
+	    if (m.interface[i].child[j].type)
 	    {
-		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
+		child = CHILD (data, &m.interface[i].child[j]);
 		(*child->vTable->insertObject) (child, object, child->name);
 	    }
 	}
@@ -1381,18 +1377,20 @@ void
 cRemoveObject (CompObject *object)
 {
     CompObject *child;
-    CContext   ctx;
+    CMetadata  m;
+    char       *data;
     int        i, j;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    for (i = 0; i < ctx.nInterface; i++)
+    for (i = 0; i < m.nInterface; i++)
     {
-	for (j = 0; j < ctx.interface[i].nChild; j++)
+	for (j = 0; j < m.interface[i].nChild; j++)
 	{
-	    if (ctx.interface[i].child[j].type)
+	    if (m.interface[i].child[j].type)
 	    {
-		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
+		child = CHILD (data, &m.interface[i].child[j]);
 		(*child->vTable->removeObject) (child);
 	    }
 	}
@@ -1405,22 +1403,24 @@ void
 cInserted (CompObject *object)
 {
     CompObject *child;
-    CContext   ctx;
+    CMetadata  m;
+    char       *data;
     int        i, j;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
     noopInserted (object);
 
-    for (i = 0; i < ctx.nInterface; i++)
+    for (i = 0; i < m.nInterface; i++)
     {
-	(*object->vTable->interfaceAdded) (object, ctx.interface[i].name);
+	(*object->vTable->interfaceAdded) (object, m.interface[i].name);
 
-	for (j = 0; j < ctx.interface[i].nChild; j++)
+	for (j = 0; j < m.interface[i].nChild; j++)
 	{
-	    if (ctx.interface[i].child[j].type)
+	    if (m.interface[i].child[j].type)
 	    {
-		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
+		child = CHILD (data, &m.interface[i].child[j]);
 		(*child->vTable->inserted) (child);
 	    }
 	}
@@ -1431,23 +1431,25 @@ void
 cRemoved (CompObject *object)
 {
     CompObject *child;
-    CContext   ctx;
+    CMetadata  m;
+    char       *data;
     int        i, j;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    for (i = 0; i < ctx.nInterface; i++)
+    for (i = 0; i < m.nInterface; i++)
     {
-	for (j = 0; j < ctx.interface[i].nChild; j++)
+	for (j = 0; j < m.interface[i].nChild; j++)
 	{
-	    if (ctx.interface[i].child[j].type)
+	    if (m.interface[i].child[j].type)
 	    {
-		child = CHILD (ctx.data, &ctx.interface[i].child[j]);
+		child = CHILD (data, &m.interface[i].child[j]);
 		(*child->vTable->removed) (child);
 	    }
 	}
 
-	(*object->vTable->interfaceRemoved) (object, ctx.interface[i].name);
+	(*object->vTable->interfaceRemoved) (object, m.interface[i].name);
     }
 
     noopRemoved (object);
@@ -1458,16 +1460,16 @@ cForEachInterface (CompObject	         *object,
 		   InterfaceCallBackProc proc,
 		   void		         *closure)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
+    for (i = 0; i < m.nInterface; i++)
 	if (!(*proc) (object,
-		      ctx.interface[i].name,
-		      ctx.interface[i].offset,
-		      ctx.type,
+		      m.interface[i].name,
+		      m.interface[i].offset,
+		      m.type,
 		      closure))
 	    return FALSE;
 
@@ -1479,15 +1481,16 @@ cForEachChildObject (CompObject		     *object,
 		     ChildObjectCallBackProc proc,
 		     void		     *closure)
 {
-    CContext ctx;
-    int      i, j;
+    CMetadata  m;
+    char       *data;
+    int        i, j;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	for (j = 0; j < ctx.interface[i].nChild; j++)
-	    if (!(*proc) (CHILD (ctx.data, &ctx.interface[i].child[j]),
-			  closure))
+    for (i = 0; i < m.nInterface; i++)
+	for (j = 0; j < m.interface[i].nChild; j++)
+	    if (!(*proc) (CHILD (data, &m.interface[i].child[j]), closure))
 		return FALSE;
 
     return noopForEachChildObject (object, proc, closure);
@@ -1499,24 +1502,24 @@ cForEachMethod (CompObject	   *object,
 		MethodCallBackProc proc,
 		void	           *closure)
 {
-    CContext ctx;
-    int      i, j;
+    CMetadata  m;
+    int        i, j;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
+    for (i = 0; i < m.nInterface; i++)
     {
 	if (interface)
-	    if (*interface && strcmp (interface, ctx.interface[i].name))
+	    if (*interface && strcmp (interface, m.interface[i].name))
 		continue;
 
-	for (j = 0; j < ctx.interface[i].nMethod; j++)
+	for (j = 0; j < m.interface[i].nMethod; j++)
 	    if (!(*proc) (object,
-			  ctx.interface[i].method[j].name,
-			  ctx.interface[i].method[j].in,
-			  ctx.interface[i].method[j].out,
-			  ctx.interface[i].method[j].offset,
-			  ctx.interface[i].method[j].marshal,
+			  m.interface[i].method[j].name,
+			  m.interface[i].method[j].in,
+			  m.interface[i].method[j].out,
+			  m.interface[i].method[j].offset,
+			  m.interface[i].method[j].marshal,
 			  closure))
 		return FALSE;
     }
@@ -1530,23 +1533,23 @@ cForEachSignal (CompObject	   *object,
 		SignalCallBackProc proc,
 		void		   *closure)
 {
-    CContext ctx;
-    int      i, j;
+    CMetadata  m;
+    int        i, j;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
+    for (i = 0; i < m.nInterface; i++)
     {
 	if (interface)
-	    if (*interface && strcmp (interface, ctx.interface[i].name))
+	    if (*interface && strcmp (interface, m.interface[i].name))
 		continue;
 
-	for (j = 0; j < ctx.interface[i].nSignal; j++)
-	    if (ctx.interface[i].signal[j]->out)
+	for (j = 0; j < m.interface[i].nSignal; j++)
+	    if (m.interface[i].signal[j]->out)
 		if (!(*proc) (object,
-			      ctx.interface[i].signal[j]->name,
-			      ctx.interface[i].signal[j]->out,
-			      ctx.interface[i].signal[j]->offset,
+			      m.interface[i].signal[j]->name,
+			      m.interface[i].signal[j]->out,
+			      m.interface[i].signal[j]->offset,
 			      closure))
 		    return FALSE;
     }
@@ -1624,38 +1627,38 @@ cForEachProp (CompObject       *object,
 	      PropCallBackProc proc,
 	      void	       *closure)
 {
-    CContext ctx;
-    int      i;
+    CMetadata  m;
+    int        i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
+    for (i = 0; i < m.nInterface; i++)
     {
 	if (interface)
-	    if (*interface && strcmp (interface, ctx.interface[i].name))
+	    if (*interface && strcmp (interface, m.interface[i].name))
 		continue;
 
 	if (!handleForEachBoolProp (object,
-				    ctx.interface[i].boolProp,
-				    ctx.interface[i].nBoolProp,
+				    m.interface[i].boolProp,
+				    m.interface[i].nBoolProp,
 				    proc, closure))
 	    return FALSE;
 
 	if (!handleForEachIntProp (object,
-				   ctx.interface[i].intProp,
-				   ctx.interface[i].nIntProp,
+				   m.interface[i].intProp,
+				   m.interface[i].nIntProp,
 				   proc, closure))
 	    return FALSE;
 
 	if (!handleForEachDoubleProp (object,
-				      ctx.interface[i].doubleProp,
-				      ctx.interface[i].nDoubleProp,
+				      m.interface[i].doubleProp,
+				      m.interface[i].nDoubleProp,
 				      proc, closure))
 	    return FALSE;
 
 	if (!handleForEachStringProp (object,
-				      ctx.interface[i].stringProp,
-				      ctx.interface[i].nStringProp,
+				      m.interface[i].stringProp,
+				      m.interface[i].nStringProp,
 				      proc, closure))
 	    return FALSE;
     }
@@ -1680,14 +1683,14 @@ int
 cGetVersion (CompObject *object,
 	     const char *interface)
 {
-    CContext ctx;
-    int      i;
+    CMetadata  m;
+    int        i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
-	    return ctx.version;
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
+	    return m.version;
 
     return noopGetVersion (object, interface);
 }
@@ -1706,17 +1709,20 @@ getProp (CompObject   *object,
 	 void	      *value)
 {
     switch (what) {
-    case COMP_GET_PROP_C_CONTEXT: {
-	CContext *ctx = (CContext *) value;
-
-	ctx->interface  = objectInterface;
-	ctx->nInterface = N_ELEMENTS (objectInterface);
-	ctx->type	= getObjectType ();
-	ctx->data	= (char *) object;
-	ctx->svOffset   = 0;
-	ctx->vtStore    = NULL;
-	ctx->version    = COMPIZ_OBJECT_VERSION;
-    }
+    case COMP_PROP_BASE_VTABLE:
+	*((CompObjectVTable **) value) = NULL;
+	break;
+    case COMP_PROP_PRIVATES:
+	*((CompPrivate **) value) = object->privates;
+	break;
+    case COMP_PROP_C_DATA:
+	*((void **) value) = NULL;
+	break;
+    case COMP_PROP_C_METADATA:
+	cGetMetadataProp (objectInterface, N_ELEMENTS (objectInterface),
+			  getObjectType (), COMPIZ_OBJECT_VERSION,
+			  (CMetadata *) value);
+	break;
     }
 }
 
@@ -2031,8 +2037,7 @@ static CompBool
 handleConnect (CompObject	 *object,
 	       const CInterface  *interface,
 	       int		 nInterface,
-	       char		 *data,
-	       size_t		 svOffset,
+	       int		 *signalVecOffset,
 	       const char	 *name,
 	       size_t		 offset,
 	       CompObject	 *descendant,
@@ -2085,7 +2090,7 @@ handleConnect (CompObject	 *object,
 
 	vec = compGetSignalVecRange (object,
 				     getSignalVecSize (interface, nInterface),
-				     (int *) (data + svOffset));
+				     signalVecOffset);
 	if (!vec)
 	    return -1;
 
@@ -2141,32 +2146,30 @@ handleConnect (CompObject	 *object,
 }
 
 static CompBool
-handleDisconnect (CompObject	    *object,
-		  const CInterface  *interface,
-		  int		    nInterface,
-		  char		    *data,
-		  size_t	    svOffset,
-		  const char	    *name,
-		  size_t	    offset,
-		  int		    id)
+handleDisconnect (CompObject	   *object,
+		  const CInterface *interface,
+		  int		   nInterface,
+		  int		   *signalVecOffset,
+		  const char	   *name,
+		  size_t	   offset,
+		  int		   id)
 {
     int	index;
 
     if (signalIndex (name, interface, nInterface, offset, &index, NULL))
     {
 	CompSignalHandler *handler, *prev = NULL;
-	int		  *offset = (int *) (data + svOffset);
 	CompSignalHandler **vec = object->signalVec;
 
 	if (index < 0)
 	    return TRUE;
 
-	if (offset)
+	if (signalVecOffset)
 	{
-	    if (!*offset)
+	    if (!*signalVecOffset)
 		return TRUE;
 
-	    object->signalVec += *offset;
+	    object->signalVec += *signalVecOffset;
 	}
 
 	for (handler = vec[index]; handler; handler = handler->next)
@@ -2203,14 +2206,16 @@ cConnect (CompObject *object,
 	  const char *details,
 	  va_list    args)
 {
-    CContext ctx;
-    int      id;
+    CompInterfaceData *data;
+    CMetadata	      m;
+    int		      id;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
     if (handleConnect (object,
-		       ctx.interface, ctx.nInterface,
-		       ctx.data, ctx.svOffset,
+		       m.interface, m.nInterface,
+		       &data->signalVecOffset,
 		       interface,
 		       offset,
 		       descendant,
@@ -2232,13 +2237,15 @@ cDisconnect (CompObject *object,
 	     size_t     offset,
 	     int	id)
 {
-    CContext ctx;
+    CompInterfaceData *data;
+    CMetadata	      m;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
     if (handleDisconnect (object,
-			  ctx.interface, ctx.nInterface,
-			  ctx.data, ctx.svOffset,
+			  m.interface, m.nInterface,
+			  &data->signalVecOffset,
 			  interface,
 			  offset,
 			  id))
@@ -2260,8 +2267,7 @@ connect (CompObject *object,
     int id;
 
     if (handleConnect (object,
-		       objectInterface, N_ELEMENTS (objectInterface),
-		       NULL, 0,
+		       objectInterface, N_ELEMENTS (objectInterface), NULL,
 		       interface,
 		       offset,
 		       descendant,
@@ -2282,8 +2288,7 @@ disconnect (CompObject *object,
 	    int	       id)
 {
     handleDisconnect (object,
-		      objectInterface, N_ELEMENTS (objectInterface),
-		      NULL, 0,
+		      objectInterface, N_ELEMENTS (objectInterface), NULL,
 		      interface,
 		      offset,
 		      id);
@@ -2333,17 +2338,19 @@ cGetBoolProp (CompObject *object,
 	      CompBool   *value,
 	      char	 **error)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetBoolProp (object,
-				      ctx.interface[i].boolProp,
-				      ctx.interface[i].nBoolProp,
-				      ctx.data,
+				      m.interface[i].boolProp,
+				      m.interface[i].nBoolProp,
+				      data,
 				      interface,
 				      name,
 				      value,
@@ -2400,17 +2407,19 @@ cSetBoolProp (CompObject *object,
 	      CompBool   value,
 	      char	 **error)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleSetBoolProp (object,
-				      ctx.interface[i].boolProp,
-				      ctx.interface[i].nBoolProp,
-				      ctx.data,
+				      m.interface[i].boolProp,
+				      m.interface[i].nBoolProp,
+				      data,
 				      interface,
 				      name,
 				      value,
@@ -2440,16 +2449,18 @@ cBoolPropChanged (CompObject *object,
 		  const char *name,
 		  CompBool   value)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    handleBoolPropChanged (object,
-				   ctx.interface[i].boolProp,
-				   ctx.interface[i].nBoolProp,
+				   m.interface[i].boolProp,
+				   m.interface[i].nBoolProp,
 				   interface,
 				   name,
 				   value);
@@ -2525,17 +2536,19 @@ cGetIntProp (CompObject *object,
 	     int32_t    *value,
 	     char	**error)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetIntProp (object,
-				     ctx.interface[i].intProp,
-				     ctx.interface[i].nIntProp,
-				     ctx.data,
+				     m.interface[i].intProp,
+				     m.interface[i].nIntProp,
+				     data,
 				     interface,
 				     name,
 				     value,
@@ -2612,17 +2625,19 @@ cSetIntProp (CompObject *object,
 	     int32_t    value,
 	     char	**error)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleSetIntProp (object,
-				     ctx.interface[i].intProp,
-				     ctx.interface[i].nIntProp,
-				     ctx.data,
+				     m.interface[i].intProp,
+				     m.interface[i].nIntProp,
+				     data,
 				     interface,
 				     name,
 				     value,
@@ -2652,16 +2667,18 @@ cIntPropChanged (CompObject *object,
 		 const char *name,
 		 int32_t    value)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    handleIntPropChanged (object,
-				  ctx.interface[i].intProp,
-				  ctx.interface[i].nIntProp,
+				  m.interface[i].intProp,
+				  m.interface[i].nIntProp,
 				  interface,
 				  name,
 				  value);
@@ -2737,17 +2754,19 @@ cGetDoubleProp (CompObject *object,
 		double     *value,
 		char	   **error)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetDoubleProp (object,
-					ctx.interface[i].doubleProp,
-					ctx.interface[i].nDoubleProp,
-					ctx.data,
+					m.interface[i].doubleProp,
+					m.interface[i].nDoubleProp,
+					data,
 					interface,
 					name,
 					value,
@@ -2824,17 +2843,19 @@ cSetDoubleProp (CompObject *object,
 		double     value,
 		char	   **error)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleSetDoubleProp (object,
-					ctx.interface[i].doubleProp,
-					ctx.interface[i].nDoubleProp,
-					ctx.data,
+					m.interface[i].doubleProp,
+					m.interface[i].nDoubleProp,
+					data,
 					interface,
 					name,
 					value,
@@ -2864,16 +2885,18 @@ cDoublePropChanged (CompObject *object,
 		    const char *name,
 		    double     value)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    handleDoublePropChanged (object,
-				     ctx.interface[i].doubleProp,
-				     ctx.interface[i].nDoubleProp,
+				     m.interface[i].doubleProp,
+				     m.interface[i].nDoubleProp,
 				     interface,
 				     name,
 				     value);
@@ -2961,17 +2984,19 @@ cGetStringProp (CompObject *object,
 		char       **value,
 		char	   **error)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetStringProp (object,
-					ctx.interface[i].stringProp,
-					ctx.interface[i].nStringProp,
-					ctx.data,
+					m.interface[i].stringProp,
+					m.interface[i].nStringProp,
+					data,
 					interface,
 					name,
 					value,
@@ -3043,17 +3068,19 @@ cSetStringProp (CompObject *object,
 		const char *value,
 		char	   **error)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleSetStringProp (object,
-					ctx.interface[i].stringProp,
-					ctx.interface[i].nStringProp,
-					ctx.data,
+					m.interface[i].stringProp,
+					m.interface[i].nStringProp,
+					data,
 					interface,
 					name,
 					value,
@@ -3083,16 +3110,18 @@ cStringPropChanged (CompObject *object,
 		    const char *name,
 		    const char *value)
 {
-    CContext ctx;
-    int      i;
+    CMetadata m;
+    char      *data;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    handleStringPropChanged (object,
-				     ctx.interface[i].stringProp,
-				     ctx.interface[i].nStringProp,
+				     m.interface[i].stringProp,
+				     m.interface[i].nStringProp,
 				     interface,
 				     name,
 				     value);
@@ -3276,13 +3305,13 @@ cGetMetadata (CompObject *object,
 	      char	 **data,
 	      char	 **error)
 {
-    CContext ctx;
-    int	     i;
+    CMetadata m;
+    int       i;
 
-    CCONTEXT (object->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    for (i = 0; i < ctx.nInterface; i++)
-	if (strcmp (interface, ctx.interface[i].name) == 0)
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetMetadata (object, interface, data, error);
 
     return noopGetMetadata (object, interface, data, error);
@@ -4997,59 +5026,66 @@ cObjectInit (const CompObjectInstantiator *instantiator,
 	     const CompObjectFactory      *factory)
 {
     const CompObjectInstantiator *base = instantiator->base;
-    CContext			 ctx;
-
-    CCONTEXT (instantiator->vTable, &ctx);
+    const CompObjectVTable       *vTable;
+    CMetadata			 m;
+    CompInterfaceData		 *data;
 
     if (!(*base->funcs.init) (base, object, factory))
 	return FALSE;
 
-    if (ctx.svOffset)
-	*((int *) (ctx.data + ctx.svOffset)) = 0;
+    vTable = object->vTable;
+    object->vTable = instantiator->vTable;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+
+    data->vTable          = vTable;
+    data->signalVecOffset = 0;
 
     if (!cObjectPropertiesInit (object,
-				ctx.data,
-				ctx.interface,
-				ctx.nInterface))
+				(char *) data,
+				m.interface,
+				m.nInterface))
     {
+	object->vTable = vTable;
 	(*base->funcs.fini) (base, object, factory);
 	return FALSE;
     }
 
     if (!cObjectChildrenInit (factory, object,
-			      ctx.data,
-			      ctx.interface,
-			      ctx.nInterface))
+			      (char *) data,
+			      m.interface,
+			      m.nInterface))
     {
 	cObjectPropertiesFini (object,
-			       ctx.data,
-			       ctx.interface,
-			       ctx.nInterface);
+			       (char *) data,
+			       m.interface,
+			       m.nInterface);
+	object->vTable = vTable;
 	(*base->funcs.fini) (base, object, factory);
 	return FALSE;
     }
 
-    if (ctx.type && ctx.type->privatesOffset)
+    if (m.type && m.type->privatesOffset)
     {
 	const CompObjectInstantiatorNode *node =
 	    (const CompObjectInstantiatorNode *) instantiator;
 
-	if (!allocateObjectPrivates (object, ctx.type, &node->privates))
+	if (!allocateObjectPrivates (object, m.type, &node->privates))
 	{
 	    cObjectChildrenFini (factory, object,
-				 ctx.data,
-				 ctx.interface,
-				 ctx.nInterface);
+				 (char *) data,
+				 m.interface,
+				 m.nInterface);
 	    cObjectPropertiesFini (object,
-				   ctx.data,
-				   ctx.interface,
-				   ctx.nInterface);
+				   (char *) data,
+				   m.interface,
+				   m.nInterface);
+	    object->vTable = vTable;
 	    (*base->funcs.fini) (base, object, factory);
 	    return FALSE;
 	}
     }
-
-    WRAP (ctx.vtStore, object, vTable, instantiator->vTable);
 
     return TRUE;
 }
@@ -5060,39 +5096,35 @@ cObjectFini (const CompObjectInstantiator *instantiator,
 	     const CompObjectFactory      *factory)
 {
     const CompObjectInstantiator *base = instantiator->base;
-    CContext			 ctx;
+    CMetadata			 m;
+    CompInterfaceData		 *data;
 
-    CCONTEXT (instantiator->vTable, &ctx);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    UNWRAP (ctx.vtStore, object, vTable);
-
-    if (ctx.type && ctx.type->privatesOffset)
+    if (m.type && m.type->privatesOffset)
     {
 	const CompObjectInstantiatorNode *node =
 	    (const CompObjectInstantiatorNode *) instantiator;
 
-	freeObjectPrivates (object, ctx.type, &node->privates);
+	freeObjectPrivates (object, m.type, &node->privates);
     }
 
     cObjectChildrenFini (factory, object,
-			 ctx.data,
-			 ctx.interface,
-			 ctx.nInterface);
+			 (char *) data,
+			 m.interface,
+			 m.nInterface);
     cObjectPropertiesFini (object,
-			   ctx.data,
-			   ctx.interface,
-			   ctx.nInterface);
+			   (char *) data,
+			   m.interface,
+			   m.nInterface);
 
-    if (ctx.svOffset)
-    {
-	int offset = *((int *) (ctx.data + ctx.svOffset));
+    if (data->signalVecOffset)
+	compFreeSignalVecRange (object,
+				getSignalVecSize (m.interface, m.nInterface),
+				data->signalVecOffset);
 
-	if (offset)
-	    compFreeSignalVecRange (object,
-				    getSignalVecSize (ctx.interface,
-						      ctx.nInterface),
-				    offset);
-    }
+    object->vTable = data->vTable;
 
     (*base->funcs.fini) (base, object, factory);
 }
@@ -5140,4 +5172,44 @@ void
 cInitObjectVTable (CompObjectVTable *vTable)
 {
     vTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
+}
+
+void
+cGetMetadataProp (const CInterface     *interface,
+		  int		       nInterface,
+		  const CompObjectType *type,
+		  int		       version,
+		  CMetadata	       *metadata)
+{
+    metadata->interface  = interface;
+    metadata->nInterface = nInterface;
+    metadata->type	 = type;
+    metadata->version    = version;
+}
+
+void
+cGetProp (CompInterfaceData    *data,
+	  const CInterface     *interface,
+	  int		       nInterface,
+	  const CompObjectType *type,
+	  int		       version,
+	  unsigned int	       what,
+	  void		       *value)
+{
+    switch (what) {
+    case COMP_PROP_BASE_VTABLE:
+	*((const CompObjectVTable **) value) = data->vTable;
+	break;
+    case COMP_PROP_PRIVATES:
+	*((CompPrivate **) value) = ((CompObjectData *) data)->privates;
+	break;
+    case COMP_PROP_C_DATA:
+	*((CompInterfaceData **) value) = data;
+	break;
+    case COMP_PROP_C_METADATA: {
+	cGetMetadataProp (interface, nInterface, type, version,
+			  (CMetadata *) value);
+	break;
+    }
+    }
 }

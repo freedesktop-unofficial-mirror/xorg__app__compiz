@@ -160,7 +160,8 @@ typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
 				       BaseObjectCallBackProc proc,
 				       void		      *closure);
 
-#define COMP_ADDRESS_BASE_VTABLE_STORE 0
+#define COMP_PROP_BASE_VTABLE 0
+#define COMP_PROP_PRIVATES    1
 
 typedef void (*GetPropProc) (CompObject   *object,
 			     unsigned int what,
@@ -487,6 +488,18 @@ struct _CompObject {
 #define OBJECT(object) CompObject *o = GET_OBJECT (object)
 
 #define OBJECT_TYPE_NAME "object"
+
+/* useful structures for object and interface implementations */
+
+typedef struct _CompInterfaceData {
+    const CompObjectVTable *vTable;
+    int		           signalVecOffset;
+} CompInterfaceData;
+
+typedef struct _CompObjectData {
+    CompInterfaceData base;
+    CompPrivate       *privates;
+} CompObjectData;
 
 #define INVOKE_HANDLER_PROC(object, offset, prototype, ...)		\
     (*(*((prototype *)							\

@@ -1733,21 +1733,10 @@ windowGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    switch (what) {
-    case COMP_GET_PROP_C_CONTEXT: {
-	CContext *ctx = (CContext *) value;
-
-	WINDOW (object);
-
-	ctx->interface  = windowInterface;
-	ctx->nInterface = N_ELEMENTS (windowInterface);
-	ctx->type	= getWindowObjectType ();
-	ctx->data	= (char *) w;
-	ctx->svOffset   = 0;
-	ctx->vtStore    = &w->object;
-	ctx->version    = COMPIZ_WINDOW_VERSION;
-    }
-    }
+    cGetProp (&GET_WINDOW (object)->data.base,
+	      windowInterface, N_ELEMENTS (windowInterface),
+	      getWindowObjectType (), COMPIZ_WINDOW_VERSION,
+	      what, value);
 }
 
 static CompObjectVTable windowObjectVTable = {
@@ -1790,7 +1779,7 @@ static CompObjectType windowObjectType = {
 	windowInitObject,
 	windowFiniObject
     },
-    offsetof (CompWindow, privates),
+    offsetof (CompWindow, data.privates),
     sizeof (CompObjectVTable),
     &windowObjectVTable,
     NULL
@@ -2187,7 +2176,7 @@ addWindow (CompScreen *screen,
     assert (objectInitPlugins (&w->base));
 
     if (esprintf (&w->objectName, "%lu", w->id) > 0)
-	(*core.objectAdd) (&screen->windowContainer.base, &w->base,
+	(*core.objectAdd) (&screen->data.windows.base, &w->base,
 			   w->objectName);
 
     recalcWindowActions (w);
@@ -2255,7 +2244,7 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (w->screen);
     }
 
-    (*core.objectRemove) (&w->screen->windowContainer.base, &w->base);
+    (*core.objectRemove) (&w->screen->data.windows.base, &w->base);
 
     objectFiniPlugins (&w->base);
 
@@ -4297,7 +4286,7 @@ constrainNewWindowSize (CompWindow *w,
     long	     flags = hints->flags;
     long	     resizeIncFlags = (flags & PResizeInc) ? ~0 : 0;
 
-    if (d->ignoreHintsWhenMaximized)
+    if (d->data.ignoreHintsWhenMaximized)
     {
 	if (w->state & MAXIMIZE_STATE)
 	{

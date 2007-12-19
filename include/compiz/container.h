@@ -35,8 +35,7 @@ COMPIZ_BEGIN_DECLS
 typedef struct _CompContainer {
     CompObject base;
 
-    CompObjectVTableVec object;
-
+    CompObjectData         data;
     ForEachChildObjectProc forEachChildObject;
 } CompContainer;
 

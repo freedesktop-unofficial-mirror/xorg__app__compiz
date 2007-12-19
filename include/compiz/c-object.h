@@ -161,17 +161,17 @@ typedef struct _CInterface {
 	    C_MEMBER_ ## string (name, type, StringProp),		\
 	    C_MEMBER_ ## child  (name, type, ChildObject) }
 
-typedef struct _CContext {
-    const CInterface     *interface;
-    int			 nInterface;
-    const CompObjectType *type;
-    char		 *data;
-    int			 svOffset;
-    CompObjectVTableVec	 *vtStore;
-    int			 version;
-} CContext;
+#define COMP_PROP_C_BASE     1024
+#define COMP_PROP_C_DATA     (COMP_PROP_C_BASE + 0)
+#define COMP_PROP_C_METADATA (COMP_PROP_C_BASE + 2)
 
-#define COMP_GET_PROP_C_CONTEXT 1024
+typedef struct _CMetadata {
+    const CInterface       *interface;
+    int			   nInterface;
+    const CompObjectType   *type;
+    const CompObjectVTable *vTable;
+    int			   version;
+} CMetadata;
 
 typedef struct _CObjectPrivate {
     const char	    *name;
@@ -452,6 +452,22 @@ void
 cObjectFreePrivateIndices (CompFactory	  *factory,
 			   CObjectPrivate *privates,
 			   int		  nPrivate);
+
+void
+cGetMetadataProp (const CInterface     *interface,
+		  int		       nInterface,
+		  const CompObjectType *type,
+		  int		       version,
+		  CMetadata	       *metadata);
+
+void
+cGetProp (CompInterfaceData    *data,
+	  const CInterface     *interface,
+	  int		       nInterface,
+	  const CompObjectType *type,
+	  int		       version,
+	  unsigned int	       what,
+	  void		       *value);
 
 COMPIZ_END_DECLS
 

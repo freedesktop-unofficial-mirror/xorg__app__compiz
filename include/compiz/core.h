@@ -688,23 +688,25 @@ typedef struct _CompCoreVTable {
     RemoveDisplayProc removeDisplay;
 } CompCoreVTable;
 
+typedef struct _CompCoreData {
+    CompObjectData base;
+
+    CompContainer displays;
+    CompContainer plugins;
+    CompContainer inputs;
+    CompContainer outputs;
+} CompCoreData;
+
 struct _CompCore {
     union {
 	CompBranch     base;
 	CompCoreVTable *vTable;
     } u;
 
-    CompObjectVTableVec object;
-
-    CompPrivate	*privates;
+    CompCoreData data;
 
     CompDisplay *displays;
     CompPlugin  *plugins;
-
-    CompContainer displayContainer;
-    CompContainer pluginContainer;
-    CompContainer inputs;
-    CompContainer outputs;
 
     CompOptionValue plugin;
     Bool	    dirtyPluginList;
@@ -953,13 +955,8 @@ typedef struct _CompDisplayVTable {
     RemoveScreenProc removeScreen;
 } CompDisplayVTable;
 
-struct _CompDisplay {
-    union {
-	CompObject	  base;
-	CompDisplayVTable *vTable;
-    } u;
-
-    CompObjectVTableVec object;
+typedef struct _CompDisplayData {
+    CompObjectData base;
 
     CompBool audibleBell;
     CompBool autoRaise;
@@ -972,7 +969,16 @@ struct _CompDisplay {
     int32_t filter;
     int32_t pingDelay;
 
-    CompPrivate	*privates;
+    CompContainer screens;
+} CompDisplayData;
+
+struct _CompDisplay {
+    union {
+	CompObject	  base;
+	CompDisplayVTable *vTable;
+    } u;
+
+    CompDisplayData data;
 
     CompDisplay *next;
 
@@ -988,8 +994,6 @@ struct _CompDisplay {
     CompScreen *screens;
 
     Window dummyWindow;
-
-    CompContainer screenContainer;
 
     CompWatchFdHandle watchFdHandle;
 
@@ -2069,10 +2073,8 @@ typedef struct _CompActiveWindowHistory {
 
 #define N_SELECTIONS 2
 
-struct _CompScreen {
-    CompObject base;
-
-    CompObjectVTableVec object;
+typedef struct _CompScreenData {
+    CompObjectData base;
 
     CompBool detectOutputs;
     CompBool detectRefreshRate;
@@ -2088,7 +2090,13 @@ struct _CompScreen {
 
     char *defaultIconImage;
 
-    CompPrivate	*privates;
+    CompContainer windows;
+} CompScreenData;
+
+struct _CompScreen {
+    CompObject base;
+
+    CompScreenData data;
 
     char *objectName;
 
@@ -2096,8 +2104,6 @@ struct _CompScreen {
     CompDisplay *display;
     CompWindow	*windows;
     CompWindow	*reverseWindows;
-
-    CompContainer windowContainer;
 
     Colormap	      colormap;
     int		      screenNum;
@@ -2608,9 +2614,7 @@ typedef struct _CompStruts {
 struct _CompWindow {
     CompObject base;
 
-    CompObjectVTableVec object;
-
-    CompPrivate	*privates;
+    CompObjectData data;
 
     char *objectName;
 

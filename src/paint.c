@@ -246,9 +246,9 @@ paintOutputRegion (CompScreen	       *screen,
 		XSubtractRegion (tmpRegion, w->region, tmpRegion);
 
 	    /* unredirect top most fullscreen windows. */
-	    if (count == 0			    &&
-		!REGION_NOT_EMPTY (tmpRegion)	    &&
-		screen->unredirectFullscreenWindows &&
+	    if (count == 0			         &&
+		!REGION_NOT_EMPTY (tmpRegion)	         &&
+		screen->data.unredirectFullscreenWindows &&
 		XEqualRegion (w->region, &screen->region))
 	    {
 		unredirectWindow (w);

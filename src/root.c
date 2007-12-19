@@ -57,8 +57,13 @@ rootGetProp (CompObject   *object,
 	     void	  *value)
 {
     switch (what) {
-    case COMP_ADDRESS_BASE_VTABLE_STORE:
-	*((CompObjectVTableVec **) value) = &GET_ROOT (object)->object;
+    case COMP_PROP_BASE_VTABLE:
+	*((const CompObjectVTable **) value) =
+	    GET_ROOT (object)->object.vTable;
+	break;
+    case COMP_PROP_PRIVATES:
+	*((CompPrivate **) value) = NULL;
+	break;
     }
 }
 

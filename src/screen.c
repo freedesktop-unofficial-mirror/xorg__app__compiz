@@ -212,7 +212,7 @@ updateOutputDevices (CompScreen	*s)
 static void
 detectOutputDevices (CompScreen *s)
 {
-    if (!noDetection && s->detectOutputs)
+    if (!noDetection && s->data.detectOutputs)
     {
 	char		*name;
 	CompOptionValue	value;
@@ -253,9 +253,9 @@ detectOutputDevices (CompScreen *s)
 
 	name = s->opt[COMP_SCREEN_OPTION_OUTPUTS].name;
 
-	s->detectOutputs = FALSE;
+	s->data.detectOutputs = FALSE;
 	(*core.setOptionForPlugin) (&s->base, "core", name, &value);
-	s->detectOutputs = TRUE;
+	s->data.detectOutputs = TRUE;
 
 	for (i = 0; i < value.list.nValue; i++)
 	    if (value.list.value[i].s)
@@ -400,11 +400,11 @@ virtualSizeChanged (CompObject *object,
 
     SCREEN (object);
 
-    hSize = s->hSize;
+    hSize = s->data.hSize;
     while ((hSize * s->width) > MAXSHORT)
 	hSize--;
 
-    vSize = s->vSize;
+    vSize = s->data.vSize;
     while ((vSize * s->height) > MAXSHORT)
 	vSize--;
 
@@ -439,30 +439,30 @@ defaultIconChanged (CompObject *object,
 }
 
 static CBoolProp screenTypeBoolProp[] = {
-    C_PROP (detectOutputs, CompScreen, .changed = detectOutputsChanged),
-    C_PROP (detectRefreshRate, CompScreen,
+    C_PROP (detectOutputs, CompScreenData, .changed = detectOutputsChanged),
+    C_PROP (detectRefreshRate, CompScreenData,
 	    .changed = detectRefreshRateChanged),
-    C_PROP (lighting, CompScreen),
-    C_PROP (syncToVBlank, CompScreen),
-    C_PROP (unredirectFullscreenWindows, CompScreen)
+    C_PROP (lighting, CompScreenData),
+    C_PROP (syncToVBlank, CompScreenData),
+    C_PROP (unredirectFullscreenWindows, CompScreenData)
 };
 
 static CIntProp screenTypeIntProp[] = {
-    C_INT_PROP (hSize, CompScreen, 1, 32, .changed = virtualSizeChanged),
-    C_INT_PROP (numberOfDesktops, CompScreen, 1, 36,
+    C_INT_PROP (hSize, CompScreenData, 1, 32, .changed = virtualSizeChanged),
+    C_INT_PROP (numberOfDesktops, CompScreenData, 1, 36,
 		.changed = numberOfDesktopsChanged),
-    C_INT_PROP (opacityStep, CompScreen, 1, 50),
-    C_INT_PROP (refreshRate, CompScreen, 1, 200,
+    C_INT_PROP (opacityStep, CompScreenData, 1, 50),
+    C_INT_PROP (refreshRate, CompScreenData, 1, 200,
 		.changed = refreshRateChanged),
-    C_INT_PROP (vSize, CompScreen, 1, 32, .changed = virtualSizeChanged)
+    C_INT_PROP (vSize, CompScreenData, 1, 32, .changed = virtualSizeChanged)
 };
 
 static CStringProp screenTypeStringProp[] = {
-    C_PROP (defaultIconImage, CompScreen, .changed = defaultIconChanged)
+    C_PROP (defaultIconImage, CompScreenData, .changed = defaultIconChanged)
 };
 
 static CChildObject screenTypeChildObject[] = {
-    C_CHILD (windowContainer, CompScreen, CONTAINER_TYPE_NAME)
+    C_CHILD (windows, CompScreenData, CONTAINER_TYPE_NAME)
 };
 
 static CInterface screenInterface[] = {
@@ -474,21 +474,10 @@ screenGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    switch (what) {
-    case COMP_GET_PROP_C_CONTEXT: {
-	CContext *ctx = (CContext *) value;
-
-	SCREEN (object);
-
-	ctx->interface  = screenInterface;
-	ctx->nInterface = N_ELEMENTS (screenInterface);
-	ctx->type	= getScreenObjectType ();
-	ctx->data	= (char *) s;
-	ctx->svOffset   = 0;
-	ctx->vtStore    = &s->object;
-	ctx->version    = COMPIZ_SCREEN_VERSION;
-    }
-    }
+    cGetProp (&GET_SCREEN (object)->data.base.base,
+	      screenInterface, N_ELEMENTS (screenInterface),
+	      getScreenObjectType (), COMPIZ_SCREEN_VERSION,
+	      what, value);
 }
 
 CompOption *
@@ -515,7 +504,7 @@ setScreenOption (CompPlugin	       *plugin,
 
     switch (index) {
     case COMP_SCREEN_OPTION_OUTPUTS:
-	if (!noDetection && screen->detectOutputs)
+	if (!noDetection && screen->data.detectOutputs)
 	    return FALSE;
 
 	if (compSetOptionList (o, value))
@@ -971,9 +960,9 @@ updateScreenBackground (CompScreen  *screen,
 void
 detectRefreshRateOfScreen (CompScreen *s)
 {
-    int rate = s->refreshRate;
+    int rate = s->data.refreshRate;
 
-    if (!noDetection && s->detectRefreshRate)
+    if (!noDetection && s->data.detectRefreshRate)
     {
 	int rate;
 
@@ -1295,7 +1284,7 @@ enterShowDesktopMode (CompScreen *s)
     {
 	if ((s->showingDesktopMask & w->wmType) &&
 	    (!(w->state & CompWindowStateSkipTaskbarMask) ||
-	     d->hideSkipTaskbarWindows))
+	     d->data.hideSkipTaskbarWindows))
 	{
 	    if (!w->inShowDesktopMode && !w->grabbed && (*s->focusWindow) (w))
 	    {
@@ -1436,8 +1425,7 @@ screenInitObject (const CompObjectInstantiator *instantiator,
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
-    s->windowContainer.forEachChildObject = forEachWindowObject;
-    s->windowContainer.base.name	  = "windows";
+    s->data.windows.forEachChildObject = forEachWindowObject;
 
     s->base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */
 
@@ -1669,7 +1657,7 @@ static CompObjectType screenObjectType = {
 	screenInitObject,
 	screenFiniObject
     },
-    offsetof (CompScreen, privates),
+    offsetof (CompScreen, data.base.privates),
     sizeof (CompObjectVTable),
     &screenObjectVTable,
     NULL
@@ -1756,8 +1744,8 @@ addScreenOld (CompDisplay *display,
 
     s->x     = 0;
     s->y     = 0;
-    s->hsize = s->hSize;
-    s->vsize = s->vSize;
+    s->hsize = s->data.hSize;
+    s->vsize = s->data.vSize;
 
     s->screenNum = screenNum;
     s->colormap  = DefaultColormap (dpy, screenNum);
@@ -2224,7 +2212,7 @@ addScreenOld (CompDisplay *display,
     addScreenToDisplay (display, s);
 
     if (esprintf (&s->objectName, "%d", s->screenNum) > 0)
-	(*core.objectAdd) (&display->screenContainer.base, &s->base,
+	(*core.objectAdd) (&display->data.screens.base, &s->base,
 			   s->objectName);
 
     XQueryTree (dpy, s->root,
@@ -2311,7 +2299,7 @@ removeScreenOld (CompScreen *s)
     while (s->windows)
 	removeWindow (s->windows);
 
-    (*core.objectRemove) (&d->screenContainer.base, &s->base);
+    (*core.objectRemove) (&d->data.screens.base, &s->base);
 
     objectFiniPlugins (&s->base);
 
@@ -3694,7 +3682,7 @@ screenLighting (CompScreen *s,
 {
     if (s->lightingEnabled != lighting)
     {
-	if (!s->lighting)
+	if (!s->data.lighting)
 	    lighting = FALSE;
 
 	if (lighting)
@@ -4100,7 +4088,7 @@ Bool
 updateDefaultIcon (CompScreen *screen)
 {
     CompIcon *icon;
-    char     *file = screen->defaultIconImage;
+    char     *file = screen->data.defaultIconImage;
     void     *data;
     int      width, height;
 

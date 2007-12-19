@@ -204,22 +204,23 @@ static const CMethod displayTypeMethod[] = {
 };
 
 static CBoolProp displayTypeBoolProp[] = {
-    C_PROP (audibleBell, CompDisplay, .changed = audibleBellChanged),
-    C_PROP (autoRaise, CompDisplay),
-    C_PROP (clickToFocus, CompDisplay),
-    C_PROP (hideSkipTaskbarWindows, CompDisplay),
-    C_PROP (ignoreHintsWhenMaximized, CompDisplay),
-    C_PROP (raiseOnClick, CompDisplay)
+    C_PROP (audibleBell, CompDisplayData, .changed = audibleBellChanged),
+    C_PROP (autoRaise, CompDisplayData),
+    C_PROP (clickToFocus, CompDisplayData),
+    C_PROP (hideSkipTaskbarWindows, CompDisplayData),
+    C_PROP (ignoreHintsWhenMaximized, CompDisplayData),
+    C_PROP (raiseOnClick, CompDisplayData)
 };
 
 static CIntProp displayTypeIntProp[] = {
-    C_INT_PROP (autoRaiseDelay, CompDisplay, 0, 10000),
-    C_INT_PROP (filter, CompDisplay, 0, 2, .changed = filterChanged),
-    C_INT_PROP (pingDelay, CompDisplay, 1000, 60000, .changed = pingChanged)
+    C_INT_PROP (autoRaiseDelay, CompDisplayData, 0, 10000),
+    C_INT_PROP (filter, CompDisplayData, 0, 2, .changed = filterChanged),
+    C_INT_PROP (pingDelay, CompDisplayData, 1000, 60000,
+		.changed = pingChanged)
 };
 
 static CChildObject displayTypeChildObject[] = {
-    C_CHILD (screenContainer, CompDisplay, CONTAINER_TYPE_NAME)
+    C_CHILD (screens, CompDisplayData, CONTAINER_TYPE_NAME)
 };
 
 static CInterface displayInterface[] = {
@@ -231,21 +232,10 @@ displayGetProp (CompObject   *object,
 		unsigned int what,
 		void	     *value)
 {
-    switch (what) {
-    case COMP_GET_PROP_C_CONTEXT: {
-	CContext *ctx = (CContext *) value;
-
-	DISPLAY (object);
-
-	ctx->interface  = displayInterface;
-	ctx->nInterface = N_ELEMENTS (displayInterface);
-	ctx->type	= getDisplayObjectType ();
-	ctx->data	= (char *) d;
-	ctx->svOffset   = 0;
-	ctx->vtStore    = &d->object;
-	ctx->version    = COMPIZ_DISPLAY_VERSION;
-    }
-    }
+    cGetProp (&GET_DISPLAY (object)->data.base.base,
+	      displayInterface, N_ELEMENTS (displayInterface),
+	      getDisplayObjectType (), COMPIZ_DISPLAY_VERSION,
+	      what, value);
 }
 
 typedef struct _AddRemoveScreenContext {
@@ -824,7 +814,7 @@ changeWindowOpacity (CompWindow *w,
     if (w->type & CompWindowTypeDesktopMask)
 	return;
 
-    step = (0xff * s->opacityStep) / 100;
+    step = (0xff * s->data.opacityStep) / 100;
 
     w->opacityFactor = w->opacityFactor + step * direction;
     if (w->opacityFactor > 0xff)
@@ -1506,7 +1496,7 @@ getTimeToNextRedraw (CompScreen     *s,
     if (diff < 0)
 	diff = 0;
 
-    if (idle || (s->getVideoSync && s->syncToVBlank))
+    if (idle || (s->getVideoSync && s->data.syncToVBlank))
     {
 	if (s->timeMult > 1)
 	{
@@ -1875,7 +1865,7 @@ waitForVideoSync (CompScreen *s)
 {
     unsigned int sync;
 
-    if (!s->syncToVBlank)
+    if (!s->data.syncToVBlank)
 	return;
 
     if (s->getVideoSync)
@@ -2419,8 +2409,7 @@ displayInitObject (const CompObjectInstantiator *instantiator,
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
-    d->screenContainer.forEachChildObject = forEachScreenObject;
-    d->screenContainer.base.name	  = "screens";
+    d->data.screens.forEachChildObject = forEachScreenObject;
 
     d->u.base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */
 
@@ -2493,7 +2482,7 @@ static CompObjectType displayObjectType = {
 	displayInitObject,
 	displayFiniObject
     },
-    offsetof (CompDisplay, privates),
+    offsetof (CompDisplay, data.base.privates),
     sizeof (CompDisplayVTable),
     &displayObjectVTable.base,
     &noopDisplayObjectVTable.base
@@ -2869,7 +2858,7 @@ addDisplayOld (CompCore   *c,
     if (esprintf (&d->objectName, "%s_%d",
 		  *d->hostName == '\0' ? "localhost" : d->hostName,
 		  d->displayNum) > 0)
-	(*c->objectAdd) (&c->displayContainer.base, &d->u.base, d->objectName);
+	(*c->objectAdd) (&c->data.displays.base, &d->u.base, d->objectName);
 
     if (onlyCurrentScreen)
     {
@@ -2910,7 +2899,7 @@ addDisplayOld (CompCore   *c,
 			"No manageable screens found for display %d on "
 			"host %s", displayNum, hostName);
 
-    setAudibleBell (d, d->audibleBell);
+    setAudibleBell (d, d->data.audibleBell);
 
     XGetInputFocus (dpy, &focus, &revertTo);
 
@@ -2940,7 +2929,7 @@ addDisplayOld (CompCore   *c,
     d->watchFdHandle = compAddWatchFd (ConnectionNumber (d->display), POLLIN,
 				       NULL, NULL);
 
-    d->pingHandle = compAddTimeout (d->pingDelay, pingTimeout, d);
+    d->pingHandle = compAddTimeout (d->data.pingDelay, pingTimeout, d);
 
     return TRUE;
 }
@@ -2965,7 +2954,7 @@ removeDisplayOld (CompCore    *c,
     while (d->screens)
 	removeScreenOld (d->screens);
 
-    (*c->objectRemove) (&c->displayContainer.base, &d->u.base);
+    (*c->objectRemove) (&c->data.displays.base, &d->u.base);
 
     objectFiniPlugins (&d->u.base);
 
@@ -3017,7 +3006,7 @@ focusDefaultWindow (CompDisplay *d)
     CompWindow *w;
     CompWindow *focus = NULL;
 
-    if (!d->clickToFocus)
+    if (!d->data.clickToFocus)
     {
 	w = findTopLevelWindowAtDisplay (d, d->below);
 	if (w && !(w->type & (CompWindowTypeDesktopMask |

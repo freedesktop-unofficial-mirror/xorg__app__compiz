@@ -1389,7 +1389,7 @@ handleEvent (CompDisplay *d,
 		w = findTopLevelWindowAtScreen (s, event->xbutton.window);
 		if (w)
 		{
-		    if (d->raiseOnClick)
+		    if (d->data.raiseOnClick)
 			updateWindowAttributes (w,
 					CompStackingUpdateModeAboveFullscreen);
 
@@ -2106,7 +2106,7 @@ handleEvent (CompDisplay *d,
 
 	    d->below = w->id;
 
-	    if (d->clickToFocus)
+	    if (d->data.clickToFocus)
 		break;
 
 	    if (d->autoRaiseHandle && d->autoRaiseWindow != w->id)
@@ -2120,13 +2120,14 @@ handleEvent (CompDisplay *d,
 
 	    moveInputFocusToWindow (w);
 
-	    if (d->autoRaise)
+	    if (d->data.autoRaise)
 	    {
-		if (d->autoRaiseDelay > 0)
+		if (d->data.autoRaiseDelay > 0)
 		{
 		    d->autoRaiseWindow = w->id;
-		    d->autoRaiseHandle = compAddTimeout (d->autoRaiseDelay,
-							 autoRaiseTimeout, d);
+		    d->autoRaiseHandle =
+			compAddTimeout (d->data.autoRaiseDelay,
+					autoRaiseTimeout, d);
 		}
 		else
 		{

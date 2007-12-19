@@ -35,21 +35,10 @@ containerGetProp (CompObject   *object,
 		  unsigned int what,
 		  void	       *value)
 {
-    switch (what) {
-    case COMP_GET_PROP_C_CONTEXT: {
-	CContext *ctx = (CContext *) value;
-
-	CONTAINER (object);
-
-	ctx->interface  = containerInterface;
-	ctx->nInterface = N_ELEMENTS (containerInterface);
-	ctx->type	= getContainerObjectType ();
-	ctx->data	= (char *) c;
-	ctx->svOffset   = 0;
-	ctx->vtStore    = &c->object;
-	ctx->version    = COMPIZ_CONTAINER_VERSION;
-    }
-    }
+    cGetProp (&GET_CONTAINER (object)->data.base,
+	      containerInterface, N_ELEMENTS (containerInterface),
+	      getContainerObjectType (), COMPIZ_CONTAINER_VERSION,
+	      what, value);
 }
 
 static CompBool

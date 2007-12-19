@@ -39,10 +39,10 @@ static const CMethod coreTypeMethod[] = {
 };
 
 static CChildObject coreTypeChildObject[] = {
-    C_CHILD (displayContainer, CompCore, CONTAINER_TYPE_NAME),
-    C_CHILD (pluginContainer, CompCore, CONTAINER_TYPE_NAME),
-    C_CHILD (inputs, CompCore, CONTAINER_TYPE_NAME),
-    C_CHILD (outputs, CompCore, CONTAINER_TYPE_NAME)
+    C_CHILD (displays, CompCoreData, CONTAINER_TYPE_NAME),
+    C_CHILD (plugins, CompCoreData, CONTAINER_TYPE_NAME),
+    C_CHILD (inputs, CompCoreData, CONTAINER_TYPE_NAME),
+    C_CHILD (outputs, CompCoreData, CONTAINER_TYPE_NAME)
 };
 
 static CInterface coreInterface[] = {
@@ -54,21 +54,10 @@ coreGetProp (CompObject   *object,
 	     unsigned int what,
 	     void	  *value)
 {
-    switch (what) {
-    case COMP_GET_PROP_C_CONTEXT: {
-	CContext *ctx = (CContext *) value;
-
-	CORE (object);
-
-	ctx->interface  = coreInterface;
-	ctx->nInterface = N_ELEMENTS (coreInterface);
-	ctx->type	= getCoreObjectType ();
-	ctx->data	= (char *) c;
-	ctx->svOffset   = 0;
-	ctx->vtStore    = &c->object;
-	ctx->version    = COMPIZ_CORE_VERSION;
-    }
-    }
+    cGetProp (&GET_CORE (object)->data.base.base,
+	      coreInterface, N_ELEMENTS (coreInterface),
+	      getCoreObjectType (), COMPIZ_CORE_VERSION,
+	      what, value);
 }
 
 typedef struct _AddRemoveDisplayContext {
@@ -304,11 +293,8 @@ coreInitObject (const CompObjectInstantiator *instantiator,
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
-    c->displayContainer.forEachChildObject = forEachDisplayObject;
-    c->displayContainer.base.name	   = "displays";
-
-    c->pluginContainer.forEachChildObject = forEachPluginObject;
-    c->pluginContainer.base.name	  = "plugins";
+    c->data.displays.forEachChildObject = forEachDisplayObject;
+    c->data.plugins.forEachChildObject  = forEachPluginObject;
 
     c->u.base.u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
@@ -396,7 +382,7 @@ static CompObjectType coreObjectType = {
 	coreInitObject,
 	coreFiniObject
     },
-    offsetof (CompCore, privates),
+    offsetof (CompCore, data.base.privates),
     sizeof (CompCoreVTable),
     &coreObjectVTable.base.base,
     &noopCoreObjectVTable.base.base
