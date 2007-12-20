@@ -1274,14 +1274,15 @@ cForBaseObject (CompObject	       *object,
 		BaseObjectCallBackProc proc,
 		void		       *closure)
 {
-    const CompObjectVTable *vTable = object->vTable;
-    CompBool		   status;
+    CompObjectVTableVec v = { object->vTable };
+    CompInterfaceData	*data;
+    CompBool		status;
 
-    (*object->vTable->getProp) (object,
-				COMP_PROP_BASE_VTABLE,
-				(void *) &object->vTable);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    UNWRAP (data, object, vTable);
     status = (*proc) (object, closure);
-    object->vTable = vTable;
+    WRAP (data, object, vTable, v.vTable);
 
     return status;
 }
