@@ -236,6 +236,28 @@ readCoreXmlCallback (void *context,
     return i;
 }
 
+static CompPrivate *
+getPrivates (void *closure)
+{
+    CompObject  *object = (CompObject *) closure;
+    CompPrivate *privates;
+
+    (*object->vTable->getProp) (object, COMP_PROP_PRIVATES,
+				(void *) &privates);
+
+    return privates;
+}
+
+static void
+setPrivates (void	 *closure,
+	     CompPrivate *privates)
+{
+    CompObject *object = (CompObject *) closure;
+
+    (*object->vTable->setProp) (object, COMP_PROP_PRIVATES,
+				(void *) &privates);
+}
+
 typedef struct _ForEachObjectPrivatesContext {
     const char		 *name;
     PrivatesCallBackProc proc;
@@ -253,12 +275,7 @@ forEachInterfacePrivates (CompObject	       *object,
 	(ForEachObjectPrivatesContext *) closure;
 
     if (type && strcmp (type->name, pCtx->name) == 0)
-    {
-	CompPrivate **pPrivates = (CompPrivate **)
-	    (((char *) object) + type->privatesOffset);
-
-	return (*pCtx->proc) (pPrivates, pCtx->data);
-    }
+	return (*pCtx->proc) (getPrivates, setPrivates, pCtx->data, object);
 
     return TRUE;
 }

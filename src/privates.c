@@ -55,8 +55,8 @@ updatePrivates (CompPrivate *privates,
 }
 
 typedef struct _PrivatesHandle {
-    CompPrivate **pPrivates;
-    CompPrivate *privates;
+    CompPrivate *oldPrivates;
+    CompPrivate *newPrivates;
 } PrivatesHandle;
 
 typedef struct _PrivatesList {
@@ -79,8 +79,10 @@ finiPrivatesList (PrivatesList *list)
 }
 
 static CompBool
-addPrivates (CompPrivate **pPrivates,
-	     void        *data)
+getPrivates (GetPrivatesProc get,
+	     SetPrivatesProc set,
+	     void	     *data,
+	     void	     *closure)
 {
     PrivatesList   *list = (PrivatesList *) data;
     PrivatesHandle *handle;
@@ -89,11 +91,29 @@ addPrivates (CompPrivate **pPrivates,
     if (!handle)
 	return FALSE;
 
-    handle[list->n].pPrivates = pPrivates;
-    handle[list->n].privates  = NULL;
+    handle[list->n].oldPrivates = (*get) (closure);
+    handle[list->n].newPrivates = NULL;
 
     list->handle = handle;
     list->n++;
+
+    return TRUE;
+}
+
+static CompBool
+setPrivates (GetPrivatesProc get,
+	     SetPrivatesProc set,
+	     void	     *data,
+	     void	     *closure)
+{
+    PrivatesList *list = (PrivatesList *) data;
+
+    list->n--;
+
+    (*set) (closure, list->handle[list->n].newPrivates);
+
+    if (list->handle[list->n].oldPrivates)
+	free (list->handle[list->n].oldPrivates);
 
     return TRUE;
 }
@@ -111,7 +131,7 @@ initNewPrivates (PrivatesHandle *handle,
 	    return FALSE;
     }
 
-    handle->privates = privates;
+    handle->newPrivates = privates;
 
     return TRUE;
 }
@@ -129,7 +149,7 @@ initAllNewPrivates (PrivatesList *list,
     if (i < list->n)
     {
 	while (i--)
-	    free (list->handle[i].privates);
+	    free (list->handle[i].newPrivates);
 
 	return FALSE;
     }
@@ -138,44 +158,39 @@ initAllNewPrivates (PrivatesList *list,
 }
 
 static void
-switchPrivates (PrivatesHandle *handle,
-		int	       oldLen,
-		int	       newLen,
-		int	       dataSize,
-		int	       *sizes)
+copyPrivates (PrivatesHandle *handle,
+	      int	     oldLen,
+	      int	     newLen,
+	      int	     dataSize,
+	      int	     *sizes)
 {
     char *oldData, *newData;
     int  minLen = MIN (newLen, oldLen);
 
     if (minLen)
-	memcpy (handle->privates, *handle->pPrivates,
+	memcpy (handle->newPrivates, handle->oldPrivates,
 		minLen * sizeof (CompPrivate));
 
-    newData = (char *) (handle->privates   + newLen);
-    oldData = (char *) (*handle->pPrivates + oldLen);
+    newData = (char *) (handle->newPrivates + newLen);
+    oldData = (char *) (handle->oldPrivates + oldLen);
 
     if (dataSize)
 	memcpy (newData, oldData, dataSize);
 
-    updatePrivates (handle->privates, newLen, sizes);
-
-    if (*handle->pPrivates)
-	free (*handle->pPrivates);
-
-    *handle->pPrivates = handle->privates;
+    updatePrivates (handle->newPrivates, newLen, sizes);
 }
 
 static void
-switchAllPrivates (PrivatesList *list,
-		   int		oldLen,
-		   int	        newLen,
-		   int		dataSize,
-		   int		*sizes)
+copyAllPrivates (PrivatesList *list,
+		 int	      oldLen,
+		 int	      newLen,
+		 int	      dataSize,
+		 int	      *sizes)
 {
     int i;
 
     for (i = 0; i < list->n; i++)
-	switchPrivates (&list->handle[i], oldLen, newLen, dataSize, sizes);
+	copyPrivates (&list->handle[i], oldLen, newLen, dataSize, sizes);
 }
 
 int
@@ -206,7 +221,7 @@ allocatePrivateIndex (int		  *len,
 
     initPrivatesList (&list);
 
-    if (!(*forEachPrivates) (addPrivates, (void *) &list, closure))
+    if (!(*forEachPrivates) (getPrivates, (void *) &list, closure))
     {
 	finiPrivatesList (&list);
 	return -1;
@@ -218,9 +233,11 @@ allocatePrivateIndex (int		  *len,
 	return -1;
     }
 
-    switchAllPrivates (&list, *len, *len + 1,
-		       *totalSize - *len * sizeof (CompPrivate),
-		       newSizes);
+    copyAllPrivates (&list, *len, *len + 1,
+		     *totalSize - *len * sizeof (CompPrivate),
+		     newSizes);
+
+    (*forEachPrivates) (setPrivates, (void *) &list, closure);
 
     finiPrivatesList (&list);
 
@@ -256,13 +273,15 @@ freePrivateIndex (int		      *len,
 
 	initPrivatesList (&list);
 
-	if ((*forEachPrivates) (addPrivates, (void *) &list, closure))
+	if ((*forEachPrivates) (getPrivates, (void *) &list, closure))
 	{
 	    if (initAllNewPrivates (&list, *totalSize))
 	    {
-		switchAllPrivates (&list, *len, newLen,
-				   *totalSize - newLen * sizeof (CompPrivate),
-				   *sizes);
+		copyAllPrivates (&list, *len, newLen,
+				 *totalSize - newLen * sizeof (CompPrivate),
+				 *sizes);
+
+		(*forEachPrivates) (setPrivates, (void *) &list, closure);
 
 		newSizes = realloc (*sizes, newLen * sizeof (int));
 		if (!newLen || newSizes)

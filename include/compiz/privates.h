@@ -37,8 +37,14 @@ typedef union _CompPrivate {
     void	  *(*fptr) (void);
 } CompPrivate;
 
-typedef CompBool (*PrivatesCallBackProc) (CompPrivate **pPrivates,
-					  void	      *data);
+typedef CompPrivate *(*GetPrivatesProc) (void	     *closure);
+typedef void         (*SetPrivatesProc) (void	     *closure,
+					 CompPrivate *privates);
+
+typedef CompBool (*PrivatesCallBackProc) (GetPrivatesProc get,
+					  SetPrivatesProc set,
+					  void		  *data,
+					  void		  *closure);
 
 typedef CompBool (*ForEachPrivatesProc) (PrivatesCallBackProc proc,
 					 void		      *data,
