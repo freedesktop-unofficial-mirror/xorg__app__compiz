@@ -212,15 +212,12 @@ rootFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType rootObjectType = {
-    ROOT_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	rootInitObject,
-	rootFiniObject
-    },
-    0,
-    sizeof (CompRootVTable),
-    &rootObjectVTable.base,
-    NULL
+    .name.name   = ROOT_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &rootObjectVTable.base,
+    .vTable.size = sizeof (rootObjectVTable),
+    .funcs.init  = rootInitObject,
+    .funcs.fini  = rootFiniObject
 };
 
 CompObjectType *

@@ -1652,15 +1652,12 @@ screenFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType screenObjectType = {
-    SCREEN_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	screenInitObject,
-	screenFiniObject
-    },
-    offsetof (CompScreen, data.base.privates),
-    sizeof (CompObjectVTable),
-    &screenObjectVTable,
-    NULL
+    .name.name   = SCREEN_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &screenObjectVTable,
+    .vTable.size = sizeof (screenObjectVTable),
+    .funcs.init  = screenInitObject,
+    .funcs.fini  = screenFiniObject
 };
 
 CompObjectType *

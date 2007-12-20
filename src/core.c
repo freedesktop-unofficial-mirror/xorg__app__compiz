@@ -377,15 +377,13 @@ static const CompCoreVTable noopCoreObjectVTable = {
 };
 
 static CompObjectType coreObjectType = {
-    CORE_TYPE_NAME, BRANCH_TYPE_NAME,
-    {
-	coreInitObject,
-	coreFiniObject
-    },
-    offsetof (CompCore, data.base.privates),
-    sizeof (CompCoreVTable),
-    &coreObjectVTable.base.base,
-    &noopCoreObjectVTable.base.base
+    .name.name   = CORE_TYPE_NAME,
+    .name.base   = BRANCH_TYPE_NAME,
+    .vTable.impl = &coreObjectVTable.base.base,
+    .vTable.noop = &noopCoreObjectVTable.base.base,
+    .vTable.size = sizeof (coreObjectVTable),
+    .funcs.init  = coreInitObject,
+    .funcs.fini  = coreFiniObject
 };
 
 CompObjectType *

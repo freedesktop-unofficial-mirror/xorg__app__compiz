@@ -57,15 +57,12 @@ pointerFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType pointerObjectType = {
-    POINTER_TYPE_NAME, INPUT_TYPE_NAME,
-    {
-	pointerInitObject,
-	pointerFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &pointerObjectVTable,
-    NULL
+    .name.name   = POINTER_TYPE_NAME,
+    .name.base   = INPUT_TYPE_NAME,
+    .vTable.impl = &pointerObjectVTable,
+    .vTable.size = sizeof (pointerObjectVTable),
+    .funcs.init  = pointerInitObject,
+    .funcs.fini  = pointerFiniObject
 };
 
 CompObjectType *

@@ -274,7 +274,7 @@ forEachInterfacePrivates (CompObject	       *object,
     ForEachObjectPrivatesContext *pCtx =
 	(ForEachObjectPrivatesContext *) closure;
 
-    if (type && strcmp (type->name, pCtx->name) == 0)
+    if (type && strcmp (type->name.name, pCtx->name) == 0)
 	return (*pCtx->proc) (getPrivates, setPrivates, pCtx->data, object);
 
     return TRUE;
@@ -331,7 +331,7 @@ updateFactory (CompObjectFactory  *factory,
 
     for (node = factory->instantiators; node; node = node->next)
     {
-	if (strcmp (node->type->name, name) == 0)
+	if (strcmp (node->type->name.name, name) == 0)
 	{
 	    node->privates = *privates;
 	    break;

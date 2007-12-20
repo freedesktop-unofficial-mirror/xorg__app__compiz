@@ -2477,15 +2477,13 @@ static const CompDisplayVTable noopDisplayObjectVTable = {
 };
 
 static CompObjectType displayObjectType = {
-    DISPLAY_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	displayInitObject,
-	displayFiniObject
-    },
-    offsetof (CompDisplay, data.base.privates),
-    sizeof (CompDisplayVTable),
-    &displayObjectVTable.base,
-    &noopDisplayObjectVTable.base
+    .name.name   = DISPLAY_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &displayObjectVTable.base,
+    .vTable.noop = &noopDisplayObjectVTable.base,
+    .vTable.size = sizeof (displayObjectVTable),
+    .funcs.init  = displayInitObject,
+    .funcs.fini  = displayFiniObject
 };
 
 CompObjectType *

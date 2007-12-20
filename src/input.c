@@ -49,15 +49,12 @@ inputFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType inputObjectType = {
-    INPUT_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	inputInitObject,
-	inputFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &inputObjectVTable,
-    NULL
+    .name.name   = INPUT_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &inputObjectVTable,
+    .vTable.size = sizeof (inputObjectVTable),
+    .funcs.init  = inputInitObject,
+    .funcs.fini  = inputFiniObject
 };
 
 CompObjectType *

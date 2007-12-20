@@ -56,15 +56,12 @@ keyboardFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType keyboardObjectType = {
-    KEYBOARD_TYPE_NAME, INPUT_TYPE_NAME,
-    {
-	keyboardInitObject,
-	keyboardFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &keyboardObjectVTable,
-    NULL
+    .name.name   = KEYBOARD_TYPE_NAME,
+    .name.base   = INPUT_TYPE_NAME,
+    .vTable.impl = &keyboardObjectVTable,
+    .vTable.size = sizeof (keyboardObjectVTable),
+    .funcs.init  = keyboardInitObject,
+    .funcs.fini  = keyboardFiniObject
 };
 
 CompObjectType *

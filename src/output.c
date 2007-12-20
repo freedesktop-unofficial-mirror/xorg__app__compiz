@@ -49,15 +49,12 @@ outputFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType outputObjectType = {
-    OUTPUT_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	outputInitObject,
-	outputFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &outputObjectVTable,
-    NULL
+    .name.name   = OUTPUT_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &outputObjectVTable,
+    .vTable.size = sizeof (outputObjectVTable),
+    .funcs.init  = outputInitObject,
+    .funcs.fini  = outputFiniObject
 };
 
 CompObjectType *

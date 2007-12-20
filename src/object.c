@@ -162,7 +162,7 @@ lookupObjectInstantiatorNode (const CompObjectFactory *factory,
     CompObjectInstantiatorNode *node;
 
     for (node = factory->instantiators; node; node = node->next)
-	if (strcmp (name, node->type->name) == 0)
+	if (strcmp (name, node->type->name.name) == 0)
 	    return node;
 
     if (factory->master)
@@ -262,9 +262,9 @@ compFactoryRegisterType (CompObjectFactory    *factory,
     CompObjectPrivatesNode	     *pNode;
     int				     interfaceSize = 0;
 
-    if (type->baseName)
+    if (type->name.base)
     {
-	base = lookupObjectInstantiatorNode (factory, type->baseName);
+	base = lookupObjectInstantiatorNode (factory, type->name.base);
 	if (!base)
 	    return FALSE;
     }
@@ -272,7 +272,7 @@ compFactoryRegisterType (CompObjectFactory    *factory,
     if (interface)
 	interfaceSize = strlen (interface) + 1;
 
-    node = malloc (sizeof (CompObjectInstantiatorNode) + type->vTableSize +
+    node = malloc (sizeof (CompObjectInstantiatorNode) + type->vTable.size +
 		   interfaceSize);
     if (!node)
 	return FALSE;
@@ -288,25 +288,28 @@ compFactoryRegisterType (CompObjectFactory    *factory,
     node->privates.totalSize = 0;
     node->interface	     = NULL;
 
-    if (type->vTableSize)
+    if (type->vTable.size)
     {
 	const CompObjectInstantiatorNode *n;
 	const CompObjectInstantiator     *p;
 
-	node->base.vTable = memcpy (node + 1, type->vTable, type->vTableSize);
+	node->base.vTable = memcpy (node + 1,
+				    type->vTable.impl,
+				    type->vTable.size);
 
 	for (p = &node->base; p; p = p->base)
 	{
 	    n = (const CompObjectInstantiatorNode *) p;
 
-	    if (n->type->noopVTable)
-		vTableInit (node->base.vTable, n->type->noopVTable,
-			    n->type->vTableSize);
+	    if (n->type->vTable.noop)
+		vTableInit (node->base.vTable,
+			    n->type->vTable.noop,
+			    n->type->vTable.size);
 	}
     }
 
     if (interfaceSize)
-	node->interface	= strcpy (((char *) (node + 1)) + type->vTableSize,
+	node->interface	= strcpy (((char *) (node + 1)) + type->vTable.size,
 				  interface);
 
     for (f = factory; f->master; f = f->master);
@@ -314,7 +317,7 @@ compFactoryRegisterType (CompObjectFactory    *factory,
 
     for (pNode = master->privates; pNode; pNode = pNode->next)
     {
-	if (strcmp (pNode->name, type->name) == 0)
+	if (strcmp (pNode->name, type->name.name) == 0)
 	{
 	    node->privates = pNode->privates;
 	    break;
@@ -3379,15 +3382,12 @@ static const CompObjectVTable noopObjectVTable = {
 };
 
 static CompObjectType objectType = {
-    OBJECT_TYPE_NAME, NULL,
-    {
-	initObject,
-	finiObject
-    },
-    offsetof (CompObject, privates),
-    sizeof (CompObjectVTable),
-    &objectVTable,
-    &noopObjectVTable
+    .name.name   = OBJECT_TYPE_NAME,
+    .vTable.impl = &objectVTable,
+    .vTable.noop = &noopObjectVTable,
+    .vTable.size = sizeof (objectVTable),
+    .funcs.init  = initObject,
+    .funcs.fini  = finiObject
 };
 
 CompObjectType *
@@ -3415,7 +3415,7 @@ compObjectAllocatePrivateIndex (CompObjectType *type,
     for (f = &core.u.base.factory; f->master; f = f->master);
     factory = (CompFactory *) f;
 
-    return (*factory->allocatePrivateIndex) (factory, type->name, size);
+    return (*factory->allocatePrivateIndex) (factory, type->name.name, size);
 }
 
 void
@@ -3428,7 +3428,7 @@ compObjectFreePrivateIndex (CompObjectType *type,
     for (f = &core.u.base.factory; f->master; f = f->master);
     factory = (CompFactory *) f;
 
-    return (*factory->freePrivateIndex) (factory, type->name, index);
+    return (*factory->freePrivateIndex) (factory, type->name.name, index);
 }
 
 static CompBool
@@ -3714,9 +3714,9 @@ cObjectInitPrivate (CompBranch	   *branch,
 	{
 	    n = (const CompObjectInstantiatorNode *) p;
 
-	    if (n->type->noopVTable)
-		vTableInit (instantiator->vTable, n->type->noopVTable,
-			    n->type->vTableSize);
+	    if (n->type->vTable.noop)
+		vTableInit (instantiator->vTable, n->type->vTable.noop,
+			    n->type->vTable.size);
 	}
     }
     else

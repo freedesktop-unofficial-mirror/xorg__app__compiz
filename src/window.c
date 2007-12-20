@@ -1765,15 +1765,12 @@ static CompObjectVTable windowObjectVTable = {
 };
 
 static CompObjectType windowObjectType = {
-    WINDOW_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	cObjectInit,
-	cObjectFini
-    },
-    offsetof (CompWindow, data.privates),
-    sizeof (CompObjectVTable),
-    &windowObjectVTable,
-    NULL
+    .name.name   = WINDOW_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &windowObjectVTable,
+    .vTable.size = sizeof (windowObjectVTable),
+    .funcs.init  = cObjectInit,
+    .funcs.fini  = cObjectFini
 };
 
 CompObjectType *

@@ -49,15 +49,12 @@ propFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType propObjectType = {
-    PROP_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	propInitObject,
-	propFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &propObjectVTable,
-    NULL
+    .name.name   = PROP_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &propObjectVTable,
+    .vTable.size = sizeof (propObjectVTable),
+    .funcs.init  = propInitObject,
+    .funcs.fini  = propFiniObject
 };
 
 CompObjectType *
@@ -101,15 +98,12 @@ boolPropFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType boolPropObjectType = {
-    BOOL_PROP_TYPE_NAME, PROP_TYPE_NAME,
-    {
-	boolPropInitObject,
-	boolPropFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &boolPropObjectVTable,
-    NULL
+    .name.name   = BOOL_PROP_TYPE_NAME,
+    .name.base   = PROP_TYPE_NAME,
+    .vTable.impl = &boolPropObjectVTable,
+    .vTable.size = sizeof (boolPropObjectVTable),
+    .funcs.init  = boolPropInitObject,
+    .funcs.fini  = boolPropFiniObject
 };
 
 CompObjectType *
@@ -153,15 +147,12 @@ intPropFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType intPropObjectType = {
-    INT_PROP_TYPE_NAME, PROP_TYPE_NAME,
-    {
-	intPropInitObject,
-	intPropFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &intPropObjectVTable,
-    NULL
+    .name.name   = INT_PROP_TYPE_NAME,
+    .name.base   = PROP_TYPE_NAME,
+    .vTable.impl = &intPropObjectVTable,
+    .vTable.size = sizeof (intPropObjectVTable),
+    .funcs.init  = intPropInitObject,
+    .funcs.fini  = intPropFiniObject
 };
 
 CompObjectType *
@@ -205,15 +196,12 @@ doublePropFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType doublePropObjectType = {
-    DOUBLE_PROP_TYPE_NAME, PROP_TYPE_NAME,
-    {
-	doublePropInitObject,
-	doublePropFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &doublePropObjectVTable,
-    NULL
+    .name.name   = DOUBLE_PROP_TYPE_NAME,
+    .name.base   = PROP_TYPE_NAME,
+    .vTable.impl = &doublePropObjectVTable,
+    .vTable.size = sizeof (doublePropObjectVTable),
+    .funcs.init  = doublePropInitObject,
+    .funcs.fini  = doublePropFiniObject
 };
 
 CompObjectType *
@@ -257,15 +245,12 @@ stringPropFiniObject (const CompObjectInstantiator *instantiator,
 }
 
 static CompObjectType stringPropObjectType = {
-    STRING_PROP_TYPE_NAME, PROP_TYPE_NAME,
-    {
-	stringPropInitObject,
-	stringPropFiniObject
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &stringPropObjectVTable,
-    NULL
+    .name.name   = STRING_PROP_TYPE_NAME,
+    .name.base   = PROP_TYPE_NAME,
+    .vTable.impl = &stringPropObjectVTable,
+    .vTable.size = sizeof (stringPropObjectVTable),
+    .funcs.init  = stringPropInitObject,
+    .funcs.fini  = stringPropFiniObject
 };
 
 CompObjectType *

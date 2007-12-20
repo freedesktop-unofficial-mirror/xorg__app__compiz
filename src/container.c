@@ -71,15 +71,12 @@ static CompObjectVTable containerObjectVTable = {
 };
 
 static CompObjectType containerObjectType = {
-    CONTAINER_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	cObjectInit,
-	cObjectFini
-    },
-    0,
-    sizeof (CompObjectVTable),
-    &containerObjectVTable,
-    NULL
+    .name.name   = CONTAINER_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &containerObjectVTable,
+    .vTable.size = sizeof (containerObjectVTable),
+    .funcs.init  = cObjectInit,
+    .funcs.fini  = cObjectFini
 };
 
 CompObjectType *

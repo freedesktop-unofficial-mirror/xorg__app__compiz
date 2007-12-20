@@ -157,15 +157,13 @@ static const CompBranchVTable noopBranchObjectVTable = {
 };
 
 static CompObjectType branchObjectType = {
-    BRANCH_TYPE_NAME, OBJECT_TYPE_NAME,
-    {
-	branchInitObject,
-	cObjectFini
-    },
-    0,
-    sizeof (CompBranchVTable),
-    &branchObjectVTable.base,
-    &noopBranchObjectVTable.base
+    .name.name   = BRANCH_TYPE_NAME,
+    .name.base   = OBJECT_TYPE_NAME,
+    .vTable.impl = &branchObjectVTable.base,
+    .vTable.noop = &noopBranchObjectVTable.base,
+    .vTable.size = sizeof (branchObjectVTable),
+    .funcs.init  = branchInitObject,
+    .funcs.fini  = cObjectFini
 };
 
 CompObjectType *
