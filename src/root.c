@@ -67,6 +67,13 @@ rootGetProp (CompObject   *object,
     }
 }
 
+static void
+rootSetProp (CompObject   *object,
+	     unsigned int what,
+	     void	  *value)
+{
+}
+
 typedef struct _HandleSignalContext {
     const char *path;
     CompSignal *signal;
@@ -149,6 +156,7 @@ processSignals (CompRoot *r)
 static CompRootVTable rootObjectVTable = {
     .base.forBaseObject = rootForBaseObject,
     .base.getProp       = rootGetProp,
+    .base.setProp       = rootSetProp,
     .processSignals     = processSignals
 };
 
