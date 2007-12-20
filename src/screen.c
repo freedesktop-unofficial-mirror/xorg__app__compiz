@@ -474,10 +474,10 @@ screenGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    cGetProp (&GET_SCREEN (object)->data.base.base,
-	      screenInterface, N_ELEMENTS (screenInterface),
-	      NULL, NULL, COMPIZ_SCREEN_VERSION,
-	      what, value);
+    cGetObjectProp (&GET_SCREEN (object)->data.base,
+		    screenInterface, N_ELEMENTS (screenInterface),
+		    NULL, NULL, COMPIZ_SCREEN_VERSION,
+		    what, value);
 }
 
 CompOption *

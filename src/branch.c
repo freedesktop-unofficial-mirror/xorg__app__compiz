@@ -38,10 +38,10 @@ branchGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    cGetProp (&GET_BRANCH (object)->data.base,
-	      branchInterface, N_ELEMENTS (branchInterface),
-	      NULL, NULL, COMPIZ_BRANCH_VERSION,
-	      what, value);
+    cGetObjectProp (&GET_BRANCH (object)->data,
+		    branchInterface, N_ELEMENTS (branchInterface),
+		    NULL, NULL, COMPIZ_BRANCH_VERSION,
+		    what, value);
 }
 
 typedef struct _ForEachTypeContext {

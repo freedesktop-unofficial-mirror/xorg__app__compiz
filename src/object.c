@@ -5123,21 +5123,18 @@ cGetMetadataProp (const CInterface *interface,
 }
 
 void
-cGetProp (CompInterfaceData *data,
-	  const CInterface  *interface,
-	  int		    nInterface,
-	  CInitObjectProc   init,
-	  CFiniObjectProc   fini,
-	  int		    version,
-	  unsigned int	    what,
-	  void		    *value)
+cGetInterfaceProp (CompInterfaceData *data,
+		   const CInterface  *interface,
+		   int		     nInterface,
+		   CInitObjectProc   init,
+		   CFiniObjectProc   fini,
+		   int		     version,
+		   unsigned int	     what,
+		   void		     *value)
 {
     switch (what) {
     case COMP_PROP_BASE_VTABLE:
 	*((const CompObjectVTable **) value) = data->vTable;
-	break;
-    case COMP_PROP_PRIVATES:
-	*((CompPrivate **) value) = ((CompObjectData *) data)->privates;
 	break;
     case COMP_PROP_C_DATA:
 	*((CompInterfaceData **) value) = data;
@@ -5151,9 +5148,46 @@ cGetProp (CompInterfaceData *data,
 }
 
 void
-cSetProp (CompObject   *object,
-	  unsigned int what,
-	  void	       *value)
+cGetObjectProp (CompObjectData	 *data,
+		const CInterface *interface,
+		int		 nInterface,
+		CInitObjectProc  init,
+		CFiniObjectProc  fini,
+		int		 version,
+		unsigned int	 what,
+		void		 *value)
+{
+    switch (what) {
+    case COMP_PROP_PRIVATES:
+	*((CompPrivate **) value) = data->privates;
+	break;
+    default:
+	cGetInterfaceProp (&data->base, interface, nInterface, init, fini,
+			   version, what, value);
+	break;
+    }
+}
+
+void
+cSetInterfaceProp (CompObject   *object,
+		   unsigned int what,
+		   void	        *value)
+{
+    CompInterfaceData *data;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    switch (what) {
+    case COMP_PROP_BASE_VTABLE:
+	data->vTable = *((const CompObjectVTable **) value);
+	break;
+    }
+}
+
+void
+cSetObjectProp (CompObject   *object,
+		unsigned int what,
+		void	     *value)
 {
     CompObjectData *data;
 
@@ -5163,13 +5197,16 @@ cSetProp (CompObject   *object,
     case COMP_PROP_PRIVATES:
 	data->privates = *((CompPrivate **) value);
 	break;
+    default:
+	cSetInterfaceProp (object, what, value);
+	break;
     }
 }
 
 static const CompObjectVTable cVTable = {
     .forBaseObject = cForBaseObject,
 
-    .setProp = cSetProp,
+    .setProp = cSetObjectProp,
 
     .insertObject = cInsertObject,
     .removeObject = cRemoveObject,

@@ -475,19 +475,34 @@ cGetMetadataProp (const CInterface *interface,
 		  CMetadata	   *metadata);
 
 void
-cGetProp (CompInterfaceData *data,
-	  const CInterface  *interface,
-	  int		    nInterface,
-	  CInitObjectProc   init,
-	  CFiniObjectProc   fini,
-	  int		    version,
-	  unsigned int	    what,
-	  void		    *value);
+cGetInterfaceProp (CompInterfaceData *data,
+		   const CInterface  *interface,
+		   int		     nInterface,
+		   CInitObjectProc   init,
+		   CFiniObjectProc   fini,
+		   int		     version,
+		   unsigned int	     what,
+		   void		     *value);
 
 void
-cSetProp (CompObject   *object,
-	  unsigned int what,
-	  void	       *value);
+cGetObjectProp (CompObjectData	 *data,
+		const CInterface *interface,
+		int		 nInterface,
+		CInitObjectProc  init,
+		CFiniObjectProc  fini,
+		int		 version,
+		unsigned int	 what,
+		void		 *value);
+
+void
+cSetInterfaceProp (CompObject   *object,
+		   unsigned int what,
+		   void	        *value);
+
+void
+cSetObjectProp (CompObject   *object,
+		unsigned int what,
+		void	     *value);
 
 COMPIZ_END_DECLS
 

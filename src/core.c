@@ -54,10 +54,10 @@ coreGetProp (CompObject   *object,
 	     unsigned int what,
 	     void	  *value)
 {
-    cGetProp (&GET_CORE (object)->data.base.base,
-	      coreInterface, N_ELEMENTS (coreInterface),
-	      NULL, NULL, COMPIZ_CORE_VERSION,
-	      what, value);
+    cGetObjectProp (&GET_CORE (object)->data.base,
+		    coreInterface, N_ELEMENTS (coreInterface),
+		    NULL, NULL, COMPIZ_CORE_VERSION,
+		    what, value);
 }
 
 typedef struct _AddRemoveDisplayContext {

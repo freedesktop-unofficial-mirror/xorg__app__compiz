@@ -45,10 +45,10 @@ containerGetProp (CompObject   *object,
 		  unsigned int what,
 		  void	       *value)
 {
-    cGetProp (&GET_CONTAINER (object)->data.base,
-	      containerInterface, N_ELEMENTS (containerInterface),
-	      containerInitObject, NULL, COMPIZ_CONTAINER_VERSION,
-	      what, value);
+    cGetObjectProp (&GET_CONTAINER (object)->data,
+		    containerInterface, N_ELEMENTS (containerInterface),
+		    containerInitObject, NULL, COMPIZ_CONTAINER_VERSION,
+		    what, value);
 }
 
 static CompBool

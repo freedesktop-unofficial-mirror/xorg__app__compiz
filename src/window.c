@@ -1754,10 +1754,10 @@ windowGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    cGetProp (&GET_WINDOW (object)->data.base,
-	      windowInterface, N_ELEMENTS (windowInterface),
-	      windowInitObject, windowFiniObject, COMPIZ_WINDOW_VERSION,
-	      what, value);
+    cGetObjectProp (&GET_WINDOW (object)->data,
+		    windowInterface, N_ELEMENTS (windowInterface),
+		    windowInitObject, windowFiniObject, COMPIZ_WINDOW_VERSION,
+		    what, value);
 }
 
 static CompObjectVTable windowObjectVTable = {

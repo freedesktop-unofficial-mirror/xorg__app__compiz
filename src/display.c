@@ -232,10 +232,10 @@ displayGetProp (CompObject   *object,
 		unsigned int what,
 		void	     *value)
 {
-    cGetProp (&GET_DISPLAY (object)->data.base.base,
-	      displayInterface, N_ELEMENTS (displayInterface),
-	      NULL, NULL, COMPIZ_DISPLAY_VERSION,
-	      what, value);
+    cGetObjectProp (&GET_DISPLAY (object)->data.base,
+		    displayInterface, N_ELEMENTS (displayInterface),
+		    NULL, NULL, COMPIZ_DISPLAY_VERSION,
+		    what, value);
 }
 
 typedef struct _AddRemoveScreenContext {
