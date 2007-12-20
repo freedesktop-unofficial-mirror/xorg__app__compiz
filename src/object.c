@@ -1671,6 +1671,18 @@ getProp (CompObject   *object,
 }
 
 static void
+setProp (CompObject   *object,
+	 unsigned int what,
+	 void	      *value)
+{
+    switch (what) {
+    case COMP_PROP_PRIVATES:
+	object->privates = *((CompPrivate **) value);
+	break;
+    }
+}
+
+static void
 insertObject (CompObject *object,
 	      CompObject *parent,
 	      const char *name)
@@ -3265,6 +3277,7 @@ static CompObjectVTable objectVTable = {
     .forBaseObject = forBaseObject,
 
     .getProp = getProp,
+    .setProp = setProp,
 
     .insertObject = insertObject,
     .removeObject = removeObject,
@@ -5093,51 +5106,6 @@ cObjectFini (const CompObjectInstantiator *instantiator,
     cObjectInterfaceFini (instantiator, object, factory);
 }
 
-static const CompObjectVTable cVTable = {
-    .forBaseObject = cForBaseObject,
-
-    .insertObject = cInsertObject,
-    .removeObject = cRemoveObject,
-    .inserted     = cInserted,
-    .removed      = cRemoved,
-
-    .forEachInterface = cForEachInterface,
-    .forEachMethod    = cForEachMethod,
-    .forEachSignal    = cForEachSignal,
-    .forEachProp      = cForEachProp,
-
-    .forEachChildObject = cForEachChildObject,
-
-    .signal.connect    = cConnect,
-    .signal.disconnect = cDisconnect,
-
-    .version.get = cGetVersion,
-
-    .properties.getBool     = cGetBoolProp,
-    .properties.setBool     = cSetBoolProp,
-    .properties.boolChanged = cBoolPropChanged,
-
-    .properties.getInt     = cGetIntProp,
-    .properties.setInt     = cSetIntProp,
-    .properties.intChanged = cIntPropChanged,
-
-    .properties.getDouble     = cGetDoubleProp,
-    .properties.setDouble     = cSetDoubleProp,
-    .properties.doubleChanged = cDoublePropChanged,
-
-    .properties.getString     = cGetStringProp,
-    .properties.setString     = cSetStringProp,
-    .properties.stringChanged = cStringPropChanged,
-
-    .metadata.get = cGetMetadata
-};
-
-void
-cInitObjectVTable (CompObjectVTable *vTable)
-{
-    vTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
-}
-
 void
 cGetMetadataProp (const CInterface *interface,
 		  int		   nInterface,
@@ -5179,4 +5147,67 @@ cGetProp (CompInterfaceData *data,
 	break;
     }
     }
+}
+
+void
+cSetProp (CompObject   *object,
+	  unsigned int what,
+	  void	       *value)
+{
+    CompObjectData *data;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    switch (what) {
+    case COMP_PROP_PRIVATES:
+	data->privates = *((CompPrivate **) value);
+	break;
+    }
+}
+
+static const CompObjectVTable cVTable = {
+    .forBaseObject = cForBaseObject,
+
+    .setProp = cSetProp,
+
+    .insertObject = cInsertObject,
+    .removeObject = cRemoveObject,
+    .inserted     = cInserted,
+    .removed      = cRemoved,
+
+    .forEachInterface = cForEachInterface,
+    .forEachMethod    = cForEachMethod,
+    .forEachSignal    = cForEachSignal,
+    .forEachProp      = cForEachProp,
+
+    .forEachChildObject = cForEachChildObject,
+
+    .signal.connect    = cConnect,
+    .signal.disconnect = cDisconnect,
+
+    .version.get = cGetVersion,
+
+    .properties.getBool     = cGetBoolProp,
+    .properties.setBool     = cSetBoolProp,
+    .properties.boolChanged = cBoolPropChanged,
+
+    .properties.getInt     = cGetIntProp,
+    .properties.setInt     = cSetIntProp,
+    .properties.intChanged = cIntPropChanged,
+
+    .properties.getDouble     = cGetDoubleProp,
+    .properties.setDouble     = cSetDoubleProp,
+    .properties.doubleChanged = cDoublePropChanged,
+
+    .properties.getString     = cGetStringProp,
+    .properties.setString     = cSetStringProp,
+    .properties.stringChanged = cStringPropChanged,
+
+    .metadata.get = cGetMetadata
+};
+
+void
+cInitObjectVTable (CompObjectVTable *vTable)
+{
+    vTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
 }

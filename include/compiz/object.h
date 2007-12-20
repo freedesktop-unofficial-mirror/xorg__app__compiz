@@ -167,6 +167,10 @@ typedef void (*GetPropProc) (CompObject   *object,
 			     unsigned int what,
 			     void	  *value);
 
+typedef void (*SetPropProc) (CompObject   *object,
+			     unsigned int what,
+			     void	  *value);
+
 typedef void (*InsertObjectProc) (CompObject *object,
 				  CompObject *parent,
 				  const char *name);
@@ -383,6 +387,7 @@ struct _CompObjectVTable {
     ForBaseObjectProc forBaseObject;
 
     GetPropProc getProp;
+    SetPropProc setProp;
 
     /* object tree functions
 

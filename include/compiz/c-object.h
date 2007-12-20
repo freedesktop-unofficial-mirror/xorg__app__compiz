@@ -484,6 +484,11 @@ cGetProp (CompInterfaceData *data,
 	  unsigned int	    what,
 	  void		    *value);
 
+void
+cSetProp (CompObject   *object,
+	  unsigned int what,
+	  void	       *value);
+
 COMPIZ_END_DECLS
 
 #endif
