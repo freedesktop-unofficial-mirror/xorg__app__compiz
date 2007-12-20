@@ -101,12 +101,10 @@ static CompSignalHandler lastSignalVecEntry  = { 0 };
 static CompSignalHandler emptySignalVecEntry = { 0 };
 
 static CompBool
-allocateObjectPrivates (CompObject		 *object,
-			const CompObjectType     *type,
+allocateObjectPrivates (CompPrivate		 **pPrivates,
 			const CompObjectPrivates *size)
 {
-    CompPrivate *privates, **pPrivates = (CompPrivate **)
-	(((char *) object) + type->privatesOffset);
+    CompPrivate *privates;
 
     privates = allocatePrivates (size->len, size->sizes, size->totalSize);
     if (!privates)
@@ -118,13 +116,9 @@ allocateObjectPrivates (CompObject		 *object,
 }
 
 static void
-freeObjectPrivates (CompObject		     *object,
-		    const CompObjectType     *type,
+freeObjectPrivates (CompPrivate		     **pPrivates,
 		    const CompObjectPrivates *size)
 {
-    CompPrivate **pPrivates = (CompPrivate **)
-	(((char *) object) + type->privatesOffset);
-
     if (*pPrivates)
 	free (*pPrivates);
 }
@@ -5074,13 +5068,10 @@ cObjectInit (const CompObjectInstantiator *instantiator,
 
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    if (node->type->privatesOffset)
+    if (!allocateObjectPrivates (&data->privates, &node->privates))
     {
-	if (!allocateObjectPrivates (object, node->type, &node->privates))
-	{
-	    cObjectInterfaceFini (instantiator, object, factory);
-	    return FALSE;
-	}
+	cObjectInterfaceFini (instantiator, object, factory);
+	return FALSE;
     }
 
     return TRUE;
@@ -5097,8 +5088,7 @@ cObjectFini (const CompObjectInstantiator *instantiator,
 
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    if (node->type->privatesOffset)
-	freeObjectPrivates (object, node->type, &node->privates);
+    freeObjectPrivates (&data->privates, &node->privates);
 
     cObjectInterfaceFini (instantiator, object, factory);
 }
