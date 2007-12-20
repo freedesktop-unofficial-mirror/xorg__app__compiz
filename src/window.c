@@ -1728,30 +1728,10 @@ static CInterface windowInterface[] = {
     C_INTERFACE (window, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
-static void
-windowGetProp (CompObject   *object,
-	       unsigned int what,
-	       void	    *value)
-{
-    cGetProp (&GET_WINDOW (object)->data.base,
-	      windowInterface, N_ELEMENTS (windowInterface),
-	      getWindowObjectType (), NULL, NULL, COMPIZ_WINDOW_VERSION,
-	      what, value);
-}
-
-static CompObjectVTable windowObjectVTable = {
-    .getProp = windowGetProp
-};
-
 static CompBool
-windowInitObject (const CompObjectInstantiator *instantiator,
-		  CompObject		       *object,
-		  const CompObjectFactory      *factory)
+windowInitObject (CompObject *object)
 {
     WINDOW (object);
-
-    if (!cObjectInit (instantiator, object, factory))
-	return FALSE;
 
     w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
 
@@ -1761,23 +1741,34 @@ windowInitObject (const CompObjectInstantiator *instantiator,
 }
 
 static void
-windowFiniObject (const CompObjectInstantiator *instantiator,
-		  CompObject		       *object,
-		  const CompObjectFactory      *factory)
+windowFiniObject (CompObject *object)
 {
     WINDOW (object);
 
     if (w->objectName)
 	free (w->objectName);
-
-    cObjectFini (instantiator, object, factory);
 }
+
+static void
+windowGetProp (CompObject   *object,
+	       unsigned int what,
+	       void	    *value)
+{
+    cGetProp (&GET_WINDOW (object)->data.base,
+	      windowInterface, N_ELEMENTS (windowInterface),
+	      windowInitObject, windowFiniObject, COMPIZ_WINDOW_VERSION,
+	      what, value);
+}
+
+static CompObjectVTable windowObjectVTable = {
+    .getProp = windowGetProp
+};
 
 static CompObjectType windowObjectType = {
     WINDOW_TYPE_NAME, OBJECT_TYPE_NAME,
     {
-	windowInitObject,
-	windowFiniObject
+	cObjectInit,
+	cObjectFini
     },
     offsetof (CompWindow, data.privates),
     sizeof (CompObjectVTable),

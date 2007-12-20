@@ -1419,7 +1419,7 @@ cForEachInterface (CompObject	         *object,
 	if (!(*proc) (object,
 		      m.interface[i].name,
 		      m.interface[i].offset,
-		      m.type,
+		      m.interface[i].type,
 		      closure))
 	    return FALSE;
 
@@ -1670,7 +1670,7 @@ getProp (CompObject   *object,
 	break;
     case COMP_PROP_C_METADATA:
 	cGetMetadataProp (objectInterface, N_ELEMENTS (objectInterface),
-			  getObjectType (), NULL, NULL, COMPIZ_OBJECT_VERSION,
+			  NULL, NULL, COMPIZ_OBJECT_VERSION,
 			  (CMetadata *) value);
 	break;
     }
@@ -5149,32 +5149,29 @@ cInitObjectVTable (CompObjectVTable *vTable)
 }
 
 void
-cGetMetadataProp (const CInterface     *interface,
-		  int		       nInterface,
-		  const CompObjectType *type,
-		  CInitObjectProc      init,
-		  CFiniObjectProc      fini,
-		  int		       version,
-		  CMetadata	       *metadata)
+cGetMetadataProp (const CInterface *interface,
+		  int		   nInterface,
+		  CInitObjectProc  init,
+		  CFiniObjectProc  fini,
+		  int		   version,
+		  CMetadata	   *metadata)
 {
     metadata->interface  = interface;
     metadata->nInterface = nInterface;
-    metadata->type	 = type;
     metadata->version    = version;
     metadata->init	 = init;
     metadata->fini	 = fini;
 }
 
 void
-cGetProp (CompInterfaceData    *data,
-	  const CInterface     *interface,
-	  int		       nInterface,
-	  const CompObjectType *type,
-	  CInitObjectProc      init,
-	  CFiniObjectProc      fini,
-	  int		       version,
-	  unsigned int	       what,
-	  void		       *value)
+cGetProp (CompInterfaceData *data,
+	  const CInterface  *interface,
+	  int		    nInterface,
+	  CInitObjectProc   init,
+	  CFiniObjectProc   fini,
+	  int		    version,
+	  unsigned int	    what,
+	  void		    *value)
 {
     switch (what) {
     case COMP_PROP_BASE_VTABLE:
@@ -5187,7 +5184,7 @@ cGetProp (CompInterfaceData    *data,
 	*((CompInterfaceData **) value) = data;
 	break;
     case COMP_PROP_C_METADATA: {
-	cGetMetadataProp (interface, nInterface, type, init, fini, version,
+	cGetMetadataProp (interface, nInterface, init, fini, version,
 			  (CMetadata *) value);
 	break;
     }

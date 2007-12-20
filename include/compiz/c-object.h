@@ -166,12 +166,11 @@ typedef CompBool (*CInitObjectProc) (CompObject *object);
 typedef void     (*CFiniObjectProc) (CompObject	*object);
 
 typedef struct _CMetadata {
-    const CInterface     *interface;
-    int			 nInterface;
-    const CompObjectType *type;
-    CInitObjectProc	 init;
-    CFiniObjectProc	 fini;
-    int			 version;
+    const CInterface *interface;
+    int		     nInterface;
+    CInitObjectProc  init;
+    CFiniObjectProc  fini;
+    int		     version;
 } CMetadata;
 
 #define COMP_PROP_C_BASE     1024
@@ -468,24 +467,22 @@ cObjectFreePrivateIndices (CompFactory	  *factory,
 			   int		  nPrivate);
 
 void
-cGetMetadataProp (const CInterface     *interface,
-		  int		       nInterface,
-		  const CompObjectType *type,
-		  CInitObjectProc      init,
-		  CFiniObjectProc      fini,
-		  int		       version,
-		  CMetadata	       *metadata);
+cGetMetadataProp (const CInterface *interface,
+		  int		   nInterface,
+		  CInitObjectProc  init,
+		  CFiniObjectProc  fini,
+		  int		   version,
+		  CMetadata	   *metadata);
 
 void
-cGetProp (CompInterfaceData    *data,
-	  const CInterface     *interface,
-	  int		       nInterface,
-	  const CompObjectType *type,
-	  CInitObjectProc      init,
-	  CFiniObjectProc      fini,
-	  int		       version,
-	  unsigned int	       what,
-	  void		       *value);
+cGetProp (CompInterfaceData *data,
+	  const CInterface  *interface,
+	  int		    nInterface,
+	  CInitObjectProc   init,
+	  CFiniObjectProc   fini,
+	  int		    version,
+	  unsigned int	    what,
+	  void		    *value);
 
 COMPIZ_END_DECLS
 

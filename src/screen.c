@@ -476,7 +476,7 @@ screenGetProp (CompObject   *object,
 {
     cGetProp (&GET_SCREEN (object)->data.base.base,
 	      screenInterface, N_ELEMENTS (screenInterface),
-	      getScreenObjectType (), NULL, NULL, COMPIZ_SCREEN_VERSION,
+	      NULL, NULL, COMPIZ_SCREEN_VERSION,
 	      what, value);
 }
 

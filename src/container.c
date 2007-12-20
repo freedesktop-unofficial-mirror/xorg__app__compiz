@@ -26,9 +26,19 @@
 #include <compiz/container.h>
 #include <compiz/c-object.h>
 
-static const CInterface containerInterface[] = {
+static CInterface containerInterface[] = {
     C_INTERFACE (container, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
+
+static CompBool
+containerInitObject (CompObject	*object)
+{
+    CONTAINER (object);
+
+    c->forEachChildObject = NULL;
+
+    return TRUE;
+}
 
 static void
 containerGetProp (CompObject   *object,
@@ -37,7 +47,7 @@ containerGetProp (CompObject   *object,
 {
     cGetProp (&GET_CONTAINER (object)->data.base,
 	      containerInterface, N_ELEMENTS (containerInterface),
-	      getContainerObjectType (), NULL, NULL, COMPIZ_CONTAINER_VERSION,
+	      containerInitObject, NULL, COMPIZ_CONTAINER_VERSION,
 	      what, value);
 }
 
@@ -60,34 +70,11 @@ static CompObjectVTable containerObjectVTable = {
     .forEachChildObject = containerForEachChildObject
 };
 
-static CompBool
-containerInitObject (const CompObjectInstantiator *instantiator,
-		     CompObject			  *object,
-		     const CompObjectFactory      *factory)
-{
-    CONTAINER (object);
-
-    if (!cObjectInit (instantiator, object, factory))
-	return FALSE;
-
-    c->forEachChildObject = NULL;
-
-    return TRUE;
-}
-
-static void
-containerFiniObject (const CompObjectInstantiator *instantiator,
-		     CompObject			  *object,
-		     const CompObjectFactory      *factory)
-{
-    cObjectFini (instantiator, object, factory);
-}
-
 static CompObjectType containerObjectType = {
     CONTAINER_TYPE_NAME, OBJECT_TYPE_NAME,
     {
-	containerInitObject,
-	containerFiniObject
+	cObjectInit,
+	cObjectFini
     },
     0,
     sizeof (CompObjectVTable),
@@ -103,6 +90,8 @@ getContainerObjectType (void)
     if (!init)
     {
 	cInitObjectVTable (&containerObjectVTable);
+	cInterfaceInit (containerInterface, N_ELEMENTS (containerInterface),
+			&containerObjectType);
 	init = TRUE;
     }
 

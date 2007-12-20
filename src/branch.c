@@ -29,7 +29,7 @@
 #include <compiz/branch.h>
 #include <compiz/c-object.h>
 
-static const CInterface branchInterface[] = {
+static CInterface branchInterface[] = {
     C_INTERFACE (branch, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
@@ -40,7 +40,7 @@ branchGetProp (CompObject   *object,
 {
     cGetProp (&GET_BRANCH (object)->data.base,
 	      branchInterface, N_ELEMENTS (branchInterface),
-	      getBranchObjectType (), NULL, NULL, COMPIZ_BRANCH_VERSION,
+	      NULL, NULL, COMPIZ_BRANCH_VERSION,
 	      what, value);
 }
 
@@ -151,14 +151,6 @@ branchInitObject (const CompObjectInstantiator *instantiator,
     return TRUE;
 }
 
-static void
-branchFiniObject (const CompObjectInstantiator *instantiator,
-		  CompObject		       *object,
-		  const CompObjectFactory      *factory)
-{
-    cObjectFini (instantiator, object, factory);
-}
-
 static const CompBranchVTable noopBranchObjectVTable = {
     .forEachType  = noopForEachType,
     .registerType = noopRegisterType
@@ -168,7 +160,7 @@ static CompObjectType branchObjectType = {
     BRANCH_TYPE_NAME, OBJECT_TYPE_NAME,
     {
 	branchInitObject,
-	branchFiniObject
+	cObjectFini
     },
     0,
     sizeof (CompBranchVTable),
@@ -184,6 +176,8 @@ getBranchObjectType (void)
     if (!init)
     {
 	cInitObjectVTable (&branchObjectVTable.base);
+	cInterfaceInit (branchInterface, N_ELEMENTS (branchInterface),
+			&branchObjectType);
 	init = TRUE;
     }
 
