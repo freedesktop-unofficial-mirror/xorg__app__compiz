@@ -36,16 +36,14 @@
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompOutput {
-    CompObject base;
-
-    CompObjectVTableVec object;
-
-    char       *name;
-    int        id;
-    REGION     region;
-    int        width;
-    int        height;
-    XRectangle workArea;
+    CompObject     base;
+    CompObjectData data;
+    char           *name;
+    int            id;
+    REGION         region;
+    int            width;
+    int            height;
+    XRectangle     workArea;
 } CompOutput;
 
 #define GET_OUTPUT(object) ((CompOutput *) (object))

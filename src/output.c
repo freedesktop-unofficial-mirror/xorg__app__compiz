@@ -30,43 +30,40 @@ static CInterface outputInterface[] = {
     C_INTERFACE (output, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
-static CompObjectVTable outputObjectVTable = { 0 };
-
-static CompBool
-outputInitObject (const CompObjectInstantiator *instantiator,
-		  CompObject		       *object,
-		  const CompObjectFactory      *factory)
-{
-    return cObjectInit (instantiator, object, factory);
-}
-
 static void
-outputFiniObject (const CompObjectInstantiator *instantiator,
-		  CompObject		       *object,
-		  const CompObjectFactory      *factory)
+outputGetProp (CompObject   *object,
+	       unsigned int what,
+	       void	    *value)
 {
-    cObjectFini (instantiator, object, factory);
+    static const CMetadata template = {
+	.interface  = outputInterface,
+	.nInterface = N_ELEMENTS (outputInterface),
+	.version    = COMPIZ_OUTPUT_VERSION
+    };
+
+    cGetObjectProp (&GET_OUTPUT (object)->data, &template, what, value);
 }
 
-static CompObjectType outputObjectType = {
-    .name.name   = OUTPUT_TYPE_NAME,
-    .name.base   = OBJECT_TYPE_NAME,
-    .vTable.impl = &outputObjectVTable,
-    .vTable.size = sizeof (outputObjectVTable),
-    .funcs.init  = outputInitObject,
-    .funcs.fini  = outputFiniObject
+static const CompObjectVTable outputObjectVTable = {
+    .getProp = outputGetProp
 };
 
 const CompObjectType *
 getOutputObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&outputObjectVTable);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = OUTPUT_TYPE_NAME,
+	    .name.base   = OBJECT_TYPE_NAME,
+	    .vTable.impl = &outputObjectVTable,
+	    .vTable.size = sizeof (outputObjectVTable)
+	};
+
+	type = cObjectTypeFromTemplate (&template);
     }
 
-    return &outputObjectType;
+    return type;
 }

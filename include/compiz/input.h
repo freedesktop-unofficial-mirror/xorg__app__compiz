@@ -33,9 +33,8 @@
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompInput {
-    CompObject base;
-
-    CompObjectVTableVec object;
+    CompObject     base;
+    CompObjectData data;
 } CompInput;
 
 #define GET_INPUT(object) ((CompInput *) (object))

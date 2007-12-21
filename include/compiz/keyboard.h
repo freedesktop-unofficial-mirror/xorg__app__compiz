@@ -33,11 +33,9 @@
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompKeyboard {
-    CompInput base;
-
-    CompObjectVTableVec object;
-
-    unsigned int state;
+    CompInput      base;
+    CompObjectData data;
+    unsigned int   state;
 } CompKeyboard;
 
 #define GET_KEYBOARD(object) ((CompKeyboard *) (object))

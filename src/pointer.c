@@ -30,17 +30,10 @@ static CInterface pointerInterface[] = {
     C_INTERFACE (pointer, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
-static CompObjectVTable pointerObjectVTable = { 0 };
-
 static CompBool
-pointerInitObject (const CompObjectInstantiator *instantiator,
-		   CompObject		        *object,
-		   const CompObjectFactory      *factory)
+pointerInitObject (CompObject *object)
 {
     POINTER (object);
-
-    if (!cObjectInit (instantiator, object, factory))
-	return FALSE;
 
     p->x = 0;
     p->y = 0;
@@ -49,32 +42,40 @@ pointerInitObject (const CompObjectInstantiator *instantiator,
 }
 
 static void
-pointerFiniObject (const CompObjectInstantiator *instantiator,
-		   CompObject		        *object,
-		   const CompObjectFactory      *factory)
+pointerGetProp (CompObject   *object,
+		  unsigned int what,
+		  void	       *value)
 {
-    cObjectFini (instantiator, object, factory);
+    static const CMetadata template = {
+	.interface  = pointerInterface,
+	.nInterface = N_ELEMENTS (pointerInterface),
+	.init       = pointerInitObject,
+	.version    = COMPIZ_POINTER_VERSION
+    };
+
+    cGetObjectProp (&GET_POINTER (object)->data, &template, what, value);
 }
 
-static CompObjectType pointerObjectType = {
-    .name.name   = POINTER_TYPE_NAME,
-    .name.base   = INPUT_TYPE_NAME,
-    .vTable.impl = &pointerObjectVTable,
-    .vTable.size = sizeof (pointerObjectVTable),
-    .funcs.init  = pointerInitObject,
-    .funcs.fini  = pointerFiniObject
+static const CompObjectVTable pointerObjectVTable = {
+    .getProp = pointerGetProp
 };
 
 const CompObjectType *
 getPointerObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&pointerObjectVTable);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = POINTER_TYPE_NAME,
+	    .name.base   = INPUT_TYPE_NAME,
+	    .vTable.impl = &pointerObjectVTable,
+	    .vTable.size = sizeof (pointerObjectVTable)
+	};
+
+	type = cObjectTypeFromTemplate (&template);
     }
 
-    return &pointerObjectType;
+    return type;
 }

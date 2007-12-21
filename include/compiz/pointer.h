@@ -33,12 +33,10 @@
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompPointer {
-    CompInput base;
-
-    CompObjectVTableVec object;
-
-    int	x;
-    int	y;
+    CompInput      base;
+    CompObjectData data;
+    int            x;
+    int            y;
 } CompPointer;
 
 #define GET_POINTER(object) ((CompPointer *) (object))
