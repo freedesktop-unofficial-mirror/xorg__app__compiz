@@ -54,10 +54,13 @@ coreGetProp (CompObject   *object,
 	     unsigned int what,
 	     void	  *value)
 {
-    cGetObjectProp (&GET_CORE (object)->data.base,
-		    coreInterface, N_ELEMENTS (coreInterface),
-		    NULL, NULL, COMPIZ_CORE_VERSION,
-		    what, value);
+    static const CMetadata template = {
+	.interface  = coreInterface,
+	.nInterface = N_ELEMENTS (coreInterface),
+	.version    = COMPIZ_CORE_VERSION
+    };
+
+    cGetObjectProp (&GET_CORE (object)->data.base, &template, what, value);
 }
 
 typedef struct _AddRemoveDisplayContext {

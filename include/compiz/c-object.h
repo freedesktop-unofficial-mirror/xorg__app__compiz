@@ -454,30 +454,14 @@ cObjectFreePrivateIndices (CompFactory	  *factory,
 			   int		  nPrivate);
 
 void
-cGetMetadataProp (const CInterface *interface,
-		  int		   nInterface,
-		  CInitObjectProc  init,
-		  CFiniObjectProc  fini,
-		  int		   version,
-		  CMetadata	   *metadata);
-
-void
 cGetInterfaceProp (CompInterfaceData *data,
-		   const CInterface  *interface,
-		   int		     nInterface,
-		   CInitObjectProc   init,
-		   CFiniObjectProc   fini,
-		   int		     version,
+		   const CMetadata   *template,
 		   unsigned int	     what,
 		   void		     *value);
 
 void
 cGetObjectProp (CompObjectData	 *data,
-		const CInterface *interface,
-		int		 nInterface,
-		CInitObjectProc  init,
-		CFiniObjectProc  fini,
-		int		 version,
+		const CMetadata  *template,
 		unsigned int	 what,
 		void		 *value);
 

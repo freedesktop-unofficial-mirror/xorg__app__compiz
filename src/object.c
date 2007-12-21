@@ -1656,6 +1656,12 @@ getProp (CompObject   *object,
 	 unsigned int what,
 	 void	      *value)
 {
+    static const CMetadata template = {
+	.interface  = objectInterface,
+	.nInterface = N_ELEMENTS (objectInterface),
+	.version    = COMPIZ_OBJECT_VERSION
+    };
+
     switch (what) {
     case COMP_PROP_BASE_VTABLE:
 	*((CompObjectVTable **) value) = NULL;
@@ -1667,9 +1673,7 @@ getProp (CompObject   *object,
 	*((void **) value) = NULL;
 	break;
     case COMP_PROP_C_METADATA:
-	cGetMetadataProp (objectInterface, N_ELEMENTS (objectInterface),
-			  NULL, NULL, COMPIZ_OBJECT_VERSION,
-			  (CMetadata *) value);
+	*((CMetadata *) value) = template;
 	break;
     }
 }
@@ -5093,27 +5097,8 @@ cObjectFini (const CompObjectInstantiator *instantiator,
 }
 
 void
-cGetMetadataProp (const CInterface *interface,
-		  int		   nInterface,
-		  CInitObjectProc  init,
-		  CFiniObjectProc  fini,
-		  int		   version,
-		  CMetadata	   *metadata)
-{
-    metadata->interface  = interface;
-    metadata->nInterface = nInterface;
-    metadata->version    = version;
-    metadata->init	 = init;
-    metadata->fini	 = fini;
-}
-
-void
 cGetInterfaceProp (CompInterfaceData *data,
-		   const CInterface  *interface,
-		   int		     nInterface,
-		   CInitObjectProc   init,
-		   CFiniObjectProc   fini,
-		   int		     version,
+		   const CMetadata   *template,
 		   unsigned int	     what,
 		   void		     *value)
 {
@@ -5124,31 +5109,24 @@ cGetInterfaceProp (CompInterfaceData *data,
     case COMP_PROP_C_DATA:
 	*((CompInterfaceData **) value) = data;
 	break;
-    case COMP_PROP_C_METADATA: {
-	cGetMetadataProp (interface, nInterface, init, fini, version,
-			  (CMetadata *) value);
+    case COMP_PROP_C_METADATA:
+	*((CMetadata *) value) = *template;
 	break;
-    }
     }
 }
 
 void
-cGetObjectProp (CompObjectData	 *data,
-		const CInterface *interface,
-		int		 nInterface,
-		CInitObjectProc  init,
-		CFiniObjectProc  fini,
-		int		 version,
-		unsigned int	 what,
-		void		 *value)
+cGetObjectProp (CompObjectData	*data,
+		const CMetadata *template,
+		unsigned int	what,
+		void		*value)
 {
     switch (what) {
     case COMP_PROP_PRIVATES:
 	*((CompPrivate **) value) = data->privates;
 	break;
     default:
-	cGetInterfaceProp (&data->base, interface, nInterface, init, fini,
-			   version, what, value);
+	cGetInterfaceProp (&data->base, template, what, value);
 	break;
     }
 }

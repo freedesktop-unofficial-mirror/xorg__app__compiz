@@ -474,10 +474,13 @@ screenGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    cGetObjectProp (&GET_SCREEN (object)->data.base,
-		    screenInterface, N_ELEMENTS (screenInterface),
-		    NULL, NULL, COMPIZ_SCREEN_VERSION,
-		    what, value);
+    static const CMetadata template = {
+	.interface  = screenInterface,
+	.nInterface = N_ELEMENTS (screenInterface),
+	.version    = COMPIZ_SCREEN_VERSION
+    };
+
+    cGetObjectProp (&GET_SCREEN (object)->data.base, &template, what, value);
 }
 
 CompOption *

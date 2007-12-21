@@ -38,10 +38,13 @@ branchGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    cGetObjectProp (&GET_BRANCH (object)->data,
-		    branchInterface, N_ELEMENTS (branchInterface),
-		    NULL, NULL, COMPIZ_BRANCH_VERSION,
-		    what, value);
+    static const CMetadata template = {
+	.interface  = branchInterface,
+	.nInterface = N_ELEMENTS (branchInterface),
+	.version    = COMPIZ_BRANCH_VERSION
+    };
+
+    cGetObjectProp (&GET_BRANCH (object)->data, &template, what, value);
 }
 
 typedef struct _ForEachTypeContext {

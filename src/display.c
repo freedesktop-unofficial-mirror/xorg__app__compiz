@@ -232,10 +232,13 @@ displayGetProp (CompObject   *object,
 		unsigned int what,
 		void	     *value)
 {
-    cGetObjectProp (&GET_DISPLAY (object)->data.base,
-		    displayInterface, N_ELEMENTS (displayInterface),
-		    NULL, NULL, COMPIZ_DISPLAY_VERSION,
-		    what, value);
+    static const CMetadata template = {
+	.interface  = displayInterface,
+	.nInterface = N_ELEMENTS (displayInterface),
+	.version    = COMPIZ_DISPLAY_VERSION
+    };
+
+    cGetObjectProp (&GET_DISPLAY (object)->data.base, &template, what, value);
 }
 
 typedef struct _AddRemoveScreenContext {

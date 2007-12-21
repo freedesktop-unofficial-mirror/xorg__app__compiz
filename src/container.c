@@ -45,10 +45,14 @@ containerGetProp (CompObject   *object,
 		  unsigned int what,
 		  void	       *value)
 {
-    cGetObjectProp (&GET_CONTAINER (object)->data,
-		    containerInterface, N_ELEMENTS (containerInterface),
-		    containerInitObject, NULL, COMPIZ_CONTAINER_VERSION,
-		    what, value);
+    static const CMetadata template = {
+	.interface  = containerInterface,
+	.nInterface = N_ELEMENTS (containerInterface),
+	.init       = containerInitObject,
+	.version    = COMPIZ_CONTAINER_VERSION
+    };
+
+    cGetObjectProp (&GET_CONTAINER (object)->data, &template, what, value);
 }
 
 static CompBool

@@ -1754,10 +1754,15 @@ windowGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    cGetObjectProp (&GET_WINDOW (object)->data,
-		    windowInterface, N_ELEMENTS (windowInterface),
-		    windowInitObject, windowFiniObject, COMPIZ_WINDOW_VERSION,
-		    what, value);
+    static const CMetadata template = {
+	.interface  = windowInterface,
+	.nInterface = N_ELEMENTS (windowInterface),
+	.init       = windowInitObject,
+	.fini       = windowFiniObject,
+	.version    = COMPIZ_WINDOW_VERSION
+    };
+
+    cGetObjectProp (&GET_WINDOW (object)->data, &template, what, value);
 }
 
 static CompObjectVTable windowObjectVTable = {
