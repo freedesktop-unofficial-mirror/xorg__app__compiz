@@ -376,42 +376,40 @@ static const CompCoreVTable noopCoreObjectVTable = {
     .removeDisplay = noopRemoveDisplay
 };
 
-static CompObjectType coreObjectType = {
-    .name.name   = CORE_TYPE_NAME,
-    .name.base   = BRANCH_TYPE_NAME,
-    .vTable.impl = &coreObjectVTable.base.base,
-    .vTable.noop = &noopCoreObjectVTable.base.base,
-    .vTable.size = sizeof (coreObjectVTable),
-    .funcs.init  = coreInitObject,
-    .funcs.fini  = coreFiniObject
-};
-
 CompObjectType *
 getCoreObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&coreObjectVTable.base.base);
-	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface),
-			&coreObjectType);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = CORE_TYPE_NAME,
+	    .name.base   = BRANCH_TYPE_NAME,
+	    .vTable.impl = &coreObjectVTable.base.base,
+	    .vTable.noop = &noopCoreObjectVTable.base.base,
+	    .vTable.size = sizeof (coreObjectVTable),
+	    .funcs.init  = coreInitObject,
+	    .funcs.fini  = coreFiniObject
+	};
+
+	type = cObjectTypeFromTemplate (&template);
+	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface), type);
     }
 
-    return &coreObjectType;
+    return type;
 }
 
 int
 allocateCorePrivateIndex (void)
 {
-    return compObjectAllocatePrivateIndex (&coreObjectType, 0);
+    return compObjectAllocatePrivateIndex (getCoreObjectType (), 0);
 }
 
 void
 freeCorePrivateIndex (int index)
 {
-    compObjectFreePrivateIndex (&coreObjectType, index);
+    compObjectFreePrivateIndex (getCoreObjectType (), index);
 }
 
 CompBool

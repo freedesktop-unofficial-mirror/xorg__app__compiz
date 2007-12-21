@@ -70,27 +70,24 @@ static CompObjectVTable containerObjectVTable = {
     .forEachChildObject = containerForEachChildObject
 };
 
-static CompObjectType containerObjectType = {
-    .name.name   = CONTAINER_TYPE_NAME,
-    .name.base   = OBJECT_TYPE_NAME,
-    .vTable.impl = &containerObjectVTable,
-    .vTable.size = sizeof (containerObjectVTable),
-    .funcs.init  = cObjectInit,
-    .funcs.fini  = cObjectFini
-};
-
 CompObjectType *
 getContainerObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&containerObjectVTable);
+	static const CompObjectType template = {
+	    .name.name   = CONTAINER_TYPE_NAME,
+	    .name.base   = OBJECT_TYPE_NAME,
+	    .vTable.impl = &containerObjectVTable,
+	    .vTable.size = sizeof (containerObjectVTable)
+	};
+
+	type = cObjectTypeFromTemplate (&template);
 	cInterfaceInit (containerInterface, N_ELEMENTS (containerInterface),
-			&containerObjectType);
-	init = TRUE;
+			type);
     }
 
-    return &containerObjectType;
+    return type;
 }

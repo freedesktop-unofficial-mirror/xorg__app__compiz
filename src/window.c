@@ -1764,41 +1764,37 @@ static CompObjectVTable windowObjectVTable = {
     .getProp = windowGetProp
 };
 
-static CompObjectType windowObjectType = {
-    .name.name   = WINDOW_TYPE_NAME,
-    .name.base   = OBJECT_TYPE_NAME,
-    .vTable.impl = &windowObjectVTable,
-    .vTable.size = sizeof (windowObjectVTable),
-    .funcs.init  = cObjectInit,
-    .funcs.fini  = cObjectFini
-};
-
 CompObjectType *
 getWindowObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&windowObjectVTable);
-	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface),
-			&windowObjectType);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = WINDOW_TYPE_NAME,
+	    .name.base   = OBJECT_TYPE_NAME,
+	    .vTable.impl = &windowObjectVTable,
+	    .vTable.size = sizeof (windowObjectVTable)
+	};
+
+	type = cObjectTypeFromTemplate (&template);
+	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface), type);
     }
 
-    return &windowObjectType;
+    return type;
 }
 
 int
 allocateWindowPrivateIndex (void)
 {
-    return compObjectAllocatePrivateIndex (&windowObjectType, 0);
+    return compObjectAllocatePrivateIndex (getWindowObjectType (), 0);
 }
 
 void
 freeWindowPrivateIndex (int index)
 {
-    compObjectFreePrivateIndex (&windowObjectType, index);
+    compObjectFreePrivateIndex (getWindowObjectType (), index);
 }
 
 void

@@ -156,30 +156,27 @@ static const CompBranchVTable noopBranchObjectVTable = {
     .registerType = noopRegisterType
 };
 
-static CompObjectType branchObjectType = {
-    .name.name   = BRANCH_TYPE_NAME,
-    .name.base   = OBJECT_TYPE_NAME,
-    .vTable.impl = &branchObjectVTable.base,
-    .vTable.noop = &noopBranchObjectVTable.base,
-    .vTable.size = sizeof (branchObjectVTable),
-    .funcs.init  = branchInitObject,
-    .funcs.fini  = cObjectFini
-};
-
 CompObjectType *
 getBranchObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&branchObjectVTable.base);
-	cInterfaceInit (branchInterface, N_ELEMENTS (branchInterface),
-			&branchObjectType);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = BRANCH_TYPE_NAME,
+	    .name.base   = OBJECT_TYPE_NAME,
+	    .vTable.impl = &branchObjectVTable.base,
+	    .vTable.noop = &noopBranchObjectVTable.base,
+	    .vTable.size = sizeof (branchObjectVTable),
+	    .funcs.init  = branchInitObject
+	};
+
+	type = cObjectTypeFromTemplate (&template);
+	cInterfaceInit (branchInterface, N_ELEMENTS (branchInterface), type);
     }
 
-    return &branchObjectType;
+    return type;
 }
 
 #define FOR_BASE(object, ...)						\

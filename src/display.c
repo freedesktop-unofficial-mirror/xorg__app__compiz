@@ -2476,42 +2476,40 @@ static const CompDisplayVTable noopDisplayObjectVTable = {
     .removeScreen = noopRemoveScreen
 };
 
-static CompObjectType displayObjectType = {
-    .name.name   = DISPLAY_TYPE_NAME,
-    .name.base   = OBJECT_TYPE_NAME,
-    .vTable.impl = &displayObjectVTable.base,
-    .vTable.noop = &noopDisplayObjectVTable.base,
-    .vTable.size = sizeof (displayObjectVTable),
-    .funcs.init  = displayInitObject,
-    .funcs.fini  = displayFiniObject
-};
-
 CompObjectType *
 getDisplayObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&displayObjectVTable.base);
-	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface),
-			&displayObjectType);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = DISPLAY_TYPE_NAME,
+	    .name.base   = OBJECT_TYPE_NAME,
+	    .vTable.impl = &displayObjectVTable.base,
+	    .vTable.noop = &noopDisplayObjectVTable.base,
+	    .vTable.size = sizeof (displayObjectVTable),
+	    .funcs.init  = displayInitObject,
+	    .funcs.fini  = displayFiniObject
+	};
+
+	type = cObjectTypeFromTemplate (&template);
+	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface), type);
     }
 
-    return &displayObjectType;
+    return type;
 }
 
 int
 allocateDisplayPrivateIndex (void)
 {
-    return compObjectAllocatePrivateIndex (&displayObjectType, 0);
+    return compObjectAllocatePrivateIndex (getDisplayObjectType (), 0);
 }
 
 void
 freeDisplayPrivateIndex (int index)
 {
-    compObjectFreePrivateIndex (&displayObjectType, index);
+    compObjectFreePrivateIndex (getDisplayObjectType (), index);
 }
 
 Bool

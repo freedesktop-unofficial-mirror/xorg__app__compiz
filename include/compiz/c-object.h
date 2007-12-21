@@ -504,6 +504,9 @@ cSetObjectProp (CompObject   *object,
 		unsigned int what,
 		void	     *value);
 
+CompObjectType *
+cObjectTypeFromTemplate (const CompObjectType *template);
+
 COMPIZ_END_DECLS
 
 #endif

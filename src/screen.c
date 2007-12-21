@@ -1651,41 +1651,39 @@ screenFiniObject (const CompObjectInstantiator *instantiator,
     cObjectFini (instantiator, object, factory);
 }
 
-static CompObjectType screenObjectType = {
-    .name.name   = SCREEN_TYPE_NAME,
-    .name.base   = OBJECT_TYPE_NAME,
-    .vTable.impl = &screenObjectVTable,
-    .vTable.size = sizeof (screenObjectVTable),
-    .funcs.init  = screenInitObject,
-    .funcs.fini  = screenFiniObject
-};
-
 CompObjectType *
 getScreenObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&screenObjectVTable);
-	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface),
-			&screenObjectType);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = SCREEN_TYPE_NAME,
+	    .name.base   = OBJECT_TYPE_NAME,
+	    .vTable.impl = &screenObjectVTable,
+	    .vTable.size = sizeof (screenObjectVTable),
+	    .funcs.init  = screenInitObject,
+	    .funcs.fini  = screenFiniObject
+	};
+
+	type = cObjectTypeFromTemplate (&template);
+	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface), type);
     }
 
-    return &screenObjectType;
+    return type;
 }
 
 int
 allocateScreenPrivateIndex (void)
 {
-    return compObjectAllocatePrivateIndex (&screenObjectType, 0);
+    return compObjectAllocatePrivateIndex (getScreenObjectType (), 0);
 }
 
 void
 freeScreenPrivateIndex (int index)
 {
-    compObjectFreePrivateIndex (&screenObjectType, index);
+    compObjectFreePrivateIndex (getScreenObjectType (), index);
 }
 
 Bool

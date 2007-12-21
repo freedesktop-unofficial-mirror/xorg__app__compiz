@@ -3381,28 +3381,27 @@ static const CompObjectVTable noopObjectVTable = {
     .metadata.get = noopGetMetadata
 };
 
-static CompObjectType objectType = {
-    .name.name   = OBJECT_TYPE_NAME,
-    .vTable.impl = &objectVTable,
-    .vTable.noop = &noopObjectVTable,
-    .vTable.size = sizeof (objectVTable),
-    .funcs.init  = initObject,
-    .funcs.fini  = finiObject
-};
-
 CompObjectType *
 getObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInterfaceInit (objectInterface, N_ELEMENTS (objectInterface),
-			&objectType);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = OBJECT_TYPE_NAME,
+	    .vTable.impl = &objectVTable,
+	    .vTable.noop = &noopObjectVTable,
+	    .vTable.size = sizeof (objectVTable),
+	    .funcs.init  = initObject,
+	    .funcs.fini  = finiObject
+	};
+
+	type = cObjectTypeFromTemplate (&template);
+	cInterfaceInit (objectInterface, N_ELEMENTS (objectInterface), type);
     }
 
-    return &objectType;
+    return type;
 }
 
 int
@@ -5248,4 +5247,68 @@ void
 cInitObjectVTable (CompObjectVTable *vTable)
 {
     vTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
+}
+
+CompObjectType *
+cObjectTypeFromTemplate (const CompObjectType *template)
+{
+    CompObjectType   *type;
+    CompObjectVTable *vTable;
+    int		     nameSize = strlen (template->name.name) + 1;
+    int		     baseNameSize = 0;
+    int		     vTableSize = template->vTable.size;
+    int		     noopVTableSize = 0;
+
+    if (template->name.base)
+	baseNameSize = strlen (template->name.base) + 1;
+
+    if (!vTableSize)
+	vTableSize = sizeof (CompObjectVTable);
+
+    if (template->vTable.noop)
+	noopVTableSize = vTableSize;
+
+    type = malloc (sizeof (CompObjectType) +
+		   nameSize +
+		   baseNameSize +
+		   vTableSize +
+		   noopVTableSize);
+    if (!type)
+	return NULL;
+
+    type->name.name = strcpy ((char *) (type + 1), template->name.name);
+    type->name.base = NULL;
+
+    type->vTable.size = vTableSize;
+    type->vTable.impl = NULL;
+    type->vTable.noop = NULL;
+
+    type->funcs.init = cObjectInit;
+    type->funcs.fini = cObjectFini;
+
+    if (template->name.base)
+	type->name.base = strcpy ((char *) (type + 1) + nameSize,
+				  template->name.base);
+
+    vTable = (CompObjectVTable *) ((char *) (type + 1) + nameSize +
+				   baseNameSize);
+
+    if (template->vTable.impl)
+	type->vTable.impl = memcpy (vTable, template->vTable.impl, vTableSize);
+    else
+	type->vTable.impl = memset (vTable, 0, vTableSize);
+
+    cInitObjectVTable (vTable);
+
+    if (template->vTable.noop)
+	type->vTable.noop = memcpy ((char *) vTable + vTableSize,
+				    template->vTable.noop, vTableSize);
+
+    if (template->funcs.init)
+	type->funcs.init = template->funcs.init;
+
+    if (template->funcs.fini)
+	type->funcs.fini = template->funcs.fini;
+
+    return type;
 }
