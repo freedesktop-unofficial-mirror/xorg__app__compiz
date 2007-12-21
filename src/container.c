@@ -69,7 +69,7 @@ containerForEachChildObject (CompObject		     *object,
     return cForEachChildObject (object, proc, closure);
 }
 
-static CompObjectVTable containerObjectVTable = {
+static const CompObjectVTable containerObjectVTable = {
     .getProp	        = containerGetProp,
     .forEachChildObject = containerForEachChildObject
 };

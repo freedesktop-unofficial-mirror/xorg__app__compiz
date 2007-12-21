@@ -62,7 +62,7 @@ propGetProp (CompObject   *object,
     propGetObjectProp (&GET_PROP (object)->data, &template, what, value);
 }
 
-static CompObjectVTable propObjectVTable = {
+static const CompObjectVTable propObjectVTable = {
     .getProp = propGetProp
 };
 
@@ -91,7 +91,7 @@ boolPropGetProp (CompObject   *object,
 		       value);
 }
 
-static CompObjectVTable boolPropObjectVTable = {
+static const CompObjectVTable boolPropObjectVTable = {
     .getProp = boolPropGetProp
 };
 
@@ -120,7 +120,7 @@ intPropGetProp (CompObject   *object,
 		       value);
 }
 
-static CompObjectVTable intPropObjectVTable = {
+static const CompObjectVTable intPropObjectVTable = {
     .getProp = intPropGetProp
 };
 
@@ -149,7 +149,7 @@ doublePropGetProp (CompObject   *object,
 		       value);
 }
 
-static CompObjectVTable doublePropObjectVTable = {
+static const CompObjectVTable doublePropObjectVTable = {
     .getProp = doublePropGetProp
 };
 
@@ -178,7 +178,7 @@ stringPropGetProp (CompObject   *object,
 		       value);
 }
 
-static CompObjectVTable stringPropObjectVTable = {
+static const CompObjectVTable stringPropObjectVTable = {
     .getProp = stringPropGetProp
 };
 

@@ -1765,7 +1765,7 @@ windowGetProp (CompObject   *object,
     cGetObjectProp (&GET_WINDOW (object)->data, &template, what, value);
 }
 
-static CompObjectVTable windowObjectVTable = {
+static const CompObjectVTable windowObjectVTable = {
     .getProp = windowGetProp
 };
 

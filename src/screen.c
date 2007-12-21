@@ -1393,7 +1393,7 @@ initWindowWalker (CompScreen *screen,
     walker->prev  = walkPrev;
 }
 
-static CompObjectVTable screenObjectVTable = {
+static const CompObjectVTable screenObjectVTable = {
     .getProp = screenGetProp
 };
 

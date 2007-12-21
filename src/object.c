@@ -3281,7 +3281,7 @@ cGetMetadata (CompObject *object,
     return noopGetMetadata (object, interface, data, error);
 }
 
-static CompObjectVTable objectVTable = {
+static const CompObjectVTable objectVTable = {
     .forBaseObject = forBaseObject,
 
     .getProp = getProp,
@@ -3291,6 +3291,13 @@ static CompObjectVTable objectVTable = {
     .removeObject = removeObject,
     .inserted     = inserted,
     .removed      = removed,
+
+    .forEachInterface = cForEachInterface,
+    .forEachMethod    = cForEachMethod,
+    .forEachSignal    = cForEachSignal,
+    .forEachProp      = cForEachProp,
+
+    .forEachChildObject = cForEachChildObject,
 
     .interfaceAdded   = interfaceAdded,
     .interfaceRemoved = interfaceRemoved,
