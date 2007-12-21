@@ -4818,7 +4818,12 @@ cInterfaceInit (CInterface	     *interface,
 
     for (i = 0; i < nInterface; i++)
     {
-	interface->type = type;
+	if (interface[i].initialized)
+	    return TRUE;
+
+	interface[i].initialized = TRUE;
+	interface[i].type	 = type;
+
 	cDefaultValuesFromFile (&interface[i], 1, interface->name);
     }
 
@@ -5003,6 +5008,8 @@ cObjectInterfaceInit (const CompObjectInstantiator *instantiator,
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
+    cInterfaceInit ((CInterface *) m.interface, m.nInterface, NULL);
+
     data->vTable          = vTable;
     data->signalVecOffset = 0;
 
@@ -5073,6 +5080,8 @@ cObjectInit (const CompObjectInstantiator *instantiator,
 	     const CompObjectFactory      *factory)
 {
     CompObjectData		     *data;
+    CMetadata			     m;
+    int				     i;
     const CompObjectInstantiatorNode *node =
 	(const CompObjectInstantiatorNode *) instantiator;
 
@@ -5080,6 +5089,10 @@ cObjectInit (const CompObjectInstantiator *instantiator,
 	return FALSE;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+
+    for (i = 0; i < m.nInterface; i++)
+	((CInterface *) m.interface)[i].type = node->type;
 
     if (!allocateObjectPrivates (&data->privates, &node->privates))
     {

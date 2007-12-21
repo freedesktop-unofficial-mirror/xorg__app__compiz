@@ -141,6 +141,7 @@ typedef struct _CInterface {
     int			 nStringProp;
     CChildObject	 *child;
     int			 nChild;
+    CompBool		 initialized;
 } CInterface;
 
 #define C_OFFSET__(vtable, name) 0
@@ -160,7 +161,7 @@ typedef struct _CInterface {
 	    C_MEMBER_ ## int    (name, type, IntProp),			\
 	    C_MEMBER_ ## double (name, type, DoubleProp),		\
 	    C_MEMBER_ ## string (name, type, StringProp),		\
-	    C_MEMBER_ ## child  (name, type, ChildObject) }
+	    C_MEMBER_ ## child  (name, type, ChildObject), FALSE }
 
 typedef CompBool (*CInitObjectProc) (CompObject *object);
 typedef void     (*CFiniObjectProc) (CompObject	*object);
