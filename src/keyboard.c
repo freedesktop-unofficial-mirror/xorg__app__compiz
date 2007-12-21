@@ -26,7 +26,7 @@
 #include <compiz/keyboard.h>
 #include <compiz/c-object.h>
 
-static const CInterface keyboardInterface[] = {
+static CInterface keyboardInterface[] = {
     C_INTERFACE (keyboard, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 

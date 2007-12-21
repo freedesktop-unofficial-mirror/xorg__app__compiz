@@ -45,7 +45,7 @@ propGetObjectProp (CompObjectData  *data,
 
 /* prop */
 
-static const CInterface propInterface[] = {
+static CInterface propInterface[] = {
     C_INTERFACE (prop, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
@@ -73,7 +73,7 @@ static CBoolProp boolPropTypeBoolProp[] = {
     C_PROP (value, CompBoolPropData)
 };
 
-static const CInterface boolPropInterface[] = {
+static CInterface boolPropInterface[] = {
     C_INTERFACE (boolProp, Type, CompObjectVTable, _, _, _, X, _, _, _, _)
 };
 
@@ -102,7 +102,7 @@ static CIntProp intPropTypeIntProp[] = {
     C_PROP (value, CompIntPropData)
 };
 
-static const CInterface intPropInterface[] = {
+static CInterface intPropInterface[] = {
     C_INTERFACE (intProp, Type, CompObjectVTable, _, _, _, _, X, _, _, _)
 };
 
@@ -131,7 +131,7 @@ static CDoubleProp doublePropTypeDoubleProp[] = {
     C_PROP (value, CompDoublePropData)
 };
 
-static const CInterface doublePropInterface[] = {
+static CInterface doublePropInterface[] = {
     C_INTERFACE (doubleProp, Type, CompObjectVTable, _, _, _, _, _, X, _, _)
 };
 
@@ -160,7 +160,7 @@ static CStringProp stringPropTypeStringProp[] = {
     C_PROP (value, CompStringPropData)
 };
 
-static const CInterface stringPropInterface[] = {
+static CInterface stringPropInterface[] = {
     C_INTERFACE (stringProp, Type, CompObjectVTable, _, _, _, _, _, _, X, _)
 };
 

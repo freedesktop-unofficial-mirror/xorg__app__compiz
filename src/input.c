@@ -26,7 +26,7 @@
 #include <compiz/input.h>
 #include <compiz/c-object.h>
 
-static const CInterface inputInterface[] = {
+static CInterface inputInterface[] = {
     C_INTERFACE (input, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 

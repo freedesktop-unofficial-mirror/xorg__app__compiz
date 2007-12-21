@@ -26,7 +26,7 @@
 #include <compiz/pointer.h>
 #include <compiz/c-object.h>
 
-static const CInterface pointerInterface[] = {
+static CInterface pointerInterface[] = {
     C_INTERFACE (pointer, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 

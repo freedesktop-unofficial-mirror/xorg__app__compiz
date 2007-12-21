@@ -26,7 +26,7 @@
 #include <compiz/output.h>
 #include <compiz/c-object.h>
 
-static const CInterface outputInterface[] = {
+static CInterface outputInterface[] = {
     C_INTERFACE (output, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
