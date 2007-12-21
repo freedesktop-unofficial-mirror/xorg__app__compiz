@@ -1663,9 +1663,7 @@ getScreenObjectType (void)
     {
 	static const CompObjectType template = {
 	    .name.name   = SCREEN_TYPE_NAME,
-	    .name.base   = OBJECT_TYPE_NAME,
 	    .vTable.impl = &screenObjectVTable,
-	    .vTable.size = sizeof (screenObjectVTable),
 	    .funcs.init  = screenInitObject,
 	    .funcs.fini  = screenFiniObject
 	};

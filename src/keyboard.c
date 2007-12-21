@@ -69,8 +69,7 @@ getKeyboardObjectType (void)
 	static const CompObjectType template = {
 	    .name.name   = KEYBOARD_TYPE_NAME,
 	    .name.base   = INPUT_TYPE_NAME,
-	    .vTable.impl = &keyboardObjectVTable,
-	    .vTable.size = sizeof (keyboardObjectVTable)
+	    .vTable.impl = &keyboardObjectVTable
 	};
 
 	type = cObjectTypeFromTemplate (&template);

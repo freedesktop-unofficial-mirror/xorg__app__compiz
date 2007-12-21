@@ -63,7 +63,7 @@ struct _CompRoot {
 
 #define ROOT_TYPE_NAME "root"
 
-CompObjectType *
+const CompObjectType *
 getRootObjectType (void);
 
 void

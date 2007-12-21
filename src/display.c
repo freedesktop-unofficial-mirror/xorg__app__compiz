@@ -2488,7 +2488,6 @@ getDisplayObjectType (void)
     {
 	static const CompObjectType template = {
 	    .name.name   = DISPLAY_TYPE_NAME,
-	    .name.base   = OBJECT_TYPE_NAME,
 	    .vTable.impl = &displayObjectVTable.base,
 	    .vTable.noop = &noopDisplayObjectVTable.base,
 	    .vTable.size = sizeof (displayObjectVTable),

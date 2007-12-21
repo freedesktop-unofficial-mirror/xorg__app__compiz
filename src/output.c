@@ -57,9 +57,7 @@ getOutputObjectType (void)
     {
 	static const CompObjectType template = {
 	    .name.name   = OUTPUT_TYPE_NAME,
-	    .name.base   = OBJECT_TYPE_NAME,
-	    .vTable.impl = &outputObjectVTable,
-	    .vTable.size = sizeof (outputObjectVTable)
+	    .vTable.impl = &outputObjectVTable
 	};
 
 	type = cObjectTypeFromTemplate (&template);

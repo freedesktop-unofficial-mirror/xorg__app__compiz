@@ -1778,9 +1778,7 @@ getWindowObjectType (void)
     {
 	static const CompObjectType template = {
 	    .name.name   = WINDOW_TYPE_NAME,
-	    .name.base   = OBJECT_TYPE_NAME,
-	    .vTable.impl = &windowObjectVTable,
-	    .vTable.size = sizeof (windowObjectVTable)
+	    .vTable.impl = &windowObjectVTable
 	};
 
 	type = cObjectTypeFromTemplate (&template);

@@ -57,9 +57,7 @@ getInputObjectType (void)
     {
 	static const CompObjectType template = {
 	    .name.name   = INPUT_TYPE_NAME,
-	    .name.base   = OBJECT_TYPE_NAME,
-	    .vTable.impl = &inputObjectVTable,
-	    .vTable.size = sizeof (inputObjectVTable)
+	    .vTable.impl = &inputObjectVTable
 	};
 
 	type = cObjectTypeFromTemplate (&template);

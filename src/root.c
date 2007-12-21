@@ -211,7 +211,7 @@ rootFiniObject (const CompObjectInstantiator *instantiator,
     (*base->funcs.fini) (base, object, factory);
 }
 
-static CompObjectType rootObjectType = {
+static const CompObjectType rootObjectType = {
     .name.name   = ROOT_TYPE_NAME,
     .name.base   = OBJECT_TYPE_NAME,
     .vTable.impl = &rootObjectVTable.base,
@@ -220,7 +220,7 @@ static CompObjectType rootObjectType = {
     .funcs.fini  = rootFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getRootObjectType (void)
 {
     return &rootObjectType;

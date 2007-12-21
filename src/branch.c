@@ -168,7 +168,6 @@ getBranchObjectType (void)
     {
 	static const CompObjectType template = {
 	    .name.name   = BRANCH_TYPE_NAME,
-	    .name.base   = OBJECT_TYPE_NAME,
 	    .vTable.impl = &branchObjectVTable.base,
 	    .vTable.noop = &noopBranchObjectVTable.base,
 	    .vTable.size = sizeof (branchObjectVTable),
