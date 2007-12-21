@@ -30,17 +30,10 @@ static CInterface keyboardInterface[] = {
     C_INTERFACE (keyboard, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
-static CompObjectVTable keyboardObjectVTable = { 0 };
-
 static CompBool
-keyboardInitObject (const CompObjectInstantiator *instantiator,
-		    CompObject		         *object,
-		    const CompObjectFactory      *factory)
+keyboardInitObject (CompObject *object)
 {
     KEYBOARD (object);
-
-    if (!cObjectInit (instantiator, object, factory))
-	return FALSE;
 
     k->state = 0;
 
@@ -48,32 +41,40 @@ keyboardInitObject (const CompObjectInstantiator *instantiator,
 }
 
 static void
-keyboardFiniObject (const CompObjectInstantiator *instantiator,
-		    CompObject		         *object,
-		    const CompObjectFactory      *factory)
+keyboardGetProp (CompObject   *object,
+		  unsigned int what,
+		  void	       *value)
 {
-    cObjectFini (instantiator, object, factory);
+    static const CMetadata template = {
+	.interface  = keyboardInterface,
+	.nInterface = N_ELEMENTS (keyboardInterface),
+	.init       = keyboardInitObject,
+	.version    = COMPIZ_KEYBOARD_VERSION
+    };
+
+    cGetObjectProp (&GET_KEYBOARD (object)->data, &template, what, value);
 }
 
-static CompObjectType keyboardObjectType = {
-    .name.name   = KEYBOARD_TYPE_NAME,
-    .name.base   = INPUT_TYPE_NAME,
-    .vTable.impl = &keyboardObjectVTable,
-    .vTable.size = sizeof (keyboardObjectVTable),
-    .funcs.init  = keyboardInitObject,
-    .funcs.fini  = keyboardFiniObject
+static const CompObjectVTable keyboardObjectVTable = {
+    .getProp = keyboardGetProp
 };
 
 const CompObjectType *
 getKeyboardObjectType (void)
 {
-    static CompBool init = FALSE;
+    static CompObjectType *type = NULL;
 
-    if (!init)
+    if (!type)
     {
-	cInitObjectVTable (&keyboardObjectVTable);
-	init = TRUE;
+	static const CompObjectType template = {
+	    .name.name   = KEYBOARD_TYPE_NAME,
+	    .name.base   = INPUT_TYPE_NAME,
+	    .vTable.impl = &keyboardObjectVTable,
+	    .vTable.size = sizeof (keyboardObjectVTable)
+	};
+
+	type = cObjectTypeFromTemplate (&template);
     }
 
-    return &keyboardObjectType;
+    return type;
 }
