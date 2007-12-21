@@ -57,7 +57,7 @@ static CompObjectType outputObjectType = {
     .funcs.fini  = outputFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getOutputObjectType (void)
 {
     static CompBool init = FALSE;

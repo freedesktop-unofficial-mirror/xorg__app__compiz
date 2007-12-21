@@ -57,7 +57,7 @@ static CompObjectType propObjectType = {
     .funcs.fini  = propFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getPropObjectType (void)
 {
     static CompBool init = FALSE;
@@ -106,7 +106,7 @@ static CompObjectType boolPropObjectType = {
     .funcs.fini  = boolPropFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getBoolPropObjectType (void)
 {
     static CompBool init = FALSE;
@@ -155,7 +155,7 @@ static CompObjectType intPropObjectType = {
     .funcs.fini  = intPropFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getIntPropObjectType (void)
 {
     static CompBool init = FALSE;
@@ -204,7 +204,7 @@ static CompObjectType doublePropObjectType = {
     .funcs.fini  = doublePropFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getDoublePropObjectType (void)
 {
     static CompBool init = FALSE;
@@ -253,7 +253,7 @@ static CompObjectType stringPropObjectType = {
     .funcs.fini  = stringPropFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getStringPropObjectType (void)
 {
     static CompBool init = FALSE;

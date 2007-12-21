@@ -1764,7 +1764,7 @@ static CompObjectVTable windowObjectVTable = {
     .getProp = windowGetProp
 };
 
-CompObjectType *
+const CompObjectType *
 getWindowObjectType (void)
 {
     static CompObjectType *type = NULL;

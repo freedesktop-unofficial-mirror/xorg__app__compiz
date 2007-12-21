@@ -70,7 +70,7 @@ static CompObjectVTable containerObjectVTable = {
     .forEachChildObject = containerForEachChildObject
 };
 
-CompObjectType *
+const CompObjectType *
 getContainerObjectType (void)
 {
     static CompObjectType *type = NULL;

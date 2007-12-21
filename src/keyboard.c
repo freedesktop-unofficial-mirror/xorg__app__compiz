@@ -64,7 +64,7 @@ static CompObjectType keyboardObjectType = {
     .funcs.fini  = keyboardFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getKeyboardObjectType (void)
 {
     static CompBool init = FALSE;

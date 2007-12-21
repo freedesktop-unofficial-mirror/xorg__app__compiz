@@ -1651,7 +1651,7 @@ screenFiniObject (const CompObjectInstantiator *instantiator,
     cObjectFini (instantiator, object, factory);
 }
 
-CompObjectType *
+const CompObjectType *
 getScreenObjectType (void)
 {
     static CompObjectType *type = NULL;

@@ -156,7 +156,7 @@ static const CompBranchVTable noopBranchObjectVTable = {
     .registerType = noopRegisterType
 };
 
-CompObjectType *
+const CompObjectType *
 getBranchObjectType (void)
 {
     static CompObjectType *type = NULL;

@@ -45,7 +45,7 @@ typedef struct _CompKeyboard {
 
 #define KEYBOARD_TYPE_NAME "keyboard"
 
-CompObjectType *
+const CompObjectType *
 getKeyboardObjectType (void);
 
 COMPIZ_END_DECLS

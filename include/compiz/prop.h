@@ -43,7 +43,7 @@ typedef struct _CompProp {
 
 #define PROP_TYPE_NAME "prop"
 
-CompObjectType *
+const CompObjectType *
 getPropObjectType (void);
 
 typedef struct _CompBoolProp {
@@ -59,7 +59,7 @@ typedef struct _CompBoolProp {
 
 #define BOOL_PROP_TYPE_NAME "boolProp"
 
-CompObjectType *
+const CompObjectType *
 getBoolPropObjectType (void);
 
 typedef struct _CompIntProp {
@@ -75,7 +75,7 @@ typedef struct _CompIntProp {
 
 #define INT_PROP_TYPE_NAME "intProp"
 
-CompObjectType *
+const CompObjectType *
 getIntPropObjectType (void);
 
 typedef struct _CompDoubleProp {
@@ -91,7 +91,7 @@ typedef struct _CompDoubleProp {
 
 #define DOUBLE_PROP_TYPE_NAME "doubleProp"
 
-CompObjectType *
+const CompObjectType *
 getDoublePropObjectType (void);
 
 typedef struct _CompStringProp {
@@ -107,7 +107,7 @@ typedef struct _CompStringProp {
 
 #define STRING_PROP_TYPE_NAME "stringProp"
 
-CompObjectType *
+const CompObjectType *
 getStringPropObjectType (void);
 
 COMPIZ_END_DECLS

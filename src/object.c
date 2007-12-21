@@ -3381,7 +3381,7 @@ static const CompObjectVTable noopObjectVTable = {
     .metadata.get = noopGetMetadata
 };
 
-CompObjectType *
+const CompObjectType *
 getObjectType (void)
 {
     static CompObjectType *type = NULL;
@@ -3417,8 +3417,8 @@ getObjectType (void)
 }
 
 int
-compObjectAllocatePrivateIndex (CompObjectType *type,
-				int	       size)
+compObjectAllocatePrivateIndex (const CompObjectType *type,
+				int	             size)
 {
     const CompObjectFactory *f;
     CompFactory		    *factory;
@@ -3430,8 +3430,8 @@ compObjectAllocatePrivateIndex (CompObjectType *type,
 }
 
 void
-compObjectFreePrivateIndex (CompObjectType *type,
-			    int	           index)
+compObjectFreePrivateIndex (const CompObjectType *type,
+			    int	                 index)
 {
     const CompObjectFactory *f;
     CompFactory		    *factory;

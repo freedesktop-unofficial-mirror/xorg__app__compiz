@@ -46,7 +46,7 @@ typedef struct _CompPointer {
 
 #define POINTER_TYPE_NAME "pointer"
 
-CompObjectType *
+const CompObjectType *
 getPointerObjectType (void);
 
 COMPIZ_END_DECLS

@@ -43,7 +43,7 @@ typedef struct _CompInput {
 
 #define INPUT_TYPE_NAME "input"
 
-CompObjectType *
+const CompObjectType *
 getInputObjectType (void);
 
 COMPIZ_END_DECLS

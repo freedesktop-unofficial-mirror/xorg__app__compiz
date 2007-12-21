@@ -747,7 +747,7 @@ struct _CompCore {
 
 #define CORE_TYPE_NAME "core"
 
-CompObjectType *
+const CompObjectType *
 getCoreObjectType (void);
 
 CompBool
@@ -1190,7 +1190,7 @@ struct _CompDisplay {
 
 #define DISPLAY_TYPE_NAME "display"
 
-CompObjectType *
+const CompObjectType *
 getDisplayObjectType (void);
 
 int
@@ -2304,7 +2304,7 @@ struct _CompScreen {
 
 #define SCREEN_TYPE_NAME "screen"
 
-CompObjectType *
+const CompObjectType *
 getScreenObjectType (void);
 
 int
@@ -2750,7 +2750,7 @@ struct _CompWindow {
 
 #define WINDOW_TYPE_NAME "window"
 
-CompObjectType *
+const CompObjectType *
 getWindowObjectType (void);
 
 int

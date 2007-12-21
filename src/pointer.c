@@ -65,7 +65,7 @@ static CompObjectType pointerObjectType = {
     .funcs.fini  = pointerFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getPointerObjectType (void)
 {
     static CompBool init = FALSE;

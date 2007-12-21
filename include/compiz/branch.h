@@ -98,7 +98,7 @@ struct _CompBranch {
 
 #define BRANCH_TYPE_NAME "branch"
 
-CompObjectType *
+const CompObjectType *
 getBranchObjectType (void);
 
 int

@@ -556,16 +556,16 @@ typedef struct _CompObjectData {
     } while (0)
 
 
-CompObjectType *
+const CompObjectType *
 getObjectType (void);
 
 int
-compObjectAllocatePrivateIndex (CompObjectType *type,
-				int	       size);
+compObjectAllocatePrivateIndex (const CompObjectType *type,
+				int	             size);
 
 void
-compObjectFreePrivateIndex (CompObjectType *type,
-			    int	           index);
+compObjectFreePrivateIndex (const CompObjectType *type,
+			    int	                 index);
 
 CompBool
 compForInterface (CompObject		*object,

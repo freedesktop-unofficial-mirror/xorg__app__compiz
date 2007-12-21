@@ -53,7 +53,7 @@ typedef struct _CompOutput {
 
 #define OUTPUT_TYPE_NAME "output"
 
-CompObjectType *
+const CompObjectType *
 getOutputObjectType (void);
 
 COMPIZ_END_DECLS

@@ -57,7 +57,7 @@ static CompObjectType inputObjectType = {
     .funcs.fini  = inputFiniObject
 };
 
-CompObjectType *
+const CompObjectType *
 getInputObjectType (void)
 {
     static CompBool init = FALSE;

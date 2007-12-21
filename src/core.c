@@ -376,7 +376,7 @@ static const CompCoreVTable noopCoreObjectVTable = {
     .removeDisplay = noopRemoveDisplay
 };
 
-CompObjectType *
+const CompObjectType *
 getCoreObjectType (void)
 {
     static CompObjectType *type = NULL;

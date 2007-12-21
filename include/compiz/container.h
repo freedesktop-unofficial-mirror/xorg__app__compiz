@@ -44,7 +44,7 @@ typedef struct _CompContainer {
 
 #define CONTAINER_TYPE_NAME "container"
 
-CompObjectType *
+const CompObjectType *
 getContainerObjectType (void);
 
 COMPIZ_END_DECLS

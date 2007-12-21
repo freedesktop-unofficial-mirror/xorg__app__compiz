@@ -2476,7 +2476,7 @@ static const CompDisplayVTable noopDisplayObjectVTable = {
     .removeScreen = noopRemoveScreen
 };
 
-CompObjectType *
+const CompObjectType *
 getDisplayObjectType (void)
 {
     static CompObjectType *type = NULL;
