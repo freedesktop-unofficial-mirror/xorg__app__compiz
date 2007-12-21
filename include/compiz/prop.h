@@ -33,9 +33,8 @@
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompProp {
-    CompObject base;
-
-    CompObjectVTableVec object;
+    CompObject     base;
+    CompObjectData data;
 } CompProp;
 
 #define GET_PROP(object) ((CompProp *) (object))
@@ -43,15 +42,18 @@ typedef struct _CompProp {
 
 #define PROP_TYPE_NAME "prop"
 
-const CompObjectType *
-getPropObjectType (void);
+const CompObjectType **
+getPropObjectTypes (int *n);
+
+
+typedef struct _CompBoolPropData {
+    CompObjectData base;
+    CompBool       value;
+} CompBoolPropData;
 
 typedef struct _CompBoolProp {
-    CompProp base;
-
-    CompObjectVTableVec object;
-
-    CompBool value;
+    CompProp         base;
+    CompBoolPropData data;
 } CompBoolProp;
 
 #define GET_BOOL_PROP(object) ((CompBoolProp *) (object))
@@ -59,15 +61,15 @@ typedef struct _CompBoolProp {
 
 #define BOOL_PROP_TYPE_NAME "boolProp"
 
-const CompObjectType *
-getBoolPropObjectType (void);
+
+typedef struct _CompIntPropData {
+    CompObjectData base;
+    int32_t        value;
+} CompIntPropData;
 
 typedef struct _CompIntProp {
-    CompProp base;
-
-    CompObjectVTableVec object;
-
-    int32_t value;
+    CompProp        base;
+    CompIntPropData data;
 } CompIntProp;
 
 #define GET_INT_PROP(object) ((CompIntProp *) (object))
@@ -75,15 +77,15 @@ typedef struct _CompIntProp {
 
 #define INT_PROP_TYPE_NAME "intProp"
 
-const CompObjectType *
-getIntPropObjectType (void);
+
+typedef struct _CompDoublePropData {
+    CompObjectData base;
+    double        value;
+} CompDoublePropData;
 
 typedef struct _CompDoubleProp {
-    CompProp base;
-
-    CompObjectVTableVec object;
-
-    double value;
+    CompProp           base;
+    CompDoublePropData data;
 } CompDoubleProp;
 
 #define GET_DOUBLE_PROP(object) ((CompDoubleProp *) (object))
@@ -91,24 +93,21 @@ typedef struct _CompDoubleProp {
 
 #define DOUBLE_PROP_TYPE_NAME "doubleProp"
 
-const CompObjectType *
-getDoublePropObjectType (void);
+
+typedef struct _CompStringPropData {
+    CompObjectData base;
+    char           *value;
+} CompStringPropData;
 
 typedef struct _CompStringProp {
-    CompProp base;
-
-    CompObjectVTableVec object;
-
-    char *value;
+    CompProp           base;
+    CompStringPropData data;
 } CompStringProp;
 
 #define GET_STRING_PROP(object) ((CompStringProp *) (object))
 #define STRING_PROP(object) CompStringProp *s = GET_STRING_PROP (object)
 
 #define STRING_PROP_TYPE_NAME "stringProp"
-
-const CompObjectType *
-getStringPropObjectType (void);
 
 COMPIZ_END_DECLS
 
