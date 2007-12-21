@@ -2494,7 +2494,6 @@ getDisplayObjectType (void)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
-	cInterfaceInit (displayInterface, N_ELEMENTS (displayInterface), type);
     }
 
     return type;

@@ -1779,7 +1779,6 @@ getWindowObjectType (void)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
-	cInterfaceInit (windowInterface, N_ELEMENTS (windowInterface), type);
     }
 
     return type;

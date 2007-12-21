@@ -387,20 +387,6 @@ cGetMetadata (CompObject *object,
 	      char	 **data,
 	      char	 **error);
 
-void
-cDefaultValuesFromFile (CInterface *interface,
-			int	   nInterface,
-			const char *name);
-
-CompBool
-cInterfaceInit (CInterface	     *interface,
-		int		     nInterface,
-		const CompObjectType *type);
-
-void
-cInterfaceFini (CInterface *interface,
-		int	   nInterface);
-
 CompBool
 cObjectPropertiesInit (CompObject	*object,
 		       char	        *data,

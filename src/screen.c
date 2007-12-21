@@ -1668,7 +1668,6 @@ getScreenObjectType (void)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
-	cInterfaceInit (screenInterface, N_ELEMENTS (screenInterface), type);
     }
 
     return type;

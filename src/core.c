@@ -394,7 +394,6 @@ getCoreObjectType (void)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
-	cInterfaceInit (coreInterface, N_ELEMENTS (coreInterface), type);
     }
 
     return type;

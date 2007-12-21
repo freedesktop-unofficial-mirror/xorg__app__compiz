@@ -3396,9 +3396,21 @@ getObjectType (void)
 	    .funcs.init  = initObject,
 	    .funcs.fini  = finiObject
 	};
+	int i, j, index = 0;
 
 	type = cObjectTypeFromTemplate (&template);
-	cInterfaceInit (objectInterface, N_ELEMENTS (objectInterface), type);
+
+	for (i = 0; i < N_ELEMENTS (objectInterface); i++)
+	{
+	    for (j = 0; j < objectInterface[i].nSignal; j++)
+	    {
+		objectInterface[i].signal[j]->index     = index++;
+		objectInterface[i].signal[j]->interface =
+		    objectInterface[i].name;
+	    }
+
+	    objectInterface[i].type = type;
+	}
     }
 
     return type;
@@ -3697,9 +3709,6 @@ cObjectInitPrivate (CompBranch	   *branch,
     instantiator->funcs  = funcs;
     instantiator->vTable = (CompObjectVTable *) (instantiator + 1);
 
-    if (private->interface)
-	cInterfaceInit (private->interface, private->nInterface, NULL);
-
     if (private->vTableSize)
     {
 	const CompObjectInstantiatorNode *n;
@@ -3753,9 +3762,6 @@ cObjectFiniPrivate (CompBranch	   *branch,
     /* finalize all objects of this type */
     finiTypedObjects (&branch->factory, &branch->u.base, node->type,
 		      instantiator);
-
-    if (private->interface)
-	cInterfaceFini (private->interface, private->nInterface);
 
     free (instantiator);
 }
@@ -4777,7 +4783,7 @@ parseDefaultValues (FILE	*fp,
     return FALSE;
 }
 
-void
+static void
 cDefaultValuesFromFile (CInterface *interface,
 			int	   nInterface,
 			const char *name)
@@ -4790,58 +4796,6 @@ cDefaultValuesFromFile (CInterface *interface,
     forEachMetadataFile (name, parseDefaultValues, (void *) &ctx);
 
     cVerfiyDefaultValues (interface, nInterface);
-}
-
-static void
-cInitSignals (CInterface *interface,
-	      int	 nInterface)
-{
-    int i, j;
-    int index = 0;
-
-    for (i = 0; i < nInterface; i++)
-    {
-	for (j = 0; j < interface[i].nSignal; j++)
-	{
-	    interface[i].signal[j]->index     = index++;
-	    interface[i].signal[j]->interface = interface[i].name;
-	}
-    }
-}
-
-CompBool
-cInterfaceInit (CInterface	     *interface,
-		int		     nInterface,
-		const CompObjectType *type)
-{
-    int i;
-
-    for (i = 0; i < nInterface; i++)
-    {
-	if (interface[i].initialized)
-	    return TRUE;
-
-	interface[i].initialized = TRUE;
-	interface[i].type	 = type;
-
-	cDefaultValuesFromFile (&interface[i], 1, interface->name);
-    }
-
-    cInitSignals (interface, nInterface);
-
-    return TRUE;
-}
-
-void
-cInterfaceFini (CInterface *interface,
-		int	   nInterface)
-{
-    int i, j;
-
-    for (i = 0; i < nInterface; i++)
-	for (j = 0; j < interface[i].nStringProp; j++)
-	    if (interface[i].stringProp[j].data)
-		free (interface[i].stringProp[j].data);
 }
 
 #define PROP_VALUE(data, prop, type)	       \
@@ -4997,6 +4951,7 @@ cObjectInterfaceInit (const CompObjectInstantiator *instantiator,
     const CompObjectInstantiator *base = instantiator->base;
     const CompObjectVTable       *vTable;
     CMetadata			 m;
+    int				 i, j, signalIndex = 0;
     CompInterfaceData		 *data;
 
     if (!(*base->funcs.init) (base, object, factory))
@@ -5008,7 +4963,25 @@ cObjectInterfaceInit (const CompObjectInstantiator *instantiator,
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
-    cInterfaceInit ((CInterface *) m.interface, m.nInterface, NULL);
+    for (i = 0; i < m.nInterface; i++)
+    {
+	if (!m.interface[i].initialized)
+	{
+	    CInterface *interface = (CInterface *) &m.interface[i];
+
+	    for (j = 0; j < interface->nSignal; j++)
+	    {
+		interface->signal[j]->index     = signalIndex + j;
+		interface->signal[j]->interface = interface->name;
+	    }
+
+	    cDefaultValuesFromFile (interface, 1, interface->name);
+
+	    interface->initialized = TRUE;
+	}
+
+	signalIndex += m.interface[i].nSignal;
+    }
 
     data->vTable          = vTable;
     data->signalVecOffset = 0;

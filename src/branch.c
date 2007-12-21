@@ -173,7 +173,6 @@ getBranchObjectType (void)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
-	cInterfaceInit (branchInterface, N_ELEMENTS (branchInterface), type);
     }
 
     return type;

@@ -85,8 +85,6 @@ getContainerObjectType (void)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
-	cInterfaceInit (containerInterface, N_ELEMENTS (containerInterface),
-			type);
     }
 
     return type;
