@@ -5226,6 +5226,8 @@ cObjectTypeFromTemplate (const CompObjectType *template)
 
     if (template->name.base)
 	baseNameSize = strlen (template->name.base) + 1;
+    else
+	baseNameSize = strlen (OBJECT_TYPE_NAME) + 1;
 
     if (!vTableSize)
 	vTableSize = sizeof (CompObjectVTable);
@@ -5254,6 +5256,9 @@ cObjectTypeFromTemplate (const CompObjectType *template)
     if (template->name.base)
 	type->name.base = strcpy ((char *) (type + 1) + nameSize,
 				  template->name.base);
+    else
+	type->name.base = strcpy ((char *) (type + 1) + nameSize,
+				  OBJECT_TYPE_NAME);
 
     vTable = (CompObjectVTable *) ((char *) (type + 1) + nameSize +
 				   baseNameSize);
