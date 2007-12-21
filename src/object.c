@@ -3385,24 +3385,23 @@ static const CompObjectVTable noopObjectVTable = {
     .metadata.get = noopGetMetadata
 };
 
+static const CompObjectType objectType = {
+    .name.name   = OBJECT_TYPE_NAME,
+    .vTable.impl = &objectVTable,
+    .vTable.noop = &noopObjectVTable,
+    .vTable.size = sizeof (objectVTable),
+    .funcs.init  = initObject,
+    .funcs.fini  = finiObject
+};
+
 const CompObjectType *
 getObjectType (void)
 {
-    static CompObjectType *type = NULL;
+    static CompBool init = FALSE;
 
-    if (!type)
+    if (!init)
     {
-	static const CompObjectType template = {
-	    .name.name   = OBJECT_TYPE_NAME,
-	    .vTable.impl = &objectVTable,
-	    .vTable.noop = &noopObjectVTable,
-	    .vTable.size = sizeof (objectVTable),
-	    .funcs.init  = initObject,
-	    .funcs.fini  = finiObject
-	};
 	int i, j, index = 0;
-
-	type = cObjectTypeFromTemplate (&template);
 
 	for (i = 0; i < N_ELEMENTS (objectInterface); i++)
 	{
@@ -3413,11 +3412,13 @@ getObjectType (void)
 		    objectInterface[i].name;
 	    }
 
-	    objectInterface[i].type = type;
+	    objectInterface[i].type = &objectType;
 	}
+
+	init = TRUE;
     }
 
-    return type;
+    return &objectType;
 }
 
 int
