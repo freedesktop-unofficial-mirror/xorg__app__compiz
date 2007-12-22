@@ -2325,8 +2325,6 @@ removeScreenOld (CompScreen *s)
 
     XDestroyWindow (d->display, s->snSelectionWindow);
 
-    compObjectFiniByType (&b->factory, &s->base, getScreenObjectType ());
-
     if (s->outputDev)
     {
 	int i;
@@ -2357,6 +2355,8 @@ removeScreenOld (CompScreen *s)
 	XDestroyRegion (s->damage);
 
     compFiniScreenOptions (s, s->opt, COMP_SCREEN_OPTION_NUM);
+
+    compObjectFiniByType (&b->factory, &s->base, getScreenObjectType ());
 
     free (s);
 }

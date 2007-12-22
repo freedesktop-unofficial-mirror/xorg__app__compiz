@@ -2971,13 +2971,13 @@ removeDisplayOld (CompCore    *c,
 
     free (d->hostName);
 
-    compObjectFiniByType (&c->u.base.factory, &d->u.base,
-			  getDisplayObjectType ());
-
     compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
 
     if (d->screenInfo)
 	XFree (d->screenInfo);
+
+    compObjectFiniByType (&c->u.base.factory, &d->u.base,
+			  getDisplayObjectType ());
 
     free (d);
 }
