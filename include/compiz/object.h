@@ -555,6 +555,19 @@ typedef struct _CompObjectData {
 	}								\
     } while (0)
 
+#define FOR_BASE(object, ...)						\
+    do {								\
+	const CompObjectVTable *__selfVTable = (object)->vTable;	\
+									\
+	(*(object)->vTable->getProp) (object,				\
+				      COMP_PROP_BASE_VTABLE,		\
+				      (void *) &(object)->vTable);	\
+									\
+	__VA_ARGS__;							\
+									\
+	(object)->vTable = __selfVTable;				\
+    } while (0)
+
 
 const CompObjectType *
 getObjectType (void);

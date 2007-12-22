@@ -180,14 +180,3 @@ getBranchObjectType (void)
     return type;
 }
 
-#define FOR_BASE(object, ...)						\
-    do {								\
-	CompObjectVTable *__saveVTable = (object)->vTable;		\
-	CompObjectVTable **__vTable = (CompObjectVTable **)		\
-	    (*(object)->vTable->getAddress) (object,			\
-					     COMP_ADDRESS_BASE_VTABLE); \
-									\
-	(object)->vTable = *__vTable;					\
-	__VA_ARGS__;							\
-	(object)->vTable = __saveVTable;				\
-    } while (0)
