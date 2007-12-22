@@ -262,6 +262,7 @@ typedef struct _ForEachObjectPrivatesContext {
     const char		 *name;
     PrivatesCallBackProc proc;
     void	         *data;
+    CompBool		 status;
 } ForEachObjectPrivatesContext;
 
 static CompBool
@@ -275,7 +276,11 @@ forEachInterfacePrivates (CompObject	       *object,
 	(ForEachObjectPrivatesContext *) closure;
 
     if (type && strcmp (type->name.name, pCtx->name) == 0)
-	return (*pCtx->proc) (getPrivates, setPrivates, pCtx->data, object);
+    {
+	pCtx->status = (*pCtx->proc) (getPrivates, setPrivates, pCtx->data,
+				      object);
+	return FALSE;
+    }
 
     return TRUE;
 }
@@ -284,9 +289,14 @@ static CompBool
 forEachObjectPrivatesTree (CompObject *object,
 			   void	      *closure)
 {
-    if (!(*object->vTable->forEachInterface) (object,
-					      forEachInterfacePrivates,
-					      closure))
+    ForEachObjectPrivatesContext *pCtx =
+	(ForEachObjectPrivatesContext *) closure;
+
+    (*object->vTable->forEachInterface) (object,
+					 forEachInterfacePrivates,
+					 closure);
+
+    if (!pCtx->status)
 	return FALSE;
 
     return (*object->vTable->forEachChildObject) (object,
@@ -308,13 +318,16 @@ forEachObjectPrivates (PrivatesCallBackProc proc,
     PrivatesContext		 *pCtx = (PrivatesContext *) closure;
     CompObject			 *core = pCtx->root->core;
 
-    ctx.name = pCtx->name;
-    ctx.proc = proc;
-    ctx.data = data;
+    ctx.name   = pCtx->name;
+    ctx.proc   = proc;
+    ctx.data   = data;
+    ctx.status = TRUE;
 
-    if (!(*core->vTable->forEachInterface) (core,
-					    forEachInterfacePrivates,
-					    (void *) &ctx))
+    (*core->vTable->forEachInterface) (core,
+				       forEachInterfacePrivates,
+				       (void *) &ctx);
+
+    if (!ctx.status)
 	return FALSE;
 
     return (*core->vTable->forEachChildObject) (core,
