@@ -3332,6 +3332,12 @@ initObject (const CompObjectInstantiator *instantiator,
 	    CompObject			 *object,
 	    const CompObjectFactory	 *factory)
 {
+    const CompObjectInstantiatorNode *node =
+	(const CompObjectInstantiatorNode *) instantiator;
+
+    if (!allocateObjectPrivates (&object->privates, &node->privates))
+	return FALSE;
+
     object->vTable    = instantiator->vTable;
     object->parent    = NULL;
     object->name      = NULL;
@@ -3347,6 +3353,11 @@ finiObject (const CompObjectInstantiator *instantiator,
 	    CompObject			 *object,
 	    const CompObjectFactory	 *factory)
 {
+    const CompObjectInstantiatorNode *node =
+	(const CompObjectInstantiatorNode *) instantiator;
+
+    freeObjectPrivates (&object->privates, &node->privates);
+
     if (object->signalVec)
 	free (object->signalVec);
 }
