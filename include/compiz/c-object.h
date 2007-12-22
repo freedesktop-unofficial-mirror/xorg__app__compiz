@@ -179,33 +179,26 @@ typedef struct _CMetadata {
 #define COMP_PROP_C_METADATA (COMP_PROP_C_BASE + 2)
 
 typedef struct _CObjectPrivate {
-    const char *name;
-    int	       *pIndex;
-    int	       size;
-    int	       vTableSize;
-    void       *vTable;
-    CInterface *interface;
-    int	       nInterface;
+    const char		   *name;
+    int			   *pIndex;
+    int			   size;
+    const CompObjectVTable *vTable;
+    int			   vTableSize;
 } CObjectPrivate;
 
 #define C_INDEX__(name, type, struct) 0, 0
 #define C_INDEX_X(name, type, struct)		    \
     & name ## type ## PrivateIndex, sizeof (struct)
 
-#define C_VTABLE__(name, type) 0, 0, 0, 0, 0
-#define C_VTABLE_X(name, type)		       \
-    sizeof (name ## type ## ObjectVTable),     \
-	& name ## type ## ObjectVTable,	       \
-	name ## type ## GetCContext,	       \
-	name ## type ## Interface,	       \
-	N_ELEMENTS (name ## type ## Interface)
+#define C_VTABLE__(name, type) 0, 0
+#define C_VTABLE_X(name, type)					 \
+    ((const CompObjectVTable *) & name ## type ## ObjectVTable), \
+	sizeof (name ## type ## ObjectVTable)
 
 #define C_OBJECT_PRIVATE(str, name, type, struct, index, vtable) \
     {	str,							 \
 	    C_INDEX_ ## index (name, type, struct),		 \
-	    C_VTABLE_ ## vtable (name, type),			 \
-	    (InitObjectProc) name ## Init ## type,		 \
-	    (FiniObjectProc) name ## Fini ## type }
+	    C_VTABLE_ ## vtable (name, type) }
 
 #define C_EMIT_SIGNAL_INT(object, prototype, offset, vec, signal, ...)	\
     if ((signal)->out)							\
@@ -455,13 +448,13 @@ cObjectFreePrivateIndices (CompFactory	  *factory,
 
 void
 cGetInterfaceProp (CompInterfaceData *data,
-		   const CMetadata   *template,
+		   const CMetadata   *tmpl,
 		   unsigned int	     what,
 		   void		     *value);
 
 void
 cGetObjectProp (CompObjectData	 *data,
-		const CMetadata  *template,
+		const CMetadata  *tmpl,
 		unsigned int	 what,
 		void		 *value);
 
@@ -476,7 +469,7 @@ cSetObjectProp (CompObject   *object,
 		void	     *value);
 
 CompObjectType *
-cObjectTypeFromTemplate (const CompObjectType *template);
+cObjectTypeFromTemplate (const CompObjectType *tmpl);
 
 COMPIZ_END_DECLS
 
