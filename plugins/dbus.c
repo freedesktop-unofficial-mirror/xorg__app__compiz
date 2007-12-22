@@ -60,15 +60,13 @@ typedef struct _DBusCoreVTable {
 } DBusCoreVTable;
 
 typedef struct _DBusCore {
-    CompObjectVTableVec object;
-
-    int		      signalOffset;
+    CompInterfaceData base;
     DBusConnection    *connection;
     CompWatchFdHandle watchFdHandle;
 } DBusCore;
 
-#define GET_DBUS_CORE(c)			           \
-    ((DBusCore *) (c)->privates[dbusCorePrivateIndex].ptr)
+#define GET_DBUS_CORE(c)					     \
+    ((DBusCore *) (c)->data.base.privates[dbusCorePrivateIndex].ptr)
 
 #define DBUS_CORE(c)		     \
     DBusCore *dc = GET_DBUS_CORE (c)
@@ -791,7 +789,8 @@ dbusSignalImpl (CompObject   *object,
 {
     DBUS_CORE (GET_CORE (object));
 
-    C_EMIT_SIGNAL (object, DBusSignalProc, dc->signalOffset, &dbusSignal,
+    C_EMIT_SIGNAL (object, DBusSignalProc, dc->base.signalVecOffset,
+		   &dbusSignal,
 		   path, interface, name, signature, value, nValue);
 }
 
@@ -832,7 +831,7 @@ dbusObjectSignalImpl (CompObject *object,
 {
     DBUS_CORE (GET_CORE (object));
 
-    C_EMIT_SIGNAL (object, DBusObjectSignalProc, dc->signalOffset,
+    C_EMIT_SIGNAL (object, DBusObjectSignalProc, dc->base.signalVecOffset,
 		   &dbusObjectSignal, path, name);
 }
 
@@ -978,43 +977,22 @@ dbusProcessMessages (void *data)
     return TRUE;
 }
 
-static DBusCoreVTable dbusCoreObjectVTable = {
-    .signal		  = dbusSignalImpl,
-    .signalDelegate	  = dbusSignalDelegate,
-    .objectSignal	  = dbusObjectSignalImpl,
-    .objectSignalDelegate = dbusObjectSignalDelegate,
-    .registerObjectPath   = dbusRegisterObjectPath,
-    .unregisterObjectPath = dbusUnregisterObjectPath,
-    .emitSignal           = dbusEmitSignal
-};
-
 static CompBool
-dbusInitCore (const CompObjectFactory *factory,
-	      CompCore		      *c)
+dbusInitCore (CompObject *object)
 {
     DBusError   error;
     dbus_bool_t status;
     int		fd;
 
+    CORE (object);
     DBUS_CORE (c);
-
-    if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
-	return FALSE;
-
-    if (!cObjectInterfaceInit (factory, &c->u.base.u.base,
-			       &dbusCoreObjectVTable.base.base.base))
-	return FALSE;
 
     dbus_error_init (&error);
 
     dc->connection = dbus_bus_get (DBUS_BUS_SESSION, &error);
     if (dbus_error_is_set (&error))
     {
-	compLogMessage (NULL, "dbus", CompLogLevelError,
-			"dbus_bus_get error: %s", error.message);
-
 	dbus_error_free (&error);
-	cObjectInterfaceFini (factory, &c->u.base.u.base);
 	return FALSE;
     }
 
@@ -1022,10 +1000,7 @@ dbusInitCore (const CompObjectFactory *factory,
 
     status = dbus_connection_get_unix_fd (dc->connection, &fd);
     if (!status)
-    {
-	cObjectInterfaceFini (factory, &c->u.base.u.base);
 	return FALSE;
-    }
 
     dc->watchFdHandle = compAddWatchFd (fd,
 					POLLIN | POLLPRI | POLLHUP | POLLERR,
@@ -1040,34 +1015,47 @@ dbusInitCore (const CompObjectFactory *factory,
 }
 
 static void
-dbusFiniCore (const CompObjectFactory *factory,
-	      CompCore		      *c)
+dbusFiniCore (CompObject *object)
 {
+    CORE (object);
     DBUS_CORE (c);
 
-    dbusUnregisterObjectTree (&c->u.base.u.base, (void *) c);
+    dbusUnregisterObjectTree (object, (void *) c);
 
     dbusReleaseName (c, COMPIZ_DBUS_SERVICE_NAME);
 
     compRemoveWatchFd (dc->watchFdHandle);
-
-    cObjectInterfaceFini (factory, &c->u.base.u.base);
 }
 
 static void
-dbusCoreGetCContext (CompObject *object,
-		     CContext   *ctx)
+dbusGetProp (CompObject   *object,
+	     unsigned int what,
+	     void	  *value)
 {
-    DBUS_CORE (GET_CORE (object));
+    static const CMetadata template = {
+	.interface  = dbusCoreInterface,
+	.nInterface = N_ELEMENTS (dbusCoreInterface),
+	.init       = dbusInitCore,
+	.fini       = dbusFiniCore,
+	.version    = COMPIZ_DBUS_VERSION
+    };
 
-    ctx->interface  = dbusCoreInterface;
-    ctx->nInterface = N_ELEMENTS (dbusCoreInterface);
-    ctx->type	    = NULL;
-    ctx->data	    = (char *) dc;
-    ctx->svOffset   = offsetof (DBusCore, signalOffset);
-    ctx->vtStore    = &dc->object;
-    ctx->version    = COMPIZ_DBUS_VERSION;
+    CORE (object);
+
+    cGetInterfaceProp (&GET_DBUS_CORE (c)->base, &template, what, value);
 }
+
+static DBusCoreVTable dbusCoreObjectVTable = {
+    .base.base.base.getProp = dbusGetProp,
+
+    .signal		  = dbusSignalImpl,
+    .signalDelegate	  = dbusSignalDelegate,
+    .objectSignal	  = dbusObjectSignalImpl,
+    .objectSignalDelegate = dbusObjectSignalDelegate,
+    .registerObjectPath   = dbusRegisterObjectPath,
+    .unregisterObjectPath = dbusUnregisterObjectPath,
+    .emitSignal           = dbusEmitSignal
+};
 
 static CObjectPrivate dbusObj[] = {
     C_OBJECT_PRIVATE (CORE_TYPE_NAME, dbus, Core, DBusCore, X, X)

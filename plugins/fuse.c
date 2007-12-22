@@ -40,8 +40,7 @@
 static int fuseCorePrivateIndex;
 
 typedef struct _FuseCore {
-    CompObjectVTableVec object;
-
+    CompInterfaceData   base;
     struct fuse_session *session;
     struct fuse_chan    *channel;
     char		*mountPoint;
@@ -62,8 +61,9 @@ typedef struct _FuseProp {
 } FuseProp;
 
 typedef struct _FuseObject {
-    fuse_ino_t ino;
-    FuseProp   *prop;
+    CompInterfaceData base;
+    fuse_ino_t        ino;
+    FuseProp          *prop;
 } FuseObject;
 
 typedef struct _FuseDirEntry {
@@ -78,8 +78,8 @@ typedef struct _FuseFile {
     int  size;
 } FuseFile;
 
-#define GET_FUSE_CORE(c)				   \
-    ((FuseCore *) (c)->privates[fuseCorePrivateIndex].ptr)
+#define GET_FUSE_CORE(c)					     \
+    ((FuseCore *) (c)->data.base.privates[fuseCorePrivateIndex].ptr)
 
 #define FUSE_CORE(c)		     \
     FuseCore *fc = GET_FUSE_CORE (c)
@@ -330,7 +330,7 @@ fuseForEachInterfaceProp (CompObject	       *object,
     ctx.length       = strlen (name);
     ctx.isPartOfType = FALSE;
 
-    if (type && strcmp (type->name, name) == 0)
+    if (type && strcmp (type->name.name, name) == 0)
 	ctx.isPartOfType = TRUE;
 
     (*object->vTable->forEachProp) (object, name, fuseForEachProp,
@@ -652,7 +652,7 @@ compiz_opendir (fuse_req_t	      req,
 	FUSE_OBJECT (object);
 
 	fuseAddDirEntryObject (&entry, ".", object);
-	if (object != c)
+	if (object != (CompObject *) c)
 	    fuseAddDirEntryObject (&entry, "..", object->parent);
 
 	(*object->vTable->forEachChildObject) (object,
@@ -869,8 +869,7 @@ static struct fuse_lowlevel_ops compiz_ll_oper = {
 };
 
 static CompBool
-fuseInitObject (const CompObjectFactory *factory,
-		CompObject		*object)
+fuseInitObject (CompObject *object)
 {
     FUSE_OBJECT (object);
 
@@ -881,8 +880,7 @@ fuseInitObject (const CompObjectFactory *factory,
 }
 
 static void
-fuseFiniObject (const CompObjectFactory *factory,
-		CompObject		*object)
+fuseFiniObject (CompObject *object)
 {
     FUSE_OBJECT (object);
 
@@ -894,6 +892,25 @@ fuseFiniObject (const CompObjectFactory *factory,
 	free (prop);
     }
 }
+
+static void
+fuseObjectGetProp (CompObject   *object,
+		   unsigned int what,
+		   void	        *value)
+{
+    static const CMetadata template = {
+	.init    = fuseInitObject,
+	.fini    = fuseFiniObject,
+	.version = COMPIZ_FUSE_VERSION
+    };
+
+    cGetInterfaceProp (&GET_FUSE_OBJECT (object)->base, &template, what,
+		       value);
+}
+
+static const CompObjectVTable fuseObjectObjectVTable = {
+    .getProp = fuseObjectGetProp
+};
 
 static Bool
 fuseProcessMessages (void *data)
@@ -1034,22 +1051,13 @@ static CInterface fuseCoreInterface[] = {
     C_INTERFACE (fuse, Core, CompObjectVTable, _, _, _, _, _, _, X, _)
 };
 
-static CompCoreVTable fuseCoreObjectVTable = { { { 0 } } };
-
 static CompBool
-fuseInitCore (const CompObjectFactory *factory,
-	      CompCore		      *c)
+fuseInitCore (CompObject *object)
 {
     struct sigaction sa;
 
+    CORE (object);
     FUSE_CORE (c);
-
-    if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
-	return FALSE;
-
-    if (!cObjectInterfaceInit (factory, &c->u.base.u.base,
-			       &fuseCoreObjectVTable.base.base))
-	return FALSE;
 
     memset (&sa, 0, sizeof (struct sigaction));
 
@@ -1058,19 +1066,13 @@ fuseInitCore (const CompObjectFactory *factory,
     sa.sa_flags = 0;
 
     if (sigaction (SIGPIPE, &sa, NULL) == -1)
-    {
-	cObjectInterfaceFini (factory, &c->u.base.u.base);
 	return FALSE;
-    }
 
     fc->session = fuse_lowlevel_new (NULL,
 				     &compiz_ll_oper, sizeof (compiz_ll_oper),
 				     (void *) c);
     if (!fc->session)
-    {
-	cObjectInterfaceFini (factory, &c->u.base.u.base);
 	return FALSE;
-    }
 
     fc->watchFdHandle = 0;
     fc->channel	      = NULL;
@@ -1082,35 +1084,40 @@ fuseInitCore (const CompObjectFactory *factory,
 }
 
 static void
-fuseFiniCore (const CompObjectFactory *factory,
-	      CompCore		      *c)
+fuseFiniCore (CompObject *object)
 {
+    CORE (object);
     FUSE_CORE (c);
 
     fuseUnmount (c);
-
-    cObjectInterfaceFini (factory, &c->u.base.u.base);
 
     fuse_session_destroy (fc->session);
 }
 
 static void
-fuseCoreGetCContext (CompObject *object,
-		     CContext   *ctx)
+fuseCoreGetProp (CompObject   *object,
+		 unsigned int what,
+		 void	      *value)
 {
-    FUSE_CORE (GET_CORE (object));
+    static const CMetadata template = {
+	.interface  = fuseCoreInterface,
+	.nInterface = N_ELEMENTS (fuseCoreInterface),
+	.init       = fuseInitCore,
+	.fini       = fuseFiniCore,
+	.version    = COMPIZ_FUSE_VERSION
+    };
 
-    ctx->interface  = fuseCoreInterface;
-    ctx->nInterface = N_ELEMENTS (fuseCoreInterface);
-    ctx->type	    = NULL;
-    ctx->data	    = (char *) fc;
-    ctx->vtStore    = &fc->object;
-    ctx->svOffset   = 0;
-    ctx->version    = COMPIZ_FUSE_VERSION;
+    CORE (object);
+
+    cGetInterfaceProp (&GET_FUSE_CORE (c)->base, &template, what, value);
 }
 
+static const CompCoreVTable fuseCoreObjectVTable = {
+    .base.base.getProp = fuseCoreGetProp
+};
+
 static CObjectPrivate fuseObj[] = {
-    C_OBJECT_PRIVATE (OBJECT_TYPE_NAME, fuse, Object, FuseObject, X, _),
+    C_OBJECT_PRIVATE (OBJECT_TYPE_NAME, fuse, Object, FuseObject, X, X),
     C_OBJECT_PRIVATE (CORE_TYPE_NAME,   fuse, Core,   FuseCore,   X, X)
 };
 

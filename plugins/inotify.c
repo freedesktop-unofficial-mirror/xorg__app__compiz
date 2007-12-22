@@ -49,8 +49,8 @@ typedef struct _InotifyCore {
     FileWatchRemovedProc fileWatchRemoved;
 } InotifyCore;
 
-#define GET_INOTIFY_CORE(c)				  \
-    ((InotifyCore *) (c)->privates[corePrivateIndex].ptr)
+#define GET_INOTIFY_CORE(c)					    \
+    ((InotifyCore *) (c)->data.base.privates[corePrivateIndex].ptr)
 
 #define INOTIFY_CORE(c)			   \
     InotifyCore *ic = GET_INOTIFY_CORE (c)
@@ -215,7 +215,7 @@ inotifyInitCore (CompPlugin *p,
     WRAP (ic, c, fileWatchAdded, inotifyFileWatchAdded);
     WRAP (ic, c, fileWatchRemoved, inotifyFileWatchRemoved);
 
-    c->privates[corePrivateIndex].ptr = ic;
+    c->data.base.privates[corePrivateIndex].ptr = ic;
 
     for (fw = c->fileWatch; fw; fw = fw->next)
 	inotifyFileWatchAdded (c, fw);

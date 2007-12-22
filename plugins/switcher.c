@@ -170,14 +170,14 @@ static float _boxVertices[] =
 #define WINDOW_WIDTH(count) (WIDTH * (count) + (SPACE << 1))
 #define WINDOW_HEIGHT (HEIGHT + (SPACE << 1))
 
-#define GET_SWITCH_DISPLAY(d)				       \
-    ((SwitchDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_SWITCH_DISPLAY(d)						 \
+    ((SwitchDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define SWITCH_DISPLAY(d)		       \
     SwitchDisplay *sd = GET_SWITCH_DISPLAY (d)
 
-#define GET_SWITCH_SCREEN(s, sd)				   \
-    ((SwitchScreen *) (s)->privates[(sd)->screenPrivateIndex].ptr)
+#define GET_SWITCH_SCREEN(s, sd)					     \
+    ((SwitchScreen *) (s)->data.base.privates[(sd)->screenPrivateIndex].ptr)
 
 #define SWITCH_SCREEN(s)						      \
     SwitchScreen *ss = GET_SWITCH_SCREEN (s, GET_SWITCH_DISPLAY (s->display))
@@ -1973,7 +1973,7 @@ switchInitDisplay (CompPlugin  *p,
 
     WRAP (sd, d, handleEvent, switchHandleEvent);
 
-    d->privates[displayPrivateIndex].ptr = sd;
+    d->data.base.privates[displayPrivateIndex].ptr = sd;
 
     return TRUE;
 }
@@ -2084,7 +2084,7 @@ switchInitScreen (CompPlugin *p,
     WRAP (ss, s, paintBackground, switchPaintBackground);
     WRAP (ss, s, damageWindowRect, switchDamageWindowRect);
 
-    s->privates[sd->screenPrivateIndex].ptr = ss;
+    s->data.base.privates[sd->screenPrivateIndex].ptr = ss;
 
     return TRUE;
 }

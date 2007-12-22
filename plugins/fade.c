@@ -77,20 +77,20 @@ typedef struct _FadeWindow {
     int steps;
 } FadeWindow;
 
-#define GET_FADE_DISPLAY(d)				     \
-    ((FadeDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_FADE_DISPLAY(d)					       \
+    ((FadeDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define FADE_DISPLAY(d)			   \
     FadeDisplay *fd = GET_FADE_DISPLAY (d)
 
-#define GET_FADE_SCREEN(s, fd)					 \
-    ((FadeScreen *) (s)->privates[(fd)->screenPrivateIndex].ptr)
+#define GET_FADE_SCREEN(s, fd)						   \
+    ((FadeScreen *) (s)->data.base.privates[(fd)->screenPrivateIndex].ptr)
 
 #define FADE_SCREEN(s)							\
     FadeScreen *fs = GET_FADE_SCREEN (s, GET_FADE_DISPLAY (s->display))
 
-#define GET_FADE_WINDOW(w, fs)					 \
-    ((FadeWindow *) (w)->privates[(fs)->windowPrivateIndex].ptr)
+#define GET_FADE_WINDOW(w, fs)					      \
+    ((FadeWindow *) (w)->data.privates[(fs)->windowPrivateIndex].ptr)
 
 #define FADE_WINDOW(w)					     \
     FadeWindow *fw = GET_FADE_WINDOW  (w,		     \
@@ -664,7 +664,7 @@ fadeInitDisplay (CompPlugin  *p,
     WRAP (fd, d, handleEvent, fadeHandleEvent);
     WRAP (fd, d, matchExpHandlerChanged, fadeMatchExpHandlerChanged);
 
-    d->privates[displayPrivateIndex].ptr = fd;
+    d->data.base.privates[displayPrivateIndex].ptr = fd;
 
     return TRUE;
 }
@@ -735,7 +735,7 @@ fadeInitScreen (CompPlugin *p,
     WRAP (fs, s, focusWindow, fadeFocusWindow);
     WRAP (fs, s, windowResizeNotify, fadeWindowResizeNotify);
 
-    s->privates[fd->screenPrivateIndex].ptr = fs;
+    s->data.base.privates[fd->screenPrivateIndex].ptr = fs;
 
     return TRUE;
 }
@@ -784,7 +784,7 @@ fadeInitWindow (CompPlugin *p,
     fw->shaded     = w->shaded;
     fw->fadeOut    = FALSE;
 
-    w->privates[fs->windowPrivateIndex].ptr = fw;
+    w->data.privates[fs->windowPrivateIndex].ptr = fw;
 
     if (w->attrib.map_state == IsViewable)
     {

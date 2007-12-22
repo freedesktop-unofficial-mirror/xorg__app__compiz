@@ -65,14 +65,14 @@ typedef struct _PlaceScreen {
     ValidateWindowResizeRequestProc validateWindowResizeRequest;
 } PlaceScreen;
 
-#define GET_PLACE_DISPLAY(d)				      \
-    ((PlaceDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_PLACE_DISPLAY(d)						\
+    ((PlaceDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define PLACE_DISPLAY(d)		     \
     PlaceDisplay *pd = GET_PLACE_DISPLAY (d)
 
-#define GET_PLACE_SCREEN(s, pd)					  \
-    ((PlaceScreen *) (s)->privates[(pd)->screenPrivateIndex].ptr)
+#define GET_PLACE_SCREEN(s, pd)						    \
+    ((PlaceScreen *) (s)->data.base.privates[(pd)->screenPrivateIndex].ptr)
 
 #define PLACE_SCREEN(s)							   \
     PlaceScreen *ps = GET_PLACE_SCREEN (s, GET_PLACE_DISPLAY (s->display))
@@ -1582,7 +1582,7 @@ placeInitDisplay (CompPlugin  *p,
 	return FALSE;
     }
 
-    d->privates[displayPrivateIndex].ptr = pd;
+    d->data.base.privates[displayPrivateIndex].ptr = pd;
 
     return TRUE;
 }
@@ -1635,7 +1635,7 @@ placeInitScreen (CompPlugin *p,
     WRAP (ps, s, validateWindowResizeRequest,
 	  placeValidateWindowResizeRequest);
 
-    s->privates[pd->screenPrivateIndex].ptr = ps;
+    s->data.base.privates[pd->screenPrivateIndex].ptr = ps;
 
     return TRUE;
 }

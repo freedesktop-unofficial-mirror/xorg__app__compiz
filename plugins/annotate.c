@@ -51,7 +51,7 @@ static int annoLastPointerY = 0;
 
 
 typedef struct _AnnoDisplay {
-    CompObjectVTableVec object;
+    CompInterfaceData base;
 
     double lineWidth;
     double strokeWidth;
@@ -64,7 +64,7 @@ typedef struct _AnnoDisplay {
 static int annoScreenPrivateIndex;
 
 typedef struct _AnnoScreen {
-    CompObjectVTableVec object;
+    CompInterfaceData base;
 
     PaintOutputProc paintOutput;
     int		    grabIndex;
@@ -78,14 +78,14 @@ typedef struct _AnnoScreen {
     Bool eraseMode;
 } AnnoScreen;
 
-#define GET_ANNO_DISPLAY(d)					 \
-    ((AnnoDisplay *) (d)->privates[annoDisplayPrivateIndex].ptr)
+#define GET_ANNO_DISPLAY(d)						   \
+    ((AnnoDisplay *) (d)->data.base.privates[annoDisplayPrivateIndex].ptr)
 
 #define ANNO_DISPLAY(d)			   \
     AnnoDisplay *ad = GET_ANNO_DISPLAY (d)
 
-#define GET_ANNO_SCREEN(s)				       \
-    ((AnnoScreen *) (s)->privates[annoScreenPrivateIndex].ptr)
+#define GET_ANNO_SCREEN(s)						 \
+    ((AnnoScreen *) (s)->data.base.privates[annoScreenPrivateIndex].ptr)
 
 #define ANNO_SCREEN(s)			 \
     AnnoScreen *as = GET_ANNO_SCREEN (s)
@@ -742,16 +742,11 @@ static const CompMetadataOptionInfo annoDisplayOptionInfo[] = {
     { "stroke_color", "color", 0, 0, 0 }
 };
 
-static CompDisplayVTable annoDisplayObjectVTable = { { 0 } };
-
 static CompBool
-annoInitDisplay (const CompObjectFactory *factory,
-		 CompDisplay		 *d)
+annoInitDisplay (CompObject *object)
 {
+    DISPLAY (object);
     ANNO_DISPLAY (d);
-
-    if (!compObjectCheckVersion (&d->u.base, "display", CORE_ABIVERSION))
-	return FALSE;
 
     if (!compInitDisplayOptionsFromMetadata (d,
 					     &annoMetadata,
@@ -763,51 +758,44 @@ annoInitDisplay (const CompObjectFactory *factory,
     ad->lineWidth   = 3.0;
     ad->strokeWidth = 1.0;
 
-    if (!cObjectInterfaceInit (factory, &d->u.base,
-			       &annoDisplayObjectVTable.base))
-    {
-	compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
-	return FALSE;
-    }
-
-    WRAP (ad, d, handleEvent, annoHandleEvent);
-
     return TRUE;
 }
 
 static void
-annoFiniDisplay (const CompObjectFactory *factory,
-		 CompDisplay		 *d)
+annoFiniDisplay (CompObject *object)
 {
+    DISPLAY (object);
     ANNO_DISPLAY (d);
-
-    UNWRAP (ad, d, handleEvent);
-
-    cObjectInterfaceFini (factory, &d->u.base);
 
     compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 }
 
 static void
-annoDisplayGetCContext (CompObject *object,
-			CContext   *ctx)
+annoDisplayGetProp (CompObject   *object,
+		    unsigned int what,
+		    void	 *value)
 {
-    ANNO_DISPLAY (object);
+    static const CMetadata template = {
+	.interface  = annoDisplayInterface,
+	.nInterface = N_ELEMENTS (annoDisplayInterface),
+	.init       = annoInitDisplay,
+	.fini       = annoFiniDisplay,
+	.version    = COMPIZ_ANNOTATE_VERSION
+    };
 
-    ctx->interface  = annoDisplayInterface;
-    ctx->nInterface = N_ELEMENTS (annoDisplayInterface);
-    ctx->type	    = NULL;
-    ctx->data	    = (char *) ad;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &ad->object;
-    ctx->version    = COMPIZ_ANNOTATE_VERSION;
+    DISPLAY (object);
+
+    cGetInterfaceProp (&GET_ANNO_DISPLAY (d)->base, &template, what, value);
 }
 
-static CompObjectVTable annoScreenObjectVTable = { 0 };
+static const CompDisplayVTable annoDisplayObjectVTable = {
+    .base.getProp = annoDisplayGetProp
+};
 
-static Bool
-annoInitScreen (CompScreen *s)
+static CompBool
+annoInitScreen (CompObject *object)
 {
+    SCREEN (object);
     ANNO_SCREEN (s);
 
     as->grabIndex = 0;
@@ -824,8 +812,9 @@ annoInitScreen (CompScreen *s)
 }
 
 static void
-annoFiniScreen (CompScreen *s)
+annoFiniScreen (CompObject *object)
 {
+    SCREEN (object);
     ANNO_SCREEN (s);
 
     if (as->cairo)
@@ -843,19 +832,26 @@ annoFiniScreen (CompScreen *s)
 }
 
 static void
-annoScreenGetCContext (CompObject *object,
-		       CContext   *ctx)
+annoScreenGetProp (CompObject   *object,
+		    unsigned int what,
+		    void	 *value)
 {
-    ANNO_SCREEN (GET_SCREEN (object));
+    static const CMetadata template = {
+	.interface  = annoScreenInterface,
+	.nInterface = N_ELEMENTS (annoScreenInterface),
+	.init       = annoInitScreen,
+	.fini       = annoFiniScreen,
+	.version    = COMPIZ_ANNOTATE_VERSION
+    };
 
-    ctx->interface  = annoScreenInterface;
-    ctx->nInterface = N_ELEMENTS (annoScreenInterface);
-    ctx->type	    = NULL;
-    ctx->data	    = (char *) as;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &as->object;
-    ctx->version    = COMPIZ_ANNOTATE_VERSION;
+    SCREEN (object);
+
+    cGetInterfaceProp (&GET_ANNO_SCREEN (s)->base, &template, what, value);
 }
+
+static const CompObjectVTable annoScreenObjectVTable = {
+    .getProp = annoScreenGetProp
+};
 
 static CObjectPrivate annoObj[] = {
     C_OBJECT_PRIVATE (DISPLAY_TYPE_NAME, anno, Display, AnnoDisplay, X, X),

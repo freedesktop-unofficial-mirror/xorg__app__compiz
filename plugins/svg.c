@@ -94,20 +94,20 @@ typedef struct _SvgWindow {
     SvgContext *context;
 } SvgWindow;
 
-#define GET_SVG_DISPLAY(d)				    \
-    ((SvgDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_SVG_DISPLAY(d)					      \
+    ((SvgDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define SVG_DISPLAY(d)			 \
     SvgDisplay *sd = GET_SVG_DISPLAY (d)
 
-#define GET_SVG_SCREEN(s, sd)					\
-    ((SvgScreen *) (s)->privates[(sd)->screenPrivateIndex].ptr)
+#define GET_SVG_SCREEN(s, sd)						  \
+    ((SvgScreen *) (s)->data.base.privates[(sd)->screenPrivateIndex].ptr)
 
 #define SVG_SCREEN(s)						     \
     SvgScreen *ss = GET_SVG_SCREEN (s, GET_SVG_DISPLAY (s->display))
 
-#define GET_SVG_WINDOW(w, ss)					\
-    ((SvgWindow *) (w)->privates[(ss)->windowPrivateIndex].ptr)
+#define GET_SVG_WINDOW(w, ss)					     \
+    ((SvgWindow *) (w)->data.privates[(ss)->windowPrivateIndex].ptr)
 
 #define SVG_WINDOW(w)					   \
     SvgWindow *sw = GET_SVG_WINDOW  (w,			   \
@@ -823,7 +823,7 @@ svgInitDisplay (CompPlugin  *p,
     WRAP (sd, d, handleCompizEvent, svgHandleCompizEvent);
     WRAP (sd, d, fileToImage, svgFileToImage);
 
-    d->privates[displayPrivateIndex].ptr = sd;
+    d->data.base.privates[displayPrivateIndex].ptr = sd;
 
     for (s = d->screens; s; s = s->next)
 	updateDefaultIcon (s);
@@ -877,7 +877,7 @@ svgInitScreen (CompPlugin *p,
     WRAP (ss, s, windowMoveNotify, svgWindowMoveNotify);
     WRAP (ss, s, windowResizeNotify, svgWindowResizeNotify);
 
-    s->privates[sd->screenPrivateIndex].ptr = ss;
+    s->data.base.privates[sd->screenPrivateIndex].ptr = ss;
 
     return TRUE;
 }
@@ -912,7 +912,7 @@ svgInitWindow (CompPlugin *p,
     sw->source  = NULL;
     sw->context = NULL;
 
-    w->privates[ss->windowPrivateIndex].ptr = sw;
+    w->data.privates[ss->windowPrivateIndex].ptr = sw;
 
     return TRUE;
 }

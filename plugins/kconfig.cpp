@@ -26,6 +26,8 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
+#define COMPIZ_KCONFIG_VERSION 20071123
+
 #define COMPIZ_KCONFIG_RC "compizrc"
 
 static KInstance *kInstance;
@@ -33,19 +35,23 @@ static KInstance *kInstance;
 static int kconfigCorePrivateIndex;
 
 typedef struct _KconfigCore {
-    KConfig *config;
-
+    CompInterfaceData	base;
+    KConfig		*config;
     CompTimeoutHandle   syncHandle;
     CompTimeoutHandle   reloadHandle;
     CompFileWatchHandle fileWatch;
 } KconfigCore;
 
-#define GET_KCONFIG_CORE(c)					 \
-    ((KconfigCore *) (c)->privates[kconfigCorePrivateIndex].ptr)
+#define GET_KCONFIG_CORE(c)						   \
+    ((KconfigCore *) (c)->data.base.privates[kconfigCorePrivateIndex].ptr)
 
 #define KCONFIG_CORE(c)			   \
     KconfigCore *kc = GET_KCONFIG_CORE (c)
 
+
+static CInterface kconfigCoreInterface[] = {
+    C_INTERFACE (kconfig, Core, CompCoreVTable, _, _, _, _, _, _, _, _)
+};
 
 static QString
 kconfigObjectPath (CompObject *object)
@@ -293,15 +299,11 @@ kconfigRcChanged (const char *name,
 }
 
 static CompBool
-kconfigInitCore (const CompObjectFactory *factory,
-		 CompCore		 *c)
+kconfigInitCore (CompObject *object)
 {
     QString dir;
 
-    KCONFIG_CORE (c);
-
-    if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
-	return FALSE;
+    KCONFIG_CORE (GET_CORE (object));
 
     kc->config = new KConfig (COMPIZ_KCONFIG_RC);
     if (!kc->config)
@@ -314,23 +316,15 @@ kconfigInitCore (const CompObjectFactory *factory,
     dir = KGlobal::dirs ()->saveLocation ("config", QString::null, false);
 
     if (QFile::exists (dir))
-    {
 	kc->fileWatch = addFileWatch (dir.ascii (), ~0, kconfigRcChanged, 0);
-    }
-    else
-    {
-	compLogMessage (0, "kconfig", CompLogLevelWarn, "Bad access \"%s\"",
-			dir.ascii ());
-    }
 
     return TRUE;
 }
 
 static void
-kconfigFiniCore (const CompObjectFactory *factory,
-		 CompCore		 *c)
+kconfigFiniCore (CompObject *object)
 {
-    KCONFIG_CORE (c);
+    KCONFIG_CORE (GET_CORE (object));
 
     if (kc->reloadHandle)
 	compRemoveTimeout (kc->reloadHandle);
@@ -347,8 +341,30 @@ kconfigFiniCore (const CompObjectFactory *factory,
     delete kc->config;
 }
 
+static void
+kconfigGetProp (CompObject   *object,
+	      unsigned int what,
+	      void	   *value)
+{
+    static const CMetadata tmpl = {
+	kconfigCoreInterface,
+	N_ELEMENTS (kconfigCoreInterface),
+	kconfigInitCore,
+	kconfigFiniCore,
+	COMPIZ_KCONFIG_VERSION
+    };
+
+    CORE (object);
+
+    cGetInterfaceProp (&GET_KCONFIG_CORE (c)->base, &tmpl, what, value);
+}
+
+static const CompCoreVTable kconfigCoreObjectVTable = {
+    { { NULL, kconfigGetProp } }
+};
+
 static CObjectPrivate kconfigObj[] = {
-    C_OBJECT_PRIVATE (CORE_TYPE_NAME, kconfig, Core, KconfigCore, X, _)
+    C_OBJECT_PRIVATE (CORE_TYPE_NAME, kconfig, Core, KconfigCore, X, X)
 };
 
 static CompBool

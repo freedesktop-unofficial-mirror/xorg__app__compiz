@@ -142,26 +142,26 @@ typedef struct _DecorWindow {
     CompTimeoutHandle resizeUpdateHandle;
 } DecorWindow;
 
-#define GET_DECOR_CORE(c)				\
-    ((DecorCore *) (c)->privates[corePrivateIndex].ptr)
+#define GET_DECOR_CORE(c)					  \
+    ((DecorCore *) (c)->data.base.privates[corePrivateIndex].ptr)
 
 #define DECOR_CORE(c)		       \
     DecorCore *dc = GET_DECOR_CORE (c)
 
-#define GET_DECOR_DISPLAY(d)				      \
-    ((DecorDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_DECOR_DISPLAY(d)						\
+    ((DecorDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define DECOR_DISPLAY(d)		     \
     DecorDisplay *dd = GET_DECOR_DISPLAY (d)
 
-#define GET_DECOR_SCREEN(s, dd)					  \
-    ((DecorScreen *) (s)->privates[(dd)->screenPrivateIndex].ptr)
+#define GET_DECOR_SCREEN(s, dd)						    \
+    ((DecorScreen *) (s)->data.base.privates[(dd)->screenPrivateIndex].ptr)
 
 #define DECOR_SCREEN(s)							   \
     DecorScreen *ds = GET_DECOR_SCREEN (s, GET_DECOR_DISPLAY (s->display))
 
-#define GET_DECOR_WINDOW(w, ds)					  \
-    ((DecorWindow *) (w)->privates[(ds)->windowPrivateIndex].ptr)
+#define GET_DECOR_WINDOW(w, ds)					       \
+    ((DecorWindow *) (w)->data.privates[(ds)->windowPrivateIndex].ptr)
 
 #define DECOR_WINDOW(w)					       \
     DecorWindow *dw = GET_DECOR_WINDOW  (w,		       \
@@ -1371,7 +1371,7 @@ decorInitCore (CompPlugin *p,
     WRAP (dc, c, objectAdd, decorObjectAdd);
     WRAP (dc, c, objectRemove, decorObjectRemove);
 
-    c->privates[corePrivateIndex].ptr = dc;
+    c->data.base.privates[corePrivateIndex].ptr = dc;
 
     return TRUE;
 }
@@ -1446,7 +1446,7 @@ decorInitDisplay (CompPlugin  *p,
     WRAP (dd, d, handleEvent, decorHandleEvent);
     WRAP (dd, d, matchPropertyChanged, decorMatchPropertyChanged);
 
-    d->privates[displayPrivateIndex].ptr = dd;
+    d->data.base.privates[displayPrivateIndex].ptr = dd;
 
     return TRUE;
 }
@@ -1497,7 +1497,7 @@ decorInitScreen (CompPlugin *p,
     WRAP (ds, s, windowResizeNotify, decorWindowResizeNotify);
     WRAP (ds, s, windowStateChangeNotify, decorWindowStateChangeNotify);
 
-    s->privates[dd->screenPrivateIndex].ptr = ds;
+    s->data.base.privates[dd->screenPrivateIndex].ptr = ds;
 
     decorCheckForDmOnScreen (s, FALSE);
 
@@ -1545,7 +1545,7 @@ decorInitWindow (CompPlugin *p,
 
     dw->resizeUpdateHandle = 0;
 
-    w->privates[ds->windowPrivateIndex].ptr = dw;
+    w->data.privates[ds->windowPrivateIndex].ptr = dw;
 
     if (!w->attrib.override_redirect)
 	decorWindowUpdateDecoration (w);

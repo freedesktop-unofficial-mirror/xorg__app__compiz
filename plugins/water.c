@@ -120,14 +120,14 @@ typedef struct _WaterScreen {
     WaterFunction *bumpMapFunctions;
 } WaterScreen;
 
-#define GET_WATER_DISPLAY(d)				      \
-    ((WaterDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_WATER_DISPLAY(d)						\
+    ((WaterDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define WATER_DISPLAY(d)		     \
     WaterDisplay *wd = GET_WATER_DISPLAY (d)
 
-#define GET_WATER_SCREEN(s, wd)					  \
-    ((WaterScreen *) (s)->privates[(wd)->screenPrivateIndex].ptr)
+#define GET_WATER_SCREEN(s, wd)						    \
+    ((WaterScreen *) (s)->data.base.privates[(wd)->screenPrivateIndex].ptr)
 
 #define WATER_SCREEN(s)							   \
     WaterScreen *ws = GET_WATER_SCREEN (s, GET_WATER_DISPLAY (s->display))
@@ -1037,7 +1037,7 @@ waterDrawWindowTexture (CompWindow	     *w,
     if (ws->count)
     {
 	FragmentAttrib fa = *attrib;
-	Bool	       lighting = w->screen->lighting;
+	Bool	       lighting = w->screen->data.lighting;
 	int	       param, function, unit;
 	GLfloat	       plane[4];
 
@@ -1623,7 +1623,7 @@ waterInitDisplay (CompPlugin  *p,
 
     WRAP (wd, d, handleEvent, waterHandleEvent);
 
-    d->privates[displayPrivateIndex].ptr = wd;
+    d->data.base.privates[displayPrivateIndex].ptr = wd;
 
     return TRUE;
 }
@@ -1661,7 +1661,7 @@ waterInitScreen (CompPlugin *p,
     WRAP (ws, s, donePaintScreen, waterDonePaintScreen);
     WRAP (ws, s, drawWindowTexture, waterDrawWindowTexture);
 
-    s->privates[wd->screenPrivateIndex].ptr = ws;
+    s->data.base.privates[wd->screenPrivateIndex].ptr = ws;
 
     waterReset (s);
 

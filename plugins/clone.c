@@ -74,14 +74,14 @@ typedef struct _CloneScreen {
     int src, dst;
 } CloneScreen;
 
-#define GET_CLONE_DISPLAY(d)				      \
-    ((CloneDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_CLONE_DISPLAY(d)						\
+    ((CloneDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define CLONE_DISPLAY(d)		     \
     CloneDisplay *cd = GET_CLONE_DISPLAY (d)
 
-#define GET_CLONE_SCREEN(s, cd)					  \
-    ((CloneScreen *) (s)->privates[(cd)->screenPrivateIndex].ptr)
+#define GET_CLONE_SCREEN(s, cd)						    \
+    ((CloneScreen *) (s)->data.base.privates[(cd)->screenPrivateIndex].ptr)
 
 #define CLONE_SCREEN(s)						           \
     CloneScreen *cs = GET_CLONE_SCREEN (s, GET_CLONE_DISPLAY (s->display))
@@ -750,7 +750,7 @@ cloneInitDisplay (CompPlugin  *p,
 
     WRAP (cd, d, handleEvent, cloneHandleEvent);
 
-    d->privates[displayPrivateIndex].ptr = cd;
+    d->data.base.privates[displayPrivateIndex].ptr = cd;
 
     return TRUE;
 }
@@ -800,7 +800,7 @@ cloneInitScreen (CompPlugin *p,
     WRAP (cs, s, paintWindow, clonePaintWindow);
     WRAP (cs, s, outputChangeNotify, cloneOutputChangeNotify);
 
-    s->privates[cd->screenPrivateIndex].ptr = cs;
+    s->data.base.privates[cd->screenPrivateIndex].ptr = cs;
 
     return TRUE;
 }

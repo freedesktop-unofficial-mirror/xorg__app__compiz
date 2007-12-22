@@ -54,20 +54,20 @@ typedef struct _RegexWindow {
     char *role;
 } RegexWindow;
 
-#define GET_REGEX_DISPLAY(d)				      \
-    ((RegexDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_REGEX_DISPLAY(d)						\
+    ((RegexDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define REGEX_DISPLAY(d)		     \
     RegexDisplay *rd = GET_REGEX_DISPLAY (d)
 
-#define GET_REGEX_SCREEN(s, rd)					  \
-    ((RegexScreen *) (s)->privates[(rd)->screenPrivateIndex].ptr)
+#define GET_REGEX_SCREEN(s, rd)						    \
+    ((RegexScreen *) (s)->data.base.privates[(rd)->screenPrivateIndex].ptr)
 
 #define REGEX_SCREEN(s)							   \
     RegexScreen *rs = GET_REGEX_SCREEN (s, GET_REGEX_DISPLAY (s->display))
 
-#define GET_REGEX_WINDOW(w, rs)					  \
-    ((RegexWindow *) (w)->privates[(rs)->windowPrivateIndex].ptr)
+#define GET_REGEX_WINDOW(w, rs)					       \
+    ((RegexWindow *) (w)->data.privates[(rs)->windowPrivateIndex].ptr)
 
 #define REGEX_WINDOW(w)					       \
     RegexWindow *rw = GET_REGEX_WINDOW  (w,		       \
@@ -383,7 +383,7 @@ regexInitDisplay (CompPlugin  *p,
     WRAP (rd, d, handleEvent, regexHandleEvent);
     WRAP (rd, d, matchInitExp, regexMatchInitExp);
 
-    d->privates[displayPrivateIndex].ptr = rd;
+    d->data.base.privates[displayPrivateIndex].ptr = rd;
 
     /* one shot timeout to which will register the expression handler
        after all screens and windows have been initialized */
@@ -428,7 +428,7 @@ regexInitScreen (CompPlugin *p,
 	return FALSE;
     }
 
-    s->privates[rd->screenPrivateIndex].ptr = rs;
+    s->data.base.privates[rd->screenPrivateIndex].ptr = rs;
 
     return TRUE;
 }
@@ -460,7 +460,7 @@ regexInitWindow (CompPlugin *p,
     rw->title = regexGetWindowTitle (w);
     rw->role  = regexGetStringProperty (w, rd->roleAtom, XA_STRING);
 
-    w->privates[rs->windowPrivateIndex].ptr = rw;
+    w->data.privates[rs->windowPrivateIndex].ptr = rw;
 
     return TRUE;
 }

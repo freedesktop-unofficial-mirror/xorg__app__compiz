@@ -41,8 +41,7 @@ typedef struct _GLibWatch {
 } GLibWatch;
 
 typedef struct _GLibCore {
-    CompObjectVTableVec object;
-
+    CompInterfaceData base;
     CompTimeoutHandle timeoutHandle;
     gint	      maxPriority;
     GPollFD	      *fds;
@@ -58,8 +57,8 @@ typedef struct _GLibCoreVTable {
     WakeUpProc     wakeUp;
 } GLibCoreVTable;
 
-#define GET_GLIB_CORE(c)				   \
-    ((GLibCore *) (c)->privates[glibCorePrivateIndex].ptr)
+#define GET_GLIB_CORE(c)					     \
+    ((GLibCore *) (c)->data.base.privates[glibCorePrivateIndex].ptr)
 
 #define GLIB_CORE(c)		     \
     GLibCore *gc = GET_GLIB_CORE (c)
@@ -188,26 +187,15 @@ glibPrepare (CompCore     *c,
 	compAddTimeout (timeout, glibDispatchAndPrepare, c);
 }
 
-static GLibCoreVTable glibCoreObjectVTable = {
-    .wakeUp = glibWakeup
-};
-
 static CompBool
-glibInitCore (const CompObjectFactory *factory,
-	      CompCore		      *c)
+glibInitCore (CompObject *object)
 {
+    CORE (object);
     GLIB_CORE (c);
-
-    if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
-	return FALSE;
 
     gc->fds	      = NULL;
     gc->fdsSize	      = 0;
     gc->timeoutHandle = 0;
-
-    if (!cObjectInterfaceInit (factory, &c->u.base.u.base,
-			       &glibCoreObjectVTable.base.base.base))
-	return FALSE;
 
     glibPrepare (c, g_main_context_default ());
 
@@ -215,9 +203,9 @@ glibInitCore (const CompObjectFactory *factory,
 }
 
 static void
-glibFiniCore (const CompObjectFactory *factory,
-	      CompCore		      *c)
+glibFiniCore (CompObject *object)
 {
+    CORE (object);
     GLIB_CORE (c);
 
     if (gc->timeoutHandle)
@@ -227,24 +215,31 @@ glibFiniCore (const CompObjectFactory *factory,
 
     if (gc->fds)
 	free (gc->fds);
-
-    cObjectInterfaceFini (factory, &c->u.base.u.base);
 }
 
 static void
-glibCoreGetCContext (CompObject *object,
-		     CContext   *ctx)
+glibGetProp (CompObject   *object,
+	     unsigned int what,
+	     void	  *value)
 {
-    GLIB_CORE (GET_CORE (object));
+    static const CMetadata template = {
+	.interface  = glibCoreInterface,
+	.nInterface = N_ELEMENTS (glibCoreInterface),
+	.init       = glibInitCore,
+	.fini       = glibFiniCore,
+	.version    = COMPIZ_GLIB_VERSION
+    };
 
-    ctx->interface  = glibCoreInterface;
-    ctx->nInterface = N_ELEMENTS (glibCoreInterface);
-    ctx->type	    = NULL;
-    ctx->data	    = (char *) gc;
-    ctx->svOffset   = 0;
-    ctx->vtStore    = &gc->object;
-    ctx->version    = COMPIZ_GLIB_VERSION;
+    CORE (object);
+
+    cGetInterfaceProp (&GET_GLIB_CORE (c)->base, &template, what, value);
 }
+
+static const GLibCoreVTable glibCoreObjectVTable = {
+    .base.base.base.getProp = glibGetProp,
+
+    .wakeUp = glibWakeup
+};
 
 static CObjectPrivate glibObj[] = {
     C_OBJECT_PRIVATE (CORE_TYPE_NAME, glib, Core, GLibCore, X, X)

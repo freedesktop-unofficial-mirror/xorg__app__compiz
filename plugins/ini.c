@@ -41,7 +41,7 @@
 #define FILE_SUFFIX         ".conf"
 
 #define GET_INI_CORE(c) \
-	((IniCore *) (c)->privates[corePrivateIndex].ptr)
+	((IniCore *) (c)->data.base.privates[corePrivateIndex].ptr)
 #define INI_CORE(c) \
 	IniCore *ic = GET_INI_CORE (c)
 
@@ -1040,7 +1040,7 @@ iniInitCore (CompPlugin *p,
     WRAP (ic, c, initPluginForObject, iniInitPluginForObject);
     WRAP (ic, c, setOptionForPlugin, iniSetOptionForPlugin);
 
-    c->privates[corePrivateIndex].ptr = ic;
+    c->data.base.privates[corePrivateIndex].ptr = ic;
 
     return TRUE;
 }

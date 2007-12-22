@@ -1734,7 +1734,7 @@ scaleHandleEvent (CompDisplay *d,
 	    {
 		Bool focus;
 
-		focus = !d->clickToFocus;
+		focus = !d->data.clickToFocus;
 
 		scaleSelectWindowAt (s,
 				     event->xmotion.x_root,
@@ -1757,7 +1757,7 @@ scaleHandleEvent (CompDisplay *d,
 
 		s = w->screen;
 
-		focus = !d->clickToFocus;
+		focus = !d->data.clickToFocus;
 
 		if (w->id == ss->dndTarget)
 		    sendDndStatusMessage (w->screen, event->xclient.data.l[0]);
@@ -2000,7 +2000,7 @@ scaleInitDisplay (CompPlugin  *p,
 
     WRAP (sd, d, handleEvent, scaleHandleEvent);
 
-    d->privates[scaleDisplayPrivateIndex].ptr = sd;
+    d->data.base.privates[scaleDisplayPrivateIndex].ptr = sd;
 
     return TRUE;
 }
@@ -2095,7 +2095,7 @@ scaleInitScreen (CompPlugin *p,
 
     ss->cursor = XCreateFontCursor (s->display->display, XC_left_ptr);
 
-    s->privates[sd->screenPrivateIndex].ptr = ss;
+    s->data.base.privates[sd->screenPrivateIndex].ptr = ss;
 
     return TRUE;
 }
@@ -2151,7 +2151,7 @@ scaleInitWindow (CompPlugin *p,
     sw->delta = 1.0f;
     sw->lastThumbOpacity = 0.0f;
 
-    w->privates[ss->windowPrivateIndex].ptr = sw;
+    w->data.privates[ss->windowPrivateIndex].ptr = sw;
 
     return TRUE;
 }

@@ -81,20 +81,20 @@ typedef struct _MinWindow {
     int unmapCnt;
 } MinWindow;
 
-#define GET_MIN_DISPLAY(d)				    \
-    ((MinDisplay *) (d)->privates[displayPrivateIndex].ptr)
+#define GET_MIN_DISPLAY(d)					      \
+    ((MinDisplay *) (d)->data.base.privates[displayPrivateIndex].ptr)
 
 #define MIN_DISPLAY(d)			 \
     MinDisplay *md = GET_MIN_DISPLAY (d)
 
-#define GET_MIN_SCREEN(s, md)					\
-    ((MinScreen *) (s)->privates[(md)->screenPrivateIndex].ptr)
+#define GET_MIN_SCREEN(s, md)						  \
+    ((MinScreen *) (s)->data.base.privates[(md)->screenPrivateIndex].ptr)
 
 #define MIN_SCREEN(s)						     \
     MinScreen *ms = GET_MIN_SCREEN (s, GET_MIN_DISPLAY (s->display))
 
-#define GET_MIN_WINDOW(w, ms)					\
-    ((MinWindow *) (w)->privates[(ms)->windowPrivateIndex].ptr)
+#define GET_MIN_WINDOW(w, ms)					     \
+    ((MinWindow *) (w)->data.privates[(ms)->windowPrivateIndex].ptr)
 
 #define MIN_WINDOW(w)					   \
     MinWindow *mw = GET_MIN_WINDOW  (w,			   \
@@ -823,7 +823,7 @@ minInitDisplay (CompPlugin  *p,
 
     WRAP (md, d, handleEvent, minHandleEvent);
 
-    d->privates[displayPrivateIndex].ptr = md;
+    d->data.base.privates[displayPrivateIndex].ptr = md;
 
     return TRUE;
 }
@@ -889,7 +889,7 @@ minInitScreen (CompPlugin *p,
     WRAP (ms, s, damageWindowRect, minDamageWindowRect);
     WRAP (ms, s, focusWindow, minFocusWindow);
 
-    s->privates[md->screenPrivateIndex].ptr = ms;
+    s->data.base.privates[md->screenPrivateIndex].ptr = ms;
 
     return TRUE;
 }
@@ -956,7 +956,7 @@ minInitWindow (CompPlugin *p,
 	    mw->region = NULL;
     }
 
-    w->privates[ms->windowPrivateIndex].ptr = mw;
+    w->data.privates[ms->windowPrivateIndex].ptr = mw;
 
     return TRUE;
 }

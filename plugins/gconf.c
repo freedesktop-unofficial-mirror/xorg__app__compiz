@@ -65,16 +65,14 @@ typedef struct _GConfCoreVTable {
 } GConfCoreVTable;
 
 typedef struct _GConfCore {
-    CompObjectVTableVec object;
-
+    CompInterfaceData base;
     GConfClient       *client;
     guint	      cnxn;
     CompTimeoutHandle reloadHandle;
-    int		      signalOffset;
 } GConfCore;
 
-#define GET_GCONF_CORE(c)				     \
-    ((GConfCore *) (c)->privates[gconfCorePrivateIndex].ptr)
+#define GET_GCONF_CORE(c)					       \
+    ((GConfCore *) (c)->data.base.privates[gconfCorePrivateIndex].ptr)
 
 #define GCONF_CORE(c)		       \
     GConfCore *gc = GET_GCONF_CORE (c)
@@ -333,6 +331,60 @@ gconfKeyChanged (GConfClient *client,
     g_strfreev (token);
 }
 
+static CompBool
+gconfInitCore (CompObject *object)
+{
+    CORE (object);
+    GCONF_CORE (c);
+
+    gc->client = gconf_client_get_default ();
+
+    gconf_client_add_dir (gc->client, "/apps/" APP_NAME,
+			  GCONF_CLIENT_PRELOAD_NONE, NULL);
+
+    gc->reloadHandle = compAddTimeout (0, gconfReload, (void *) c);
+
+    gc->cnxn = gconf_client_notify_add (gc->client, "/apps/" APP_NAME,
+					gconfKeyChanged, c, NULL, NULL);
+
+    compInvokeMethod (object, "glib", "wakeUp", "", "", NULL);
+
+    return TRUE;
+}
+
+static void
+gconfFiniCore (CompObject *object)
+{
+    GCONF_CORE (GET_CORE (object));
+
+    if (gc->reloadHandle)
+	compRemoveTimeout (gc->reloadHandle);
+
+    if (gc->cnxn)
+	gconf_client_notify_remove (gc->client, gc->cnxn);
+
+    gconf_client_remove_dir (gc->client, "/apps/" APP_NAME, NULL);
+    gconf_client_clear_cache (gc->client);
+}
+
+static void
+gconfGetProp (CompObject   *object,
+	      unsigned int what,
+	      void	   *value)
+{
+    static const CMetadata template = {
+	.interface  = gconfCoreInterface,
+	.nInterface = N_ELEMENTS (gconfCoreInterface),
+	.init       = gconfInitCore,
+	.fini       = gconfFiniCore,
+	.version    = COMPIZ_GCONF_VERSION
+    };
+
+    CORE (object);
+
+    cGetInterfaceProp (&GET_GCONF_CORE (c)->base, &template, what, value);
+}
+
 static void
 gconfSignalImpl (CompObject   *object,
 		 const char   *interface,
@@ -344,7 +396,8 @@ gconfSignalImpl (CompObject   *object,
 {
     GCONF_CORE (GET_CORE (object));
 
-    C_EMIT_SIGNAL (object, GConfSignalProc, gc->signalOffset, &gconfSignal,
+    C_EMIT_SIGNAL (object, GConfSignalProc, gc->base.signalVecOffset,
+		   &gconfSignal,
 		   interface, name, signature, value, nValue, descendant);
 }
 
@@ -390,7 +443,7 @@ gconfPropSignalImpl (CompObject   *object,
 {
     GCONF_CORE (GET_CORE (object));
 
-    C_EMIT_SIGNAL (object, GConfPropSignalProc, gc->signalOffset,
+    C_EMIT_SIGNAL (object, GConfPropSignalProc, gc->base.signalVecOffset,
 		   &gconfPropSignal,
 		   interface, name, value, descendant);
 }
@@ -499,7 +552,9 @@ gconfStoreStringProp (CompObject   *object,
     }
 }
 
-static GConfCoreVTable gconfCoreObjectVTable = {
+static const GConfCoreVTable gconfCoreObjectVTable = {
+    .base.base.base.getProp = gconfGetProp,
+
     .signal             = gconfSignalImpl,
     .signalDelegate     = gconfSignalDelegate,
     .loadInterface      = gconfLoadInterface,
@@ -510,69 +565,6 @@ static GConfCoreVTable gconfCoreObjectVTable = {
     .storeDoubleProp    = gconfStoreDoubleProp,
     .storeStringProp    = gconfStoreStringProp
 };
-
-static CompBool
-gconfInitCore (const CompObjectFactory *factory,
-	       CompCore		       *c)
-{
-    GCONF_CORE (c);
-
-    if (!compObjectCheckVersion (&c->u.base.u.base, "object", CORE_ABIVERSION))
-	return FALSE;
-
-    if (!cObjectInterfaceInit (factory, &c->u.base.u.base,
-			       &gconfCoreObjectVTable.base.base.base))
-	return FALSE;
-
-    g_type_init ();
-
-    gc->client = gconf_client_get_default ();
-
-    gconf_client_add_dir (gc->client, "/apps/" APP_NAME,
-			  GCONF_CLIENT_PRELOAD_NONE, NULL);
-
-    gc->reloadHandle = compAddTimeout (0, gconfReload, (void *) c);
-
-    gc->cnxn = gconf_client_notify_add (gc->client, "/apps/" APP_NAME,
-					gconfKeyChanged, c, NULL, NULL);
-
-    compInvokeMethod (&c->u.base.u.base, "glib", "wakeUp", "", "", NULL);
-
-    return TRUE;
-}
-
-static void
-gconfFiniCore (const CompObjectFactory *factory,
-	       CompCore		       *c)
-{
-    GCONF_CORE (c);
-
-    if (gc->reloadHandle)
-	compRemoveTimeout (gc->reloadHandle);
-
-    if (gc->cnxn)
-	gconf_client_notify_remove (gc->client, gc->cnxn);
-
-    gconf_client_remove_dir (gc->client, "/apps/" APP_NAME, NULL);
-    gconf_client_clear_cache (gc->client);
-
-    cObjectInterfaceFini (factory, &c->u.base.u.base);
-}
-
-static void
-gconfCoreGetCContext (CompObject *object,
-		      CContext   *ctx)
-{
-    GCONF_CORE (GET_CORE (object));
-
-    ctx->interface  = gconfCoreInterface;
-    ctx->nInterface = N_ELEMENTS (gconfCoreInterface);
-    ctx->type	    = NULL;
-    ctx->data	    = (char *) gc;
-    ctx->svOffset   = offsetof (GConfCore, signalOffset);
-    ctx->vtStore    = &gc->object;
-    ctx->version    = COMPIZ_GCONF_VERSION;
-}
 
 static CObjectPrivate gconfObj[] = {
     C_OBJECT_PRIVATE (CORE_TYPE_NAME, gconf, Core, GConfCore, X, X)
@@ -634,6 +626,8 @@ gconfRemove (CompObject *parent,
 static CompBool
 gconfInit (CompFactory *factory)
 {
+    g_type_init ();
+
     if (!cObjectAllocPrivateIndices (factory, gconfObj, N_ELEMENTS (gconfObj)))
 	return FALSE;
 
