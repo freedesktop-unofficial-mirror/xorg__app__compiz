@@ -34,23 +34,6 @@ struct _CompSignal {
     CompSerializedMethodCallHeader *header;
 };
 
-static CompBool
-rootForBaseObject (CompObject	       *object,
-		   BaseObjectCallBackProc proc,
-		   void		       *closure)
-{
-    CompObjectVTableVec v = { object->vTable };
-    CompBool		status;
-
-    ROOT (object);
-
-    UNWRAP (&r->object, object, vTable);
-    status = (*proc) (object, closure);
-    WRAP (&r->object, object, vTable, v.vTable);
-
-    return status;
-}
-
 static void
 rootGetProp (CompObject   *object,
 	     unsigned int what,
@@ -154,10 +137,9 @@ processSignals (CompRoot *r)
 }
 
 static CompRootVTable rootObjectVTable = {
-    .base.forBaseObject = rootForBaseObject,
-    .base.getProp       = rootGetProp,
-    .base.setProp       = rootSetProp,
-    .processSignals     = processSignals
+    .base.getProp   = rootGetProp,
+    .base.setProp   = rootSetProp,
+    .processSignals = processSignals
 };
 
 static CompBool

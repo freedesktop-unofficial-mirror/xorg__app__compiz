@@ -159,12 +159,6 @@ struct _CompArgs {
     ArgsErrorProc error;
 };
 
-typedef CompBool (*BaseObjectCallBackProc) (CompObject *object,
-					    void       *closure);
-typedef CompBool (*ForBaseObjectProc) (CompObject	      *object,
-				       BaseObjectCallBackProc proc,
-				       void		      *closure);
-
 #define COMP_PROP_BASE_VTABLE 0
 #define COMP_PROP_PRIVATES    1
 
@@ -385,12 +379,7 @@ typedef struct _CompMetadataVTable {
 
 struct _CompObjectVTable {
 
-    /* base object function
-
-       must be implemented by each subtype
-    */
-    ForBaseObjectProc forBaseObject;
-
+    /* abstract property functions */
     GetPropProc getProp;
     SetPropProc setProp;
 

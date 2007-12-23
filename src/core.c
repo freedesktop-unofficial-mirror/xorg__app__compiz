@@ -63,41 +63,21 @@ coreGetProp (CompObject   *object,
     cGetObjectProp (&GET_CORE (object)->data.base, &template, what, value);
 }
 
-typedef struct _AddRemoveDisplayContext {
-    const char *hostName;
-    int	       displayNum;
-    char       **error;
-} AddRemoveDisplayContext;
-
-static CompBool
-baseObjectAddDisplay (CompObject *object,
-		      void       *closure)
-{
-    AddRemoveDisplayContext *pCtx = (AddRemoveDisplayContext *) closure;
-
-    CORE (object);
-
-    return (*c->u.vTable->addDisplay) (c,
-				       pCtx->hostName,
-				       pCtx->displayNum,
-				       pCtx->error);
-}
-
 static CompBool
 noopAddDisplay (CompCore   *c,
 		const char *hostName,
 		int32_t	   displayNum,
 		char	   **error)
 {
-    AddRemoveDisplayContext ctx;
+    CompBool status;
 
-    ctx.hostName   = hostName;
-    ctx.displayNum = displayNum;
-    ctx.error	   = error;
+    FOR_BASE (&c->u.base.u.base,
+	      status = (*c->u.vTable->addDisplay) (c,
+						   hostName,
+						   displayNum,
+						   error));
 
-    return (*c->u.base.u.base.vTable->forBaseObject) (&c->u.base.u.base,
-						      baseObjectAddDisplay,
-						      (void *) &ctx);
+    return status;
 }
 
 static CompBool
@@ -132,34 +112,20 @@ addDisplay (CompCore   *c,
 }
 
 static CompBool
-baseObjectRemoveDisplay (CompObject *object,
-			 void       *closure)
-{
-    AddRemoveDisplayContext *pCtx = (AddRemoveDisplayContext *) closure;
-
-    CORE (object);
-
-    return (*c->u.vTable->removeDisplay) (c,
-					  pCtx->hostName,
-					  pCtx->displayNum,
-					  pCtx->error);
-}
-
-static CompBool
 noopRemoveDisplay (CompCore   *c,
 		   const char *hostName,
 		   int32_t    displayNum,
 		   char	      **error)
 {
-    AddRemoveDisplayContext ctx;
+    CompBool status;
 
-    ctx.hostName   = hostName;
-    ctx.displayNum = displayNum;
-    ctx.error	   = error;
+    FOR_BASE (&c->u.base.u.base,
+	      status = (*c->u.vTable->removeDisplay) (c,
+						      hostName,
+						      displayNum,
+						      error));
 
-    return (*c->u.base.u.base.vTable->forBaseObject) (&c->u.base.u.base,
-						      baseObjectRemoveDisplay,
-						      (void *) &ctx);
+    return status;
 }
 
 static CompBool

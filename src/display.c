@@ -241,35 +241,17 @@ displayGetProp (CompObject   *object,
     cGetObjectProp (&GET_DISPLAY (object)->data.base, &template, what, value);
 }
 
-typedef struct _AddRemoveScreenContext {
-    int  number;
-    char **error;
-} AddRemoveScreenContext;
-
 static CompBool
-baseObjectAddScreen (CompObject *object,
-		     void       *closure)
-{
-    AddRemoveScreenContext *pCtx = (AddRemoveScreenContext *) closure;
-
-    DISPLAY (object);
-
-    return (*d->u.vTable->addScreen) (d, pCtx->number, pCtx->error);
-}
-
-static CompBool
-noopAddScreen (CompDisplay *display,
+noopAddScreen (CompDisplay *d,
 	       int32_t	   number,
 	       char	   **error)
 {
-    AddRemoveScreenContext ctx;
+    CompBool status;
 
-    ctx.number = number;
-    ctx.error  = error;
+    FOR_BASE (&d->u.base,
+	      status = (*d->u.vTable->addScreen) (d, number, error));
 
-    return (*display->u.base.vTable->forBaseObject) (&display->u.base,
-						     baseObjectAddScreen,
-						     (void *) &ctx);
+    return status;
 }
 
 static CompBool
@@ -505,29 +487,16 @@ addScreen (CompDisplay *display,
 }
 
 static CompBool
-baseObjectRemoveScreen (CompObject *object,
-			void       *closure)
-{
-    AddRemoveScreenContext *pCtx = (AddRemoveScreenContext *) closure;
-
-    DISPLAY (object);
-
-    return (*d->u.vTable->removeScreen) (d, pCtx->number, pCtx->error);
-}
-
-static CompBool
-noopRemoveScreen (CompDisplay *display,
+noopRemoveScreen (CompDisplay *d,
 		  int32_t     number,
 		  char	      **error)
 {
-    AddRemoveScreenContext ctx;
+    CompBool status;
 
-    ctx.number = number;
-    ctx.error  = error;
+    FOR_BASE (&d->u.base,
+	      status = (*d->u.vTable->removeScreen) (d, number, error));
 
-    return (*display->u.base.vTable->forBaseObject) (&display->u.base,
-						     baseObjectRemoveScreen,
-						     (void *) &ctx);
+    return status;
 }
 
 static CompBool

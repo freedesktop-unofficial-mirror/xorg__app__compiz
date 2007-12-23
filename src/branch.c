@@ -47,41 +47,21 @@ branchGetProp (CompObject   *object,
     cGetObjectProp (&GET_BRANCH (object)->data, &template, what, value);
 }
 
-typedef struct _ForEachTypeContext {
-    const char       *interface;
-    TypeCallBackProc proc;
-    void	     *closure;
-} ForEachTypeContext;
-
-static CompBool
-baseObjectForEachType (CompObject *object,
-		       void       *closure)
-{
-    ForEachTypeContext *pCtx = (ForEachTypeContext *) closure;
-
-    BRANCH (object);
-
-    return (*b->u.vTable->forEachType) (b,
-					pCtx->interface,
-					pCtx->proc,
-					pCtx->closure);
-}
-
 static CompBool
 noopForEachType (CompBranch	  *b,
 		 const char       *interface,
 		 TypeCallBackProc proc,
 		 void	          *closure)
 {
-    ForEachTypeContext ctx;
+    CompBool status;
 
-    ctx.interface = interface;
-    ctx.proc      = proc;
-    ctx.closure   = closure;
+    FOR_BASE (&b->u.base,
+	      status = (*b->u.vTable->forEachType) (b,
+						    interface,
+						    proc,
+						    closure));
 
-    return (*b->u.base.vTable->forBaseObject) (&b->u.base,
-					       baseObjectForEachType,
-					       (void *) &ctx);
+    return status;
 }
 
 static CompBool
@@ -93,35 +73,19 @@ forEachType (CompBranch	      *b,
     return TRUE;
 }
 
-typedef struct _RegisterTypeContext {
-    const char           *interface;
-    const CompObjectType *type;
-} RegisterTypeContext;
-
-static CompBool
-baseObjectRegisterType (CompObject *object,
-			void       *closure)
-{
-    RegisterTypeContext *pCtx = (RegisterTypeContext *) closure;
-
-    BRANCH (object);
-
-    return (*b->u.vTable->registerType) (b, pCtx->interface, pCtx->type);
-}
-
 static CompBool
 noopRegisterType (CompBranch	       *b,
 		  const char           *interface,
 		  const CompObjectType *type)
 {
-    RegisterTypeContext ctx;
+    CompBool status;
 
-    ctx.interface = interface;
-    ctx.type      = type;
+    FOR_BASE (&b->u.base,
+	      status = (*b->u.vTable->registerType) (b,
+						     interface,
+						     type));
 
-    return (*b->u.base.vTable->forBaseObject) (&b->u.base,
-					       baseObjectRegisterType,
-					       (void *) &ctx);
+    return status;
 }
 
 static CompBool

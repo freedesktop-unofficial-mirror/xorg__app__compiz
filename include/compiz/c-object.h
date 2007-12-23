@@ -227,11 +227,6 @@ typedef struct _CObjectPrivate {
 void
 cInitObjectVTable (CompObjectVTable *vTable);
 
-CompBool
-cForBaseObject (CompObject	       *object,
-		BaseObjectCallBackProc proc,
-		void		       *closure);
-
 void
 cInsertObject (CompObject *object,
 	       CompObject *parent,
