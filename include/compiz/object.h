@@ -96,12 +96,12 @@ struct _CompObjectInstantiator {
 };
 
 typedef struct _CompObjectInstantiatorNode {
-    CompObjectInstantiator		 base;
-    struct _CompObjectInstantiatorNode   *next;
-    const CompObjectInstantiator	 *instantiator;
-    const CompObjectType		 *type;
-    CompObjectPrivates			 privates;
-    char				 *interface;
+    CompObjectInstantiator	       base;
+    struct _CompObjectInstantiatorNode *next;
+    const CompObjectInstantiator       *instantiator;
+    const CompObjectType	       *type;
+    CompObjectPrivates		       privates;
+    char			       *interface;
 } CompObjectInstantiatorNode;
 
 struct _CompObjectFactory {
