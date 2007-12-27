@@ -1762,12 +1762,15 @@ handleEvent (CompDisplay *d,
 	    s = findScreenAtDisplay (d, event->xclient.window);
 	    if (s)
 	    {
-		CompOptionValue value;
+		int hSize = event->xclient.data.l[0] / s->width;
+		int vSize = event->xclient.data.l[1] / s->height;
 
-		value.i = event->xclient.data.l[0] / s->width;
-		(*core.setOptionForPlugin) (&s->base, "core", "hsize", &value);
-		value.i = event->xclient.data.l[1] / s->height;
-		(*core.setOptionForPlugin) (&s->base, "core", "vsize", &value);
+		(*s->base.vTable->properties.setInt) (&s->base,
+						      SCREEN_TYPE_NAME,
+						      "hSize", hSize, NULL);
+		(*s->base.vTable->properties.setInt) (&s->base,
+						      SCREEN_TYPE_NAME,
+						      "vSize", vSize, NULL);
 	    }
 	}
 	else if (event->xclient.message_type == d->moveResizeWindowAtom)
@@ -1867,15 +1870,11 @@ handleEvent (CompDisplay *d,
 	{
 	    s = findScreenAtDisplay (d, event->xclient.window);
 	    if (s)
-	    {
-		CompOptionValue value;
-
-		value.i = event->xclient.data.l[0];
-
-		(*core.setOptionForPlugin) (&s->base,
-					    "core", "number_of_desktops",
-					    &value);
-	    }
+		(*s->base.vTable->properties.setInt) (&s->base,
+						      SCREEN_TYPE_NAME,
+						      "numberOfDesktops",
+						      event->xclient.data.l[0],
+						      NULL);
 	}
 	else if (event->xclient.message_type == d->currentDesktopAtom)
 	{
