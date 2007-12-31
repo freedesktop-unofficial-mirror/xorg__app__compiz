@@ -180,6 +180,12 @@ typedef void (*InsertedProc) (CompObject *object);
 
 typedef void (*RemovedProc)  (CompObject *object);
 
+typedef CompBool (*AddChildObjectProc) (CompObject *object,
+					CompObject *child);
+
+typedef void (*RemoveChildObjectProc) (CompObject *object,
+				       CompObject *child);
+
 typedef CompBool (*InterfaceCallBackProc) (CompObject		*object,
 					   const char		*name,
 					   size_t		offset,
@@ -391,6 +397,13 @@ struct _CompObjectVTable {
     RemoveObjectProc removeObject;
     InsertedProc     inserted;
     RemovedProc      removed;
+
+    /* child object functions
+
+       used when inserting and removing child objects
+    */
+    AddChildObjectProc    addChild;
+    RemoveChildObjectProc removeChild;
 
     /* interface functions
 

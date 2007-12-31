@@ -356,6 +356,24 @@ noopRemoved (CompObject *object)
 }
 
 static CompBool
+noopAddChild (CompObject *object,
+	      CompObject *child)
+{
+    CompBool status;
+
+    FOR_BASE (object, status = (*object->vTable->addChild) (object, child));
+
+    return status;
+}
+
+static void
+noopRemoveChild (CompObject *object,
+		 CompObject *child)
+{
+    FOR_BASE (object, (*object->vTable->removeChild) (object, child));
+}
+
+static CompBool
 noopForEachInterface (CompObject	    *object,
 		      InterfaceCallBackProc proc,
 		      void		    *closure)
@@ -1164,6 +1182,19 @@ removed (CompObject *object)
 
     C_EMIT_SIGNAL_INT (object, RemovedProc, 0, object->signalVec,
 		       &removedSignal);
+}
+
+static CompBool
+addChild (CompObject *object,
+	  CompObject *child)
+{
+    return FALSE;
+}
+
+static void
+removeChild (CompObject *object,
+	     CompObject *child)
+{
 }
 
 static CompBool
@@ -2849,6 +2880,9 @@ static const CompObjectVTable objectVTable = {
     .inserted     = inserted,
     .removed      = removed,
 
+    .addChild    = addChild,
+    .removeChild = removeChild,
+
     .forEachInterface = forEachInterface,
     .forEachMethod    = forEachMethod,
     .forEachSignal    = forEachSignal,
@@ -2924,6 +2958,9 @@ static const CompObjectVTable noopObjectVTable = {
     .removeObject = noopRemoveObject,
     .inserted     = noopInserted,
     .removed      = noopRemoved,
+
+    .addChild    = noopAddChild,
+    .removeChild = noopRemoveChild,
 
     .forEachInterface = noopForEachInterface,
     .forEachMethod    = noopForEachMethod,
