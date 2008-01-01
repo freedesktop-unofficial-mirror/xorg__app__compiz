@@ -180,12 +180,6 @@ typedef void (*InsertedProc) (CompObject *object);
 
 typedef void (*RemovedProc)  (CompObject *object);
 
-typedef CompBool (*AddChildObjectProc) (CompObject *object,
-					CompObject *child);
-
-typedef void (*RemoveChildObjectProc) (CompObject *object,
-				       CompObject *child);
-
 typedef CompBool (*InterfaceCallBackProc) (CompObject		*object,
 					   const char		*name,
 					   size_t		offset,
@@ -240,18 +234,18 @@ typedef void (*InterfaceAddedProc) (CompObject *object,
 typedef void (*InterfaceRemovedProc) (CompObject *object,
 				      const char *interface);
 
+typedef CompBool (*AddChildObjectProc) (CompObject *object,
+					CompObject *child);
+
+typedef void (*RemoveChildObjectProc) (CompObject *object,
+				       CompObject *child);
+
 typedef CompBool (*ChildObjectCallBackProc) (CompObject *object,
 					     void	*closure);
 
 typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
 					    ChildObjectCallBackProc proc,
 					    void		    *closure);
-
-typedef void (*ChildObjectAddedProc) (CompObject *object,
-				      const char *name);
-
-typedef void (*ChildObjectRemovedProc) (CompObject *object,
-					const char *name);
 
 typedef int (*ConnectProc) (CompObject *object,
 			    const char *interface,
@@ -398,13 +392,6 @@ struct _CompObjectVTable {
     InsertedProc     inserted;
     RemovedProc      removed;
 
-    /* child object functions
-
-       used when inserting and removing child objects
-    */
-    AddChildObjectProc    addChild;
-    RemoveChildObjectProc removeChild;
-
     /* interface functions
 
        object interfaces are provided by implementing some of these
@@ -418,8 +405,10 @@ struct _CompObjectVTable {
 
     /* child object functions
 
-       child objects are provided by implementing forEachChildObject
+       child objects are provided by implementing these
      */
+    AddChildObjectProc     addChild;
+    RemoveChildObjectProc  removeChild;
     ForEachChildObjectProc forEachChildObject;
 
     CompSignalVTable     signal;

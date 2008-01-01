@@ -23,6 +23,8 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <stdlib.h>
+
 #include <compiz/container.h>
 #include <compiz/c-object.h>
 
@@ -35,7 +37,8 @@ containerInitObject (CompObject	*object)
 {
     CONTAINER (object);
 
-    c->forEachChildObject = NULL;
+    c->child  = NULL;
+    c->nChild = 0;
 
     return TRUE;
 }
@@ -56,21 +59,73 @@ containerGetProp (CompObject   *object,
 }
 
 static CompBool
+containerAddChild (CompObject *object,
+		   CompObject *child)
+{
+    CompObject **children;
+
+    CONTAINER (object);
+
+    children = realloc (c->child, sizeof (CompObject *) * (c->nChild + 1));
+    if (!children)
+	return FALSE;
+
+    c->child = children;
+    c->child[c->nChild++] = child;
+
+    return TRUE;
+}
+
+static void
+containerRemoveChild (CompObject *object,
+		      CompObject *child)
+{
+    CompObject **children;
+    int	       i;
+
+    CONTAINER (object);
+
+    for (i = 0; i < c->nChild; i++)
+	if (c->child[i] == child)
+	    break;
+
+    c->nChild--;
+
+    for (; i < c->nChild; i++)
+	c->child[i] = c->child[i + 1];
+
+    children = realloc (c->child, sizeof (CompObject *) * c->nChild);
+    if (children || !c->nChild)
+	c->child = children;
+}
+
+
+static CompBool
 containerForEachChildObject (CompObject		     *object,
 			     ChildObjectCallBackProc proc,
 			     void		     *closure)
 {
+    CompBool status;
+    int	     i;
+
     CONTAINER (object);
 
-    if (c->forEachChildObject)
-	if (!(*c->forEachChildObject) (object, proc, closure))
+    for (i = 0; i < c->nChild; i++)
+	if (!(*proc) (c->child[i], closure))
 	    return FALSE;
 
-    return cForEachChildObject (object, proc, closure);
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachChildObject) (object,
+							      proc,
+							      closure));
+
+    return status;
 }
 
 static const CompObjectVTable containerObjectVTable = {
     .getProp	        = containerGetProp,
+    .addChild		= containerAddChild,
+    .removeChild	= containerRemoveChild,
     .forEachChildObject = containerForEachChildObject
 };
 

@@ -2163,8 +2163,10 @@ addWindow (CompScreen *screen,
     assert (objectInitPlugins (&w->base));
 
     if (esprintf (&w->objectName, "%lu", w->id) > 0)
-	(*core.objectAdd) (&screen->data.windows.base, &w->base,
-			   w->objectName);
+	if ((*screen->data.windows.base.vTable->addChild) (&screen->data.windows.base,
+					      &w->base))
+	    (*core.objectAdd) (&screen->data.windows.base, &w->base,
+			       w->objectName);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
@@ -2179,13 +2181,15 @@ addWindow (CompScreen *screen,
 void
 removeWindow (CompWindow *w)
 {
-    BRANCH (w->screen->display->u.base.parent->parent);
+    CompScreen *s = w->screen;
 
-    unhookWindowFromScreen (w->screen, w);
+    BRANCH (s->display->u.base.parent->parent);
+
+    unhookWindowFromScreen (s, w);
 
     if (!w->destroyed)
     {
-	CompDisplay *d = w->screen->display;
+	CompDisplay *d = s->display;
 
 	/* restore saved geometry and map if hidden */
 	if (!w->attrib.override_redirect)
@@ -2214,24 +2218,26 @@ removeWindow (CompWindow *w)
     if (w->attrib.map_state == IsViewable && w->damaged)
     {
 	if (w->type == CompWindowTypeDesktopMask)
-	    w->screen->desktopWindowCount--;
+	    s->desktopWindowCount--;
 
 	if (w->destroyed && w->struts)
-	    updateWorkareaForScreen (w->screen);
+	    updateWorkareaForScreen (s);
     }
 
     if (w->destroyed)
-	updateClientListForScreen (w->screen);
+	updateClientListForScreen (s);
 
     if (!w->redirected)
     {
-	w->screen->overlayWindowCount--;
+	s->overlayWindowCount--;
 
-	if (w->screen->overlayWindowCount < 1)
-	    showOutputWindow (w->screen);
+	if (s->overlayWindowCount < 1)
+	    showOutputWindow (s);
     }
 
-    (*core.objectRemove) (&w->screen->data.windows.base, &w->base);
+    (*core.objectRemove) (&s->data.windows.base, &w->base);
+    (*s->data.windows.base.vTable->removeChild) (&s->data.windows.base,
+						 &w->base);
 
     objectFiniPlugins (&w->base);
 
@@ -2240,7 +2246,7 @@ removeWindow (CompWindow *w)
     compObjectFiniByType (&b->factory, &w->base, getWindowObjectType ());
 
     if (w->syncAlarm)
-	XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
+	XSyncDestroyAlarm (s->display->display, w->syncAlarm);
 
     if (w->syncWaitHandle)
 	compRemoveTimeout (w->syncWaitHandle);
@@ -2248,7 +2254,7 @@ removeWindow (CompWindow *w)
     destroyTexture (w->screen, w->texture);
 
     if (w->frame)
-	XDestroyWindow (w->screen->display->display, w->frame);
+	XDestroyWindow (s->display->display, w->frame);
 
     if (w->clip)
 	XDestroyRegion (w->clip);

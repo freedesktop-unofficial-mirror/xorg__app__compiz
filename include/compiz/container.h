@@ -33,10 +33,10 @@
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompContainer {
-    CompObject base;
-
-    CompObjectData         data;
-    ForEachChildObjectProc forEachChildObject;
+    CompObject	   base;
+    CompObjectData data;
+    CompObject	   **child;
+    int		   nChild;
 } CompContainer;
 
 #define GET_CONTAINER(object) ((CompContainer *) (object))

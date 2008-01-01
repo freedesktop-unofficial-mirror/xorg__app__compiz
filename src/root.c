@@ -136,24 +136,33 @@ processSignals (CompRoot *r)
     }
 }
 
-static CompRootVTable rootObjectVTable = {
-    .base.getProp   = rootGetProp,
-    .base.setProp   = rootSetProp,
-    .processSignals = processSignals
-};
-
 static CompBool
-forCoreObject (CompObject	       *object,
-	       ChildObjectCallBackProc proc,
-	       void		       *closure)
+rootForEachChildObject (CompObject	        *object,
+			ChildObjectCallBackProc proc,
+			void		        *closure)
 {
+    CompBool status;
+
     ROOT (object);
 
-    if (!(*proc) (r->core, closure))
-	return FALSE;
+    if (r->core)
+	if (!(*proc) (r->core, closure))
+	    return FALSE;
 
-    return TRUE;
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachChildObject) (object,
+							      proc,
+							      closure));
+
+    return status;
 }
+
+static CompRootVTable rootObjectVTable = {
+    .base.getProp	     = rootGetProp,
+    .base.setProp	     = rootSetProp,
+    .base.forEachChildObject = rootForEachChildObject,
+    .processSignals	     = processSignals
+};
 
 static CompBool
 rootInitObject (const CompObjectInstantiator *instantiator,
@@ -169,8 +178,6 @@ rootInitObject (const CompObjectInstantiator *instantiator,
 
     if (!(*base->funcs.init) (base, object, factory))
 	return FALSE;
-
-    r->u.base.forEachChildObject = forCoreObject;
 
     r->core = NULL;
 

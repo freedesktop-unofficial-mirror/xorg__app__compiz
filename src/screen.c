@@ -1398,25 +1398,6 @@ static const CompObjectVTable screenObjectVTable = {
 };
 
 static CompBool
-forEachWindowObject (CompObject	             *object,
-		     ChildObjectCallBackProc proc,
-		     void		     *closure)
-{
-    if (object->parent)
-    {
-	CompWindow *w;
-
-	SCREEN (object->parent);
-
-	for (w = s->windows; w; w = w->next)
-	    if (!(*proc) (&w->base, closure))
-		return FALSE;
-    }
-
-    return TRUE;
-}
-
-static CompBool
 screenInitObject (const CompObjectInstantiator *instantiator,
 		  CompObject		       *object,
 		  const CompObjectFactory      *factory)
@@ -1427,8 +1408,6 @@ screenInitObject (const CompObjectInstantiator *instantiator,
 
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
-
-    s->data.windows.forEachChildObject = forEachWindowObject;
 
     s->base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */
 
@@ -2208,8 +2187,10 @@ addScreenOld (CompDisplay *display,
     addScreenToDisplay (display, s);
 
     if (esprintf (&s->objectName, "%d", s->screenNum) > 0)
-	(*core.objectAdd) (&display->data.screens.base, &s->base,
-			   s->objectName);
+	if ((*display->data.screens.base.vTable->addChild) (&display->data.screens.base,
+						 &s->base))
+	    (*core.objectAdd) (&display->data.screens.base, &s->base,
+			       s->objectName);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2296,6 +2277,8 @@ removeScreenOld (CompScreen *s)
 	removeWindow (s->windows);
 
     (*core.objectRemove) (&d->data.screens.base, &s->base);
+    (*d->data.screens.base.vTable->removeChild) (&d->data.screens.base,
+						 &d->u.base);
 
     objectFiniPlugins (&s->base);
 

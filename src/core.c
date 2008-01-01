@@ -218,41 +218,6 @@ static CompCoreVTable coreObjectVTable = {
 };
 
 static CompBool
-forEachDisplayObject (CompObject	      *object,
-		      ChildObjectCallBackProc proc,
-		      void		      *closure)
-{
-    if (object->parent)
-    {
-	CompDisplay *d;
-
-	CORE (object->parent);
-
-	for (d = c->displays; d; d = d->next)
-	    if (!(*proc) (&d->u.base, closure))
-		return FALSE;
-    }
-
-    return TRUE;
-}
-
-static CompBool
-forEachPluginObject (CompObject		     *object,
-		     ChildObjectCallBackProc proc,
-		     void		     *closure)
-{
-    CompPlugin *p;
-
-    CORE (object->parent);
-
-    for (p = c->plugins; p; p = p->next)
-	if (!(*proc) (&p->u.base, closure))
-	    return FALSE;
-
-    return TRUE;
-}
-
-static CompBool
 coreInitObject (const CompObjectInstantiator *instantiator,
 		CompObject		     *object,
 		const CompObjectFactory      *factory)
@@ -261,9 +226,6 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
-
-    c->data.displays.forEachChildObject = forEachDisplayObject;
-    c->data.plugins.forEachChildObject  = forEachPluginObject;
 
     c->u.base.u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 

@@ -2351,25 +2351,6 @@ static CompDisplayVTable displayObjectVTable = {
 };
 
 static CompBool
-forEachScreenObject (CompObject	             *object,
-		     ChildObjectCallBackProc proc,
-		     void		     *closure)
-{
-    if (object->parent)
-    {
-	CompScreen *s;
-
-	DISPLAY (object->parent);
-
-	for (s = d->screens; s; s = s->next)
-	    if (!(*proc) (&s->base, closure))
-		return FALSE;
-    }
-
-    return TRUE;
-}
-
-static CompBool
 displayInitObject (const CompObjectInstantiator *instantiator,
 		   CompObject		        *object,
 		   const CompObjectFactory      *factory)
@@ -2380,8 +2361,6 @@ displayInitObject (const CompObjectInstantiator *instantiator,
 
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
-
-    d->data.screens.forEachChildObject = forEachScreenObject;
 
     d->u.base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */
 
@@ -2825,7 +2804,10 @@ addDisplayOld (CompCore   *c,
     if (esprintf (&d->objectName, "%s_%d",
 		  *d->hostName == '\0' ? "localhost" : d->hostName,
 		  d->displayNum) > 0)
-	(*c->objectAdd) (&c->data.displays.base, &d->u.base, d->objectName);
+	if ((*c->data.displays.base.vTable->addChild) (&c->data.displays.base,
+						       &d->u.base))
+	    (*c->objectAdd) (&c->data.displays.base, &d->u.base,
+			     d->objectName);
 
     if (onlyCurrentScreen)
     {
@@ -2922,6 +2904,8 @@ removeDisplayOld (CompCore    *c,
 	removeScreenOld (d->screens);
 
     (*c->objectRemove) (&c->data.displays.base, &d->u.base);
+    (*c->data.displays.base.vTable->removeChild) (&c->data.displays.base,
+						  &d->u.base);
 
     objectFiniPlugins (&d->u.base);
 
