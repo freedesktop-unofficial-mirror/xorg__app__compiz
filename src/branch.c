@@ -33,6 +33,22 @@ static CInterface branchInterface[] = {
     C_INTERFACE (branch, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
 };
 
+static CompBool
+branchInitObject (const CompObjectInstantiator *instantiator,
+		  CompObject		       *object,
+		  const CompObjectFactory      *factory)
+{
+    BRANCH (object);
+
+    if (!cObjectInit (instantiator, object, factory))
+	return FALSE;
+
+    b->factory.master        = factory;
+    b->factory.instantiators = NULL;
+
+    return TRUE;
+}
+
 static void
 branchGetProp (CompObject   *object,
 	       unsigned int what,
@@ -102,22 +118,6 @@ static CompBranchVTable branchObjectVTable = {
     .registerType = registerType
 };
 
-static CompBool
-branchInitObject (const CompObjectInstantiator *instantiator,
-		  CompObject		       *object,
-		  const CompObjectFactory      *factory)
-{
-    BRANCH (object);
-
-    if (!cObjectInit (instantiator, object, factory))
-	return FALSE;
-
-    b->factory.master        = factory;
-    b->factory.instantiators = NULL;
-
-    return TRUE;
-}
-
 static const CompBranchVTable noopBranchObjectVTable = {
     .forEachType  = noopForEachType,
     .registerType = noopRegisterType
@@ -135,7 +135,7 @@ getBranchObjectType (void)
 	    .vTable.impl = &branchObjectVTable.base,
 	    .vTable.noop = &noopBranchObjectVTable.base,
 	    .vTable.size = sizeof (branchObjectVTable),
-	    .funcs.init  = branchInitObject
+	    .init	 = branchInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);
@@ -143,4 +143,3 @@ getBranchObjectType (void)
 
     return type;
 }
-

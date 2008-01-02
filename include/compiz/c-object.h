@@ -225,9 +225,6 @@ typedef struct _CObjectPrivate {
 
 
 void
-cInitObjectVTable (CompObjectVTable *vTable);
-
-void
 cInsertObject (CompObject *object,
 	       CompObject *parent,
 	       const char *name);
@@ -388,18 +385,17 @@ cObjectPropertiesFini (CompObject	*object,
 		       int		nInterface);
 
 CompBool
-cObjectChildrenInit (const CompObjectFactory *factory,
-		     CompObject		     *object,
+cObjectChildrenInit (CompObject		     *object,
 		     char		     *data,
 		     const CInterface	     *interface,
-		     int		     nInterface);
+		     int		     nInterface,
+		     const CompObjectFactory *factory);
 
 void
-cObjectChildrenFini (const CompObjectFactory *factory,
-		     CompObject		     *object,
-		     char		     *data,
-		     const CInterface	     *interface,
-		     int		     nInterface);
+cObjectChildrenFini (CompObject	      *object,
+		     char	      *data,
+		     const CInterface *interface,
+		     int	      nInterface);
 
 CompBool
 cObjectInterfaceInit (const CompObjectInstantiator *instantiator,
@@ -407,9 +403,7 @@ cObjectInterfaceInit (const CompObjectInstantiator *instantiator,
 		      const CompObjectFactory      *factory);
 
 void
-cObjectInterfaceFini (const CompObjectInstantiator *instantiator,
-		      CompObject		   *object,
-		      const CompObjectFactory      *factory);
+cObjectInterfaceFini (CompObject *object);
 
 CompBool
 cObjectInit (const CompObjectInstantiator *instantiator,
@@ -417,9 +411,7 @@ cObjectInit (const CompObjectInstantiator *instantiator,
 	     const CompObjectFactory      *factory);
 
 void
-cObjectFini (const CompObjectInstantiator *instantiator,
-	     CompObject			  *object,
-	     const CompObjectFactory      *factory);
+cObjectFini (CompObject *object);
 
 CompBool
 cObjectInitPrivates (CompBranch	    *branch,

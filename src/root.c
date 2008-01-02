@@ -34,6 +34,38 @@ struct _CompSignal {
     CompSerializedMethodCallHeader *header;
 };
 
+static CompBool
+rootInitObject (const CompObjectInstantiator *instantiator,
+		CompObject		     *object,
+		const CompObjectFactory      *factory)
+{
+    const CompObjectInstantiator *base = instantiator->base;
+
+    ROOT (object);
+
+    r->signal.head = NULL;
+    r->signal.tail = NULL;
+
+    if (!(*base->init) (base, object, factory))
+	return FALSE;
+
+    r->core = NULL;
+
+    WRAP (&r->object, object, vTable, instantiator->vTable);
+
+    return TRUE;
+}
+
+static void
+rootFinalize (CompObject *object)
+{
+    ROOT (object);
+
+    UNWRAP (&r->object, object, vTable);
+
+    (*object->vTable->finalize) (object);
+}
+
 static void
 rootGetProp (CompObject   *object,
 	     unsigned int what,
@@ -158,55 +190,19 @@ rootForEachChildObject (CompObject	        *object,
 }
 
 static CompRootVTable rootObjectVTable = {
+    .base.finalize	     = rootFinalize,
     .base.getProp	     = rootGetProp,
     .base.setProp	     = rootSetProp,
     .base.forEachChildObject = rootForEachChildObject,
     .processSignals	     = processSignals
 };
 
-static CompBool
-rootInitObject (const CompObjectInstantiator *instantiator,
-		CompObject		     *object,
-		const CompObjectFactory      *factory)
-{
-    const CompObjectInstantiator *base = instantiator->base;
-
-    ROOT (object);
-
-    r->signal.head = NULL;
-    r->signal.tail = NULL;
-
-    if (!(*base->funcs.init) (base, object, factory))
-	return FALSE;
-
-    r->core = NULL;
-
-    WRAP (&r->object, object, vTable, instantiator->vTable);
-
-    return TRUE;
-}
-
-static void
-rootFiniObject (const CompObjectInstantiator *instantiator,
-		CompObject		     *object,
-		const CompObjectFactory      *factory)
-{
-    const CompObjectInstantiator *base = instantiator->base;
-
-    ROOT (object);
-
-    UNWRAP (&r->object, object, vTable);
-
-    (*base->funcs.fini) (base, object, factory);
-}
-
 static const CompObjectType rootObjectType = {
     .name.name   = ROOT_TYPE_NAME,
     .name.base   = OBJECT_TYPE_NAME,
     .vTable.impl = &rootObjectVTable.base,
     .vTable.size = sizeof (rootObjectVTable),
-    .funcs.init  = rootInitObject,
-    .funcs.fini  = rootFiniObject
+    .init	 = rootInitObject
 };
 
 const CompObjectType *

@@ -1393,10 +1393,6 @@ initWindowWalker (CompScreen *screen,
     walker->prev  = walkPrev;
 }
 
-static const CompObjectVTable screenObjectVTable = {
-    .getProp = screenGetProp
-};
-
 static CompBool
 screenInitObject (const CompObjectInstantiator *instantiator,
 		  CompObject		       *object,
@@ -1621,17 +1617,20 @@ screenInitObject (const CompObjectInstantiator *instantiator,
 }
 
 static void
-screenFiniObject (const CompObjectInstantiator *instantiator,
-		  CompObject		       *object,
-		  const CompObjectFactory      *factory)
+screenFinalize (CompObject *object)
 {
     SCREEN (object);
 
     if (s->objectName)
 	free (s->objectName);
 
-    cObjectFini (instantiator, object, factory);
+    cObjectFini (object);
 }
+
+static const CompObjectVTable screenObjectVTable = {
+    .finalize = screenFinalize,
+    .getProp  = screenGetProp
+};
 
 const CompObjectType *
 getScreenObjectType (void)
@@ -1643,8 +1642,7 @@ getScreenObjectType (void)
 	static const CompObjectType template = {
 	    .name.name   = SCREEN_TYPE_NAME,
 	    .vTable.impl = &screenObjectVTable,
-	    .funcs.init  = screenInitObject,
-	    .funcs.fini  = screenFiniObject
+	    .init	 = screenInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);
@@ -2262,8 +2260,6 @@ removeScreenOld (CompScreen *s)
     CompScreen  *p;
     int		i;
 
-    BRANCH (d->u.base.parent->parent);
-
     for (p = d->screens; p; p = p->next)
 	if (p->next == s)
 	    break;
@@ -2339,7 +2335,7 @@ removeScreenOld (CompScreen *s)
 
     compFiniScreenOptions (s, s->opt, COMP_SCREEN_OPTION_NUM);
 
-    compObjectFiniByType (&b->factory, &s->base, getScreenObjectType ());
+    (*s->base.vTable->finalize) (&s->base);
 
     free (s);
 }

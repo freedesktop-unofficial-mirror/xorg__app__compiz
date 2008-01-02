@@ -232,7 +232,7 @@ coreInitObject (const CompObjectInstantiator *instantiator,
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
     {
-	cObjectFini (instantiator, object, factory);
+	cObjectFini (object);
 	return FALSE;
     }
 
@@ -240,7 +240,7 @@ coreInitObject (const CompObjectInstantiator *instantiator,
     if (!c->outputRegion)
     {
 	XDestroyRegion (c->tmpRegion);
-	cObjectFini (instantiator, object, factory);
+	cObjectFini (object);
 	return FALSE;
     }
 
@@ -288,9 +288,7 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 }
 
 static void
-coreFiniObject (const CompObjectInstantiator *instantiator,
-		CompObject		     *object,
-		const CompObjectFactory      *factory)
+coreFinalize (CompObject *object)
 {
     CORE (object);
 
@@ -299,10 +297,12 @@ coreFiniObject (const CompObjectInstantiator *instantiator,
     XDestroyRegion (c->outputRegion);
     XDestroyRegion (c->tmpRegion);
 
-    cObjectFini (instantiator, object, factory);
+    cObjectFini (object);
 }
 
 static const CompCoreVTable noopCoreObjectVTable = {
+    .base.base.finalize = coreFinalize,
+
     .addDisplay    = noopAddDisplay,
     .removeDisplay = noopRemoveDisplay
 };
@@ -320,8 +320,7 @@ getCoreObjectType (void)
 	    .vTable.impl = &coreObjectVTable.base.base,
 	    .vTable.noop = &noopCoreObjectVTable.base.base,
 	    .vTable.size = sizeof (coreObjectVTable),
-	    .funcs.init  = coreInitObject,
-	    .funcs.fini  = coreFiniObject
+	    .init	 = coreInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);
@@ -359,8 +358,8 @@ initCore (const CompObjectFactory *factory,
     {
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't load core plugin");
-	compObjectFiniByType (factory, &core.u.base.u.base,
-			      getCoreObjectType ());
+
+	(*core.u.base.u.base.vTable->finalize) (&core.u.base.u.base);
 	return FALSE;
     }
 
@@ -369,8 +368,7 @@ initCore (const CompObjectFactory *factory,
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
 	unloadPlugin (corePlugin);
-	compObjectFiniByType (factory, &core.u.base.u.base,
-			      getCoreObjectType ());
+	(*core.u.base.u.base.vTable->finalize) (&core.u.base.u.base);
 	return FALSE;
     }
 
@@ -391,7 +389,7 @@ finiCore (const CompObjectFactory *factory,
 
     coreObjectRemove (parent, &core.u.base.u.base);
 
-    compObjectFiniByType (factory, &core.u.base.u.base, getCoreObjectType ());
+    (*core.u.base.u.base.vTable->finalize) (&core.u.base.u.base);
 }
 
 void

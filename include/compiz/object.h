@@ -59,14 +59,6 @@ typedef struct _CompObjectInstantiator CompObjectInstantiator;
 typedef CompBool (*InitObjectProc) (const CompObjectInstantiator *i,
 				    CompObject			 *object,
 				    const CompObjectFactory	 *factory);
-typedef void     (*FiniObjectProc) (const CompObjectInstantiator *i,
-				    CompObject			 *object,
-				    const CompObjectFactory	 *factory);
-
-typedef struct _CompObjectFuncs {
-    InitObjectProc init;
-    FiniObjectProc fini;
-} CompObjectFuncs;
 
 typedef struct _CompObjectPrivates {
     int	len;
@@ -86,12 +78,12 @@ struct _CompObjectType {
 	size_t		       size;
     } vTable;
 
-    CompObjectFuncs funcs;
+    InitObjectProc init;
 };
 
 struct _CompObjectInstantiator {
     const CompObjectInstantiator *base;
-    CompObjectFuncs		 funcs;
+    InitObjectProc		 init;
     CompObjectVTable		 *vTable;
 };
 
@@ -431,29 +423,14 @@ compObjectInit (const CompObjectFactory	     *factory,
 		CompObject		     *object,
 		const CompObjectInstantiator *instantiator);
 
-void
-compObjectFini (const CompObjectFactory      *factory,
-		CompObject		     *object,
-		const CompObjectInstantiator *instantiator);
-
 CompBool
 compObjectInitByType (const CompObjectFactory *factory,
 		      CompObject	      *object,
 		      const CompObjectType    *type);
 
-void
-compObjectFiniByType (const CompObjectFactory *factory,
-		      CompObject              *object,
-		      const CompObjectType    *type);
-
 CompBool
 compObjectInitByTypeName (const CompObjectFactory *factory,
 			  CompObject		  *object,
-			  const char		  *name);
-
-void
-compObjectFiniByTypeName (const CompObjectFactory *factory,
-			  CompObject              *object,
 			  const char		  *name);
 
 CompBool

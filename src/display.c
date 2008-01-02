@@ -2410,19 +2410,19 @@ displayInitObject (const CompObjectInstantiator *instantiator,
 }
 
 static void
-displayFiniObject (const CompObjectInstantiator *instantiator,
-		   CompObject		        *object,
-		   const CompObjectFactory      *factory)
+displayFinalize (CompObject *object)
 {
     DISPLAY (object);
 
     if (d->objectName)
 	free (d->objectName);
 
-    cObjectFini (instantiator, object, factory);
+    cObjectFini (object);
 }
 
 static const CompDisplayVTable noopDisplayObjectVTable = {
+    .base.finalize = displayFinalize,
+
     .addScreen    = noopAddScreen,
     .removeScreen = noopRemoveScreen
 };
@@ -2439,8 +2439,7 @@ getDisplayObjectType (void)
 	    .vTable.impl = &displayObjectVTable.base,
 	    .vTable.noop = &noopDisplayObjectVTable.base,
 	    .vTable.size = sizeof (displayObjectVTable),
-	    .funcs.init  = displayInitObject,
-	    .funcs.fini  = displayFiniObject
+	    .init	 = displayInitObject,
 	};
 
 	type = cObjectTypeFromTemplate (&template);
@@ -2490,8 +2489,7 @@ addDisplayOld (CompCore   *c,
     d->hostName = strdup (hostName);
     if (!d->hostName)
     {
-	compObjectFiniByType (&c->u.base.factory, &d->u.base,
-			      getDisplayObjectType ());
+	(*d->u.base.vTable->finalize) (&d->u.base);
 	free (d);
 	return FALSE;
     }
@@ -2929,8 +2927,7 @@ removeDisplayOld (CompCore    *c,
     if (d->screenInfo)
 	XFree (d->screenInfo);
 
-    compObjectFiniByType (&c->u.base.factory, &d->u.base,
-			  getDisplayObjectType ());
+    (*d->u.base.vTable->finalize) (&d->u.base);
 
     free (d);
 }

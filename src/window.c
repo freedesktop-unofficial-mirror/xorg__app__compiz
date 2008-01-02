@@ -2183,8 +2183,6 @@ removeWindow (CompWindow *w)
 {
     CompScreen *s = w->screen;
 
-    BRANCH (s->display->u.base.parent->parent);
-
     unhookWindowFromScreen (s, w);
 
     if (!w->destroyed)
@@ -2243,7 +2241,7 @@ removeWindow (CompWindow *w)
 
     releaseWindow (w);
 
-    compObjectFiniByType (&b->factory, &w->base, getWindowObjectType ());
+    (*w->base.vTable->finalize) (&w->base);
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (s->display->display, w->syncAlarm);
