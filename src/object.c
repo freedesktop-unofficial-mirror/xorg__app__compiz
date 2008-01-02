@@ -330,6 +330,17 @@ compFactoryRegisterType (CompObjectFactory    *factory,
 }
 
 static void
+finalize (CompObject *object)
+{
+}
+
+static void
+noopFinalize (CompObject *object)
+{
+    FOR_BASE (object, (*object->vTable->finalize) (object));
+}
+
+static void
 noopInsertObject (CompObject *object,
 		  CompObject *parent,
 		  const char *name)
@@ -2872,6 +2883,8 @@ cGetMetadata (CompObject *object,
 }
 
 static const CompObjectVTable objectVTable = {
+    .finalize = finalize,
+
     .getProp = getProp,
     .setProp = setProp,
 
@@ -2953,6 +2966,8 @@ finiObject (const CompObjectInstantiator *instantiator,
 }
 
 static const CompObjectVTable noopObjectVTable = {
+    .finalize = noopFinalize,
+
     .insertObject = noopInsertObject,
     .removeObject = noopRemoveObject,
     .inserted     = noopInserted,

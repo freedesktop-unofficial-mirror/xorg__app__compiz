@@ -159,6 +159,8 @@ struct _CompArgs {
     ArgsErrorProc error;
 };
 
+typedef void (*FinalizeObjectProc) (CompObject *object);
+
 #define COMP_PROP_BASE_VTABLE 0
 #define COMP_PROP_PRIVATES    1
 
@@ -378,6 +380,9 @@ typedef struct _CompMetadataVTable {
 } CompMetadataVTable;
 
 struct _CompObjectVTable {
+
+    /* finalize function*/
+    FinalizeObjectProc finalize;
 
     /* abstract property functions */
     GetPropProc getProp;
