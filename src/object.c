@@ -421,11 +421,13 @@ noopInterfaceRemoved (CompObject *object,
 
 static CompBool
 noopAddChild (CompObject *object,
-	      CompObject *child)
+	      CompObject *child,
+	      const char *name)
 {
     CompBool status;
 
-    FOR_BASE (object, status = (*object->vTable->addChild) (object, child));
+    FOR_BASE (object,
+	      status = (*object->vTable->addChild) (object, child, name));
 
     return status;
 }
@@ -761,7 +763,8 @@ cInsertObject (CompObject *object,
 	    if (m.interface[i].child[j].type)
 	    {
 		child = CHILD (data, &m.interface[i].child[j]);
-		(*child->vTable->insertObject) (child, object, child->name);
+		(*child->vTable->insertObject) (child, object,
+						m.interface[i].child[j].name);
 	    }
 	}
     }
@@ -1188,7 +1191,8 @@ forEachInterface (CompObject	         *object,
 
 static CompBool
 addChild (CompObject *object,
-	  CompObject *child)
+	  CompObject *child,
+	  const char *name)
 {
     return FALSE;
 }
@@ -4207,8 +4211,26 @@ cObjectChildrenInit (CompObject		     *object,
 
 		    return FALSE;
 		}
+	    }
+	}
+    }
 
-		child->name = cChild->name;
+    if (object->parent)
+    {
+	for (i = 0; i < nInterface; i++)
+	{
+	    for (j = 0; j < interface[i].nChild; j++)
+	    {
+		CChildObject *cChild = &interface[i].child[j];
+
+		if (cChild->type)
+		{
+		    child = CHILD (data, cChild);
+
+		    (*child->vTable->insertObject) (child, object,
+						    cChild->name);
+		    (*child->vTable->inserted) (child);
+		}
 	    }
 	}
     }
@@ -4225,11 +4247,32 @@ cObjectChildrenFini (CompObject	      *object,
     CompObject *child;
     int	       i, j;
 
+    if (object->parent)
+    {
+	for (i = 0; i < nInterface; i++)
+	{
+	    for (j = 0; j < interface[i].nChild; j++)
+	    {
+		CChildObject *cChild = &interface[i].child[j];
+
+		if (cChild->type)
+		{
+		    child = CHILD (data, cChild);
+
+		    (*child->vTable->removed) (child);
+		    (*child->vTable->removeObject) (child);
+		}
+	    }
+	}
+    }
+
     for (i = 0; i < nInterface; i++)
     {
 	for (j = 0; j < interface[i].nChild; j++)
 	{
-	    if (interface[i].child[j].type)
+	    CChildObject *cChild = &interface[i].child[j];
+
+	    if (cChild->type)
 	    {
 		child = CHILD (data, &interface[i].child[j]);
 		(*child->vTable->finalize) (child);

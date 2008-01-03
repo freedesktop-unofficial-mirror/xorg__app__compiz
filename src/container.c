@@ -24,6 +24,8 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 #include <compiz/container.h>
 #include <compiz/c-object.h>
@@ -37,8 +39,8 @@ containerInitObject (CompObject	*object)
 {
     CONTAINER (object);
 
-    c->child  = NULL;
-    c->nChild = 0;
+    c->item  = NULL;
+    c->nItem = 0;
 
     return TRUE;
 }
@@ -58,20 +60,67 @@ containerGetProp (CompObject   *object,
     cGetObjectProp (&GET_CONTAINER (object)->data, &template, what, value);
 }
 
-static CompBool
-containerAddChild (CompObject *object,
-		   CompObject *child)
+static void
+containerInsertObject (CompObject *object,
+		       CompObject *parent,
+		       const char *name)
 {
-    CompObject **children;
+    int i;
 
     CONTAINER (object);
 
-    children = realloc (c->child, sizeof (CompObject *) * (c->nChild + 1));
-    if (!children)
+    FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
+
+    for (i = 0; i < c->nItem; i++)
+	(*c->item[i].object->vTable->insertObject) (c->item[i].object, object,
+						    c->item[i].name);
+}
+
+static void
+containerRemoveObject (CompObject *object)
+{
+    int i;
+
+    CONTAINER (object);
+
+    for (i = 0; i < c->nItem; i++)
+	(*c->item[i].object->vTable->removeObject) (c->item[i].object);
+
+    FOR_BASE (object, (*object->vTable->removeObject) (object));
+}
+
+static CompBool
+containerAddChild (CompObject *object,
+		   CompObject *child,
+		   const char *name)
+{
+    CompContainerItem *item;
+    char	      *itemName;
+
+    CONTAINER (object);
+
+    itemName = strdup (name);
+    if (!itemName)
 	return FALSE;
 
-    c->child = children;
-    c->child[c->nChild++] = child;
+    item = realloc (c->item, sizeof (CompContainerItem) * (c->nItem + 1));
+    if (!item)
+    {
+	free (itemName);
+	return FALSE;
+    }
+
+    item[c->nItem].object = child;
+    item[c->nItem].name   = itemName;
+
+    c->item = item;
+    c->nItem++;
+
+    if (object->parent)
+    {
+	(*child->vTable->insertObject) (child, object, itemName);
+	(*child->vTable->inserted) (child);
+    }
 
     return TRUE;
 }
@@ -80,25 +129,34 @@ static void
 containerRemoveChild (CompObject *object,
 		      CompObject *child)
 {
-    CompObject **children;
-    int	       i;
+    CompContainerItem *item;
+    int		      i;
 
     CONTAINER (object);
 
-    for (i = 0; i < c->nChild; i++)
-	if (c->child[i] == child)
+    for (i = 0; i < c->nItem; i++)
+	if (c->item[i].object == child)
 	    break;
 
-    c->nChild--;
+    assert (i < c->nItem);
 
-    for (; i < c->nChild; i++)
-	c->child[i] = c->child[i + 1];
+    if (object->parent)
+    {
+	(*child->vTable->removed) (child);
+	(*child->vTable->removeObject) (child);
+    }
 
-    children = realloc (c->child, sizeof (CompObject *) * c->nChild);
-    if (children || !c->nChild)
-	c->child = children;
+    free (c->item[i].name);
+
+    c->nItem--;
+
+    for (; i < c->nItem; i++)
+	c->item[i] = c->item[i + 1];
+
+    item = realloc (c->item, sizeof (CompContainerItem) * c->nItem);
+    if (item || !c->nItem)
+	c->item = item;
 }
-
 
 static CompBool
 containerForEachChildObject (CompObject		     *object,
@@ -110,8 +168,8 @@ containerForEachChildObject (CompObject		     *object,
 
     CONTAINER (object);
 
-    for (i = 0; i < c->nChild; i++)
-	if (!(*proc) (c->child[i], closure))
+    for (i = 0; i < c->nItem; i++)
+	if (!(*proc) (c->item[i].object, closure))
 	    return FALSE;
 
     FOR_BASE (object,
@@ -124,6 +182,8 @@ containerForEachChildObject (CompObject		     *object,
 
 static const CompObjectVTable containerObjectVTable = {
     .getProp	        = containerGetProp,
+    .insertObject	= containerInsertObject,
+    .removeObject	= containerRemoveObject,
     .addChild		= containerAddChild,
     .removeChild	= containerRemoveChild,
     .forEachChildObject = containerForEachChildObject

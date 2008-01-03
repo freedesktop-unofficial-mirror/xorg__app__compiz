@@ -1689,6 +1689,7 @@ addScreenOld (CompDisplay *display,
     GLfloat		 diffuseLight[]   = { 0.9f, 0.9f,  0.9f, 0.9f };
     GLfloat		 light0Position[] = { -0.5f, 0.5f, -9.0f, 1.0f };
     CompWindow		 *w;
+    char		 screenName[256];
 
     BRANCH (display->u.base.parent->parent);
 
@@ -2184,11 +2185,11 @@ addScreenOld (CompDisplay *display,
 
     addScreenToDisplay (display, s);
 
-    if (esprintf (&s->objectName, "%d", s->screenNum) > 0)
-	if ((*display->data.screens.base.vTable->addChild) (&display->data.screens.base,
-						 &s->base))
-	    (*core.objectAdd) (&display->data.screens.base, &s->base,
-			       s->objectName);
+    snprintf (screenName, sizeof (screenName), "%d", s->screenNum);
+
+    if ((*display->data.screens.base.vTable->addChild)
+	(&display->data.screens.base, &s->base, screenName))
+	(*core.objectAdd) (&display->data.screens.base, &s->base, screenName);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2274,7 +2275,7 @@ removeScreenOld (CompScreen *s)
 
     (*core.objectRemove) (&d->data.screens.base, &s->base);
     (*d->data.screens.base.vTable->removeChild) (&d->data.screens.base,
-						 &d->u.base);
+						 &s->base);
 
     objectFiniPlugins (&s->base);
 

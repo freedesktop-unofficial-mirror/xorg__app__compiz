@@ -2799,13 +2799,12 @@ addDisplayOld (CompCore   *c,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->u.base));
 
-    if (esprintf (&d->objectName, "%s_%d",
-		  *d->hostName == '\0' ? "localhost" : d->hostName,
-		  d->displayNum) > 0)
-	if ((*c->data.displays.base.vTable->addChild) (&c->data.displays.base,
-						       &d->u.base))
-	    (*c->objectAdd) (&c->data.displays.base, &d->u.base,
-			     d->objectName);
+    snprintf (displayName, sizeof (displayName), "%s_%d",
+	      *d->hostName == '\0' ? "localhost" : d->hostName, d->displayNum);
+
+    if ((*c->data.displays.base.vTable->addChild) (&c->data.displays.base,
+						   &d->u.base, displayName))
+	(*c->objectAdd) (&c->data.displays.base, &d->u.base, displayName);
 
     if (onlyCurrentScreen)
     {

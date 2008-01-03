@@ -32,11 +32,16 @@
 
 COMPIZ_BEGIN_DECLS
 
+typedef struct _CompContainerItem {
+    CompObject *object;
+    char       *name;
+} CompContainerItem;
+
 typedef struct _CompContainer {
-    CompObject	   base;
-    CompObjectData data;
-    CompObject	   **child;
-    int		   nChild;
+    CompObject	      base;
+    CompObjectData    data;
+    CompContainerItem *item;
+    int		      nItem;
 } CompContainer;
 
 #define GET_CONTAINER(object) ((CompContainer *) (object))

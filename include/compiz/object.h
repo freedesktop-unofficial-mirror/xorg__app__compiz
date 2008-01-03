@@ -229,7 +229,8 @@ typedef void (*InterfaceRemovedProc) (CompObject *object,
 				      const char *interface);
 
 typedef CompBool (*AddChildObjectProc) (CompObject *object,
-					CompObject *child);
+					CompObject *child,
+					const char *name);
 
 typedef void (*RemoveChildObjectProc) (CompObject *object,
 				       CompObject *child);

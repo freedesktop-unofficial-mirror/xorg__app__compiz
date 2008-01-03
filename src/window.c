@@ -1805,6 +1805,7 @@ addWindow (CompScreen *screen,
 	   Window     aboveId)
 {
     CompWindow *w;
+    char       windowName[256];
 
     BRANCH (screen->display->u.base.parent->parent);
 
@@ -2162,11 +2163,11 @@ addWindow (CompScreen *screen,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&w->base));
 
-    if (esprintf (&w->objectName, "%lu", w->id) > 0)
-	if ((*screen->data.windows.base.vTable->addChild) (&screen->data.windows.base,
-					      &w->base))
-	    (*core.objectAdd) (&screen->data.windows.base, &w->base,
-			       w->objectName);
+    snprintf (windowName, sizeof (windowName), "%lu", w->id);
+
+    if ((*screen->data.windows.base.vTable->addChild)
+	(&screen->data.windows.base, &w->base, windowName))
+	(*core.objectAdd) (&screen->data.windows.base, &w->base, windowName);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);

@@ -187,16 +187,12 @@ coreObjectAdd (CompObject *object,
 	       CompObject *child,
 	       const char *name)
 {
-    (*child->vTable->insertObject) (child, object, name);
-    (*child->vTable->inserted) (child);
 }
 
 static void
 coreObjectRemove (CompObject *object,
 		  CompObject *child)
 {
-    (*child->vTable->removed) (child);
-    (*child->vTable->removeObject) (child);
 }
 
 static void
@@ -351,7 +347,8 @@ initCore (const CompObjectFactory *factory,
 			       getCoreObjectType ()))
 	return FALSE;
 
-    coreObjectAdd (parent, &core.u.base.u.base, CORE_TYPE_NAME);
+    (*core.u.base.u.base.vTable->insertObject) (&core.u.base.u.base, parent,
+    CORE_TYPE_NAME);
 
     corePlugin = loadPlugin ("core");
     if (!corePlugin)
@@ -387,8 +384,7 @@ finiCore (const CompObjectFactory *factory,
 
     while (popPlugin (&core.u.base));
 
-    coreObjectRemove (parent, &core.u.base.u.base);
-
+    (*core.u.base.u.base.vTable->removeObject) (&core.u.base.u.base);
     (*core.u.base.u.base.vTable->finalize) (&core.u.base.u.base);
 }
 
