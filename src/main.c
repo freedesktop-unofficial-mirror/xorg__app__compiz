@@ -37,6 +37,7 @@
 #include <compiz/core.h>
 #include <compiz/root.h>
 #include <compiz/prop.h>
+#include <compiz/box.h>
 
 typedef struct _MainContext {
     CompFactory factory;

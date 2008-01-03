@@ -50,61 +50,80 @@
 #include <compiz/error.h>
 
 static void
+addOutputDevice (CompScreen *s,
+		 int	    x1,
+		 int	    y1,
+		 int	    x2,
+		 int	    y2,
+		 CompOutput **output,
+		 int	    *nOutput)
+{
+    if (x1 < 0)
+	x1 = 0;
+    if (y1 < 0)
+	y1 = 0;
+    if (x2 > s->width)
+	x2 = s->width;
+    if (y2 > s->height)
+	y2 = s->height;
+
+    if (x1 < x2 && y1 < y2)
+    {
+	CompOutput *o;
+
+	o = realloc (*output, sizeof (CompOutput) * (*nOutput + 1));
+	if (o)
+	{
+	    o[*nOutput].region.extents.x1 = x1;
+	    o[*nOutput].region.extents.y1 = y1;
+	    o[*nOutput].region.extents.x2 = x2;
+	    o[*nOutput].region.extents.y2 = y2;
+
+	    *output = o;
+	    (*nOutput)++;
+	}
+    }
+}
+
+static void
 updateOutputDevices (CompScreen	*s)
 {
-    CompOutput	  *o, *output = NULL;
-    CompListValue *list = &s->opt[COMP_SCREEN_OPTION_OUTPUTS].value.list;
-    int		  nOutput = 0;
-    int		  x, y, i, bits;
-    unsigned int  width, height;
-    int		  x1, y1, x2, y2;
-    Region	  region;
+    CompOutput *output = NULL;
+    int	       i, nOutput = 0;
+    Region     region;
 
-    for (i = 0; i < list->nValue; i++)
+    if (!noDetection && s->data.detectOutputs)
     {
-	if (!list->value[i].s)
-	    continue;
-
-	x      = 0;
-	y      = 0;
-	width  = s->width;
-	height = s->height;
-
-	bits = XParseGeometry (list->value[i].s, &x, &y, &width, &height);
-
-	if (bits & XNegative)
-	    x = s->width + x - width;
-
-	if (bits & YNegative)
-	    y = s->height + y - height;
-
-	x1 = x;
-	y1 = y;
-	x2 = x + width;
-	y2 = y + height;
-
-	if (x1 < 0)
-	    x1 = 0;
-	if (y1 < 0)
-	    y1 = 0;
-	if (x2 > s->width)
-	    x2 = s->width;
-	if (y2 > s->height)
-	    y2 = s->height;
-
-	if (x1 < x2 && y1 < y2)
+	if (s->display->nScreenInfo)
 	{
-	    o = realloc (output, sizeof (CompOutput) * (nOutput + 1));
-	    if (o)
-	    {
-		o[nOutput].region.extents.x1 = x1;
-		o[nOutput].region.extents.y1 = y1;
-		o[nOutput].region.extents.x2 = x2;
-		o[nOutput].region.extents.y2 = y2;
+	    for (i = 0; i < s->display->nScreenInfo; i++)
+		addOutputDevice (s,
+				 s->display->screenInfo[i].x_org,
+				 s->display->screenInfo[i].y_org,
+				 s->display->screenInfo[i].x_org +
+				 s->display->screenInfo[i].width,
+				 s->display->screenInfo[i].y_org +
+				 s->display->screenInfo[i].height,
+				 &output, &nOutput);
+	}
+	else
+	{
+	    addOutputDevice (s, 0, 0, s->width, s->height, &output, &nOutput);
+	}
+    }
+    else
+    {
+	int32_t x1, y1, x2, y2;
 
-		output = o;
-		nOutput++;
-	    }
+	for (i = 0; i < s->data.outputs.nItem; i++)
+	{
+	    CompObject *o = s->data.outputs.item[i].object;
+
+	    if ((*o->vTable->properties.getInt) (o, 0, "x1", &x1, 0) &&
+		(*o->vTable->properties.getInt) (o, 0, "y1", &y1, 0) &&
+		(*o->vTable->properties.getInt) (o, 0, "x2", &x2, 0) &&
+		(*o->vTable->properties.getInt) (o, 0, "y2", &y2, 0))
+		addOutputDevice (s, x1, y1, x2, y2, &output, &nOutput);
 	}
     }
 
@@ -207,66 +226,6 @@ updateOutputDevices (CompScreen	*s)
     }
 
     (*s->outputChangeNotify) (s);
-}
-
-static void
-detectOutputDevices (CompScreen *s)
-{
-    if (!noDetection && s->data.detectOutputs)
-    {
-	char		*name;
-	CompOptionValue	value;
-	char		output[1024];
-	int		i, size = sizeof (output);
-
-	if (s->display->nScreenInfo)
-	{
-	    int n = s->display->nScreenInfo;
-
-	    value.list.nValue = n;
-	    value.list.value  = malloc (sizeof (CompOptionValue) * n);
-	    if (!value.list.value)
-		return;
-
-	    for (i = 0; i < n; i++)
-	    {
-		snprintf (output, size, "%dx%d+%d+%d",
-			  s->display->screenInfo[i].width,
-			  s->display->screenInfo[i].height,
-			  s->display->screenInfo[i].x_org,
-			  s->display->screenInfo[i].y_org);
-
-		value.list.value[i].s = strdup (output);
-	    }
-	}
-	else
-	{
-	    value.list.nValue = 1;
-	    value.list.value  = malloc (sizeof (CompOptionValue));
-	    if (!value.list.value)
-		return;
-
-	    snprintf (output, size, "%dx%d+%d+%d", s->width, s->height, 0, 0);
-
-	    value.list.value->s = strdup (output);
-	}
-
-	name = s->opt[COMP_SCREEN_OPTION_OUTPUTS].name;
-
-	s->data.detectOutputs = FALSE;
-	(*core.setOptionForPlugin) (&s->base, "core", name, &value);
-	s->data.detectOutputs = TRUE;
-
-	for (i = 0; i < value.list.nValue; i++)
-	    if (value.list.value[i].s)
-		free (value.list.value[i].s);
-
-	free (value.list.value);
-    }
-    else
-    {
-	updateOutputDevices (s);
-    }
 }
 
 static Bool
@@ -377,8 +336,7 @@ detectOutputsChanged (CompObject *object,
 		      const char *name,
 		      CompBool   value)
 {
-    if (value)
-	detectOutputDevices (GET_SCREEN (object));
+    updateOutputDevices (GET_SCREEN (object));
 }
 
 static void
@@ -507,16 +465,6 @@ setScreenOption (CompPlugin	       *plugin,
 	return FALSE;
 
     switch (index) {
-    case COMP_SCREEN_OPTION_OUTPUTS:
-	if (!noDetection && screen->data.detectOutputs)
-	    return FALSE;
-
-	if (compSetOptionList (o, value))
-	{
-	    updateOutputDevices (screen);
-	    return TRUE;
-	}
-	break;
     case COMP_SCREEN_OPTION_OPACITY_MATCHES:
 	if (compSetOptionList (o, value))
 	{
@@ -553,7 +501,6 @@ setScreenOption (CompPlugin	       *plugin,
 }
 
 const CompMetadataOptionInfo coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM] = {
-    { "outputs", "list", "<type>string</type>", 0, 0 },
     { "overlapping_outputs", "int",
       RESTOSTRING (0, OUTPUT_OVERLAP_MODE_LAST), 0, 0 },
     { "focus_prevention_match", "match", 0, 0, 0 },
@@ -842,7 +789,7 @@ configureScreen (CompScreen	 *s,
 
 	reshape (s, ce->width, ce->height);
 
-	detectOutputDevices (s);
+	updateOutputDevices (s);
 
 	damageScreen (s);
     }
@@ -2165,7 +2112,6 @@ addScreenOld (CompDisplay *display,
     reshape (s, s->attrib.width, s->attrib.height);
 
     detectRefreshRateOfScreen (s);
-    detectOutputDevices (s);
     updateOutputDevices (s);
 
     glLightModelfv (GL_LIGHT_MODEL_AMBIENT, globalAmbient);
