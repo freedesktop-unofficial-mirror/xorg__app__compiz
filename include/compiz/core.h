@@ -2091,6 +2091,7 @@ typedef struct _CompScreenData {
     char *defaultIconImage;
 
     CompContainer windows;
+    CompContainer outputs;
 } CompScreenData;
 
 struct _CompScreen {

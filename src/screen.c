@@ -462,7 +462,8 @@ static CStringProp screenTypeStringProp[] = {
 };
 
 static CChildObject screenTypeChildObject[] = {
-    C_CHILD (windows, CompScreenData, CONTAINER_TYPE_NAME)
+    C_CHILD (windows, CompScreenData, CONTAINER_TYPE_NAME),
+    C_CHILD (outputs, CompScreenData, CONTAINER_TYPE_NAME)
 };
 
 static CInterface screenInterface[] = {
