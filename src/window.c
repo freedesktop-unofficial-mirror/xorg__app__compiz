@@ -1735,18 +1735,7 @@ windowInitObject (CompObject *object)
 
     w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
 
-    w->objectName = NULL;
-
     return TRUE;
-}
-
-static void
-windowFiniObject (CompObject *object)
-{
-    WINDOW (object);
-
-    if (w->objectName)
-	free (w->objectName);
 }
 
 static void
@@ -1758,7 +1747,6 @@ windowGetProp (CompObject   *object,
 	.interface  = windowInterface,
 	.nInterface = N_ELEMENTS (windowInterface),
 	.init       = windowInitObject,
-	.fini       = windowFiniObject,
 	.version    = COMPIZ_WINDOW_VERSION
     };
 

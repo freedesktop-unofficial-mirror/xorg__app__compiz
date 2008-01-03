@@ -1355,8 +1355,6 @@ screenInitObject (const CompObjectInstantiator *instantiator,
 
     s->base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */
 
-    s->objectName = NULL;
-
     s->display = NULL;
 
     s->damage = NULL;
@@ -1564,20 +1562,8 @@ screenInitObject (const CompObjectInstantiator *instantiator,
     return TRUE;
 }
 
-static void
-screenFinalize (CompObject *object)
-{
-    SCREEN (object);
-
-    if (s->objectName)
-	free (s->objectName);
-
-    cObjectFini (object);
-}
-
 static const CompObjectVTable screenObjectVTable = {
-    .finalize = screenFinalize,
-    .getProp  = screenGetProp
+    .getProp = screenGetProp
 };
 
 const CompObjectType *

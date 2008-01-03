@@ -2364,8 +2364,6 @@ displayInitObject (const CompObjectInstantiator *instantiator,
 
     d->u.base.id = COMP_OBJECT_TYPE_DISPLAY; /* XXX: remove id asap */
 
-    d->objectName = NULL;
-
     d->next    = NULL;
     d->screens = NULL;
 
@@ -2409,20 +2407,7 @@ displayInitObject (const CompObjectInstantiator *instantiator,
     return TRUE;
 }
 
-static void
-displayFinalize (CompObject *object)
-{
-    DISPLAY (object);
-
-    if (d->objectName)
-	free (d->objectName);
-
-    cObjectFini (object);
-}
-
 static const CompDisplayVTable noopDisplayObjectVTable = {
-    .base.finalize = displayFinalize,
-
     .addScreen    = noopAddScreen,
     .removeScreen = noopRemoveScreen
 };

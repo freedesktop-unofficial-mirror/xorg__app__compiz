@@ -988,8 +988,6 @@ struct _CompDisplay {
     int  displayNum;
     int  preferredScreen;
 
-    char *objectName;
-
     Display    *display;
     CompScreen *screens;
 
@@ -2098,8 +2096,6 @@ struct _CompScreen {
 
     CompScreenData data;
 
-    char *objectName;
-
     CompScreen  *next;
     CompDisplay *display;
     CompWindow	*windows;
@@ -2615,8 +2611,6 @@ struct _CompWindow {
     CompObject base;
 
     CompObjectData data;
-
-    char *objectName;
 
     CompScreen *screen;
     CompWindow *next;
