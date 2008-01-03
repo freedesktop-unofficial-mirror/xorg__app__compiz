@@ -1,0 +1,24 @@
+<compiz>
+  <interface name="box">
+    <property name="x1" type="i">
+      <_short>X1</_short>
+      <_long>Top Left X coordinate</_long>
+      <default>0</default>
+    </property>
+    <property name="y1" type="i">
+      <_short>Y1</_short>
+      <_long>Top Left Y coordinate</_long>
+      <default>0</default>
+    </property>
+    <property name="x2" type="i">
+      <_short>X2</_short>
+      <_long>Bottom Right X coordinate</_long>
+      <default>0</default>
+    </property>
+    <property name="y2" type="i">
+      <_short>Y2</_short>
+      <_long>Bottom Right Y coordinate</_long>
+      <default>0</default>
+    </property>
+  </interface>
+</compiz>

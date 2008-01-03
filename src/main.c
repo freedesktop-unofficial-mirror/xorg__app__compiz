@@ -517,6 +517,7 @@ main (int argc, char **argv)
 	getObjectType (),
 	getBranchObjectType (),
 	getContainerObjectType (),
+	getBoxObjectType (),
 	getRootObjectType (),
 	getCoreObjectType (),
 	getDisplayObjectType (),

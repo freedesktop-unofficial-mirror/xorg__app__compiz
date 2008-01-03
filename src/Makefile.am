@@ -19,6 +19,7 @@ compiz_SOURCES =    \
 	root.c      \
 	branch.c    \
 	container.c \
+	box.c	    \
 	prop.c	    \
 	output.c    \
 	input.c     \

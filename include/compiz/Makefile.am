@@ -8,6 +8,7 @@ compizsubinclude_HEADERS = \
 	root.h		   \
 	branch.h	   \
 	container.h	   \
+	box.h		   \
 	prop.h		   \
 	input.h		   \
 	output.h	   \
