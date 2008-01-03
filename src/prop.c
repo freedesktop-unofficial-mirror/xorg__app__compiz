@@ -84,7 +84,7 @@ boolPropGetProp (CompObject   *object,
 {
     static const CMetadata template = {
 	.interface  = boolPropInterface,
-	.nInterface = N_ELEMENTS (boolPropInterface),
+	.nInterface = N_ELEMENTS (boolPropInterface)
     };
 
     propGetObjectProp (&GET_BOOL_PROP (object)->data.base, &template, what,
