@@ -892,13 +892,13 @@ dbusEmitSignal (CompObject   *object,
 
 	for (i = 0; signature[i] != COMP_TYPE_INVALID; i++)
 	{
-	    switch (signature[0]) {
+	    switch (signature[i]) {
 	    case COMP_TYPE_BOOLEAN:
 	    case COMP_TYPE_INT32:
 	    case COMP_TYPE_DOUBLE:
 	    case COMP_TYPE_STRING:
 		dbus_message_iter_append_basic (&iter,
-						signature[0],
+						signature[i],
 						&value[i]);
 		break;
 	    case COMP_TYPE_OBJECT: {
