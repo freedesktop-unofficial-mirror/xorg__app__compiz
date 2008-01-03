@@ -718,9 +718,7 @@ main (int argc, char **argv)
 
     finiCore (&context.factory.base, &context.root.u.base.base);
 
-    compObjectFiniByType (&context.factory.base,
-			  &context.root.u.base.base,
-			  getRootObjectType ());
+    (*context.root.u.base.base.vTable->finalize) (&context.root.u.base.base);
 
     xmlCleanupParser ();
 
