@@ -1888,7 +1888,7 @@ cGetBoolProp (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetBoolProp (object,
 				      m.interface[i].boolProp,
 				      m.interface[i].nBoolProp,
@@ -1957,7 +1957,7 @@ cSetBoolProp (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
 	    return handleSetBoolProp (object,
 				      m.interface[i].boolProp,
 				      m.interface[i].nBoolProp,
@@ -2086,7 +2086,7 @@ cGetIntProp (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetIntProp (object,
 				     m.interface[i].intProp,
 				     m.interface[i].nIntProp,
@@ -2175,7 +2175,7 @@ cSetIntProp (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
 	    return handleSetIntProp (object,
 				     m.interface[i].intProp,
 				     m.interface[i].nIntProp,
@@ -2304,7 +2304,7 @@ cGetDoubleProp (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetDoubleProp (object,
 					m.interface[i].doubleProp,
 					m.interface[i].nDoubleProp,
@@ -2393,7 +2393,7 @@ cSetDoubleProp (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
 	    return handleSetDoubleProp (object,
 					m.interface[i].doubleProp,
 					m.interface[i].nDoubleProp,
@@ -2534,7 +2534,7 @@ cGetStringProp (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetStringProp (object,
 					m.interface[i].stringProp,
 					m.interface[i].nStringProp,
@@ -2618,7 +2618,7 @@ cSetStringProp (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
 	    return handleSetStringProp (object,
 					m.interface[i].stringProp,
 					m.interface[i].nStringProp,
