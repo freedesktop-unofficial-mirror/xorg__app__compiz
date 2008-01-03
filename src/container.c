@@ -57,6 +57,8 @@ containerFiniObject (CompObject	*object)
 	for (i = 0; i < c->nItem; i++)
 	{
 	    (*c->item[i].object->vTable->finalize) (c->item[i].object);
+
+	    free (c->item[i].object);
 	    free (c->item[i].name);
 	}
 
