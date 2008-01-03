@@ -36,6 +36,7 @@
 
 #include <compiz/core.h>
 #include <compiz/root.h>
+#include <compiz/prop.h>
 
 typedef struct _MainContext {
     CompFactory factory;
@@ -477,6 +478,26 @@ mainFreePrivateIndex (CompFactory *factory,
     }
 }
 
+static int
+registerStaticObjectTypes (CompObjectFactory	*factory,
+			   const CompObjectType **types,
+			   int			n)
+{
+    int i;
+
+    for (i = 0; i < n; i++)
+    {
+	if (!compFactoryRegisterType (factory, 0, types[i]))
+	{
+	    fprintf (stderr, "Failed to register '%s' object type\n",
+		     types[i]->name.name);
+	    return 1;
+	}
+    }
+
+    return 0;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -489,7 +510,10 @@ main (int argc, char **argv)
     char      *hostName;
     int	      displayNum;
 
-    const CompObjectType *coreTypes[] = {
+    const CompObjectType **propTypes;
+    int			 nPropTypes;
+
+    const CompObjectType *staticTypes[] = {
 	getObjectType (),
 	getBranchObjectType (),
 	getContainerObjectType (),
@@ -509,14 +533,15 @@ main (int argc, char **argv)
     programArgc = argc;
     programArgv = argv;
 
-    for (i = 0; i < N_ELEMENTS (coreTypes); i++)
-    {
-	if (!compFactoryRegisterType (&context.factory.base, 0, coreTypes[i]))
-	{
-	    fprintf (stderr, "Failed to register core object types\n");
-	    return 1;
-	}
-    }
+    propTypes = getPropObjectTypes (&nPropTypes);
+
+    if (registerStaticObjectTypes (&context.factory.base,
+				   staticTypes, N_ELEMENTS (staticTypes)))
+	return 1;
+
+    if (registerStaticObjectTypes (&context.factory.base,
+				   propTypes, nPropTypes))
+	return 1;
 
     signal (SIGHUP, signalHandler);
     signal (SIGCHLD, signalHandler);
