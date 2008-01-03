@@ -46,6 +46,25 @@ containerInitObject (CompObject	*object)
 }
 
 static void
+containerFiniObject (CompObject	*object)
+{
+    CONTAINER (object);
+
+    if (c->item)
+    {
+	int i;
+
+	for (i = 0; i < c->nItem; i++)
+	{
+	    (*c->item[i].object->vTable->finalize) (c->item[i].object);
+	    free (c->item[i].name);
+	}
+
+	free (c->item);
+    }
+}
+
+static void
 containerGetProp (CompObject   *object,
 		  unsigned int what,
 		  void	       *value)
@@ -54,6 +73,7 @@ containerGetProp (CompObject   *object,
 	.interface  = containerInterface,
 	.nInterface = N_ELEMENTS (containerInterface),
 	.init       = containerInitObject,
+	.fini	    = containerFiniObject,
 	.version    = COMPIZ_CONTAINER_VERSION
     };
 
