@@ -496,10 +496,10 @@ typedef struct _CompObjectData {
 				       (handler)->header->value,	\
 				       ##__VA_ARGS__))
 
-#define EMIT_SIGNAL(object, type, vOffset, ...)				\
+#define EMIT_SIGNAL(source, type, vOffset, ...)				\
     do									\
     {									\
-	CompSignalHandler   *handler = object->signalVec[(vOffset)];	\
+	CompSignalHandler   *handler = (source)->signalVec[(vOffset)];	\
 	CompObjectVTableVec save;					\
 									\
 	while (handler)							\
