@@ -64,32 +64,6 @@ branchGetProp (CompObject   *object,
 }
 
 static CompBool
-noopForEachType (CompBranch	  *b,
-		 const char       *interface,
-		 TypeCallBackProc proc,
-		 void	          *closure)
-{
-    CompBool status;
-
-    FOR_BASE (&b->u.base,
-	      status = (*b->u.vTable->forEachType) (b,
-						    interface,
-						    proc,
-						    closure));
-
-    return status;
-}
-
-static CompBool
-forEachType (CompBranch	      *b,
-	     const char       *interface,
-	     TypeCallBackProc proc,
-	     void	      *closure)
-{
-    return TRUE;
-}
-
-static CompBool
 noopRegisterType (CompBranch	       *b,
 		  const char           *interface,
 		  const CompObjectType *type)
@@ -114,12 +88,10 @@ registerType (CompBranch	   *b,
 
 static CompBranchVTable branchObjectVTable = {
     .base.getProp = branchGetProp,
-    .forEachType  = forEachType,
     .registerType = registerType
 };
 
 static const CompBranchVTable noopBranchObjectVTable = {
-    .forEachType  = noopForEachType,
     .registerType = noopRegisterType
 };
 

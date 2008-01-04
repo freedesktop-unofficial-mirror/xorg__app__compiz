@@ -34,15 +34,6 @@ COMPIZ_BEGIN_DECLS
 
 typedef struct _CompBranch CompBranch;
 
-typedef CompBool (*TypeCallBackProc) (CompBranch	   *branch,
-				      const CompObjectType *type,
-				      void		   *closure);
-
-typedef CompBool (*ForEachTypeProc) (CompBranch	      *branch,
-				     const char	      *interface,
-				     TypeCallBackProc proc,
-				     void	      *closure);
-
 typedef CompBool (*RegisterTypeProc) (CompBranch	   *branch,
 				      const char	   *interface,
 				      const CompObjectType *type);
@@ -50,11 +41,6 @@ typedef CompBool (*RegisterTypeProc) (CompBranch	   *branch,
 typedef struct _CompBranchVTable {
     CompObjectVTable base;
 
-    /* type functions
-
-       object types are provided by implementing forEachType
-     */
-    ForEachTypeProc  forEachType;
     RegisterTypeProc registerType;
 } CompBranchVTable;
 
