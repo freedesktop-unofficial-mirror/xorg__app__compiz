@@ -3744,7 +3744,18 @@ compCheckEqualityOfValuesAndArgs (const char   *signature,
 
 	    /* complete XPath expression support could be added later */
 	    if (strcmp (value[i].s, "//*") != 0)
-		equal = (strcmp (s, value[i].s) == 0);
+	    {
+		int j;
+
+		for (j = 0; s[j]; j++)
+		    if (value[i].s[j] != s[j])
+			break;
+
+		if (s[j])
+		    equal = (value[i].s[j] == '*');
+		else
+		    equal = (value[i].s[j] == '\0');
+	    }
 	} break;
 	}
     }
