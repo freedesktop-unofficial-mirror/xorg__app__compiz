@@ -488,7 +488,7 @@ typedef struct _CompObjectData {
 #define INVOKE_HANDLER_PROC(object, offset, prototype, ...)		\
     (*(*((prototype *)							\
 	 (((char *) (object)->vTable) +					\
-	  (offset))))) (object, ##__VA_ARGS__)
+	  (offset))))) ((void *) object, ##__VA_ARGS__)
 
 #define MATCHING_DETAILS(handler, ...)					\
     ((!(handler)->header->signature) ||					\
