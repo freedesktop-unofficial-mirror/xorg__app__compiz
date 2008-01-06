@@ -166,12 +166,18 @@ typedef struct _CInterface {
 typedef CompBool (*CInitObjectProc) (CompObject *object);
 typedef void     (*CFiniObjectProc) (CompObject	*object);
 
+typedef void (*CInsertObjectProc) (CompObject *object,
+				   CompObject *parent);
+typedef void (*CRemoveObjectProc) (CompObject *object);
+
 typedef struct _CMetadata {
-    const CInterface *interface;
-    int		     nInterface;
-    CInitObjectProc  init;
-    CFiniObjectProc  fini;
-    int		     version;
+    const CInterface  *interface;
+    int		      nInterface;
+    CInitObjectProc   init;
+    CFiniObjectProc   fini;
+    CInsertObjectProc insert;
+    CRemoveObjectProc remove;
+    int		      version;
 } CMetadata;
 
 #define COMP_PROP_C_BASE     1024
