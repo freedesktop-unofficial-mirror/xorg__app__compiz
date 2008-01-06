@@ -86,7 +86,13 @@ addOutputDevice (CompScreen *s,
 }
 
 static void
-updateOutputDevices (CompScreen	*s)
+screenUpdateOutputDevices (CompScreen   *s,
+			   const char   *path,
+			   const char   *interface,
+			   const char   *name,
+			   const char   *signature,
+			   CompAnyValue *value,
+			   int	        nValue)
 {
     CompOutput *output = NULL;
     int	       i, nOutput = 0;
@@ -228,6 +234,18 @@ updateOutputDevices (CompScreen	*s)
     (*s->outputChangeNotify) (s);
 }
 
+static void
+noopScreenUpdateOutputDevices (CompScreen   *s,
+			       const char   *path,
+			       const char   *interface,
+			       const char   *name,
+			       const char   *signature,
+			       CompAnyValue *value,
+			       int	    nValue)
+{
+    FOR_BASE (&s->u.base, (*s->u.vTable->updateOutputDevices) (s, 0, 0, 0, 0, 0, 0));
+}
+
 static Bool
 desktopHintEqual (CompScreen	*s,
 		  unsigned long *data,
@@ -336,7 +354,9 @@ detectOutputsChanged (CompObject *object,
 		      const char *name,
 		      CompBool   value)
 {
-    updateOutputDevices (GET_SCREEN (object));
+    SCREEN (object);
+
+    (*s->u.vTable->updateOutputDevices) (s, 0, 0, 0, 0, 0, 0);
 }
 
 static void
@@ -440,6 +460,50 @@ screenGetProp (CompObject   *object,
     };
 
     cGetObjectProp (&GET_SCREEN (object)->data.base, &template, what, value);
+}
+
+static void
+screenInsertObject (CompObject *object,
+		    CompObject *parent,
+		    const char *name)
+{
+    CompObject *child;
+    char       *path;
+
+    SCREEN (object);
+
+    cInsertObject (object, parent, name);
+
+    child = &s->data.outputs.base;
+
+    path = malloc (strlen (object->name) + strlen (child->name) + 2);
+    if (path)
+    {
+	sprintf (path, "%s/%s/*", object->name, child->name);
+
+	compConnect (parent,
+		     "signal", offsetof (CompSignalVTable, signal),
+		     object,
+		     "screen",
+		     offsetof (CompScreenVTable, updateOutputDevices),
+		     "oss", path, "properties", "intChanged");
+
+	compConnect (parent,
+		     "signal", offsetof (CompSignalVTable, signal),
+		     object,
+		     "screen",
+		     offsetof (CompScreenVTable, updateOutputDevices),
+		     "oss", path, "object", "inserted");
+
+	compConnect (parent,
+		     "signal", offsetof (CompSignalVTable, signal),
+		     object,
+		     "screen",
+		     offsetof (CompScreenVTable, updateOutputDevices),
+		     "oss", path, "object", "removed");
+
+	free (path);
+    }
 }
 
 CompOption *
@@ -789,7 +853,7 @@ configureScreen (CompScreen	 *s,
 
 	reshape (s, ce->width, ce->height);
 
-	updateOutputDevices (s);
+	(*s->u.vTable->updateOutputDevices) (s, 0, 0, 0, 0, 0, 0);
 
 	damageScreen (s);
     }
@@ -1353,7 +1417,7 @@ screenInitObject (const CompObjectInstantiator *instantiator,
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
-    s->base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */
+    s->u.base.id = COMP_OBJECT_TYPE_SCREEN; /* XXX: remove id asap */
 
     s->display = NULL;
 
@@ -1562,8 +1626,14 @@ screenInitObject (const CompObjectInstantiator *instantiator,
     return TRUE;
 }
 
-static const CompObjectVTable screenObjectVTable = {
-    .getProp = screenGetProp
+static const CompScreenVTable screenObjectVTable = {
+    .base.getProp        = screenGetProp,
+    .base.insertObject   = screenInsertObject,
+    .updateOutputDevices = screenUpdateOutputDevices
+};
+
+static const CompScreenVTable noopScreenObjectVTable = {
+    .updateOutputDevices = noopScreenUpdateOutputDevices
 };
 
 const CompObjectType *
@@ -1575,7 +1645,9 @@ getScreenObjectType (void)
     {
 	static const CompObjectType template = {
 	    .name.name   = SCREEN_TYPE_NAME,
-	    .vTable.impl = &screenObjectVTable,
+	    .vTable.impl = &screenObjectVTable.base,
+	    .vTable.noop = &noopScreenObjectVTable.base,
+	    .vTable.size = sizeof (screenObjectVTable),
 	    .init	 = screenInitObject
 	};
 
@@ -1631,7 +1703,8 @@ addScreenOld (CompDisplay *display,
     if (!s)
 	return FALSE;
 
-    if (!compObjectInitByType (&b->factory, &s->base, getScreenObjectType ()))
+    if (!compObjectInitByType (&b->factory, &s->u.base,
+			       getScreenObjectType ()))
     {
 	free (s);
 	return FALSE;
@@ -2098,7 +2171,7 @@ addScreenOld (CompDisplay *display,
     reshape (s, s->attrib.width, s->attrib.height);
 
     detectRefreshRateOfScreen (s);
-    updateOutputDevices (s);
+    (*s->u.vTable->updateOutputDevices) (s, 0, 0, 0, 0, 0, 0);
 
     glLightModelfv (GL_LIGHT_MODEL_AMBIENT, globalAmbient);
 
@@ -2114,15 +2187,16 @@ addScreenOld (CompDisplay *display,
     getDesktopHints (s);
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&s->base));
+    assert (objectInitPlugins (&s->u.base));
 
     addScreenToDisplay (display, s);
 
     snprintf (screenName, sizeof (screenName), "%d", s->screenNum);
 
     if ((*display->data.screens.base.vTable->addChild)
-	(&display->data.screens.base, &s->base, screenName))
-	(*core.objectAdd) (&display->data.screens.base, &s->base, screenName);
+	(&display->data.screens.base, &s->u.base, screenName))
+	(*core.objectAdd) (&display->data.screens.base, &s->u.base,
+			   screenName);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2206,11 +2280,11 @@ removeScreenOld (CompScreen *s)
     while (s->windows)
 	removeWindow (s->windows);
 
-    (*core.objectRemove) (&d->data.screens.base, &s->base);
+    (*core.objectRemove) (&d->data.screens.base, &s->u.base);
     (*d->data.screens.base.vTable->removeChild) (&d->data.screens.base,
-						 &s->base);
+						 &s->u.base);
 
-    objectFiniPlugins (&s->base);
+    objectFiniPlugins (&s->u.base);
 
     XUngrabKey (d->display, AnyKey, AnyModifier, s->root);
 
@@ -2269,7 +2343,7 @@ removeScreenOld (CompScreen *s)
 
     compFiniScreenOptions (s, s->opt, COMP_SCREEN_OPTION_NUM);
 
-    (*s->base.vTable->finalize) (&s->base);
+    (*s->u.base.vTable->finalize) (&s->u.base);
 
     free (s);
 }

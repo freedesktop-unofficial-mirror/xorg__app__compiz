@@ -51,6 +51,7 @@
 
 #include <compiz/object.h>
 #include <compiz/container.h>
+#include <compiz/prop.h>
 #include <compiz/output.h>
 #include <compiz/plugin.h>
 #include <compiz/root.h>
@@ -2070,6 +2071,19 @@ typedef struct _CompActiveWindowHistory {
 
 #define N_SELECTIONS 2
 
+typedef void (*UpdateOutputDevicesProc) (CompScreen   *s,
+					 const char   *path,
+					 const char   *interface,
+					 const char   *name,
+					 const char   *signature,
+					 CompAnyValue *value,
+					 int	      nValue);
+
+typedef struct _CompScreenVTable {
+    CompObjectVTable        base;
+    UpdateOutputDevicesProc updateOutputDevices;
+} CompScreenVTable;
+
 typedef struct _CompScreenData {
     CompObjectData base;
 
@@ -2092,7 +2106,10 @@ typedef struct _CompScreenData {
 } CompScreenData;
 
 struct _CompScreen {
-    CompObject base;
+    union {
+	CompObject	  base;
+	CompScreenVTable *vTable;
+    } u;
 
     CompScreenData data;
 

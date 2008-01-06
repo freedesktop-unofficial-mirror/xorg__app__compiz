@@ -914,7 +914,7 @@ iniFileModified (const char *name,
 		    break;
 
 	    if (s)
-		iniLoadOptions (&s->base, fd->plugin);
+		iniLoadOptions (&s->u.base, fd->plugin);
 	}
     }
 }
@@ -953,7 +953,7 @@ static Bool
 iniInitPluginForScreen (CompPlugin *p,
 			CompScreen *s)
 {
-    iniLoadOptions (&s->base, p->vTable->name);
+    iniLoadOptions (&s->u.base, p->vTable->name);
 
     return TRUE;
 }
@@ -1073,7 +1073,7 @@ iniInitDisplay (CompPlugin *p, CompDisplay *d)
 static Bool
 iniInitScreen (CompPlugin *p, CompScreen *s)
 {
-    iniLoadOptions (&s->base, NULL);
+    iniLoadOptions (&s->u.base, NULL);
 
     return TRUE;
 }

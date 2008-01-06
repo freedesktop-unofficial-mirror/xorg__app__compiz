@@ -1291,7 +1291,7 @@ compInitScreenOptionsFromMetadata (CompScreen			*s,
 				   CompOption			*opt,
 				   int				n)
 {
-    return compInitObjectPropsFromMetadata (&s->base, m, info, opt, n);
+    return compInitObjectPropsFromMetadata (&s->u.base, m, info, opt, n);
 }
 
 void
@@ -1299,7 +1299,7 @@ compFiniScreenOptions (CompScreen *s,
 		       CompOption *opt,
 		       int	  n)
 {
-    compFiniObjectProps (&s->base, opt, n);
+    compFiniObjectProps (&s->u.base, opt, n);
 }
 
 Bool
@@ -1307,7 +1307,7 @@ compSetScreenOption (CompScreen		   *s,
 		     CompOption		   *o,
 		     const CompOptionValue *value)
 {
-    return compSetObjectProp (&s->base, o, value);
+    return compSetObjectProp (&s->u.base, o, value);
 }
 
 Bool
