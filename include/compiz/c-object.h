@@ -219,9 +219,19 @@ typedef struct _CObjectPrivate {
 		     (offset) + (signal)->index, ##__VA_ARGS__);	\
     }
 
-#define C_EMIT_SIGNAL(object, prototype, offset, signal, ...)		\
-    C_EMIT_SIGNAL_INT (object, prototype, offset, offset,		\
-		       signal, ##__VA_ARGS__)
+#define C_EMIT_SIGNAL(object, prototype, signal, ...)			\
+    do {								\
+	CompInterfaceData *_d;						\
+	CompObject	  *_obj = (CompObject *) (object);		\
+									\
+	(*_obj->vTable->getProp) (object,				\
+				  COMP_PROP_C_DATA,			\
+				  (void *) &_d);			\
+									\
+	C_EMIT_SIGNAL_INT (object, prototype,				\
+			   _d->signalVecOffset, _d->signalVecOffset,	\
+			   signal, ##__VA_ARGS__);			\
+    } while (0)
 
 
 void
