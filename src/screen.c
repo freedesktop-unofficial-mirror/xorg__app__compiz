@@ -476,7 +476,7 @@ screenInsertObject (CompObject *object,
 
     child = &s->data.outputs.base;
 
-    path = malloc (strlen (object->name) + strlen (child->name) + 2);
+    path = malloc (strlen (object->name) + strlen (child->name) + 4);
     if (path)
     {
 	sprintf (path, "%s/%s/*", object->name, child->name);
