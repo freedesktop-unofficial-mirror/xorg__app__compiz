@@ -796,6 +796,9 @@ cRemoveObject (CompObject *object)
     noopRemoveObject (object);
 }
 
+#define PROP_VALUE(data, prop, type)			  \
+    (*((type *) (((char *) data) + (prop)->base.offset)))
+
 void
 cInserted (CompObject *object)
 {
@@ -812,6 +815,52 @@ cInserted (CompObject *object)
     for (i = 0; i < m.nInterface; i++)
     {
 	(*object->vTable->interfaceAdded) (object, m.interface[i].name);
+
+	for (j = 0; j < m.interface[i].nBoolProp; j++)
+	{
+	    CBoolProp *prop = &m.interface[i].boolProp[j];
+
+	    (*object->vTable->properties.boolChanged) (object,
+						       m.interface[i].name,
+						       prop->base.name,
+						       PROP_VALUE (data, prop,
+								   CompBool));
+	}
+
+	for (j = 0; j < m.interface[i].nIntProp; j++)
+	{
+	    CIntProp *prop = &m.interface[i].intProp[j];
+
+	    (*object->vTable->properties.intChanged) (object,
+						      m.interface[i].name,
+						      prop->base.name,
+						      PROP_VALUE (data, prop,
+								  int32_t));
+	}
+
+	for (j = 0; j < m.interface[i].nDoubleProp; j++)
+	{
+	    CDoubleProp *prop = &m.interface[i].doubleProp[j];
+
+	    (*object->vTable->properties.doubleChanged) (object,
+							 m.interface[i].name,
+							 prop->base.name,
+							 PROP_VALUE (data,
+								     prop,
+								     double));
+	}
+
+	for (j = 0; j < m.interface[i].nStringProp; j++)
+	{
+	    CStringProp *prop = &m.interface[i].stringProp[j];
+
+	    (*object->vTable->properties.stringChanged) (object,
+							 m.interface[i].name,
+							 prop->base.name,
+							 PROP_VALUE (data,
+								     prop,
+								     char *));
+	}
 
 	for (j = 0; j < m.interface[i].nChild; j++)
 	{
@@ -4102,9 +4151,6 @@ cDefaultValuesFromFile (CInterface *interface,
 
     cVerfiyDefaultValues (interface, nInterface);
 }
-
-#define PROP_VALUE(data, prop, type)	       \
-    (*((type *) (data + (prop)->base.offset)))
 
 #define SET_DEFAULT_VALUE(data, prop, type)		 \
     PROP_VALUE (data, prop, type) = (prop)->defaultValue
