@@ -754,7 +754,7 @@ cInsertObject (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    noopInsertObject (object, parent, name);
+    FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
 
     for (i = 0; i < m.nInterface; i++)
     {
@@ -793,7 +793,7 @@ cRemoveObject (CompObject *object)
 	}
     }
 
-    noopRemoveObject (object);
+    FOR_BASE (object, (*object->vTable->removeObject) (object));
 }
 
 #define PROP_VALUE(data, prop, type)			  \
@@ -810,7 +810,7 @@ cInserted (CompObject *object)
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    noopInserted (object);
+    FOR_BASE (object, (*object->vTable->inserted) (object));
 
     for (i = 0; i < m.nInterface; i++)
     {
@@ -898,7 +898,7 @@ cRemoved (CompObject *object)
 	(*object->vTable->interfaceRemoved) (object, m.interface[i].name);
     }
 
-    noopRemoved (object);
+    FOR_BASE (object, (*object->vTable->removed) (object));
 }
 
 CompBool
@@ -906,6 +906,7 @@ cForEachInterface (CompObject	         *object,
 		   InterfaceCallBackProc proc,
 		   void		         *closure)
 {
+    CompBool  status;
     CMetadata m;
     int       i;
 
@@ -919,7 +920,12 @@ cForEachInterface (CompObject	         *object,
 		      closure))
 	    return FALSE;
 
-    return noopForEachInterface (object, proc, closure);
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachInterface) (object,
+							    proc,
+							    closure));
+
+    return status;
 }
 
 CompBool
@@ -927,6 +933,7 @@ cForEachChildObject (CompObject		     *object,
 		     ChildObjectCallBackProc proc,
 		     void		     *closure)
 {
+    CompBool   status;
     CMetadata  m;
     char       *data;
     int        i, j;
@@ -939,7 +946,12 @@ cForEachChildObject (CompObject		     *object,
 	    if (!(*proc) (CHILD (data, &m.interface[i].child[j]), closure))
 		return FALSE;
 
-    return noopForEachChildObject (object, proc, closure);
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachChildObject) (object,
+							      proc,
+							      closure));
+
+    return status;
 }
 
 CompBool
@@ -948,8 +960,9 @@ cForEachMethod (CompObject	   *object,
 		MethodCallBackProc proc,
 		void	           *closure)
 {
-    CMetadata  m;
-    int        i, j;
+    CompBool  status;
+    CMetadata m;
+    int       i, j;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
@@ -970,7 +983,13 @@ cForEachMethod (CompObject	   *object,
 		return FALSE;
     }
 
-    return noopForEachMethod (object, interface, proc, closure);
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachMethod) (object,
+							 interface,
+							 proc,
+							 closure));
+
+    return status;
 }
 
 CompBool
@@ -979,8 +998,9 @@ cForEachSignal (CompObject	   *object,
 		SignalCallBackProc proc,
 		void		   *closure)
 {
-    CMetadata  m;
-    int        i, j;
+    CompBool  status;
+    CMetadata m;
+    int       i, j;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
@@ -1000,7 +1020,13 @@ cForEachSignal (CompObject	   *object,
 		    return FALSE;
     }
 
-    return noopForEachSignal (object, interface, proc, closure);
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachSignal) (object,
+							 interface,
+							 proc,
+							 closure));
+
+    return status;
 }
 
 static CompBool
@@ -1073,8 +1099,9 @@ cForEachProp (CompObject       *object,
 	      PropCallBackProc proc,
 	      void	       *closure)
 {
-    CMetadata  m;
-    int        i;
+    CompBool  status;
+    CMetadata m;
+    int       i;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
@@ -1109,7 +1136,13 @@ cForEachProp (CompObject       *object,
 	    return FALSE;
     }
 
-    return noopForEachProp (object, interface, proc, closure);
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachProp) (object,
+						       interface,
+						       proc,
+						       closure));
+
+    return status;
 }
 
 static int
@@ -1130,7 +1163,7 @@ cGetVersion (CompObject *object,
 	     const char *interface)
 {
     CMetadata  m;
-    int        i;
+    int        version, i;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
@@ -1138,7 +1171,10 @@ cGetVersion (CompObject *object,
 	if (strcmp (interface, m.interface[i].name) == 0)
 	    return m.version;
 
-    return noopGetVersion (object, interface);
+    FOR_BASE (object,
+	      version = (*object->vTable->version.get) (object, interface));
+
+    return version;
 }
 
 static void
@@ -1817,9 +1853,17 @@ cConnect (CompObject *object,
 		       &id))
 	return id;
 
-    return noopConnect (object, interface, offset,
-			descendant, descendantInterface, descendantOffset,
-			details, args);
+    FOR_BASE (object,
+	      id = (*object->vTable->signal.connect) (object,
+						      interface,
+						      offset,
+						      descendant,
+						      descendantInterface,
+						      descendantOffset,
+						      details,
+						      args));
+
+    return id;
 }
 
 void
@@ -1842,7 +1886,10 @@ cDisconnect (CompObject *object,
 			  id))
 	return;
 
-    noopDisconnect (object, interface, offset, id);
+    FOR_BASE (object, (*object->vTable->signal.disconnect) (object,
+							    interface,
+							    offset,
+							    id));
 }
 
 static int
@@ -1901,25 +1948,15 @@ signal (CompObject   *object,
 static CompBool
 handleGetBoolProp (CompObject	   *object,
 		   const CBoolProp *prop,
-		   int		   nProp,
-		   void		   *data,
-		   const char	   *interface,
-		   const char	   *name,
-		   CompBool	   *value,
-		   char		   **error)
+		   CompBool	   *value)
 {
-    int i;
+    char *data;
 
-    for (i = 0; i < nProp; i++)
-    {
-	if (strcmp (name, prop[i].base.name) == 0)
-	{
-	    *value = *((CompBool *) ((char *) data + prop[i].base.offset));
-	    return TRUE;
-	}
-    }
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    return noopGetBoolProp (object, interface, name, value, error);
+    *value = *((CompBool *) (data + prop->base.offset));
+
+    return TRUE;
 }
 
 CompBool
@@ -1929,66 +1966,62 @@ cGetBoolProp (CompObject *object,
 	      CompBool   *value,
 	      char	 **error)
 {
+    CompBool  status;
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
 	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    return handleGetBoolProp (object,
-				      m.interface[i].boolProp,
-				      m.interface[i].nBoolProp,
-				      data,
-				      interface,
-				      name,
-				      value,
-				      error);
+	    for (j = 0; j < m.interface[i].nBoolProp; j++)
+		if (strcmp (name, m.interface[i].boolProp[j].base.name) == 0)
+		    return handleGetBoolProp (object,
+					      &m.interface[i].boolProp[j],
+					      value);
 
-    return noopGetBoolProp (object, interface, name, value, error);
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.getBool) (object,
+							      interface,
+							      name,
+							      value,
+							      error));
+
+    return status;
 }
 
 static CompBool
 handleSetBoolProp (CompObject	   *object,
 		   const CBoolProp *prop,
-		   int		   nProp,
-		   void		   *data,
 		   const char	   *interface,
 		   const char	   *name,
 		   CompBool	   value,
 		   char		   **error)
 {
-    int i;
+    CompBool *ptr, oldValue;
+    char     *data;
 
-    for (i = 0; i < nProp; i++)
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    ptr = (CompBool *) (data + prop->base.offset);
+    oldValue = *ptr;
+
+    if (prop->set)
     {
-	if (strcmp (name, prop[i].base.name) == 0)
-	{
-	    CompBool *ptr = (CompBool *) ((char *) data + prop[i].base.offset);
-	    CompBool oldValue = *ptr;
-
-	    if (prop[i].set)
-	    {
-		if (!(*prop[i].set) (object, interface, name, value, error))
-		    return FALSE;
-	    }
-	    else
-	    {
-		*ptr = value;
-	    }
-
-	    if (*ptr != oldValue)
-		(*object->vTable->properties.boolChanged) (object,
-							   interface, name,
-							   *ptr);
-
-	    return TRUE;
-	}
+	if (!(*prop->set) (object, interface, name, value, error))
+	    return FALSE;
+    }
+    else
+    {
+	*ptr = value;
     }
 
-    return noopSetBoolProp (object, interface, name, value, error);
+    if (!*ptr != !oldValue)
+	(*object->vTable->properties.boolChanged) (object,
+						   interface, name,
+						   *ptr);
+
+    return TRUE;
 }
 
 CompBool
@@ -1998,40 +2031,29 @@ cSetBoolProp (CompObject *object,
 	      CompBool   value,
 	      char	 **error)
 {
+    CompBool  status;
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
 	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    return handleSetBoolProp (object,
-				      m.interface[i].boolProp,
-				      m.interface[i].nBoolProp,
-				      data,
-				      interface,
-				      name,
-				      value,
-				      error);
+	    for (j = 0; j < m.interface[i].nBoolProp; j++)
+		if (strcmp (name, m.interface[i].boolProp[j].base.name) == 0)
+		    return handleSetBoolProp (object,
+					      &m.interface[i].boolProp[j],
+					      interface, name,
+					      value, error);
 
-    return noopSetBoolProp (object, interface, name, value, error);
-}
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.setBool) (object,
+							      interface,
+							      name,
+							      value,
+							      error));
 
-static void
-handleBoolPropChanged (CompObject      *object,
-		       const CBoolProp *prop,
-		       int	       nProp,
-		       const char      *interface,
-		       const char      *name,
-		       CompBool	       value)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-	if (prop[i].changed && strcmp (name, prop[i].base.name) == 0)
-	    (*prop[i].changed) (object, interface, name, value);
+    return status;
 }
 
 void
@@ -2041,22 +2063,24 @@ cBoolPropChanged (CompObject *object,
 		  CompBool   value)
 {
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
-	    handleBoolPropChanged (object,
-				   m.interface[i].boolProp,
-				   m.interface[i].nBoolProp,
-				   interface,
-				   name,
-				   value);
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
+	    for (j = 0; j < m.interface[i].nBoolProp; j++)
+		if (strcmp (name, m.interface[i].boolProp[j].base.name) == 0)
+		    if (m.interface[i].boolProp[j].changed)
+			(*m.interface[i].boolProp[j].changed) (object,
+							       interface,
+							       name,
+							       value);
 
-    noopBoolPropChanged (object, interface, name, value);
+    FOR_BASE (object, (*object->vTable->properties.boolChanged) (object,
+								 interface,
+								 name,
+								 value));
 }
 
 static CompBool
@@ -2099,25 +2123,15 @@ boolPropChanged (CompObject *object,
 static CompBool
 handleGetIntProp (CompObject	 *object,
 		  const CIntProp *prop,
-		  int		 nProp,
-		  void		 *data,
-		  const char	 *interface,
-		  const char	 *name,
-		  int32_t	 *value,
-		  char		 **error)
+		  int32_t	 *value)
 {
-    int i;
+    char *data;
 
-    for (i = 0; i < nProp; i++)
-    {
-	if (strcmp (name, prop[i].base.name) == 0)
-	{
-	    *value = *((int32_t *) ((char *) data + prop[i].base.offset));
-	    return TRUE;
-	}
-    }
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    return noopGetIntProp (object, interface, name, value, error);
+    *value = *((int32_t *) (data + prop->base.offset));
+
+    return TRUE;
 }
 
 CompBool
@@ -2127,86 +2141,82 @@ cGetIntProp (CompObject *object,
 	     int32_t    *value,
 	     char	**error)
 {
+    CompBool  status;
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
 	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    return handleGetIntProp (object,
-				     m.interface[i].intProp,
-				     m.interface[i].nIntProp,
-				     data,
-				     interface,
-				     name,
-				     value,
-				     error);
+	    for (j = 0; j < m.interface[i].nIntProp; j++)
+		if (strcmp (name, m.interface[i].intProp[j].base.name) == 0)
+		    return handleGetIntProp (object,
+					     &m.interface[i].intProp[j],
+					     value);
 
-    return noopGetIntProp (object, interface, name, value, error);
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.getInt) (object,
+							      interface,
+							      name,
+							      value,
+							      error));
+
+    return status;
 }
 
 static CompBool
 handleSetIntProp (CompObject	 *object,
 		  const CIntProp *prop,
-		  int		 nProp,
-		  void		 *data,
 		  const char	 *interface,
 		  const char	 *name,
 		  int32_t	 value,
 		  char		 **error)
 {
-    int i;
+    int32_t *ptr, oldValue;
+    char    *data;
 
-    for (i = 0; i < nProp; i++)
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    ptr = (int32_t *) (data + prop->base.offset);
+    oldValue = *ptr;
+
+    if (prop->set)
     {
-	if (strcmp (name, prop[i].base.name) == 0)
+	if (!(*prop->set) (object, interface, name, value, error))
+	    return FALSE;
+    }
+    else
+    {
+	if (prop->restriction)
 	{
-	    int32_t *ptr = (int32_t *) ((char *) data + prop[i].base.offset);
-	    int32_t oldValue = *ptr;
-
-	    if (prop[i].set)
+	    if (value > prop->max)
 	    {
-		if (!(*prop[i].set) (object, interface, name, value, error))
-		    return FALSE;
+		if (error)
+		    *error = strdup ("Value is greater than maximium "
+				     "allowed value");
+
+		return FALSE;
 	    }
-	    else
+	    else if (value < prop->min)
 	    {
-		if (prop[i].restriction)
-		{
-		    if (value > prop[i].max)
-		    {
-			if (error)
-			    *error = strdup ("Value is greater than maximium "
-					     "allowed value");
+		if (error)
+		    *error = strdup ("Value is less than minimuim "
+				     "allowed value");
 
-			return FALSE;
-		    }
-		    else if (value < prop[i].min)
-		    {
-			if (error)
-			    *error = strdup ("Value is less than minimuim "
-					     "allowed value");
-
-			return FALSE;
-		    }
-		}
-
-		*ptr = value;
+		return FALSE;
 	    }
-
-	    if (*ptr != oldValue)
-		(*object->vTable->properties.intChanged) (object,
-							  interface, name,
-							  *ptr);
-
-	    return TRUE;
 	}
+
+	*ptr = value;
     }
 
-    return noopSetIntProp (object, interface, name, value, error);
+    if (*ptr != oldValue)
+	(*object->vTable->properties.intChanged) (object,
+						  interface, name,
+						  *ptr);
+
+    return TRUE;
 }
 
 CompBool
@@ -2216,40 +2226,29 @@ cSetIntProp (CompObject *object,
 	     int32_t    value,
 	     char	**error)
 {
+    CompBool  status;
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
 	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    return handleSetIntProp (object,
-				     m.interface[i].intProp,
-				     m.interface[i].nIntProp,
-				     data,
-				     interface,
-				     name,
-				     value,
-				     error);
+	    for (j = 0; j < m.interface[i].nIntProp; j++)
+		if (strcmp (name, m.interface[i].intProp[j].base.name) == 0)
+		    return handleSetIntProp (object,
+					     &m.interface[i].intProp[j],
+					     interface, name,
+					     value, error);
 
-    return noopSetIntProp (object, interface, name, value, error);
-}
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.setInt) (object,
+							     interface,
+							     name,
+							     value,
+							     error));
 
-static void
-handleIntPropChanged (CompObject     *object,
-		      const CIntProp *prop,
-		      int	     nProp,
-		      const char     *interface,
-		      const char     *name,
-		      int32_t	     value)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-	if (prop[i].changed && strcmp (name, prop[i].base.name) == 0)
-	    (*prop[i].changed) (object, interface, name, value);
+    return status;
 }
 
 void
@@ -2259,22 +2258,24 @@ cIntPropChanged (CompObject *object,
 		 int32_t    value)
 {
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
-	    handleIntPropChanged (object,
-				  m.interface[i].intProp,
-				  m.interface[i].nIntProp,
-				  interface,
-				  name,
-				  value);
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
+	    for (j = 0; j < m.interface[i].nIntProp; j++)
+		if (strcmp (name, m.interface[i].intProp[j].base.name) == 0)
+		    if (m.interface[i].intProp[j].changed)
+			(*m.interface[i].intProp[j].changed) (object,
+							      interface,
+							      name,
+							      value);
 
-    noopIntPropChanged (object, interface, name, value);
+    FOR_BASE (object, (*object->vTable->properties.intChanged) (object,
+								interface,
+								name,
+								value));
 }
 
 static CompBool
@@ -2317,157 +2318,132 @@ intPropChanged (CompObject *object,
 static CompBool
 handleGetDoubleProp (CompObject	       *object,
 		     const CDoubleProp *prop,
-		     int	       nProp,
-		     void	       *data,
-		     const char	       *interface,
-		     const char	       *name,
-		     double	       *value,
-		     char	       **error)
+		     double	       *value)
 {
-    int i;
+    char *data;
 
-    for (i = 0; i < nProp; i++)
-    {
-	if (strcmp (name, prop[i].base.name) == 0)
-	{
-	    *value = *((double *) ((char *) data + prop[i].base.offset));
-	    return TRUE;
-	}
-    }
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    return noopGetDoubleProp (object, interface, name, value, error);
+    *value = *((double *) (data + prop->base.offset));
+
+    return TRUE;
 }
 
 CompBool
 cGetDoubleProp (CompObject *object,
 		const char *interface,
 		const char *name,
-		double     *value,
+		double	   *value,
 		char	   **error)
 {
+    CompBool  status;
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
 	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    return handleGetDoubleProp (object,
-					m.interface[i].doubleProp,
-					m.interface[i].nDoubleProp,
-					data,
-					interface,
-					name,
-					value,
-					error);
+	    for (j = 0; j < m.interface[i].nDoubleProp; j++)
+		if (strcmp (name, m.interface[i].doubleProp[j].base.name) == 0)
+		    return handleGetDoubleProp (object,
+						&m.interface[i].doubleProp[j],
+						value);
 
-    return noopGetDoubleProp (object, interface, name, value, error);
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.getDouble) (object,
+								interface,
+								name,
+								value,
+								error));
+
+    return status;
 }
 
 static CompBool
 handleSetDoubleProp (CompObject	       *object,
 		     const CDoubleProp *prop,
-		     int	       nProp,
-		     void	       *data,
 		     const char	       *interface,
 		     const char	       *name,
 		     double	       value,
 		     char	       **error)
 {
-    int i;
+    double *ptr, oldValue;
+    char   *data;
 
-    for (i = 0; i < nProp; i++)
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    ptr = (double *) (data + prop->base.offset);
+    oldValue = *ptr;
+
+    if (prop->set)
     {
-	if (strcmp (name, prop[i].base.name) == 0)
+	if (!(*prop->set) (object, interface, name, value, error))
+	    return FALSE;
+    }
+    else
+    {
+	if (prop->restriction)
 	{
-	    double *ptr = (double *) ((char *) data + prop[i].base.offset);
-	    double oldValue = *ptr;
-
-	    if (prop[i].set)
+	    if (value > prop->max)
 	    {
-		if (!(*prop[i].set) (object, interface, name, value, error))
-		    return FALSE;
+		if (error)
+		    *error = strdup ("Value is greater than maximium "
+				     "allowed value");
+
+		return FALSE;
 	    }
-	    else
+	    else if (value < prop->min)
 	    {
-		if (prop[i].restriction)
-		{
-		    if (value > prop[i].max)
-		    {
-			if (error)
-			    *error = strdup ("Value is greater than maximium "
-					     "allowed value");
+		if (error)
+		    *error = strdup ("Value is less than minimuim "
+				     "allowed value");
 
-			return FALSE;
-		    }
-		    else if (value < prop[i].min)
-		    {
-			if (error)
-			    *error = strdup ("Value is less than minimuim "
-					     "allowed value");
-
-			return FALSE;
-		    }
-		}
-
-		*ptr = value;
+		return FALSE;
 	    }
-
-	    if (*ptr != oldValue)
-		(*object->vTable->properties.doubleChanged) (object,
-							     interface, name,
-							     *ptr);
-
-	    return TRUE;
 	}
+
+	*ptr = value;
     }
 
-    return noopSetDoubleProp (object, interface, name, value, error);
+    if (*ptr != oldValue)
+	(*object->vTable->properties.doubleChanged) (object,
+						     interface, name,
+						     *ptr);
+
+    return TRUE;
 }
 
 CompBool
 cSetDoubleProp (CompObject *object,
 		const char *interface,
 		const char *name,
-		double     value,
+		double	   value,
 		char	   **error)
 {
+    CompBool  status;
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
 	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    return handleSetDoubleProp (object,
-					m.interface[i].doubleProp,
-					m.interface[i].nDoubleProp,
-					data,
-					interface,
-					name,
-					value,
-					error);
+	    for (j = 0; j < m.interface[i].nDoubleProp; j++)
+		if (strcmp (name, m.interface[i].doubleProp[j].base.name) == 0)
+		    return handleSetDoubleProp (object,
+						&m.interface[i].doubleProp[j],
+						interface, name,
+						value, error);
 
-    return noopSetDoubleProp (object, interface, name, value, error);
-}
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.setDouble) (object,
+								interface,
+								name,
+								value,
+								error));
 
-static void
-handleDoublePropChanged (CompObject	   *object,
-			 const CDoubleProp *prop,
-			 int		   nProp,
-			 const char	   *interface,
-			 const char	   *name,
-			 double		   value)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-	if (prop[i].changed && strcmp (name, prop[i].base.name) == 0)
-	    (*prop[i].changed) (object, interface, name, value);
+    return status;
 }
 
 void
@@ -2477,22 +2453,24 @@ cDoublePropChanged (CompObject *object,
 		    double     value)
 {
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
-	    handleDoublePropChanged (object,
-				     m.interface[i].doubleProp,
-				     m.interface[i].nDoubleProp,
-				     interface,
-				     name,
-				     value);
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
+	    for (j = 0; j < m.interface[i].nDoubleProp; j++)
+		if (strcmp (name, m.interface[i].doubleProp[j].base.name) == 0)
+		    if (m.interface[i].doubleProp[j].changed)
+			(*m.interface[i].doubleProp[j].changed) (object,
+								 interface,
+								 name,
+								 value);
 
-    noopDoublePropChanged (object, interface, name, value);
+    FOR_BASE (object, (*object->vTable->properties.doubleChanged) (object,
+								   interface,
+								   name,
+								   value));
 }
 
 static CompBool
@@ -2535,22 +2513,86 @@ doublePropChanged (CompObject *object,
 static CompBool
 handleGetStringProp (CompObject	       *object,
 		     const CStringProp *prop,
-		     int		nProp,
-		     void		*data,
-		     const char		*interface,
-		     const char		*name,
-		     char		**value,
-		     char		**error)
+		     char	       **value,
+		     char	       **error)
 {
-    int i;
+    char *data, *s;
 
-    for (i = 0; i < nProp; i++)
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    s = strdup (*((char **) (data + prop->base.offset)));
+    if (!s)
     {
-	if (strcmp (name, prop[i].base.name) == 0)
+	if (error)
+	    *error = strdup ("Failed to copy string value");
+
+	return FALSE;
+    }
+
+    *value = s;
+
+    return TRUE;
+}
+
+CompBool
+cGetStringProp (CompObject *object,
+		const char *interface,
+		const char *name,
+		char	   **value,
+		char	   **error)
+{
+    CompBool  status;
+    CMetadata m;
+    int       i, j;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+
+    for (i = 0; i < m.nInterface; i++)
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
+	    for (j = 0; j < m.interface[i].nStringProp; j++)
+		if (strcmp (name, m.interface[i].stringProp[j].base.name) == 0)
+		    return handleGetStringProp (object,
+						&m.interface[i].stringProp[j],
+						value, error);
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.getString) (object,
+								interface,
+								name,
+								value,
+								error));
+
+    return status;
+}
+
+static CompBool
+handleSetStringProp (CompObject	       *object,
+		     const CStringProp *prop,
+		     const char	       *interface,
+		     const char	       *name,
+		     const char	       *value,
+		     char	       **error)
+{
+    char **ptr, *oldValue;
+    char *data;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    ptr = (char **) (data + prop->base.offset);
+    oldValue = *ptr;
+
+    if (prop->set)
+    {
+	if (!(*prop->set) (object, interface, name, value, error))
+	    return FALSE;
+    }
+    else
+    {
+	if (strcmp (*ptr, value))
 	{
 	    char *s;
 
-	    s = strdup (*((char **) ((char *) data + prop[i].base.offset)));
+	    s = strdup (value);
 	    if (!s)
 	    {
 		if (error)
@@ -2559,97 +2601,17 @@ handleGetStringProp (CompObject	       *object,
 		return FALSE;
 	    }
 
-	    *value = s;
-
-	    return TRUE;
+	    free (*ptr);
+	    *ptr = s;
 	}
     }
 
-    return noopGetStringProp (object, interface, name, value, error);
-}
+    if (*ptr != oldValue)
+	(*object->vTable->properties.stringChanged) (object,
+						     interface, name,
+						     *ptr);
 
-CompBool
-cGetStringProp (CompObject *object,
-		const char *interface,
-		const char *name,
-		char       **value,
-		char	   **error)
-{
-    CMetadata m;
-    char      *data;
-    int       i;
-
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
-
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    return handleGetStringProp (object,
-					m.interface[i].stringProp,
-					m.interface[i].nStringProp,
-					data,
-					interface,
-					name,
-					value,
-					error);
-
-    return noopGetStringProp (object, interface, name, value, error);
-}
-
-static CompBool
-handleSetStringProp (CompObject	       *object,
-		     const CStringProp *prop,
-		     int	       nProp,
-		     void	       *data,
-		     const char	       *interface,
-		     const char	       *name,
-		     const char	       *value,
-		     char	       **error)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-    {
-	if (strcmp (name, prop[i].base.name) == 0)
-	{
-	    char **ptr = (char **) ((char *) data + prop[i].base.offset);
-	    char *oldValue = *ptr;
-
-	    if (prop[i].set)
-	    {
-		if (!(*prop[i].set) (object, interface, name, value, error))
-		    return FALSE;
-	    }
-	    else
-	    {
-		if (strcmp (*ptr, value))
-		{
-		    char *s;
-
-		    s = strdup (value);
-		    if (!s)
-		    {
-			if (error)
-			    *error = strdup ("Failed to copy string value");
-
-			return FALSE;
-		    }
-
-		    free (*ptr);
-		    *ptr = s;
-		}
-	    }
-
-	    if (*ptr != oldValue)
-		(*object->vTable->properties.stringChanged) (object,
-							     interface, name,
-							     *ptr);
-
-	    return TRUE;
-	}
-    }
-
-    return noopSetStringProp (object, interface, name, value, error);
+    return TRUE;
 }
 
 CompBool
@@ -2659,40 +2621,29 @@ cSetStringProp (CompObject *object,
 		const char *value,
 		char	   **error)
 {
+    CompBool  status;
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
 	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    return handleSetStringProp (object,
-					m.interface[i].stringProp,
-					m.interface[i].nStringProp,
-					data,
-					interface,
-					name,
-					value,
-					error);
+	    for (j = 0; j < m.interface[i].nStringProp; j++)
+		if (strcmp (name, m.interface[i].stringProp[j].base.name) == 0)
+		    return handleSetStringProp (object,
+						&m.interface[i].stringProp[j],
+						interface, name,
+						value, error);
 
-    return noopSetStringProp (object, interface, name, value, error);
-}
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.setString) (object,
+								interface,
+								name,
+								value,
+								error));
 
-static void
-handleStringPropChanged (CompObject	   *object,
-			 const CStringProp *prop,
-			 int		   nProp,
-			 const char	   *interface,
-			 const char	   *name,
-			 const char	   *value)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-	if (prop[i].changed && strcmp (name, prop[i].base.name) == 0)
-	    (*prop[i].changed) (object, interface, name, value);
+    return status;
 }
 
 void
@@ -2702,22 +2653,24 @@ cStringPropChanged (CompObject *object,
 		    const char *value)
 {
     CMetadata m;
-    char      *data;
-    int       i;
+    int       i, j;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
-	    handleStringPropChanged (object,
-				     m.interface[i].stringProp,
-				     m.interface[i].nStringProp,
-				     interface,
-				     name,
-				     value);
+	if (!interface || strcmp (interface, m.interface[i].name) == 0)
+	    for (j = 0; j < m.interface[i].nStringProp; j++)
+		if (strcmp (name, m.interface[i].stringProp[j].base.name) == 0)
+		    if (m.interface[i].stringProp[j].changed)
+			(*m.interface[i].stringProp[j].changed) (object,
+								 interface,
+								 name,
+								 value);
 
-    noopStringPropChanged (object, interface, name, value);
+    FOR_BASE (object, (*object->vTable->properties.stringChanged) (object,
+								   interface,
+								   name,
+								   value));
 }
 
 static CompBool
@@ -2896,6 +2849,7 @@ cGetMetadata (CompObject *object,
 	      char	 **data,
 	      char	 **error)
 {
+    CompBool  status;
     CMetadata m;
     int       i;
 
@@ -2905,7 +2859,13 @@ cGetMetadata (CompObject *object,
 	if (strcmp (interface, m.interface[i].name) == 0)
 	    return handleGetMetadata (object, interface, data, error);
 
-    return noopGetMetadata (object, interface, data, error);
+
+    FOR_BASE (object, status = (*object->vTable->metadata.get) (object,
+								interface,
+								data,
+								error));
+
+    return status;
 }
 
 static const CompObjectVTable objectVTable = {
