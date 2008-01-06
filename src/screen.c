@@ -493,13 +493,6 @@ screenInsertObject (CompObject *object,
 		     object,
 		     "screen",
 		     offsetof (CompScreenVTable, updateOutputDevices),
-		     "oss", path, "object", "inserted");
-
-	compConnect (parent,
-		     "signal", offsetof (CompSignalVTable, signal),
-		     object,
-		     "screen",
-		     offsetof (CompScreenVTable, updateOutputDevices),
 		     "oss", path, "object", "removed");
 
 	free (path);
