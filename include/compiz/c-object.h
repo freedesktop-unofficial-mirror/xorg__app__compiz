@@ -248,12 +248,6 @@ cInsertObject (CompObject *object,
 void
 cRemoveObject (CompObject *object);
 
-void
-cInserted (CompObject *object);
-
-void
-cRemoved (CompObject *object);
-
 CompBool
 cForEachInterface (CompObject	         *object,
 		   InterfaceCallBackProc proc,

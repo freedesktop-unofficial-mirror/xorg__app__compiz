@@ -34,6 +34,9 @@
 #define CHILD(data, child)				   \
     ((CompObject *) (((char *) (data)) + (child)->offset))
 
+#define PROP_VALUE(data, prop, type)			  \
+    (*((type *) (((char *) data) + (prop)->base.offset)))
+
 static void
 cInsertObjectInterface (CompObject *object,
 			CompObject *parent)
@@ -48,81 +51,6 @@ cInsertObjectInterface (CompObject *object,
 
     if (m.insert)
 	(*m.insert) (object, parent);
-
-    for (i = 0; i < m.nInterface; i++)
-    {
-	for (j = 0; j < m.interface[i].nChild; j++)
-	{
-	    if (m.interface[i].child[j].type)
-	    {
-		child = CHILD (data, &m.interface[i].child[j]);
-		(*child->vTable->insertObject) (child, object,
-						m.interface[i].child[j].name);
-	    }
-	}
-    }
-}
-
-void
-cInsertObject (CompObject *object,
-	       CompObject *parent,
-	       const char *name)
-{
-    FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
-
-    cInsertObjectInterface (object, parent);
-}
-
-static void
-cRemoveObjectInterface (CompObject *object)
-{
-    CompObject *child;
-    CMetadata  m;
-    char       *data;
-    int        i, j;
-
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
-
-    for (i = 0; i < m.nInterface; i++)
-    {
-	for (j = 0; j < m.interface[i].nChild; j++)
-	{
-	    if (m.interface[i].child[j].type)
-	    {
-		child = CHILD (data, &m.interface[i].child[j]);
-		(*child->vTable->removeObject) (child);
-	    }
-	}
-    }
-
-    if (m.remove)
-	(*m.remove) (object);
-}
-
-void
-cRemoveObject (CompObject *object)
-{
-    cRemoveObjectInterface (object);
-
-    FOR_BASE (object, (*object->vTable->removeObject) (object));
-}
-
-#define PROP_VALUE(data, prop, type)			  \
-    (*((type *) (((char *) data) + (prop)->base.offset)))
-
-void
-cInserted (CompObject *object)
-{
-    CompObject *child;
-    CMetadata  m;
-    char       *data;
-    int        i, j;
-
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
-
-    FOR_BASE (object, (*object->vTable->inserted) (object));
 
     for (i = 0; i < m.nInterface; i++)
     {
@@ -179,6 +107,8 @@ cInserted (CompObject *object)
 	    if (m.interface[i].child[j].type)
 	    {
 		child = CHILD (data, &m.interface[i].child[j]);
+		(*child->vTable->insertObject) (child, object,
+						m.interface[i].child[j].name);
 		(*child->vTable->inserted) (child);
 	    }
 	}
@@ -186,7 +116,17 @@ cInserted (CompObject *object)
 }
 
 void
-cRemoved (CompObject *object)
+cInsertObject (CompObject *object,
+	       CompObject *parent,
+	       const char *name)
+{
+    FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
+
+    cInsertObjectInterface (object, parent);
+}
+
+static void
+cRemoveObjectInterface (CompObject *object)
 {
     CompObject *child;
     CMetadata  m;
@@ -204,13 +144,23 @@ cRemoved (CompObject *object)
 	    {
 		child = CHILD (data, &m.interface[i].child[j]);
 		(*child->vTable->removed) (child);
+		(*child->vTable->removeObject) (child);
 	    }
 	}
 
 	(*object->vTable->interfaceRemoved) (object, m.interface[i].name);
     }
 
-    FOR_BASE (object, (*object->vTable->removed) (object));
+    if (m.remove)
+	(*m.remove) (object);
+}
+
+void
+cRemoveObject (CompObject *object)
+{
+    cRemoveObjectInterface (object);
+
+    FOR_BASE (object, (*object->vTable->removeObject) (object));
 }
 
 CompBool
@@ -1523,8 +1473,6 @@ static const CompObjectVTable cVTable = {
 
     .insertObject = cInsertObject,
     .removeObject = cRemoveObject,
-    .inserted     = cInserted,
-    .removed      = cRemoved,
 
     .forEachInterface = cForEachInterface,
     .forEachMethod    = cForEachMethod,
