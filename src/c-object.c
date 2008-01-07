@@ -2404,6 +2404,9 @@ initBaseObject (CompObject *object,
 	    return FALSE;
 	}
 
+	if (object->parent)
+	    cInsertObjectInterface (object, object->parent);
+
 	return TRUE;
     }
     else
@@ -2449,6 +2452,9 @@ finiBaseObject (CompObject *object,
 	CompInterfaceData *data;
 
 	(*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+	if (object->parent)
+	    cRemoveObjectInterface (object);
 
 	cFiniObjectInterface (object, data);
 
