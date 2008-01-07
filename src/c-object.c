@@ -222,32 +222,6 @@ cForEachInterface (CompObject	         *object,
 }
 
 CompBool
-cForEachChildObject (CompObject		     *object,
-		     ChildObjectCallBackProc proc,
-		     void		     *closure)
-{
-    CompBool   status;
-    CMetadata  m;
-    char       *data;
-    int        i, j;
-
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
-
-    for (i = 0; i < m.nInterface; i++)
-	for (j = 0; j < m.interface[i].nChild; j++)
-	    if (!(*proc) (CHILD (data, &m.interface[i].child[j]), closure))
-		return FALSE;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->forEachChildObject) (object,
-							      proc,
-							      closure));
-
-    return status;
-}
-
-CompBool
 cForEachMethod (CompObject	   *object,
 		const char	   *interface,
 		MethodCallBackProc proc,
@@ -370,23 +344,30 @@ cForEachProp (CompObject       *object,
     return status;
 }
 
-int
-cGetVersion (CompObject *object,
-	     const char *interface)
+CompBool
+cForEachChildObject (CompObject		     *object,
+		     ChildObjectCallBackProc proc,
+		     void		     *closure)
 {
+    CompBool   status;
     CMetadata  m;
-    int        version, i;
+    char       *data;
+    int        i, j;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
     for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
-	    return m.version;
+	for (j = 0; j < m.interface[i].nChild; j++)
+	    if (!(*proc) (CHILD (data, &m.interface[i].child[j]), closure))
+		return FALSE;
 
     FOR_BASE (object,
-	      version = (*object->vTable->version.get) (object, interface));
+	      status = (*object->vTable->forEachChildObject) (object,
+							      proc,
+							      closure));
 
-    return version;
+    return status;
 }
 
 typedef struct _HandleConnectContext {
@@ -737,6 +718,25 @@ cDisconnect (CompObject *object,
 							    interface,
 							    offset,
 							    id));
+}
+
+int
+cGetVersion (CompObject *object,
+	     const char *interface)
+{
+    CMetadata  m;
+    int        version, i;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+
+    for (i = 0; i < m.nInterface; i++)
+	if (strcmp (interface, m.interface[i].name) == 0)
+	    return m.version;
+
+    FOR_BASE (object,
+	      version = (*object->vTable->version.get) (object, interface));
+
+    return version;
 }
 
 static CompBool
@@ -1497,6 +1497,46 @@ cGetMetadata (CompObject *object,
 
     return status;
 }
+
+
+static const CompObjectVTable cVTable = {
+    .setProp = cSetObjectProp,
+
+    .insertObject = cInsertObject,
+    .removeObject = cRemoveObject,
+    .inserted     = cInserted,
+    .removed      = cRemoved,
+
+    .forEachInterface = cForEachInterface,
+    .forEachMethod    = cForEachMethod,
+    .forEachSignal    = cForEachSignal,
+    .forEachProp      = cForEachProp,
+
+    .forEachChildObject = cForEachChildObject,
+
+    .signal.connect    = cConnect,
+    .signal.disconnect = cDisconnect,
+
+    .version.get = cGetVersion,
+
+    .properties.getBool     = cGetBoolProp,
+    .properties.setBool     = cSetBoolProp,
+    .properties.boolChanged = cBoolPropChanged,
+
+    .properties.getInt     = cGetIntProp,
+    .properties.setInt     = cSetIntProp,
+    .properties.intChanged = cIntPropChanged,
+
+    .properties.getDouble     = cGetDoubleProp,
+    .properties.setDouble     = cSetDoubleProp,
+    .properties.doubleChanged = cDoublePropChanged,
+
+    .properties.getString     = cGetStringProp,
+    .properties.setString     = cSetStringProp,
+    .properties.stringChanged = cStringPropChanged,
+
+    .metadata.get = cGetMetadata
+};
 
 static CompBool
 cObjectAllocPrivateIndex (CompFactory    *factory,
@@ -2276,45 +2316,6 @@ cSetObjectProp (CompObject   *object,
 	break;
     }
 }
-
-static const CompObjectVTable cVTable = {
-    .setProp = cSetObjectProp,
-
-    .insertObject = cInsertObject,
-    .removeObject = cRemoveObject,
-    .inserted     = cInserted,
-    .removed      = cRemoved,
-
-    .forEachInterface = cForEachInterface,
-    .forEachMethod    = cForEachMethod,
-    .forEachSignal    = cForEachSignal,
-    .forEachProp      = cForEachProp,
-
-    .forEachChildObject = cForEachChildObject,
-
-    .signal.connect    = cConnect,
-    .signal.disconnect = cDisconnect,
-
-    .version.get = cGetVersion,
-
-    .properties.getBool     = cGetBoolProp,
-    .properties.setBool     = cSetBoolProp,
-    .properties.boolChanged = cBoolPropChanged,
-
-    .properties.getInt     = cGetIntProp,
-    .properties.setInt     = cSetIntProp,
-    .properties.intChanged = cIntPropChanged,
-
-    .properties.getDouble     = cGetDoubleProp,
-    .properties.setDouble     = cSetDoubleProp,
-    .properties.doubleChanged = cDoublePropChanged,
-
-    .properties.getString     = cGetStringProp,
-    .properties.setString     = cSetStringProp,
-    .properties.stringChanged = cStringPropChanged,
-
-    .metadata.get = cGetMetadata
-};
 
 CompObjectType *
 cObjectTypeFromTemplate (const CompObjectType *template)
