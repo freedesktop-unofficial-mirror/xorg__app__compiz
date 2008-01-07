@@ -49,6 +49,9 @@ cInsertObject (CompObject *object,
 
     FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
 
+    if (m.insert)
+	(*m.insert) (object, parent);
+
     for (i = 0; i < m.nInterface; i++)
     {
 	for (j = 0; j < m.interface[i].nChild; j++)
@@ -85,6 +88,9 @@ cRemoveObject (CompObject *object)
 	    }
 	}
     }
+
+    if (m.remove)
+	(*m.remove) (object);
 
     FOR_BASE (object, (*object->vTable->removeObject) (object));
 }
