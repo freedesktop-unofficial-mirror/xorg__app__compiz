@@ -633,7 +633,8 @@ dbusInvokeMethod (DBusMessage *message,
 }
 
 static DBusMessage *
-dbusHandleMethodCall (DBusConnection *connection,
+dbusHandleMethodCall (CompBranch     *branch,
+		      DBusConnection *connection,
 		      DBusMessage    *message,
 		      CompObject     *object)
 {
@@ -695,7 +696,7 @@ dbusHandleMessage (DBusConnection *connection,
     if (!object)
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-    reply = dbusHandleMethodCall (connection, message, object);
+    reply = dbusHandleMethodCall (&c->u.base, connection, message, object);
     if (reply)
     {
 	dbus_connection_send (connection, reply, NULL);
@@ -787,10 +788,7 @@ dbusSignalImpl (CompObject   *object,
 		CompAnyValue *value,
 		int	     nValue)
 {
-    DBUS_CORE (GET_CORE (object));
-
-    C_EMIT_SIGNAL (object, DBusSignalProc, dc->base.signalVecOffset,
-		   &dbusSignal,
+    C_EMIT_SIGNAL (object, DBusSignalProc, &dbusSignal,
 		   path, interface, name, signature, value, nValue);
 }
 
@@ -829,10 +827,8 @@ dbusObjectSignalImpl (CompObject *object,
 		      const char *path,
 		      const char *name)
 {
-    DBUS_CORE (GET_CORE (object));
-
-    C_EMIT_SIGNAL (object, DBusObjectSignalProc, dc->base.signalVecOffset,
-		   &dbusObjectSignal, path, name);
+    C_EMIT_SIGNAL (object, DBusObjectSignalProc, &dbusObjectSignal,
+		   path, name);
 }
 
 static void

@@ -394,10 +394,7 @@ gconfSignalImpl (CompObject   *object,
 		 int	      nValue,
 		 CompObject   *descendant)
 {
-    GCONF_CORE (GET_CORE (object));
-
-    C_EMIT_SIGNAL (object, GConfSignalProc, gc->base.signalVecOffset,
-		   &gconfSignal,
+    C_EMIT_SIGNAL (object, GConfSignalProc, &gconfSignal,
 		   interface, name, signature, value, nValue, descendant);
 }
 
@@ -441,10 +438,7 @@ gconfPropSignalImpl (CompObject   *object,
 		     CompAnyValue *value,
 		     CompObject   *descendant)
 {
-    GCONF_CORE (GET_CORE (object));
-
-    C_EMIT_SIGNAL (object, GConfPropSignalProc, gc->base.signalVecOffset,
-		   &gconfPropSignal,
+    C_EMIT_SIGNAL (object, GConfPropSignalProc, &gconfPropSignal,
 		   interface, name, value, descendant);
 }
 
