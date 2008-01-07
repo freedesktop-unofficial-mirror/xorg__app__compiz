@@ -434,6 +434,15 @@ compObjectInitByTypeName (const CompObjectFactory *factory,
 			  CompObject		  *object,
 			  const char		  *name);
 
+CompObjectInstantiatorNode *
+compObjectInstantiatorNode (const CompObjectFactory *factory,
+			    const char		    *name);
+
+void
+compVTableInit (CompObjectVTable       *vTable,
+		const CompObjectVTable *noopVTable,
+		int		       size);
+
 CompBool
 compFactoryRegisterType (CompObjectFactory    *factory,
 			 const char	      *interface,

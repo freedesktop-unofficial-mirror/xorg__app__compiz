@@ -474,6 +474,64 @@ cSetObjectProp (CompObject   *object,
 CompObjectType *
 cObjectTypeFromTemplate (const CompObjectType *tmpl);
 
+
+CompBool
+handleForEachBoolProp (CompObject	*object,
+		       const CBoolProp  *prop,
+		       int		nProp,
+		       PropCallBackProc	proc,
+		       void		*closure);
+
+CompBool
+handleForEachIntProp (CompObject       *object,
+		      const CIntProp   *prop,
+		      int	       nProp,
+		      PropCallBackProc proc,
+		      void	       *closure);
+
+CompBool
+handleForEachDoubleProp (CompObject	   *object,
+			 const CDoubleProp *prop,
+			 int		   nProp,
+			 PropCallBackProc  proc,
+			 void		   *closure);
+
+CompBool
+handleForEachStringProp (CompObject	   *object,
+			 const CStringProp *prop,
+			 int		   nProp,
+			 PropCallBackProc  proc,
+			 void		   *closure);
+
+CompBool
+handleConnect (CompObject	 *object,
+	       const CInterface  *interface,
+	       int		 nInterface,
+	       int		 *signalVecOffset,
+	       const char	 *name,
+	       size_t		 offset,
+	       CompObject	 *descendant,
+	       const char	 *descendantInterface,
+	       size_t		 descendantOffset,
+	       const char	 *details,
+	       va_list		 args,
+	       int		 *id);
+
+CompBool
+handleDisconnect (CompObject	   *object,
+		  const CInterface *interface,
+		  int		   nInterface,
+		  int		   *signalVecOffset,
+		  const char	   *name,
+		  size_t	   offset,
+		  int		   id);
+
+CompBool
+handleGetMetadata (CompObject *object,
+		   const char *interface,
+		   char       **data,
+		   char       **error);
+
 COMPIZ_END_DECLS
 
 #endif
