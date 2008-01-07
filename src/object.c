@@ -923,7 +923,7 @@ forEachProp (CompObject       *object,
 	     PropCallBackProc proc,
 	     void	       *closure)
 {
-    int i;
+    int i, j;
 
     for (i = 0; i < N_ELEMENTS (objectInterface); i++)
     {
@@ -931,29 +931,25 @@ forEachProp (CompObject       *object,
 	    if (*interface && strcmp (interface, objectInterface[i].name))
 		continue;
 
-	if (!handleForEachBoolProp (object,
-				    objectInterface[i].boolProp,
-				    objectInterface[i].nBoolProp,
-				    proc, closure))
-	    return FALSE;
+	for (j = 0; j < objectInterface[i].nBoolProp; j++)
+	    if (!(*proc) (object, objectInterface[i].boolProp[j].base.name,
+			  COMP_TYPE_BOOLEAN, closure))
+		return FALSE;
 
-	if (!handleForEachIntProp (object,
-				   objectInterface[i].intProp,
-				   objectInterface[i].nIntProp,
-				   proc, closure))
-	    return FALSE;
+	for (j = 0; j < objectInterface[i].nIntProp; j++)
+	    if (!(*proc) (object, objectInterface[i].intProp[j].base.name,
+			  COMP_TYPE_INT32, closure))
+		return FALSE;
 
-	if (!handleForEachDoubleProp (object,
-				      objectInterface[i].doubleProp,
-				      objectInterface[i].nDoubleProp,
-				      proc, closure))
-	    return FALSE;
+	for (j = 0; j < objectInterface[i].nDoubleProp; j++)
+	    if (!(*proc) (object, objectInterface[i].doubleProp[j].base.name,
+			  COMP_TYPE_DOUBLE, closure))
+		return FALSE;
 
-	if (!handleForEachStringProp (object,
-				      objectInterface[i].stringProp,
-				      objectInterface[i].nStringProp,
-				      proc, closure))
-	    return FALSE;
+	for (j = 0; j < objectInterface[i].nStringProp; j++)
+	    if (!(*proc) (object, objectInterface[i].stringProp[j].base.name,
+			  COMP_TYPE_STRING, closure))
+		return FALSE;
     }
 
     return TRUE;

@@ -323,70 +323,6 @@ cForEachSignal (CompObject	   *object,
 }
 
 CompBool
-handleForEachBoolProp (CompObject	*object,
-		       const CBoolProp  *prop,
-		       int		nProp,
-		       PropCallBackProc	proc,
-		       void		*closure)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-	if (!(*proc) (object, prop[i].base.name, COMP_TYPE_BOOLEAN, closure))
-	    return FALSE;
-
-    return TRUE;
-}
-
-CompBool
-handleForEachIntProp (CompObject       *object,
-		      const CIntProp   *prop,
-		      int	       nProp,
-		      PropCallBackProc proc,
-		      void	       *closure)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-	if (!(*proc) (object, prop[i].base.name, COMP_TYPE_INT32, closure))
-	    return FALSE;
-
-    return TRUE;
-}
-
-CompBool
-handleForEachDoubleProp (CompObject	   *object,
-			 const CDoubleProp *prop,
-			 int		   nProp,
-			 PropCallBackProc  proc,
-			 void		   *closure)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-	if (!(*proc) (object, prop[i].base.name, COMP_TYPE_DOUBLE, closure))
-	    return FALSE;
-
-    return TRUE;
-}
-
-CompBool
-handleForEachStringProp (CompObject	   *object,
-			 const CStringProp *prop,
-			 int		   nProp,
-			 PropCallBackProc  proc,
-			 void		   *closure)
-{
-    int i;
-
-    for (i = 0; i < nProp; i++)
-	if (!(*proc) (object, prop[i].base.name, COMP_TYPE_STRING, closure))
-	    return FALSE;
-
-    return TRUE;
-}
-
-CompBool
 cForEachProp (CompObject       *object,
 	      const char       *interface,
 	      PropCallBackProc proc,
@@ -394,7 +330,7 @@ cForEachProp (CompObject       *object,
 {
     CompBool  status;
     CMetadata m;
-    int       i;
+    int       i, j;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
@@ -404,29 +340,25 @@ cForEachProp (CompObject       *object,
 	    if (*interface && strcmp (interface, m.interface[i].name))
 		continue;
 
-	if (!handleForEachBoolProp (object,
-				    m.interface[i].boolProp,
-				    m.interface[i].nBoolProp,
-				    proc, closure))
-	    return FALSE;
+	for (j = 0; j < m.interface[i].nBoolProp; j++)
+	    if (!(*proc) (object, m.interface[i].boolProp[j].base.name,
+			  COMP_TYPE_BOOLEAN, closure))
+		return FALSE;
 
-	if (!handleForEachIntProp (object,
-				   m.interface[i].intProp,
-				   m.interface[i].nIntProp,
-				   proc, closure))
-	    return FALSE;
+	for (j = 0; j < m.interface[i].nIntProp; j++)
+	    if (!(*proc) (object, m.interface[i].intProp[j].base.name,
+			  COMP_TYPE_INT32, closure))
+		return FALSE;
 
-	if (!handleForEachDoubleProp (object,
-				      m.interface[i].doubleProp,
-				      m.interface[i].nDoubleProp,
-				      proc, closure))
-	    return FALSE;
+	for (j = 0; j < m.interface[i].nDoubleProp; j++)
+	    if (!(*proc) (object, m.interface[i].doubleProp[j].base.name,
+			  COMP_TYPE_DOUBLE, closure))
+		return FALSE;
 
-	if (!handleForEachStringProp (object,
-				      m.interface[i].stringProp,
-				      m.interface[i].nStringProp,
-				      proc, closure))
-	    return FALSE;
+	for (j = 0; j < m.interface[i].nStringProp; j++)
+	    if (!(*proc) (object, m.interface[i].stringProp[j].base.name,
+			  COMP_TYPE_STRING, closure))
+		return FALSE;
     }
 
     FOR_BASE (object,

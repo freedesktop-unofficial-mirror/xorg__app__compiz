@@ -476,34 +476,6 @@ cObjectTypeFromTemplate (const CompObjectType *tmpl);
 
 
 CompBool
-handleForEachBoolProp (CompObject	*object,
-		       const CBoolProp  *prop,
-		       int		nProp,
-		       PropCallBackProc	proc,
-		       void		*closure);
-
-CompBool
-handleForEachIntProp (CompObject       *object,
-		      const CIntProp   *prop,
-		      int	       nProp,
-		      PropCallBackProc proc,
-		      void	       *closure);
-
-CompBool
-handleForEachDoubleProp (CompObject	   *object,
-			 const CDoubleProp *prop,
-			 int		   nProp,
-			 PropCallBackProc  proc,
-			 void		   *closure);
-
-CompBool
-handleForEachStringProp (CompObject	   *object,
-			 const CStringProp *prop,
-			 int		   nProp,
-			 PropCallBackProc  proc,
-			 void		   *closure);
-
-CompBool
 handleConnect (CompObject	 *object,
 	       const CInterface  *interface,
 	       int		 nInterface,
