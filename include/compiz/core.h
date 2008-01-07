@@ -778,6 +778,14 @@ addFileWatch (const char	    *path,
 void
 removeFileWatch (CompFileWatchHandle handle);
 
+int
+compObjectAllocatePrivateIndex (const CompObjectType *type,
+				int	             size);
+
+void
+compObjectFreePrivateIndex (const CompObjectType *type,
+			    int	                 index);
+
 
 /* display.c */
 

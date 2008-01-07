@@ -459,3 +459,29 @@ removeFileWatch (CompFileWatchHandle handle)
 	free (w);
     }
 }
+
+int
+compObjectAllocatePrivateIndex (const CompObjectType *type,
+				int	             size)
+{
+    const CompObjectFactory *f;
+    CompFactory		    *factory;
+
+    for (f = &core.u.base.factory; f->master; f = f->master);
+    factory = (CompFactory *) f;
+
+    return (*factory->allocatePrivateIndex) (factory, type->name.name, size);
+}
+
+void
+compObjectFreePrivateIndex (const CompObjectType *type,
+			    int	                 index)
+{
+    const CompObjectFactory *f;
+    CompFactory		    *factory;
+
+    for (f = &core.u.base.factory; f->master; f = f->master);
+    factory = (CompFactory *) f;
+
+    return (*factory->freePrivateIndex) (factory, type->name.name, index);
+}

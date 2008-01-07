@@ -32,7 +32,6 @@
 #include <compiz/c-object.h>
 #include <compiz/marshal.h>
 #include <compiz/error.h>
-#include <compiz/core.h>
 
 static CSignal insertedSignal = C_SIGNAL (inserted, "", CompObjectVTable);
 static CSignal removedSignal = C_SIGNAL (removed, "", CompObjectVTable);
@@ -289,6 +288,30 @@ compFactoryRegisterType (CompObjectFactory    *factory,
     return TRUE;
 }
 
+static CompBool
+initObject (const CompObjectInstantiator *instantiator,
+	    CompObject			 *object,
+	    const CompObjectFactory	 *factory)
+{
+    const CompObjectInstantiatorNode *node =
+	(const CompObjectInstantiatorNode *) instantiator;
+
+    object->privates = allocatePrivates (node->privates.len,
+					 node->privates.sizes,
+					 node->privates.totalSize);
+    if (!object->privates)
+	return FALSE;
+
+    object->vTable    = instantiator->vTable;
+    object->parent    = NULL;
+    object->name      = NULL;
+    object->signalVec = NULL;
+
+    object->id = ~0; /* XXX: remove id asap */
+
+    return TRUE;
+}
+
 static void
 finalize (CompObject *object)
 {
@@ -303,444 +326,6 @@ static void
 noopFinalize (CompObject *object)
 {
     FOR_BASE (object, (*object->vTable->finalize) (object));
-}
-
-static void
-noopInsertObject (CompObject *object,
-		  CompObject *parent,
-		  const char *name)
-{
-    FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
-}
-
-static void
-noopRemoveObject (CompObject *object)
-{
-    FOR_BASE (object, (*object->vTable->removeObject) (object));
-}
-
-static void
-noopInserted (CompObject *object)
-{
-    FOR_BASE (object, (*object->vTable->inserted) (object));
-}
-
-static void
-noopRemoved (CompObject *object)
-{
-    FOR_BASE (object, (*object->vTable->removed) (object));
-}
-
-static CompBool
-noopForEachInterface (CompObject	    *object,
-		      InterfaceCallBackProc proc,
-		      void		    *closure)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->forEachInterface) (object,
-							    proc,
-							    closure));
-
-    return status;
-}
-
-static CompBool
-noopForEachMethod (CompObject	      *object,
-		   const char	      *interface,
-		   MethodCallBackProc proc,
-		   void		      *closure)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->forEachMethod) (object,
-							 interface,
-							 proc,
-							 closure));
-
-    return status;
-}
-
-static CompBool
-noopForEachSignal (CompObject	      *object,
-		   const char	      *interface,
-		   SignalCallBackProc proc,
-		   void		      *closure)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->forEachSignal) (object,
-							 interface,
-							 proc,
-							 closure));
-
-    return status;
-}
-
-static CompBool
-noopForEachProp (CompObject	  *object,
-		 const char	  *interface,
-		 PropCallBackProc proc,
-		 void		  *closure)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->forEachProp) (object,
-						       interface,
-						       proc,
-						       closure));
-
-    return status;
-}
-
-static void
-noopInterfaceAdded (CompObject *object,
-		    const char *interface)
-{
-    FOR_BASE (object, (*object->vTable->interfaceAdded) (object, interface));
-}
-
-static void
-noopInterfaceRemoved (CompObject *object,
-		      const char *interface)
-{
-    FOR_BASE (object, (*object->vTable->interfaceRemoved) (object, interface));
-}
-
-static CompBool
-noopAddChild (CompObject *object,
-	      CompObject *child,
-	      const char *name)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->addChild) (object, child, name));
-
-    return status;
-}
-
-static void
-noopRemoveChild (CompObject *object,
-		 CompObject *child)
-{
-    FOR_BASE (object, (*object->vTable->removeChild) (object, child));
-}
-
-static CompBool
-noopForEachChildObject (CompObject		*object,
-			ChildObjectCallBackProc proc,
-			void		        *closure)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->forEachChildObject) (object,
-							      proc,
-							      closure));
-
-    return status;
-}
-
-static int
-noopConnect (CompObject *object,
-	     const char *interface,
-	     size_t     offset,
-	     CompObject *descendant,
-	     const char *descendantInterface,
-	     size_t     descendantOffset,
-	     const char *details,
-	     va_list	args)
-{
-    int index;
-
-    FOR_BASE (object,
-	      index = (*object->vTable->signal.connect) (object,
-							 interface,
-							 offset,
-							 descendant,
-							 descendantInterface,
-							 descendantOffset,
-							 details,
-							 args));
-
-    return index;
-}
-
-static void
-noopDisconnect (CompObject *object,
-		const char *interface,
-		size_t     offset,
-		int	   index)
-{
-    FOR_BASE (object, (*object->vTable->signal.disconnect) (object,
-							    interface,
-							    offset,
-							    index));
-}
-
-static void
-noopSignal (CompObject   *object,
-	    const char   *path,
-	    const char   *interface,
-	    const char   *name,
-	    const char   *signature,
-	    CompAnyValue *value,
-	    int	         nValue)
-{
-    FOR_BASE (object, (*object->vTable->signal.signal) (object,
-							path,
-							interface,
-							name,
-							signature,
-							value,
-							nValue));
-}
-
-static int
-noopGetVersion (CompObject *object,
-		const char *interface)
-{
-    int result;
-
-    FOR_BASE (object,
-	      result = (*object->vTable->version.get) (object, interface));
-
-    return result;
-}
-
-static CompBool
-noopGetBoolProp (CompObject *object,
-		 const char *interface,
-		 const char *name,
-		 CompBool   *value,
-		 char	    **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.getBool) (object,
-							      interface,
-							      name,
-							      value,
-							      error));
-
-    return status;
-}
-
-static CompBool
-noopSetBoolProp (CompObject *object,
-		 const char *interface,
-		 const char *name,
-		 CompBool   value,
-		 char	    **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.setBool) (object,
-							      interface,
-							      name,
-							      value,
-							      error));
-
-    return status;
-}
-
-static void
-noopBoolPropChanged (CompObject *object,
-		     const char *interface,
-		     const char *name,
-		     CompBool   value)
-{
-    FOR_BASE (object, (*object->vTable->properties.boolChanged) (object,
-								 interface,
-								 name,
-								 value));
-}
-
-static CompBool
-noopGetIntProp (CompObject *object,
-		const char *interface,
-		const char *name,
-		int32_t    *value,
-		char	   **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.getInt) (object,
-							     interface,
-							     name,
-							     value,
-							     error));
-
-    return status;
-}
-
-static CompBool
-noopSetIntProp (CompObject *object,
-		const char *interface,
-		const char *name,
-		int32_t    value,
-		char	   **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.setInt) (object,
-							     interface,
-							     name,
-							     value,
-							     error));
-
-    return status;
-}
-
-static void
-noopIntPropChanged (CompObject *object,
-		    const char *interface,
-		    const char *name,
-		    int32_t    value)
-{
-    FOR_BASE (object, (*object->vTable->properties.intChanged) (object,
-								interface,
-								name,
-								value));
-}
-
-static CompBool
-noopGetDoubleProp (CompObject *object,
-		   const char *interface,
-		   const char *name,
-		   double     *value,
-		   char	      **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.getDouble) (object,
-								interface,
-								name,
-								value,
-								error));
-
-    return status;
-}
-
-static CompBool
-noopSetDoubleProp (CompObject *object,
-		   const char *interface,
-		   const char *name,
-		   double     value,
-		   char	      **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.setDouble) (object,
-								interface,
-								name,
-								value,
-								error));
-
-    return status;
-}
-
-static void
-noopDoublePropChanged (CompObject *object,
-		       const char *interface,
-		       const char *name,
-		       double     value)
-{
-    FOR_BASE (object, (*object->vTable->properties.doubleChanged) (object,
-								   interface,
-								   name,
-								   value));
-}
-
-static CompBool
-noopGetStringProp (CompObject *object,
-		   const char *interface,
-		   const char *name,
-		   char       **value,
-		   char	      **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.getString) (object,
-								interface,
-								name,
-								value,
-								error));
-
-    return status;
-}
-
-static CompBool
-noopSetStringProp (CompObject *object,
-		   const char *interface,
-		   const char *name,
-		   const char *value,
-		   char	      **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.setString) (object,
-								interface,
-								name,
-								value,
-								error));
-
-    return status;
-}
-
-static void
-noopStringPropChanged (CompObject *object,
-		       const char *interface,
-		       const char *name,
-		       const char *value)
-{
-    FOR_BASE (object, (*object->vTable->properties.stringChanged) (object,
-								   interface,
-								   name,
-								   value));
-}
-
-static CompBool
-noopGetMetadata (CompObject *object,
-		 const char *interface,
-		 char       **data,
-		 char	    **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->metadata.get) (object,
-							interface,
-							data,
-							error));
-
-    return status;
-}
-
-static int
-getVersion (CompObject *object,
-	    const char *interface)
-{
-    int i;
-
-    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
-	if (strcmp (interface, objectInterface[i].name) == 0)
-	    return COMPIZ_OBJECT_VERSION;
-
-    return 0;
 }
 
 static void
@@ -792,10 +377,24 @@ insertObject (CompObject *object,
 }
 
 static void
+noopInsertObject (CompObject *object,
+		  CompObject *parent,
+		  const char *name)
+{
+    FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
+}
+
+static void
 removeObject (CompObject *object)
 {
     object->parent = NULL;
     object->name   = NULL;
+}
+
+static void
+noopRemoveObject (CompObject *object)
+{
+    FOR_BASE (object, (*object->vTable->removeObject) (object));
 }
 
 static void
@@ -811,6 +410,12 @@ inserted (CompObject *object)
 }
 
 static void
+noopInserted (CompObject *object)
+{
+    FOR_BASE (object, (*object->vTable->inserted) (object));
+}
+
+static void
 removed (CompObject *object)
 {
     int i;
@@ -820,6 +425,12 @@ removed (CompObject *object)
 
     C_EMIT_SIGNAL_INT (object, RemovedProc, 0, object->signalVec,
 		       &removedSignal);
+}
+
+static void
+noopRemoved (CompObject *object)
+{
+    FOR_BASE (object, (*object->vTable->removed) (object));
 }
 
 static CompBool
@@ -841,25 +452,18 @@ forEachInterface (CompObject	         *object,
 }
 
 static CompBool
-addChild (CompObject *object,
-	  CompObject *child,
-	  const char *name)
+noopForEachInterface (CompObject	    *object,
+		      InterfaceCallBackProc proc,
+		      void		    *closure)
 {
-    return FALSE;
-}
+    CompBool status;
 
-static void
-removeChild (CompObject *object,
-	     CompObject *child)
-{
-}
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachInterface) (object,
+							    proc,
+							    closure));
 
-static CompBool
-forEachChildObject (CompObject		     *object,
-		    ChildObjectCallBackProc proc,
-		    void		     *closure)
-{
-    return TRUE;
+    return status;
 }
 
 static CompBool
@@ -891,6 +495,23 @@ forEachMethod (CompObject	   *object,
 }
 
 static CompBool
+noopForEachMethod (CompObject	      *object,
+		   const char	      *interface,
+		   MethodCallBackProc proc,
+		   void		      *closure)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachMethod) (object,
+							 interface,
+							 proc,
+							 closure));
+
+    return status;
+}
+
+static CompBool
 forEachSignal (CompObject	   *object,
 	       const char	   *interface,
 	       SignalCallBackProc proc,
@@ -915,6 +536,23 @@ forEachSignal (CompObject	   *object,
     }
 
     return TRUE;
+}
+
+static CompBool
+noopForEachSignal (CompObject	      *object,
+		   const char	      *interface,
+		   SignalCallBackProc proc,
+		   void		      *closure)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachSignal) (object,
+							 interface,
+							 proc,
+							 closure));
+
+    return status;
 }
 
 static CompBool
@@ -955,6 +593,23 @@ forEachProp (CompObject       *object,
     return TRUE;
 }
 
+static CompBool
+noopForEachProp (CompObject	  *object,
+		 const char	  *interface,
+		 PropCallBackProc proc,
+		 void		  *closure)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachProp) (object,
+						       interface,
+						       proc,
+						       closure));
+
+    return status;
+}
+
 static void
 interfaceAdded (CompObject *object,
 		const char *interface)
@@ -962,6 +617,13 @@ interfaceAdded (CompObject *object,
     C_EMIT_SIGNAL_INT (object, InterfaceAddedProc, 0, object->signalVec,
 		       &interfaceAddedSignal,
 		       interface);
+}
+
+static void
+noopInterfaceAdded (CompObject *object,
+		    const char *interface)
+{
+    FOR_BASE (object, (*object->vTable->interfaceAdded) (object, interface));
 }
 
 static void
@@ -990,7 +652,8 @@ interfaceRemoved (CompObject *object,
 		{
 		    if (handler->object == object)
 		    {
-			if (strcmp (handler->header->interface, interface) == 0)
+			if (strcmp (handler->header->interface,
+				    interface) == 0)
 			{
 			    if (prev)
 			    {
@@ -1019,6 +682,70 @@ interfaceRemoved (CompObject *object,
     C_EMIT_SIGNAL_INT (object, InterfaceRemovedProc, 0, object->signalVec,
 		       &interfaceRemovedSignal,
 		       interface);
+}
+
+static void
+noopInterfaceRemoved (CompObject *object,
+		      const char *interface)
+{
+    FOR_BASE (object, (*object->vTable->interfaceRemoved) (object, interface));
+}
+
+static CompBool
+addChild (CompObject *object,
+	  CompObject *child,
+	  const char *name)
+{
+    return FALSE;
+}
+
+static CompBool
+noopAddChild (CompObject *object,
+	      CompObject *child,
+	      const char *name)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->addChild) (object, child, name));
+
+    return status;
+}
+
+static void
+removeChild (CompObject *object,
+	     CompObject *child)
+{
+}
+
+static void
+noopRemoveChild (CompObject *object,
+		 CompObject *child)
+{
+    FOR_BASE (object, (*object->vTable->removeChild) (object, child));
+}
+
+static CompBool
+forEachChildObject (CompObject		    *object,
+		    ChildObjectCallBackProc proc,
+		    void		    *closure)
+{
+    return TRUE;
+}
+
+static CompBool
+noopForEachChildObject (CompObject		*object,
+			ChildObjectCallBackProc proc,
+			void		        *closure)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachChildObject) (object,
+							      proc,
+							      closure));
+
+    return status;
 }
 
 static int
@@ -1143,6 +870,31 @@ connect (CompObject *object,
     return -1;
 }
 
+static int
+noopConnect (CompObject *object,
+	     const char *interface,
+	     size_t     offset,
+	     CompObject *descendant,
+	     const char *descendantInterface,
+	     size_t     descendantOffset,
+	     const char *details,
+	     va_list	args)
+{
+    int index;
+
+    FOR_BASE (object,
+	      index = (*object->vTable->signal.connect) (object,
+							 interface,
+							 offset,
+							 descendant,
+							 descendantInterface,
+							 descendantOffset,
+							 details,
+							 args));
+
+    return index;
+}
+
 static void
 disconnect (CompObject *object,
 	    const char *interface,
@@ -1154,6 +906,18 @@ disconnect (CompObject *object,
 		      interface,
 		      offset,
 		      id);
+}
+
+static void
+noopDisconnect (CompObject *object,
+		const char *interface,
+		size_t     offset,
+		int	   index)
+{
+    FOR_BASE (object, (*object->vTable->signal.disconnect) (object,
+							    interface,
+							    offset,
+							    index));
 }
 
 static void
@@ -1169,41 +933,47 @@ signal (CompObject   *object,
 		       path, interface, name, signature, value, nValue);
 }
 
-static CompBool
-getIntProp (CompObject *object,
-	     const char *interface,
-	     const char *name,
-	     int32_t    *value,
-	     char	**error)
-{
-    if (error)
-	*error = strdup ("No such int32 property");
-
-    return FALSE;
-}
-
-static CompBool
-setIntProp (CompObject *object,
-	    const char *interface,
-	    const char *name,
-	    int32_t    value,
-	    char       **error)
-{
-    if (error)
-	*error = strdup ("No such int32 property");
-
-    return FALSE;
-}
-
 static void
-intPropChanged (CompObject *object,
-		const char *interface,
-		const char *name,
-		int32_t    value)
+noopSignal (CompObject   *object,
+	    const char   *path,
+	    const char   *interface,
+	    const char   *name,
+	    const char   *signature,
+	    CompAnyValue *value,
+	    int	         nValue)
 {
-    C_EMIT_SIGNAL_INT (object, IntPropChangedProc, 0, object->signalVec,
-		       &intChangedSignal,
-		       interface, name, value);
+    FOR_BASE (object, (*object->vTable->signal.signal) (object,
+							path,
+							interface,
+							name,
+							signature,
+							value,
+							nValue));
+}
+
+static int
+getVersion (CompObject *object,
+	    const char *interface)
+{
+    int i;
+
+    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
+	if (strcmp (interface, objectInterface[i].name) == 0)
+	    return COMPIZ_OBJECT_VERSION;
+
+    return 0;
+}
+
+static int
+noopGetVersion (CompObject *object,
+		const char *interface)
+{
+    int result;
+
+    FOR_BASE (object,
+	      result = (*object->vTable->version.get) (object, interface));
+
+    return result;
 }
 
 static CompBool
@@ -1220,6 +990,25 @@ getBoolProp (CompObject *object,
 }
 
 static CompBool
+noopGetBoolProp (CompObject *object,
+		 const char *interface,
+		 const char *name,
+		 CompBool   *value,
+		 char	    **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.getBool) (object,
+							      interface,
+							      name,
+							      value,
+							      error));
+
+    return status;
+}
+
+static CompBool
 setBoolProp (CompObject *object,
 	     const char *interface,
 	     const char *name,
@@ -1232,6 +1021,25 @@ setBoolProp (CompObject *object,
     return FALSE;
 }
 
+static CompBool
+noopSetBoolProp (CompObject *object,
+		 const char *interface,
+		 const char *name,
+		 CompBool   value,
+		 char	    **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.setBool) (object,
+							      interface,
+							      name,
+							      value,
+							      error));
+
+    return status;
+}
+
 static void
 boolPropChanged (CompObject *object,
 		 const char *interface,
@@ -1241,6 +1049,105 @@ boolPropChanged (CompObject *object,
     C_EMIT_SIGNAL_INT (object, BoolPropChangedProc, 0, object->signalVec,
 		       &boolChangedSignal,
 		       interface, name, value);
+}
+
+static void
+noopBoolPropChanged (CompObject *object,
+		     const char *interface,
+		     const char *name,
+		     CompBool   value)
+{
+    FOR_BASE (object, (*object->vTable->properties.boolChanged) (object,
+								 interface,
+								 name,
+								 value));
+}
+
+static CompBool
+getIntProp (CompObject *object,
+	     const char *interface,
+	     const char *name,
+	     int32_t    *value,
+	     char	**error)
+{
+    if (error)
+	*error = strdup ("No such int32 property");
+
+    return FALSE;
+}
+
+static CompBool
+noopGetIntProp (CompObject *object,
+		const char *interface,
+		const char *name,
+		int32_t    *value,
+		char	   **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.getInt) (object,
+							     interface,
+							     name,
+							     value,
+							     error));
+
+    return status;
+}
+
+static CompBool
+setIntProp (CompObject *object,
+	    const char *interface,
+	    const char *name,
+	    int32_t    value,
+	    char       **error)
+{
+    if (error)
+	*error = strdup ("No such int32 property");
+
+    return FALSE;
+}
+
+static CompBool
+noopSetIntProp (CompObject *object,
+		const char *interface,
+		const char *name,
+		int32_t    value,
+		char	   **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.setInt) (object,
+							     interface,
+							     name,
+							     value,
+							     error));
+
+    return status;
+}
+
+static void
+intPropChanged (CompObject *object,
+		const char *interface,
+		const char *name,
+		int32_t    value)
+{
+    C_EMIT_SIGNAL_INT (object, IntPropChangedProc, 0, object->signalVec,
+		       &intChangedSignal,
+		       interface, name, value);
+}
+
+static void
+noopIntPropChanged (CompObject *object,
+		    const char *interface,
+		    const char *name,
+		    int32_t    value)
+{
+    FOR_BASE (object, (*object->vTable->properties.intChanged) (object,
+								interface,
+								name,
+								value));
 }
 
 static CompBool
@@ -1257,6 +1164,25 @@ getDoubleProp (CompObject *object,
 }
 
 static CompBool
+noopGetDoubleProp (CompObject *object,
+		   const char *interface,
+		   const char *name,
+		   double     *value,
+		   char	      **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.getDouble) (object,
+								interface,
+								name,
+								value,
+								error));
+
+    return status;
+}
+
+static CompBool
 setDoubleProp (CompObject *object,
 	       const char *interface,
 	       const char *name,
@@ -1269,6 +1195,25 @@ setDoubleProp (CompObject *object,
     return FALSE;
 }
 
+static CompBool
+noopSetDoubleProp (CompObject *object,
+		   const char *interface,
+		   const char *name,
+		   double     value,
+		   char	      **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.setDouble) (object,
+								interface,
+								name,
+								value,
+								error));
+
+    return status;
+}
+
 static void
 doublePropChanged (CompObject *object,
 		   const char *interface,
@@ -1278,6 +1223,18 @@ doublePropChanged (CompObject *object,
     C_EMIT_SIGNAL_INT (object, DoublePropChangedProc, 0, object->signalVec,
 		       &doubleChangedSignal,
 		       interface, name, value);
+}
+
+static void
+noopDoublePropChanged (CompObject *object,
+		       const char *interface,
+		       const char *name,
+		       double     value)
+{
+    FOR_BASE (object, (*object->vTable->properties.doubleChanged) (object,
+								   interface,
+								   name,
+								   value));
 }
 
 static CompBool
@@ -1294,6 +1251,25 @@ getStringProp (CompObject *object,
 }
 
 static CompBool
+noopGetStringProp (CompObject *object,
+		   const char *interface,
+		   const char *name,
+		   char       **value,
+		   char	      **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.getString) (object,
+								interface,
+								name,
+								value,
+								error));
+
+    return status;
+}
+
+static CompBool
 setStringProp (CompObject *object,
 	       const char *interface,
 	       const char *name,
@@ -1306,6 +1282,25 @@ setStringProp (CompObject *object,
     return FALSE;
 }
 
+static CompBool
+noopSetStringProp (CompObject *object,
+		   const char *interface,
+		   const char *name,
+		   const char *value,
+		   char	      **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->properties.setString) (object,
+								interface,
+								name,
+								value,
+								error));
+
+    return status;
+}
+
 static void
 stringPropChanged (CompObject *object,
 		   const char *interface,
@@ -1315,6 +1310,18 @@ stringPropChanged (CompObject *object,
     C_EMIT_SIGNAL_INT (object, StringPropChangedProc, 0, object->signalVec,
 		       &stringChangedSignal,
 		       interface, name, value);
+}
+
+static void
+noopStringPropChanged (CompObject *object,
+		       const char *interface,
+		       const char *name,
+		       const char *value)
+{
+    FOR_BASE (object, (*object->vTable->properties.stringChanged) (object,
+								   interface,
+								   name,
+								   value));
 }
 
 static CompBool
@@ -1331,6 +1338,23 @@ getMetadata (CompObject *object,
 
     esprintf (error, "No \"%s\" interface", interface);
     return FALSE;
+}
+
+static CompBool
+noopGetMetadata (CompObject *object,
+		 const char *interface,
+		 char       **data,
+		 char	    **error)
+{
+    CompBool status;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->metadata.get) (object,
+							interface,
+							data,
+							error));
+
+    return status;
 }
 
 static const CompObjectVTable objectVTable = {
@@ -1380,30 +1404,6 @@ static const CompObjectVTable objectVTable = {
 
     .metadata.get = getMetadata
 };
-
-static CompBool
-initObject (const CompObjectInstantiator *instantiator,
-	    CompObject			 *object,
-	    const CompObjectFactory	 *factory)
-{
-    const CompObjectInstantiatorNode *node =
-	(const CompObjectInstantiatorNode *) instantiator;
-
-    object->privates = allocatePrivates (node->privates.len,
-					 node->privates.sizes,
-					 node->privates.totalSize);
-    if (!object->privates)
-	return FALSE;
-
-    object->vTable    = instantiator->vTable;
-    object->parent    = NULL;
-    object->name      = NULL;
-    object->signalVec = NULL;
-
-    object->id = ~0; /* XXX: remove id asap */
-
-    return TRUE;
-}
 
 static const CompObjectVTable noopObjectVTable = {
     .finalize = noopFinalize,
@@ -1483,32 +1483,6 @@ getObjectType (void)
     }
 
     return &objectType;
-}
-
-int
-compObjectAllocatePrivateIndex (const CompObjectType *type,
-				int	             size)
-{
-    const CompObjectFactory *f;
-    CompFactory		    *factory;
-
-    for (f = &core.u.base.factory; f->master; f = f->master);
-    factory = (CompFactory *) f;
-
-    return (*factory->allocatePrivateIndex) (factory, type->name.name, size);
-}
-
-void
-compObjectFreePrivateIndex (const CompObjectType *type,
-			    int	                 index)
-{
-    const CompObjectFactory *f;
-    CompFactory		    *factory;
-
-    for (f = &core.u.base.factory; f->master; f = f->master);
-    factory = (CompFactory *) f;
-
-    return (*factory->freePrivateIndex) (factory, type->name.name, index);
 }
 
 typedef struct _ForInterfaceContext {
@@ -1634,21 +1608,8 @@ compObjectCheckVersion (CompObject *object,
 			   interface,
 			   getInterfaceVersion,
 			   (void *) &v))
-    {
-	if (v != version)
-	{
-	    compLogMessage (NULL, "core", CompLogLevelError,
-			    "wrong '%s' interface version", interface);
-	    return FALSE;
-	}
-    }
-    else
-    {
-	compLogMessage (NULL, "core", CompLogLevelError,
-			"no '%s' interface available", interface);
-
-	return FALSE;
-    }
+	if (v == version)
+	    return TRUE;
 
     return TRUE;
 }
