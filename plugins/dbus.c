@@ -89,6 +89,9 @@ dbusGetPath (const char *path)
 {
     char *dbusPath;
 
+    if (!*path)
+	return strdup (COMPIZ_DBUS_PATH_ROOT);
+
     dbusPath = malloc (strlen (COMPIZ_DBUS_PATH_ROOT) + strlen (path) + 2);
     if (!dbusPath)
 	return NULL;
