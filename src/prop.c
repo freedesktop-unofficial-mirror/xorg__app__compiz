@@ -211,17 +211,21 @@ getPropObjectTypes (int *n)
 		.name.base   = OBJECT_TYPE_NAME,
 		.vTable.impl = &propObjectVTable
 	    }, {
-		.name.name   = BOOL_PROP_TYPE_NAME,
-		.vTable.impl = &boolPropObjectVTable
+		.name.name     = BOOL_PROP_TYPE_NAME,
+		.vTable.impl   = &boolPropObjectVTable,
+		.instance.size = sizeof (CompBoolProp)
 	    }, {
-		.name.name   = INT_PROP_TYPE_NAME,
-		.vTable.impl = &intPropObjectVTable
+		.name.name     = INT_PROP_TYPE_NAME,
+		.vTable.impl   = &intPropObjectVTable,
+		.instance.size = sizeof (CompIntProp)
 	    }, {
-		.name.name   = DOUBLE_PROP_TYPE_NAME,
-		.vTable.impl = &doublePropObjectVTable
+		.name.name     = DOUBLE_PROP_TYPE_NAME,
+		.vTable.impl   = &doublePropObjectVTable,
+		.instance.size = sizeof (CompDoubleProp)
 	    }, {
-		.name.name   = STRING_PROP_TYPE_NAME,
-		.vTable.impl = &stringPropObjectVTable
+		.name.name     = STRING_PROP_TYPE_NAME,
+		.vTable.impl   = &stringPropObjectVTable,
+		.instance.size = sizeof (CompStringProp)
 	    }
 	};
 

@@ -103,11 +103,11 @@ getBranchObjectType (void)
     if (!type)
     {
 	static const CompObjectType template = {
-	    .name.name   = BRANCH_TYPE_NAME,
-	    .vTable.impl = &branchObjectVTable.base,
-	    .vTable.noop = &noopBranchObjectVTable.base,
-	    .vTable.size = sizeof (branchObjectVTable),
-	    .init	 = branchInitObject
+	    .name.name     = BRANCH_TYPE_NAME,
+	    .vTable.impl   = &branchObjectVTable.base,
+	    .vTable.noop   = &noopBranchObjectVTable.base,
+	    .vTable.size   = sizeof (branchObjectVTable),
+	    .instance.init = branchInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);

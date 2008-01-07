@@ -2420,11 +2420,11 @@ getDisplayObjectType (void)
     if (!type)
     {
 	static const CompObjectType template = {
-	    .name.name   = DISPLAY_TYPE_NAME,
-	    .vTable.impl = &displayObjectVTable.base,
-	    .vTable.noop = &noopDisplayObjectVTable.base,
-	    .vTable.size = sizeof (displayObjectVTable),
-	    .init	 = displayInitObject,
+	    .name.name     = DISPLAY_TYPE_NAME,
+	    .vTable.impl   = &displayObjectVTable.base,
+	    .vTable.noop   = &noopDisplayObjectVTable.base,
+	    .vTable.size   = sizeof (displayObjectVTable),
+	    .instance.init = displayInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);

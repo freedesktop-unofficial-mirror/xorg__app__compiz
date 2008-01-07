@@ -238,7 +238,7 @@ compFactoryRegisterType (CompObjectFactory    *factory,
 
     node->base.base	     = &base->base;
     node->base.vTable        = NULL;
-    node->base.init	     = type->init;
+    node->base.init	     = type->instance.init;
     node->next		     = factory->instantiators;
     node->instantiator	     = &node->base;
     node->type		     = type;
@@ -1451,11 +1451,12 @@ static const CompObjectVTable noopObjectVTable = {
 };
 
 static const CompObjectType objectType = {
-    .name.name   = OBJECT_TYPE_NAME,
-    .vTable.impl = &objectVTable,
-    .vTable.noop = &noopObjectVTable,
-    .vTable.size = sizeof (objectVTable),
-    .init	 = initObject
+    .name.name     = OBJECT_TYPE_NAME,
+    .vTable.impl   = &objectVTable,
+    .vTable.noop   = &noopObjectVTable,
+    .vTable.size   = sizeof (objectVTable),
+    .instance.init = initObject,
+    .instance.size = sizeof (CompObject)
 };
 
 const CompObjectType *

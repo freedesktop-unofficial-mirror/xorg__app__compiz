@@ -2359,7 +2359,8 @@ cObjectTypeFromTemplate (const CompObjectType *template)
     type->vTable.impl = NULL;
     type->vTable.noop = NULL;
 
-    type->init = cObjectInit;
+    type->instance.init = cObjectInit;
+    type->instance.size = template->instance.size;
 
     if (template->name.base)
 	type->name.base = strcpy ((char *) (type + 1) + nameSize,
@@ -2385,8 +2386,8 @@ cObjectTypeFromTemplate (const CompObjectType *template)
 	type->vTable.noop = memcpy ((char *) vTable + vTableSize,
 				    template->vTable.noop, vTableSize);
 
-    if (template->init)
-	type->init = template->init;
+    if (template->instance.init)
+	type->instance.init = template->instance.init;
 
     return type;
 }

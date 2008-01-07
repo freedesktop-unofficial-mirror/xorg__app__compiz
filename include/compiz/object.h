@@ -78,7 +78,10 @@ struct _CompObjectType {
 	size_t		       size;
     } vTable;
 
-    InitObjectProc init;
+    struct {
+	InitObjectProc init;
+	size_t	       size;
+    } instance;
 };
 
 struct _CompObjectInstantiator {

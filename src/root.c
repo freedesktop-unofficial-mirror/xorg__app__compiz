@@ -198,11 +198,11 @@ static CompRootVTable rootObjectVTable = {
 };
 
 static const CompObjectType rootObjectType = {
-    .name.name   = ROOT_TYPE_NAME,
-    .name.base   = OBJECT_TYPE_NAME,
-    .vTable.impl = &rootObjectVTable.base,
-    .vTable.size = sizeof (rootObjectVTable),
-    .init	 = rootInitObject
+    .name.name     = ROOT_TYPE_NAME,
+    .name.base     = OBJECT_TYPE_NAME,
+    .vTable.impl   = &rootObjectVTable.base,
+    .vTable.size   = sizeof (rootObjectVTable),
+    .instance.init = rootInitObject
 };
 
 const CompObjectType *

@@ -311,12 +311,12 @@ getCoreObjectType (void)
     if (!type)
     {
 	static const CompObjectType template = {
-	    .name.name   = CORE_TYPE_NAME,
-	    .name.base   = BRANCH_TYPE_NAME,
-	    .vTable.impl = &coreObjectVTable.base.base,
-	    .vTable.noop = &noopCoreObjectVTable.base.base,
-	    .vTable.size = sizeof (coreObjectVTable),
-	    .init	 = coreInitObject
+	    .name.name     = CORE_TYPE_NAME,
+	    .name.base     = BRANCH_TYPE_NAME,
+	    .vTable.impl   = &coreObjectVTable.base.base,
+	    .vTable.noop   = &noopCoreObjectVTable.base.base,
+	    .vTable.size   = sizeof (coreObjectVTable),
+	    .instance.init = coreInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);

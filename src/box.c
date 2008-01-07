@@ -63,8 +63,9 @@ getBoxObjectType (void)
     if (!type)
     {
 	static const CompObjectType template = {
-	    .name.name   = BOX_TYPE_NAME,
-	    .vTable.impl = &boxObjectVTable
+	    .name.name     = BOX_TYPE_NAME,
+	    .vTable.impl   = &boxObjectVTable,
+	    .instance.size = sizeof (CompBox)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
