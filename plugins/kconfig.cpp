@@ -351,6 +351,7 @@ kconfigGetProp (CompObject   *object,
 	N_ELEMENTS (kconfigCoreInterface),
 	kconfigInitCore,
 	kconfigFiniCore,
+	NULL, NULL,
 	COMPIZ_KCONFIG_VERSION
     };
 
