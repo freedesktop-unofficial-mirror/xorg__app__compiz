@@ -34,10 +34,9 @@
 #define CHILD(data, child)				   \
     ((CompObject *) (((char *) (data)) + (child)->offset))
 
-void
-cInsertObject (CompObject *object,
-	       CompObject *parent,
-	       const char *name)
+static void
+cInsertObjectInterface (CompObject *object,
+			CompObject *parent)
 {
     CompObject *child;
     CMetadata  m;
@@ -46,8 +45,6 @@ cInsertObject (CompObject *object,
 
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
-
-    FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
 
     if (m.insert)
 	(*m.insert) (object, parent);
@@ -67,7 +64,17 @@ cInsertObject (CompObject *object,
 }
 
 void
-cRemoveObject (CompObject *object)
+cInsertObject (CompObject *object,
+	       CompObject *parent,
+	       const char *name)
+{
+    FOR_BASE (object, (*object->vTable->insertObject) (object, parent, name));
+
+    cInsertObjectInterface (object, parent);
+}
+
+static void
+cRemoveObjectInterface (CompObject *object)
 {
     CompObject *child;
     CMetadata  m;
@@ -91,6 +98,12 @@ cRemoveObject (CompObject *object)
 
     if (m.remove)
 	(*m.remove) (object);
+}
+
+void
+cRemoveObject (CompObject *object)
+{
+    cRemoveObjectInterface (object);
 
     FOR_BASE (object, (*object->vTable->removeObject) (object));
 }
