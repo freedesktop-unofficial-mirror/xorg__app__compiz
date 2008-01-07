@@ -2781,6 +2781,11 @@ addDisplayOld (CompCore   *c,
 
     addDisplayToCore (c, d);
 
+    d->watchFdHandle = compAddWatchFd (ConnectionNumber (d->display), POLLIN,
+				       NULL, NULL);
+
+    d->pingHandle = compAddTimeout (d->data.pingDelay, pingTimeout, d);
+
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&d->u.base));
 
@@ -2830,8 +2835,6 @@ addDisplayOld (CompCore   *c,
 			"No manageable screens found for display %d on "
 			"host %s", displayNum, hostName);
 
-    setAudibleBell (d, d->data.audibleBell);
-
     XGetInputFocus (dpy, &focus, &revertTo);
 
     /* move input focus to root window so that we get a FocusIn event when
@@ -2856,11 +2859,6 @@ addDisplayOld (CompCore   *c,
 	else
 	    focusDefaultWindow (d->screens);
     }
-
-    d->watchFdHandle = compAddWatchFd (ConnectionNumber (d->display), POLLIN,
-				       NULL, NULL);
-
-    d->pingHandle = compAddTimeout (d->data.pingDelay, pingTimeout, d);
 
     return TRUE;
 }
