@@ -53,6 +53,10 @@ typedef struct _CSignal {
 #define C_SIGNAL(name, out, vtable)		      \
     { # name, out, offsetof (vtable, name), 0, NULL }
 
+typedef CompBool (*CSetBoolPropProc) (CompObject *object,
+				      CompBool   value,
+				      char	 **error);
+
 typedef struct _CProp {
     const char *name;
     size_t     offset;
@@ -66,9 +70,13 @@ typedef struct _CBoolProp {
 
     CompBool defaultValue;
 
-    SetBoolPropProc     set;
+    CSetBoolPropProc    set;
     BoolPropChangedProc changed;
 } CBoolProp;
+
+typedef CompBool (*CSetIntPropProc) (CompObject *object,
+				     int32_t    value,
+				     char	**error);
 
 typedef struct _CIntProp {
     CProp base;
@@ -79,12 +87,16 @@ typedef struct _CIntProp {
 
     int32_t defaultValue;
 
-    SetIntPropProc     set;
+    CSetIntPropProc    set;
     IntPropChangedProc changed;
 } CIntProp;
 
 #define C_INT_PROP(name, object, min, max, ...)				 \
     { { # name, offsetof (object, name) }, TRUE, min, max, __VA_ARGS__ }
+
+typedef CompBool (*CSetDoublePropProc) (CompObject *object,
+					double     value,
+					char	   **error);
 
 typedef struct _CDoubleProp {
     CProp base;
@@ -96,7 +108,7 @@ typedef struct _CDoubleProp {
 
     double defaultValue;
 
-    SetDoublePropProc     set;
+    CSetDoublePropProc    set;
     DoublePropChangedProc changed;
 } CDoubleProp;
 
@@ -104,13 +116,17 @@ typedef struct _CDoubleProp {
     { { # name, offsetof (object, name) },		      \
 	    TRUE, min, max, precision,  __VA_ARGS__ }
 
+typedef CompBool (*CSetStringPropProc) (CompObject *object,
+					const char *value,
+					char	   **error);
+
 typedef struct _CStringProp {
     CProp base;
 
     const char *defaultValue;
     char       *data;
 
-    SetStringPropProc     set;
+    CSetStringPropProc    set;
     StringPropChangedProc changed;
 } CStringProp;
 

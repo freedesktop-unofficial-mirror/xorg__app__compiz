@@ -771,7 +771,7 @@ handleSetBoolProp (CompObject	   *object,
 
     if (prop->set)
     {
-	if (!(*prop->set) (object, interface, name, value, error))
+	if (!(*prop->set) (object, value, error))
 	    return FALSE;
     }
     else
@@ -909,7 +909,7 @@ handleSetIntProp (CompObject	 *object,
 
     if (prop->set)
     {
-	if (!(*prop->set) (object, interface, name, value, error))
+	if (!(*prop->set) (object, value, error))
 	    return FALSE;
     }
     else
@@ -1067,7 +1067,7 @@ handleSetDoubleProp (CompObject	       *object,
 
     if (prop->set)
     {
-	if (!(*prop->set) (object, interface, name, value, error))
+	if (!(*prop->set) (object, value, error))
 	    return FALSE;
     }
     else
@@ -1235,7 +1235,7 @@ handleSetStringProp (CompObject	       *object,
 
     if (prop->set)
     {
-	if (!(*prop->set) (object, interface, name, value, error))
+	if (!(*prop->set) (object, value, error))
 	    return FALSE;
     }
     else
