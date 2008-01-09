@@ -155,21 +155,15 @@ pingTimeout (void *closure)
 }
 
 static void
-audibleBellChanged (CompObject *object,
-		    const char *interface,
-		    const char *name,
-		    CompBool   value)
+audibleBellChanged (CompObject *object)
 {
     DISPLAY (object);
 
-    setAudibleBell (d, value);
+    setAudibleBell (d, d->data.audibleBell);
 }
 
 static void
-filterChanged (CompObject *object,
-	       const char *interface,
-	       const char *name,
-	       int32_t    value)
+filterChanged (CompObject *object)
 {
     CompScreen *s;
 
@@ -178,24 +172,21 @@ filterChanged (CompObject *object,
     for (s = d->screens; s; s = s->next)
 	damageScreen (s);
 
-    if (!value)
+    if (!d->data.filter)
 	d->textureFilter = GL_NEAREST;
     else
 	d->textureFilter = GL_LINEAR;
 }
 
 static void
-pingChanged (CompObject *object,
-	     const char *interface,
-	     const char *name,
-	     int32_t    value)
+pingChanged (CompObject *object)
 {
     DISPLAY (object);
 
     if (d->pingHandle)
 	compRemoveTimeout (d->pingHandle);
 
-    d->pingHandle = compAddTimeout (value, pingTimeout, d);
+    d->pingHandle = compAddTimeout (d->data.pingDelay, pingTimeout, d);
 }
 
 static const CMethod displayTypeMethod[] = {

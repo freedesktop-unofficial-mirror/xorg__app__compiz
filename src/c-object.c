@@ -835,10 +835,7 @@ cBoolPropChanged (CompObject *object,
 	    for (j = 0; j < m.interface[i].nBoolProp; j++)
 		if (strcmp (name, m.interface[i].boolProp[j].base.name) == 0)
 		    if (m.interface[i].boolProp[j].changed)
-			(*m.interface[i].boolProp[j].changed) (object,
-							       interface,
-							       name,
-							       value);
+			(*m.interface[i].boolProp[j].changed) (object);
 
     FOR_BASE (object, (*object->vTable->properties.boolChanged) (object,
 								 interface,
@@ -993,10 +990,7 @@ cIntPropChanged (CompObject *object,
 	    for (j = 0; j < m.interface[i].nIntProp; j++)
 		if (strcmp (name, m.interface[i].intProp[j].base.name) == 0)
 		    if (m.interface[i].intProp[j].changed)
-			(*m.interface[i].intProp[j].changed) (object,
-							      interface,
-							      name,
-							      value);
+			(*m.interface[i].intProp[j].changed) (object);
 
     FOR_BASE (object, (*object->vTable->properties.intChanged) (object,
 								interface,
@@ -1151,10 +1145,7 @@ cDoublePropChanged (CompObject *object,
 	    for (j = 0; j < m.interface[i].nDoubleProp; j++)
 		if (strcmp (name, m.interface[i].doubleProp[j].base.name) == 0)
 		    if (m.interface[i].doubleProp[j].changed)
-			(*m.interface[i].doubleProp[j].changed) (object,
-								 interface,
-								 name,
-								 value);
+			(*m.interface[i].doubleProp[j].changed) (object);
 
     FOR_BASE (object, (*object->vTable->properties.doubleChanged) (object,
 								   interface,
@@ -1314,10 +1305,7 @@ cStringPropChanged (CompObject *object,
 	    for (j = 0; j < m.interface[i].nStringProp; j++)
 		if (strcmp (name, m.interface[i].stringProp[j].base.name) == 0)
 		    if (m.interface[i].stringProp[j].changed)
-			(*m.interface[i].stringProp[j].changed) (object,
-								 interface,
-								 name,
-								 value);
+			(*m.interface[i].stringProp[j].changed) (object);
 
     FOR_BASE (object, (*object->vTable->properties.stringChanged) (object,
 								   interface,

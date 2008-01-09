@@ -349,10 +349,7 @@ setVirtualScreenSize (CompScreen *screen,
 }
 
 static void
-detectOutputsChanged (CompObject *object,
-		      const char *interface,
-		      const char *name,
-		      CompBool   value)
+detectOutputsChanged (CompObject *object)
 {
     SCREEN (object);
 
@@ -360,19 +357,13 @@ detectOutputsChanged (CompObject *object,
 }
 
 static void
-detectRefreshRateChanged (CompObject *object,
-			  const char *interface,
-			  const char *name,
-			  CompBool   value)
+detectRefreshRateChanged (CompObject *object)
 {
     detectRefreshRateOfScreen (GET_SCREEN (object));
 }
 
 static void
-virtualSizeChanged (CompObject *object,
-		    const char *interface,
-		    const char *name,
-		    int32_t    value)
+virtualSizeChanged (CompObject *object)
 {
     int vSize, hSize;
 
@@ -390,28 +381,21 @@ virtualSizeChanged (CompObject *object,
 }
 
 static void
-numberOfDesktopsChanged (CompObject *object,
-			 const char *interface,
-			 const char *name,
-			 CompBool   value)
+numberOfDesktopsChanged (CompObject *object)
 {
-    setNumberOfDesktops (GET_SCREEN (object), value);
+    SCREEN (object);
+
+    setNumberOfDesktops (s, s->data.numberOfDesktops);
 }
 
 static void
-refreshRateChanged (CompObject *object,
-		    const char *interface,
-		    const char *name,
-		    int32_t    value)
+refreshRateChanged (CompObject *object)
 {
     detectRefreshRateOfScreen (GET_SCREEN (object));
 }
 
 static void
-defaultIconChanged (CompObject *object,
-		    const char *interface,
-		    const char *name,
-		    const char *value)
+defaultIconChanged (CompObject *object)
 {
     updateDefaultIcon (GET_SCREEN (object));
 }
