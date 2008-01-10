@@ -71,17 +71,6 @@ int lastPointerY = 0;
 int pointerX     = 0;
 int pointerY     = 0;
 
-static void
-setAudibleBell (CompDisplay *display,
-		Bool	    audible)
-{
-    if (display->xkbExtension)
-	XkbChangeEnabledControls (display->display,
-				  XkbUseCoreKbd,
-				  XkbAudibleBellMask,
-				  audible ? XkbAudibleBellMask : 0);
-}
-
 static Bool
 pingTimeout (void *closure)
 {
@@ -159,7 +148,12 @@ audibleBellChanged (CompObject *object)
 {
     DISPLAY (object);
 
-    setAudibleBell (d, d->data.audibleBell);
+    if (d->xkbExtension)
+	XkbChangeEnabledControls (d->display,
+				  XkbUseCoreKbd,
+				  XkbAudibleBellMask,
+				  d->data.audibleBell ?
+				  XkbAudibleBellMask : 0);
 }
 
 static void
