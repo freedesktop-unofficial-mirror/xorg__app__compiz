@@ -444,7 +444,7 @@ updateOutputDevices (CompScreen *s)
 }
 
 static void
-noopScreenUpdateOutputDevices (CompScreen *s)
+noopUpdateOutputDevices (CompScreen *s)
 {
     FOR_BASE (&s->u.base, (*s->u.vTable->updateOutputDevices) (s));
 }
@@ -1575,7 +1575,7 @@ static const CompScreenVTable screenObjectVTable = {
 };
 
 static const CompScreenVTable noopScreenObjectVTable = {
-    .updateOutputDevices = noopScreenUpdateOutputDevices
+    .updateOutputDevices = noopUpdateOutputDevices
 };
 
 const CompObjectType *
