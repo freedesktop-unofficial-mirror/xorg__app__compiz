@@ -132,14 +132,26 @@ typedef struct _CStringProp {
     CPropChangedProc   changed;
 } CStringProp;
 
-typedef struct _CChildObject {
-    const char *name;
+typedef struct _CSignalHandler {
     size_t     offset;
-    const char *type;
+    const char *interface;
+    const char *name;
+    const char *path;
+} CSignalHandler;
+
+#define C_SIGNAL_HANDLER(method, vtable, interface, name, ...)	 \
+    { offsetof (vtable, method), interface, name,  __VA_ARGS__ }
+
+typedef struct _CChildObject {
+    const char	   *name;
+    size_t	   offset;
+    const char	   *type;
+    CSignalHandler *signal;
+    int		   nSignal;
 } CChildObject;
 
-#define C_CHILD(name, object, type)	      \
-    { # name, offsetof (object, name), type }
+#define C_CHILD(name, object, type, ...)		    \
+    { # name, offsetof (object, name), type,  __VA_ARGS__ }
 
 typedef struct _CInterface {
     const char		 *name;
