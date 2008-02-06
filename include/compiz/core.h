@@ -2079,13 +2079,7 @@ typedef struct _CompActiveWindowHistory {
 
 #define N_SELECTIONS 2
 
-typedef void (*UpdateOutputDevicesProc) (CompScreen   *s,
-					 const char   *path,
-					 const char   *interface,
-					 const char   *name,
-					 const char   *signature,
-					 CompAnyValue *value,
-					 int	      nValue);
+typedef void (*UpdateOutputDevicesProc) (CompScreen *s);
 
 typedef struct _CompScreenVTable {
     CompObjectVTable        base;

@@ -47,7 +47,220 @@
 
 #include <compiz/core.h>
 #include <compiz/c-object.h>
+#include <compiz/marshal.h>
 #include <compiz/error.h>
+
+static Bool
+desktopHintEqual (CompScreen	*s,
+		  unsigned long *data,
+		  int		size,
+		  int		offset,
+		  int		hintSize)
+{
+    if (size != s->desktopHintSize)
+	return FALSE;
+
+    if (memcmp (data + offset,
+		s->desktopHintData + offset,
+		hintSize * sizeof (unsigned long)) == 0)
+	return TRUE;
+
+    return FALSE;
+}
+
+static void
+setDesktopHints (CompScreen *s)
+{
+    CompDisplay   *d = s->display;
+    unsigned long *data;
+    int		  size, offset, hintSize, i;
+
+    size = s->nDesktop * 2 + s->nDesktop * 2 + s->nDesktop * 4 + 1;
+
+    data = malloc (sizeof (unsigned long) * size);
+    if (!data)
+	return;
+
+    offset   = 0;
+    hintSize = s->nDesktop * 2;
+
+    for (i = 0; i < s->nDesktop; i++)
+    {
+	data[offset + i * 2 + 0] = s->x * s->width;
+	data[offset + i * 2 + 1] = s->y * s->height;
+    }
+
+    if (!desktopHintEqual (s, data, size, offset, hintSize))
+	XChangeProperty (d->display, s->root, d->desktopViewportAtom,
+			 XA_CARDINAL, 32, PropModeReplace,
+			 (unsigned char *) &data[offset], hintSize);
+
+    offset += hintSize;
+
+    for (i = 0; i < s->nDesktop; i++)
+    {
+	data[offset + i * 2 + 0] = s->width  * s->hsize;
+	data[offset + i * 2 + 1] = s->height * s->vsize;
+    }
+
+    if (!desktopHintEqual (s, data, size, offset, hintSize))
+	XChangeProperty (d->display, s->root, d->desktopGeometryAtom,
+			 XA_CARDINAL, 32, PropModeReplace,
+			 (unsigned char *) &data[offset], hintSize);
+
+    offset += hintSize;
+    hintSize = s->nDesktop * 4;
+
+    for (i = 0; i < s->nDesktop; i++)
+    {
+	data[offset + i * 4 + 0] = s->workArea.x;
+	data[offset + i * 4 + 1] = s->workArea.y;
+	data[offset + i * 4 + 2] = s->workArea.width;
+	data[offset + i * 4 + 3] = s->workArea.height;
+    }
+
+    if (!desktopHintEqual (s, data, size, offset, hintSize))
+	XChangeProperty (d->display, s->root, d->workareaAtom,
+			 XA_CARDINAL, 32, PropModeReplace,
+			 (unsigned char *) &data[offset], hintSize);
+
+    offset += hintSize;
+
+    data[offset] = s->nDesktop;
+    hintSize = 1;
+
+    if (!desktopHintEqual (s, data, size, offset, hintSize))
+	XChangeProperty (d->display, s->root, d->numberOfDesktopsAtom,
+			 XA_CARDINAL, 32, PropModeReplace,
+			 (unsigned char *) &data[offset], hintSize);
+
+    if (s->desktopHintData)
+	free (s->desktopHintData);
+
+    s->desktopHintData = data;
+    s->desktopHintSize = size;
+}
+
+static void
+setVirtualScreenSize (CompScreen *screen,
+		      int	 hsize,
+		      int	 vsize)
+{
+    screen->hsize = hsize;
+    screen->vsize = vsize;
+
+    setDesktopHints (screen);
+}
+
+static void
+detectOutputsChanged (CompObject *object)
+{
+    SCREEN (object);
+
+    (*s->u.vTable->updateOutputDevices) (s);
+}
+
+static void
+detectRefreshRateChanged (CompObject *object)
+{
+    detectRefreshRateOfScreen (GET_SCREEN (object));
+}
+
+static void
+virtualSizeChanged (CompObject *object)
+{
+    int vSize, hSize;
+
+    SCREEN (object);
+
+    hSize = s->data.hSize;
+    while ((hSize * s->width) > MAXSHORT)
+	hSize--;
+
+    vSize = s->data.vSize;
+    while ((vSize * s->height) > MAXSHORT)
+	vSize--;
+
+    setVirtualScreenSize (s, hSize, vSize);
+}
+
+static void
+numberOfDesktopsChanged (CompObject *object)
+{
+    SCREEN (object);
+
+    setNumberOfDesktops (s, s->data.numberOfDesktops);
+}
+
+static void
+refreshRateChanged (CompObject *object)
+{
+    detectRefreshRateOfScreen (GET_SCREEN (object));
+}
+
+static void
+defaultIconChanged (CompObject *object)
+{
+    updateDefaultIcon (GET_SCREEN (object));
+}
+
+static const CMethod screenTypeMethod[] = {
+    C_METHOD (updateOutputDevices, "", "", CompScreenVTable, marshal____)
+};
+
+static CBoolProp screenTypeBoolProp[] = {
+    C_PROP (detectOutputs, CompScreenData, .changed = detectOutputsChanged),
+    C_PROP (detectRefreshRate, CompScreenData,
+	    .changed = detectRefreshRateChanged),
+    C_PROP (lighting, CompScreenData),
+    C_PROP (syncToVBlank, CompScreenData),
+    C_PROP (unredirectFullscreenWindows, CompScreenData)
+};
+
+static CIntProp screenTypeIntProp[] = {
+    C_INT_PROP (hSize, CompScreenData, 1, 32, .changed = virtualSizeChanged),
+    C_INT_PROP (numberOfDesktops, CompScreenData, 1, 36,
+		.changed = numberOfDesktopsChanged),
+    C_INT_PROP (opacityStep, CompScreenData, 1, 50),
+    C_INT_PROP (refreshRate, CompScreenData, 1, 200,
+		.changed = refreshRateChanged),
+    C_INT_PROP (vSize, CompScreenData, 1, 32, .changed = virtualSizeChanged)
+};
+
+static CStringProp screenTypeStringProp[] = {
+    C_PROP (defaultIconImage, CompScreenData, .changed = defaultIconChanged)
+};
+
+static CSignalHandler outputsSignal[] = {
+    C_SIGNAL_HANDLER (updateOutputDevices, CompScreenVTable, "object", "removed"),
+    C_SIGNAL_HANDLER (updateOutputDevices, CompScreenVTable,
+		      "properties", "intChanged"),
+};
+
+static CChildObject screenTypeChildObject[] = {
+    C_CHILD (windows, CompScreenData, CONTAINER_TYPE_NAME),
+    C_CHILD (outputs, CompScreenData, CONTAINER_TYPE_NAME,
+	     .signal  = outputsSignal,
+	     .nSignal = N_ELEMENTS (outputsSignal))
+};
+
+static CInterface screenInterface[] = {
+    C_INTERFACE (screen, Type, CompObjectVTable, _, X, _, X, X, _, X, X)
+};
+
+static void
+screenGetProp (CompObject   *object,
+	       unsigned int what,
+	       void	    *value)
+{
+    static const CMetadata template = {
+	.interface  = screenInterface,
+	.nInterface = N_ELEMENTS (screenInterface),
+	.version    = COMPIZ_SCREEN_VERSION
+    };
+
+    cGetObjectProp (&GET_SCREEN (object)->data.base, &template, what, value);
+}
 
 static void
 addOutputDevice (CompScreen *s,
@@ -86,17 +299,13 @@ addOutputDevice (CompScreen *s,
 }
 
 static void
-screenUpdateOutputDevices (CompScreen   *s,
-			   const char   *path,
-			   const char   *interface,
-			   const char   *name,
-			   const char   *signature,
-			   CompAnyValue *value,
-			   int	        nValue)
+updateOutputDevices (CompScreen *s)
 {
     CompOutput *output = NULL;
     int	       i, nOutput = 0;
     Region     region;
+
+    printf ("updateOutputDevices: %d\n", s->data.outputs.nItem);
 
     if (!noDetection && s->data.detectOutputs)
     {
@@ -235,252 +444,9 @@ screenUpdateOutputDevices (CompScreen   *s,
 }
 
 static void
-noopScreenUpdateOutputDevices (CompScreen   *s,
-			       const char   *path,
-			       const char   *interface,
-			       const char   *name,
-			       const char   *signature,
-			       CompAnyValue *value,
-			       int	    nValue)
+noopScreenUpdateOutputDevices (CompScreen *s)
 {
-    FOR_BASE (&s->u.base, (*s->u.vTable->updateOutputDevices) (s, 0, 0, 0, 0, 0, 0));
-}
-
-static Bool
-desktopHintEqual (CompScreen	*s,
-		  unsigned long *data,
-		  int		size,
-		  int		offset,
-		  int		hintSize)
-{
-    if (size != s->desktopHintSize)
-	return FALSE;
-
-    if (memcmp (data + offset,
-		s->desktopHintData + offset,
-		hintSize * sizeof (unsigned long)) == 0)
-	return TRUE;
-
-    return FALSE;
-}
-
-static void
-setDesktopHints (CompScreen *s)
-{
-    CompDisplay   *d = s->display;
-    unsigned long *data;
-    int		  size, offset, hintSize, i;
-
-    size = s->nDesktop * 2 + s->nDesktop * 2 + s->nDesktop * 4 + 1;
-
-    data = malloc (sizeof (unsigned long) * size);
-    if (!data)
-	return;
-
-    offset   = 0;
-    hintSize = s->nDesktop * 2;
-
-    for (i = 0; i < s->nDesktop; i++)
-    {
-	data[offset + i * 2 + 0] = s->x * s->width;
-	data[offset + i * 2 + 1] = s->y * s->height;
-    }
-
-    if (!desktopHintEqual (s, data, size, offset, hintSize))
-	XChangeProperty (d->display, s->root, d->desktopViewportAtom,
-			 XA_CARDINAL, 32, PropModeReplace,
-			 (unsigned char *) &data[offset], hintSize);
-
-    offset += hintSize;
-
-    for (i = 0; i < s->nDesktop; i++)
-    {
-	data[offset + i * 2 + 0] = s->width  * s->hsize;
-	data[offset + i * 2 + 1] = s->height * s->vsize;
-    }
-
-    if (!desktopHintEqual (s, data, size, offset, hintSize))
-	XChangeProperty (d->display, s->root, d->desktopGeometryAtom,
-			 XA_CARDINAL, 32, PropModeReplace,
-			 (unsigned char *) &data[offset], hintSize);
-
-    offset += hintSize;
-    hintSize = s->nDesktop * 4;
-
-    for (i = 0; i < s->nDesktop; i++)
-    {
-	data[offset + i * 4 + 0] = s->workArea.x;
-	data[offset + i * 4 + 1] = s->workArea.y;
-	data[offset + i * 4 + 2] = s->workArea.width;
-	data[offset + i * 4 + 3] = s->workArea.height;
-    }
-
-    if (!desktopHintEqual (s, data, size, offset, hintSize))
-	XChangeProperty (d->display, s->root, d->workareaAtom,
-			 XA_CARDINAL, 32, PropModeReplace,
-			 (unsigned char *) &data[offset], hintSize);
-
-    offset += hintSize;
-
-    data[offset] = s->nDesktop;
-    hintSize = 1;
-
-    if (!desktopHintEqual (s, data, size, offset, hintSize))
-	XChangeProperty (d->display, s->root, d->numberOfDesktopsAtom,
-			 XA_CARDINAL, 32, PropModeReplace,
-			 (unsigned char *) &data[offset], hintSize);
-
-    if (s->desktopHintData)
-	free (s->desktopHintData);
-
-    s->desktopHintData = data;
-    s->desktopHintSize = size;
-}
-
-static void
-setVirtualScreenSize (CompScreen *screen,
-		      int	 hsize,
-		      int	 vsize)
-{
-    screen->hsize = hsize;
-    screen->vsize = vsize;
-
-    setDesktopHints (screen);
-}
-
-static void
-detectOutputsChanged (CompObject *object)
-{
-    SCREEN (object);
-
-    (*s->u.vTable->updateOutputDevices) (s, 0, 0, 0, 0, 0, 0);
-}
-
-static void
-detectRefreshRateChanged (CompObject *object)
-{
-    detectRefreshRateOfScreen (GET_SCREEN (object));
-}
-
-static void
-virtualSizeChanged (CompObject *object)
-{
-    int vSize, hSize;
-
-    SCREEN (object);
-
-    hSize = s->data.hSize;
-    while ((hSize * s->width) > MAXSHORT)
-	hSize--;
-
-    vSize = s->data.vSize;
-    while ((vSize * s->height) > MAXSHORT)
-	vSize--;
-
-    setVirtualScreenSize (s, hSize, vSize);
-}
-
-static void
-numberOfDesktopsChanged (CompObject *object)
-{
-    SCREEN (object);
-
-    setNumberOfDesktops (s, s->data.numberOfDesktops);
-}
-
-static void
-refreshRateChanged (CompObject *object)
-{
-    detectRefreshRateOfScreen (GET_SCREEN (object));
-}
-
-static void
-defaultIconChanged (CompObject *object)
-{
-    updateDefaultIcon (GET_SCREEN (object));
-}
-
-static CBoolProp screenTypeBoolProp[] = {
-    C_PROP (detectOutputs, CompScreenData, .changed = detectOutputsChanged),
-    C_PROP (detectRefreshRate, CompScreenData,
-	    .changed = detectRefreshRateChanged),
-    C_PROP (lighting, CompScreenData),
-    C_PROP (syncToVBlank, CompScreenData),
-    C_PROP (unredirectFullscreenWindows, CompScreenData)
-};
-
-static CIntProp screenTypeIntProp[] = {
-    C_INT_PROP (hSize, CompScreenData, 1, 32, .changed = virtualSizeChanged),
-    C_INT_PROP (numberOfDesktops, CompScreenData, 1, 36,
-		.changed = numberOfDesktopsChanged),
-    C_INT_PROP (opacityStep, CompScreenData, 1, 50),
-    C_INT_PROP (refreshRate, CompScreenData, 1, 200,
-		.changed = refreshRateChanged),
-    C_INT_PROP (vSize, CompScreenData, 1, 32, .changed = virtualSizeChanged)
-};
-
-static CStringProp screenTypeStringProp[] = {
-    C_PROP (defaultIconImage, CompScreenData, .changed = defaultIconChanged)
-};
-
-static CChildObject screenTypeChildObject[] = {
-    C_CHILD (windows, CompScreenData, CONTAINER_TYPE_NAME),
-    C_CHILD (outputs, CompScreenData, CONTAINER_TYPE_NAME)
-};
-
-static CInterface screenInterface[] = {
-    C_INTERFACE (screen, Type, CompObjectVTable, _, _, _, X, X, _, X, X)
-};
-
-static void
-screenGetProp (CompObject   *object,
-	       unsigned int what,
-	       void	    *value)
-{
-    static const CMetadata template = {
-	.interface  = screenInterface,
-	.nInterface = N_ELEMENTS (screenInterface),
-	.version    = COMPIZ_SCREEN_VERSION
-    };
-
-    cGetObjectProp (&GET_SCREEN (object)->data.base, &template, what, value);
-}
-
-static void
-screenInsertObject (CompObject *object,
-		    CompObject *parent,
-		    const char *name)
-{
-    CompObject *child;
-    char       *path;
-
-    SCREEN (object);
-
-    cInsertObject (object, parent, name);
-
-    child = &s->data.outputs.base;
-
-    path = malloc (strlen (object->name) + strlen (child->name) + 4);
-    if (path)
-    {
-	sprintf (path, "%s/%s/*", object->name, child->name);
-
-	compConnect (parent,
-		     "signal", offsetof (CompSignalVTable, signal),
-		     object,
-		     "screen",
-		     offsetof (CompScreenVTable, updateOutputDevices),
-		     "oss", path, "properties", "intChanged");
-
-	compConnect (parent,
-		     "signal", offsetof (CompSignalVTable, signal),
-		     object,
-		     "screen",
-		     offsetof (CompScreenVTable, updateOutputDevices),
-		     "oss", path, "object", "removed");
-
-	free (path);
-    }
+    FOR_BASE (&s->u.base, (*s->u.vTable->updateOutputDevices) (s));
 }
 
 CompOption *
@@ -830,7 +796,7 @@ configureScreen (CompScreen	 *s,
 
 	reshape (s, ce->width, ce->height);
 
-	(*s->u.vTable->updateOutputDevices) (s, 0, 0, 0, 0, 0, 0);
+	(*s->u.vTable->updateOutputDevices) (s);
 
 	damageScreen (s);
     }
@@ -1605,8 +1571,7 @@ screenInitObject (const CompObjectInstantiator *instantiator,
 
 static const CompScreenVTable screenObjectVTable = {
     .base.getProp        = screenGetProp,
-    .base.insertObject   = screenInsertObject,
-    .updateOutputDevices = screenUpdateOutputDevices
+    .updateOutputDevices = updateOutputDevices
 };
 
 static const CompScreenVTable noopScreenObjectVTable = {
@@ -2148,7 +2113,7 @@ addScreenOld (CompDisplay *display,
     reshape (s, s->attrib.width, s->attrib.height);
 
     detectRefreshRateOfScreen (s);
-    (*s->u.vTable->updateOutputDevices) (s, 0, 0, 0, 0, 0, 0);
+    (*s->u.vTable->updateOutputDevices) (s);
 
     glLightModelfv (GL_LIGHT_MODEL_AMBIENT, globalAmbient);
 
