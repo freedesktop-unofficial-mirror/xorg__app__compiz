@@ -1555,12 +1555,10 @@ checkChildObject (CompObject *object,
     if (strncmp (object->name, pCtx->path, pCtx->size))
 	return TRUE;
 
-    i = strlen (object->name);
-
-    if (i != pCtx->size)
+    if (object->name[pCtx->size] != '\0')
 	return TRUE;
 
-    pCtx->path += i;
+    pCtx->path += pCtx->size;
 
     if (*pCtx->path++)
     {
