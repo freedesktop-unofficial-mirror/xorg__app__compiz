@@ -35,12 +35,12 @@ marshal____ (CompObject *object,
 
 void
 marshal_I_S (CompObject *object,
-	     CompBool   (*method) (CompObject *,
+	     int32_t    (*method) (CompObject *,
 				   char       *),
 	     CompArgs   *args)
 {
-    char *in0;
-    int  result;
+    char    *in0;
+    int32_t result;
 
     (*args->load) (args, COMP_TYPE_STRING, &in0);
 
@@ -68,6 +68,24 @@ marshal__I__E (CompObject *object,
 }
 
 void
+marshal__S__E (CompObject *object,
+	       CompBool   (*method) (CompObject *,
+				     const char *,
+				     char       **),
+	       CompArgs   *args)
+{
+    const char *in0;
+    char       *error;
+
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+
+    if (!(*method) (object, in0, &error))
+    {
+	(*args->error) (args, error);
+    }
+}
+
+void
 marshal__SI__E (CompObject *object,
 		CompBool   (*method) (CompObject *,
 				      char       *,
@@ -81,6 +99,27 @@ marshal__SI__E (CompObject *object,
 
     (*args->load) (args, COMP_TYPE_STRING, &in0);
     (*args->load) (args, COMP_TYPE_INT32, &in1);
+
+    if (!(*method) (object, in0, in1, &error))
+    {
+	(*args->error) (args, error);
+    }
+}
+
+void
+marshal__SS__E (CompObject *object,
+		CompBool   (*method) (CompObject *,
+				      char       *,
+				      char       *,
+				      char       **),
+		CompArgs   *args)
+{
+    char *in0;
+    char *in1;
+    char *error;
+
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
 
     if (!(*method) (object, in0, in1, &error))
     {

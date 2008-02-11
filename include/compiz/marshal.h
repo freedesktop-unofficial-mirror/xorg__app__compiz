@@ -37,9 +37,23 @@ marshal____ (CompObject *object,
 
 void
 marshal_I_S (CompObject *object,
-	     CompBool   (*method) (CompObject *,
-				   char       *),
+	     int32_t     (*method) (CompObject *,
+				    char       *),
 	     CompArgs   *args);
+
+void
+marshal__I__E (CompObject *object,
+	       CompBool   (*method) (CompObject *,
+				     int32_t     ,
+				     char       **),
+	       CompArgs   *args);
+
+void
+marshal__S__E (CompObject *object,
+	       CompBool   (*method) (CompObject *,
+				     const char *,
+				     char       **),
+	       CompArgs   *args);
 
 void
 marshal__SI__E (CompObject *object,
@@ -50,11 +64,12 @@ marshal__SI__E (CompObject *object,
 		CompArgs   *args);
 
 void
-marshal__I__E (CompObject *object,
-	       CompBool   (*method) (CompObject *,
-				     int32_t     ,
-				     char       **),
-	       CompArgs   *args);
+marshal__SS__E (CompObject *object,
+		CompBool   (*method) (CompObject *,
+				      char       *,
+				      char       *,
+				      char       **),
+		CompArgs   *args);
 
 void
 marshal__SSB__E (CompObject *object,
