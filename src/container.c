@@ -219,8 +219,9 @@ getContainerObjectType (void)
     if (!type)
     {
 	static const CompObjectType template = {
-	    .name.name   = CONTAINER_TYPE_NAME,
-	    .vTable.impl = &containerObjectVTable
+	    .name.name     = CONTAINER_TYPE_NAME,
+	    .vTable.impl   = &containerObjectVTable,
+	    .instance.size = sizeof (CompContainer)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
