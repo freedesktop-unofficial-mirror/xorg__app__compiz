@@ -366,15 +366,6 @@ typedef struct _CompPropertiesVTable {
     StringPropChangedProc stringChanged;
 } CompPropertiesVTable;
 
-typedef CompBool (*GetMetadataProc) (CompObject *object,
-				     const char *interface,
-				     char	**data,
-				     char	**error);
-
-typedef struct _CompMetadataVTable {
-    GetMetadataProc get;
-} CompMetadataVTable;
-
 struct _CompObjectVTable {
 
     /* finalize function*/
@@ -415,7 +406,6 @@ struct _CompObjectVTable {
     CompSignalVTable     signal;
     CompVersionVTable    version;
     CompPropertiesVTable properties;
-    CompMetadataVTable   metadata;
 };
 
 typedef struct _CompObjectVTableVec {

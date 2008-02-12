@@ -80,10 +80,6 @@ static CSignal *propertiesObjectSignal[] = {
     &stringChangedSignal
 };
 
-static const CMethod metadataObjectMethod[] = {
-    C_METHOD (get, "s", "s", CompMetadataVTable, marshal__S_S_E)
-};
-
 static const CMethod versionObjectMethod[] = {
     C_METHOD (get, "s", "i", CompVersionVTable, marshal_I_S)
 };
@@ -92,7 +88,6 @@ static CInterface objectInterface[] = {
     C_INTERFACE (object,     Type,   CompObjectVTable, _, _, X, _, _, _, _, _),
     C_INTERFACE (signal,     Object, CompObjectVTable, X, _, X, _, _, _, _, _),
     C_INTERFACE (properties, Object, CompObjectVTable, X, X, X, _, _, _, _, _),
-    C_INTERFACE (metadata,   Object, CompObjectVTable, X, X, _, _, _, _, _, _),
     C_INTERFACE (version,    Object, CompObjectVTable, X, X, _, _, _, _, _, _)
 };
 
@@ -1324,39 +1319,6 @@ noopStringPropChanged (CompObject *object,
 								   value));
 }
 
-static CompBool
-getMetadata (CompObject *object,
-	     const char *interface,
-	     char	**data,
-	     char	**error)
-{
-    int i;
-
-    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
-	if (strcmp (interface, objectInterface[i].name) == 0)
-	    return handleGetMetadata (object, interface, data, error);
-
-    esprintf (error, "No \"%s\" interface", interface);
-    return FALSE;
-}
-
-static CompBool
-noopGetMetadata (CompObject *object,
-		 const char *interface,
-		 char       **data,
-		 char	    **error)
-{
-    CompBool status;
-
-    FOR_BASE (object,
-	      status = (*object->vTable->metadata.get) (object,
-							interface,
-							data,
-							error));
-
-    return status;
-}
-
 static const CompObjectVTable objectVTable = {
     .finalize = finalize,
 
@@ -1400,9 +1362,7 @@ static const CompObjectVTable objectVTable = {
 
     .properties.getString     = getStringProp,
     .properties.setString     = setStringProp,
-    .properties.stringChanged = stringPropChanged,
-
-    .metadata.get = getMetadata
+    .properties.stringChanged = stringPropChanged
 };
 
 static const CompObjectVTable noopObjectVTable = {
@@ -1445,9 +1405,7 @@ static const CompObjectVTable noopObjectVTable = {
 
     .properties.getString     = noopGetStringProp,
     .properties.setString     = noopSetStringProp,
-    .properties.stringChanged = noopStringPropChanged,
-
-    .metadata.get = noopGetMetadata
+    .properties.stringChanged = noopStringPropChanged
 };
 
 static const CompObjectType objectType = {
