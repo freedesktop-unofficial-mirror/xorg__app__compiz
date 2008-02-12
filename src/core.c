@@ -39,7 +39,6 @@ static const CMethod coreTypeMethod[] = {
 };
 
 static CChildObject coreTypeChildObject[] = {
-    C_CHILD (displays, CompCoreData, CONTAINER_TYPE_NAME),
     C_CHILD (plugins, CompCoreData, CONTAINER_TYPE_NAME),
     C_CHILD (inputs, CompCoreData, CONTAINER_TYPE_NAME),
     C_CHILD (outputs, CompCoreData, CONTAINER_TYPE_NAME)
@@ -71,7 +70,7 @@ noopAddDisplay (CompCore   *c,
 {
     CompBool status;
 
-    FOR_BASE (&c->u.base.u.base,
+    FOR_BASE (&c->u.base.u.base.base,
 	      status = (*c->u.vTable->addDisplay) (c,
 						   hostName,
 						   displayNum,
@@ -119,7 +118,7 @@ noopRemoveDisplay (CompCore   *c,
 {
     CompBool status;
 
-    FOR_BASE (&c->u.base.u.base,
+    FOR_BASE (&c->u.base.u.base.base,
 	      status = (*c->u.vTable->removeDisplay) (c,
 						      hostName,
 						      displayNum,
@@ -218,12 +217,30 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 		CompObject		     *object,
 		const CompObjectFactory      *factory)
 {
+    CompObject *displays;
+
     CORE (object);
 
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
-    c->u.base.u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
+    c->u.base.u.base.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
+
+    displays = (*c->u.base.u.vTable->createObject) (&c->u.base,
+						    CONTAINER_TYPE_NAME,
+						    NULL);
+    if (!displays)
+    {
+	cObjectFini (object);
+	return FALSE;
+    }
+
+    if (!(*object->vTable->addChild) (object, displays, "displays"))
+    {
+	(*c->u.base.u.vTable->destroyObject) (&c->u.base, displays);
+	cObjectFini (object);
+	return FALSE;
+    }
 
     c->tmpRegion = XCreateRegion ();
     if (!c->tmpRegion)
@@ -343,12 +360,12 @@ initCore (const CompObjectFactory *factory,
 {
     CompPlugin *corePlugin;
 
-    if (!compObjectInitByType (factory, &core.u.base.u.base,
+    if (!compObjectInitByType (factory, &core.u.base.u.base.base,
 			       getCoreObjectType ()))
 	return FALSE;
 
-    (*core.u.base.u.base.vTable->insertObject) (&core.u.base.u.base, parent,
-    CORE_TYPE_NAME);
+    (*core.u.base.u.base.base.vTable->insertObject) (&core.u.base.u.base.base,
+						     parent, CORE_TYPE_NAME);
 
     corePlugin = loadPlugin ("core");
     if (!corePlugin)
@@ -356,7 +373,7 @@ initCore (const CompObjectFactory *factory,
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't load core plugin");
 
-	(*core.u.base.u.base.vTable->finalize) (&core.u.base.u.base);
+	(*core.u.base.u.base.base.vTable->finalize) (&core.u.base.u.base.base);
 	return FALSE;
     }
 
@@ -365,7 +382,7 @@ initCore (const CompObjectFactory *factory,
 	compLogMessage (0, "core", CompLogLevelFatal,
 			"Couldn't activate core plugin");
 	unloadPlugin (corePlugin);
-	(*core.u.base.u.base.vTable->finalize) (&core.u.base.u.base);
+	(*core.u.base.u.base.base.vTable->finalize) (&core.u.base.u.base.base);
 	return FALSE;
     }
 
@@ -384,8 +401,8 @@ finiCore (const CompObjectFactory *factory,
 
     while (popPlugin (&core.u.base));
 
-    (*core.u.base.u.base.vTable->removeObject) (&core.u.base.u.base);
-    (*core.u.base.u.base.vTable->finalize) (&core.u.base.u.base);
+    (*core.u.base.u.base.base.vTable->removeObject) (&core.u.base.u.base.base);
+    (*core.u.base.u.base.base.vTable->finalize) (&core.u.base.u.base.base);
 }
 
 void

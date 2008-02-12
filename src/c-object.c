@@ -2751,7 +2751,7 @@ cObjectInitPrivate (CompBranch	   *branch,
     }
 
     /* initialize all objects of this type */
-    if (!initTypedObjects (&branch->factory, &branch->u.base, node->type,
+    if (!initTypedObjects (&branch->factory, &branch->u.base.base, node->type,
 			   instantiator->vTable))
 	return FALSE;
 
@@ -2774,7 +2774,7 @@ cObjectFiniPrivate (CompBranch	   *branch,
     node->instantiator = instantiator->base;
 
     /* finalize all objects of this type */
-    finiTypedObjects (&branch->factory, &branch->u.base, node->type);
+    finiTypedObjects (&branch->factory, &branch->u.base.base, node->type);
 
     free (instantiator);
 }

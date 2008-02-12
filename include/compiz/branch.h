@@ -26,7 +26,7 @@
 #ifndef _COMPIZ_BRANCH_H
 #define _COMPIZ_BRANCH_H
 
-#include <compiz/object.h>
+#include <compiz/container.h>
 
 #define COMPIZ_BRANCH_VERSION 20071116
 
@@ -38,10 +38,19 @@ typedef CompBool (*RegisterTypeProc) (CompBranch	   *branch,
 				      const char	   *interface,
 				      const CompObjectType *type);
 
+typedef CompObject *(*CreateObjectProc) (CompBranch *branch,
+					 const char *type,
+					 char	    **error);
+
+typedef void (*DestroyObjectProc) (CompBranch *branch,
+				   CompObject *object);
+
 typedef struct _CompBranchVTable {
     CompObjectVTable base;
 
-    RegisterTypeProc registerType;
+    RegisterTypeProc  registerType;
+    CreateObjectProc  createObject;
+    DestroyObjectProc destroyObject;
 } CompBranchVTable;
 
 typedef struct _CompObjectPrivatesNode {
@@ -71,7 +80,7 @@ struct _CompFactory {
 
 struct _CompBranch {
     union {
-	CompObject	       base;
+	CompContainer	       base;
 	const CompBranchVTable *vTable;
     } u;
 

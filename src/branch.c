@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include <compiz/branch.h>
+#include <compiz/error.h>
 #include <compiz/c-object.h>
 
 static CInterface branchInterface[] = {
@@ -64,35 +65,108 @@ branchGetProp (CompObject   *object,
 }
 
 static CompBool
-noopRegisterType (CompBranch	       *b,
+noopRegisterType (CompBranch	       *branch,
 		  const char           *interface,
 		  const CompObjectType *type)
 {
     CompBool status;
 
-    FOR_BASE (&b->u.base,
-	      status = (*b->u.vTable->registerType) (b,
-						     interface,
-						     type));
+    FOR_BASE (&branch->u.base.base,
+	      status = (*branch->u.vTable->registerType) (branch,
+							  interface,
+							  type));
 
     return status;
 }
 
 static CompBool
-registerType (CompBranch	   *b,
+registerType (CompBranch	   *branch,
 	      const char	   *interface,
 	      const CompObjectType *type)
 {
-    return compFactoryRegisterType (&b->factory, interface, type);
+    return compFactoryRegisterType (&branch->factory, interface, type);
+}
+
+static CompObject *
+noopCreateObject (CompBranch *branch,
+		  const char *type,
+		  char	     **error)
+{
+    CompObject *object;
+
+    FOR_BASE (&branch->u.base.base,
+	      object = (*branch->u.vTable->createObject) (branch,
+							  type,
+							  error));
+
+    return object;
+}
+
+static CompObject *
+createObject (CompBranch *branch,
+	      const char *type,
+	      char	 **error)
+{
+    CompObjectInstantiatorNode *node;
+    CompObject		       *object;
+
+    node = compObjectInstantiatorNode (&branch->factory, type);
+    if (!node)
+    {
+	esprintf (error, "'%s' is not a registered object type", type);
+	return NULL;
+    }
+
+    if (node->type->instance.size <= 0)
+    {
+	esprintf (error, "'%s' has unknown instance size", type);
+	return NULL;
+    }
+
+    object = (CompObject *) malloc (node->type->instance.size);
+    if (!object)
+    {
+	esprintf (error, NO_MEMORY_ERROR_STRING);
+	return NULL;
+    }
+
+    if (!compObjectInit (&branch->factory, object, node->instantiator))
+    {
+	esprintf (error, "Initialization of '%s' object failed", type);
+	free (object);
+	return NULL;
+    }
+
+    return object;
+}
+
+static void
+noopDestroyObject (CompBranch *branch,
+		   CompObject *object)
+{
+    FOR_BASE (&branch->u.base.base,
+	      (*branch->u.vTable->destroyObject) (branch, object));
+}
+
+static void
+destroyObject (CompBranch *branch,
+	       CompObject *object)
+{
+    (*object->vTable->finalize) (object);
+    free (object);
 }
 
 static CompBranchVTable branchObjectVTable = {
-    .base.getProp = branchGetProp,
-    .registerType = registerType
+    .base.getProp  = branchGetProp,
+    .registerType  = registerType,
+    .createObject  = createObject,
+    .destroyObject = destroyObject
 };
 
 static const CompBranchVTable noopBranchObjectVTable = {
-    .registerType = noopRegisterType
+    .registerType  = noopRegisterType,
+    .createObject  = noopCreateObject,
+    .destroyObject = noopDestroyObject
 };
 
 const CompObjectType *
@@ -104,6 +178,7 @@ getBranchObjectType (void)
     {
 	static const CompObjectType template = {
 	    .name.name     = BRANCH_TYPE_NAME,
+	    .name.base     = CONTAINER_TYPE_NAME,
 	    .vTable.impl   = &branchObjectVTable.base,
 	    .vTable.noop   = &noopBranchObjectVTable.base,
 	    .vTable.size   = sizeof (branchObjectVTable),

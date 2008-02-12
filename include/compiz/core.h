@@ -692,7 +692,6 @@ typedef struct _CompCoreVTable {
 typedef struct _CompCoreData {
     CompObjectData base;
 
-    CompContainer displays;
     CompContainer plugins;
     CompContainer inputs;
     CompContainer outputs;

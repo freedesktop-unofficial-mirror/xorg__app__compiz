@@ -2436,6 +2436,7 @@ addDisplayOld (CompCore   *c,
 	       int	  displayNum)
 {
     CompDisplay *d;
+    CompObject  *displays;
     Display     *dpy;
     Window	focus;
     int		revertTo, i;
@@ -2777,9 +2778,10 @@ addDisplayOld (CompCore   *c,
     snprintf (displayName, sizeof (displayName), "%s_%d",
 	      *d->hostName == '\0' ? "localhost" : d->hostName, d->displayNum);
 
-    if ((*c->data.displays.base.vTable->addChild) (&c->data.displays.base,
-						   &d->u.base, displayName))
-	(*c->objectAdd) (&c->data.displays.base, &d->u.base, displayName);
+    displays = compLookupObject (&c->u.base.u.base.base, "displays");
+    if (displays)
+	if ((*displays->vTable->addChild) (displays, &d->u.base, displayName))
+	    (*c->objectAdd) (displays, &d->u.base, displayName);
 
     if (onlyCurrentScreen)
     {
@@ -2853,6 +2855,7 @@ removeDisplayOld (CompCore    *c,
 		  CompDisplay *d)
 {
     CompDisplay *p;
+    CompObject  *displays;
 
     for (p = c->displays; p; p = p->next)
 	if (p->next == d)
@@ -2868,9 +2871,12 @@ removeDisplayOld (CompCore    *c,
     while (d->screens)
 	removeScreenOld (d->screens);
 
-    (*c->objectRemove) (&c->data.displays.base, &d->u.base);
-    (*c->data.displays.base.vTable->removeChild) (&c->data.displays.base,
-						  &d->u.base);
+    displays = compLookupObject (&c->u.base.u.base.base, "displays");
+    if (displays)
+    {
+	(*c->objectRemove) (displays, &d->u.base);
+	(*displays->vTable->removeChild) (displays, &d->u.base);
+    }
 
     objectFiniPlugins (&d->u.base);
 

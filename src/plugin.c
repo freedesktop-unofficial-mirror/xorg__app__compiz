@@ -401,7 +401,7 @@ initPlugin (CompPlugin *p,
 
     if (p->vTable->insert)
     {
-	if (!(*p->vTable->insert) (branch->u.base.parent, branch))
+	if (!(*p->vTable->insert) (branch->u.base.base.parent, branch))
 	{
 	    (*p->vTable->fini) (factory);
 	    return FALSE;
@@ -411,12 +411,14 @@ initPlugin (CompPlugin *p,
     {
 	InitObjectContext ctx;
 
+	OBJECT (branch);
+
 	ctx.plugin = p;
 	ctx.object = NULL;
 
 	if (p->vTable->initObject)
 	{
-	    if (!(*p->vTable->initObject) (p, &branch->u.base))
+	    if (!(*p->vTable->initObject) (p, o))
 	    {
 		compLogMessage (NULL, p->vTable->name, CompLogLevelError,
 				"InitObject failed");
@@ -426,16 +428,16 @@ initPlugin (CompPlugin *p,
 	    }
 	}
 
-	if (!(*branch->u.base.vTable->forEachChildObject) (&branch->u.base,
-							   initObjectTree,
-							   (void *) &ctx))
+	if (!(*o->vTable->forEachChildObject) (o,
+					       initObjectTree,
+					       (void *) &ctx))
 	{
-	    (*branch->u.base.vTable->forEachChildObject) (&branch->u.base,
-							  finiObjectTree,
-							  (void *) &ctx);
+	    (*o->vTable->forEachChildObject) (o,
+					      finiObjectTree,
+					      (void *) &ctx);
 
 	    if (p->vTable->initObject && p->vTable->finiObject)
-		(*p->vTable->finiObject) (p, &branch->u.base);
+		(*p->vTable->finiObject) (p, o);
 
 	    (*p->vTable->fini) (factory);
 
@@ -458,21 +460,23 @@ finiPlugin (CompPlugin *p,
 
     if (p->vTable->remove)
     {
-	(*p->vTable->remove) (branch->u.base.parent, branch);
+	(*p->vTable->remove) (branch->u.base.base.parent, branch);
     }
     else
     {
 	InitObjectContext ctx;
 
+	OBJECT (branch);
+
 	ctx.plugin = p;
 	ctx.object = NULL;
 
-	(*branch->u.base.vTable->forEachChildObject) (&branch->u.base,
-						      finiObjectTree,
-						      (void *) &ctx);
+	(*o->vTable->forEachChildObject) (o,
+					  finiObjectTree,
+					  (void *) &ctx);
 
 	if (p->vTable->initObject && p->vTable->finiObject)
-	    (*p->vTable->finiObject) (p, &branch->u.base);
+	    (*p->vTable->finiObject) (p, o);
     }
 
     (*p->vTable->fini) (factory);

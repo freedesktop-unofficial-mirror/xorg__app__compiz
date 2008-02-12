@@ -516,8 +516,8 @@ main (int argc, char **argv)
 
     const CompObjectType *staticTypes[] = {
 	getObjectType (),
-	getBranchObjectType (),
 	getContainerObjectType (),
+	getBranchObjectType (),
 	getBoxObjectType (),
 	getRootObjectType (),
 	getCoreObjectType (),
@@ -690,7 +690,7 @@ main (int argc, char **argv)
 	return 1;
 
     /* XXX: until core object is moved into the root object */
-    context.root.core = &core.u.base.u.base;
+    context.root.core = &core.u.base.u.base.base;
 
     if (!initCore (&context.factory.base, &context.root.u.base.base))
 	return 1;
