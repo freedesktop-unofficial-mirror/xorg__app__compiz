@@ -94,7 +94,7 @@ typedef struct _CIntProp {
 } CIntProp;
 
 #define C_INT_PROP(name, object, min, max, ...)				 \
-    { { # name, offsetof (object, name) }, TRUE, min, max, __VA_ARGS__ }
+    { { # name, offsetof (object, name) }, TRUE, min, max, min, __VA_ARGS__ }
 
 typedef CompBool (*CSetDoublePropProc) (CompObject *object,
 					double     value,
@@ -116,7 +116,7 @@ typedef struct _CDoubleProp {
 
 #define C_DOUBLE_PROP(name, object, min, max, precision, ...) \
     { { # name, offsetof (object, name) },		      \
-	    TRUE, min, max, precision,  __VA_ARGS__ }
+	    TRUE, min, max, precision, min,  __VA_ARGS__ }
 
 typedef CompBool (*CSetStringPropProc) (CompObject *object,
 					const char *value,
