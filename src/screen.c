@@ -223,7 +223,7 @@ static CIntProp screenTypeIntProp[] = {
 		.changed = numberOfDesktopsChanged),
     C_INT_PROP (opacityStep, CompScreenData, 1, 50),
     C_INT_PROP (refreshRate, CompScreenData, 1, 200,
-		.changed = refreshRateChanged),
+		.changed = refreshRateChanged, .defaultValue = 75),
     C_INT_PROP (vSize, CompScreenData, 1, 32, .changed = virtualSizeChanged)
 };
 
