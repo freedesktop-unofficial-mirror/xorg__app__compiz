@@ -1043,8 +1043,6 @@ shade (CompDisplay     *d,
 }
 
 const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
-    { "abi", "int", 0, 0, 0 },
-    { "active_plugins", "list", "<type>string</type>", 0, 0 },
     { "close_window_key", "key", 0, closeWin, 0 },
     { "close_window_button", "button", 0, closeWin, 0 },
     { "main_menu_key", "key", 0, mainMenu, 0 },
@@ -1122,131 +1120,12 @@ setDisplayOption (CompPlugin		*plugin,
 		  const CompOptionValue *value)
 {
     CompOption *o;
-    int	       index;
 
-    o = compFindOption (display->opt, N_ELEMENTS (display->opt), name, &index);
+    o = compFindOption (display->opt, N_ELEMENTS (display->opt), name, NULL);
     if (!o)
 	return FALSE;
 
-    switch (index) {
-    case COMP_DISPLAY_OPTION_ABI:
-	break;
-    case COMP_DISPLAY_OPTION_ACTIVE_PLUGINS:
-	if (compSetOptionList (o, value))
-	    return TRUE;
-	break;
-    default:
-	if (compSetDisplayOption (display, o, value))
-	    return TRUE;
-	break;
-    }
-
-    return FALSE;
-}
-
-static void
-updatePlugins (CompDisplay *d)
-{
-    CompOption *o;
-    CompPlugin *p, **pop = 0;
-    int	       nPop, i, j;
-
-    CORE (d->u.base.parent->parent);
-
-    c->dirtyPluginList = FALSE;
-
-    o = &d->opt[COMP_DISPLAY_OPTION_ACTIVE_PLUGINS];
-    for (i = 0; i < c->plugin.list.nValue && i < o->value.list.nValue; i++)
-    {
-	if (strcmp (c->plugin.list.value[i].s, o->value.list.value[i].s))
-	    break;
-    }
-
-    /* never pop the core plugin */
-    if (i)
-	nPop = c->plugin.list.nValue - i;
-    else
-	nPop = c->plugin.list.nValue - 1;
-
-    if (nPop)
-    {
-	pop = malloc (sizeof (CompPlugin *) * nPop);
-	if (!pop)
-	{
-	    (*core.setOptionForPlugin) (&d->u.base, "core", o->name,
-					&c->plugin);
-	    return;
-	}
-    }
-
-    for (j = 0; j < nPop; j++)
-    {
-	pop[j] = popPlugin (&c->u.base);
-	c->plugin.list.nValue--;
-	free (c->plugin.list.value[c->plugin.list.nValue].s);
-    }
-
-    for (; i < o->value.list.nValue; i++)
-    {
-	p = 0;
-	for (j = 0; j < nPop; j++)
-	{
-	    if (pop[j] && strcmp (pop[j]->vTable->name,
-				  o->value.list.value[i].s) == 0)
-	    {
-		if (pushPlugin (pop[j], &c->u.base))
-		{
-		    p = pop[j];
-		    pop[j] = 0;
-		    break;
-		}
-	    }
-	}
-
-	if (p == 0)
-	{
-	    p = loadPlugin (o->value.list.value[i].s);
-	    if (p)
-	    {
-		if (!pushPlugin (p, &c->u.base))
-		{
-		    unloadPlugin (p);
-		    p = 0;
-		}
-	    }
-	}
-
-	if (p)
-	{
-	    CompOptionValue *value;
-
-	    value = realloc (c->plugin.list.value, sizeof (CompOptionValue) *
-			     (c->plugin.list.nValue + 1));
-	    if (value)
-	    {
-		value[c->plugin.list.nValue].s = strdup (p->vTable->name);
-
-		c->plugin.list.value = value;
-		c->plugin.list.nValue++;
-	    }
-	    else
-	    {
-		p = popPlugin (&c->u.base);
-		unloadPlugin (p);
-	    }
-	}
-    }
-
-    for (j = 0; j < nPop; j++)
-    {
-	if (pop[j])
-	    unloadPlugin (pop[j]);
-    }
-
-    if (nPop)
-	free (pop);
-
-    (*core.setOptionForPlugin) (&d->u.base, "core", o->name, &c->plugin);
+    return compSetDisplayOption (display, o, value);
 }
 
 static void
@@ -1920,9 +1799,6 @@ eventLoop (CompRoot *root)
 
 	for (d = core.displays; d; d = d->next)
 	{
-	    if (core.dirtyPluginList)
-		updatePlugins (d);
-
 	    while (XPending (d->display))
 	    {
 		XNextEvent (d->display, &event);
@@ -2487,8 +2363,6 @@ addDisplayOld (CompCore   *c,
 					     d->opt,
 					     COMP_DISPLAY_OPTION_NUM))
 	return FALSE;
-
-    d->opt[COMP_DISPLAY_OPTION_ABI].value.i = CORE_ABIVERSION;
 
 #ifdef DEBUG
     XSynchronize (dpy, TRUE);

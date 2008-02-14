@@ -26,7 +26,7 @@
 #ifndef _COMPIZ_ROOT_H
 #define _COMPIZ_ROOT_H
 
-#include <compiz/container.h>
+#include <compiz/object.h>
 
 #define COMPIZ_ROOT_VERSION 20071116
 
@@ -37,25 +37,36 @@ typedef struct _CompRoot   CompRoot;
 
 typedef void (*ProcessSignalsProc) (CompRoot *r);
 
+typedef void (*UpdatePluginsProc) (CompRoot   *r,
+				   const char *branch);
+
 typedef struct _CompRootVTable {
     CompObjectVTable   base;
     ProcessSignalsProc processSignals;
+    UpdatePluginsProc  updatePlugins;
 } CompRootVTable;
 
 struct _CompRoot {
     union {
-	CompContainer	     base;
+	CompObject	     base;
 	const CompRootVTable *vTable;
     } u;
 
     CompObjectVTableVec object;
+
+    CompObject *child;
+    char       *childName;
 
     struct {
 	CompSignal *head;
 	CompSignal *tail;
     } signal;
 
-    CompObject *core;
+    char **stack;
+    int  nStack;
+
+    char **request;
+    int  nRequest;
 };
 
 #define GET_ROOT(object) ((CompRoot *) (object))

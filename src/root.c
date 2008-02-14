@@ -25,8 +25,10 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include <compiz/root.h>
+#include <compiz/core.h>
 
 struct _CompSignal {
     struct _CompSignal *next;
@@ -43,13 +45,20 @@ rootInitObject (const CompObjectInstantiator *instantiator,
 
     ROOT (object);
 
+    r->child     = NULL;
+    r->childName = NULL;
+
     r->signal.head = NULL;
     r->signal.tail = NULL;
 
+    r->stack  = NULL;
+    r->nStack = 0;
+
+    r->request  = NULL;
+    r->nRequest = 0;
+
     if (!(*base->init) (base, object, factory))
 	return FALSE;
-
-    r->core = NULL;
 
     WRAP (&r->object, object, vTable, instantiator->vTable);
 
@@ -57,9 +66,42 @@ rootInitObject (const CompObjectInstantiator *instantiator,
 }
 
 static void
+removeAllRequests (CompRoot *r)
+{
+    int i;
+
+    if (r->request == r->stack)
+	return;
+
+    for (i = 0; i < r->nRequest; i++)
+	free (r->request[i]);
+
+    if (r->request)
+	free (r->request);
+
+    r->request  = r->stack;
+    r->nRequest = 0;
+}
+
+static void
 rootFinalize (CompObject *object)
 {
     ROOT (object);
+
+    removeAllRequests (r);
+    r->request = NULL;
+
+    /* remove plugins and empty signal buffer */
+    (*r->u.vTable->processSignals) (r);
+
+    if (r->child)
+    {
+	CompObject *child = r->child;
+
+	(*object->vTable->removeChild) (object, child);
+	(*child->vTable->finalize) (child);
+	/* free (child); */
+    }
 
     UNWRAP (&r->object, object, vTable);
 
@@ -87,6 +129,150 @@ rootSetProp (CompObject   *object,
 	     unsigned int what,
 	     void	  *value)
 {
+}
+
+static CompBool
+rootAddChild (CompObject *object,
+	      CompObject *child,
+	      const char *name)
+{
+    ROOT (object);
+
+    if (r->child)
+    {
+	return FALSE;
+    }
+
+    r->childName = strdup (name);
+    if (!r->childName)
+	return FALSE;
+
+    r->child = child;
+
+    (*child->vTable->insertObject) (child, object, r->childName);
+
+    return TRUE;
+}
+
+static void
+rootRemoveChild (CompObject *object,
+		 CompObject *child)
+{
+    ROOT (object);
+
+    assert (child == r->child);
+
+    (*child->vTable->removeObject) (child);
+
+    free (r->childName);
+
+    r->child     = NULL;
+    r->childName = NULL;
+}
+
+static CompBool
+rootForEachChildObject (CompObject		*object,
+			ChildObjectCallBackProc proc,
+			void		        *closure)
+{
+    CompBool status;
+
+    ROOT (object);
+
+    if (r->child)
+	if (!(*proc) (r->child, closure))
+	    return FALSE;
+
+    FOR_BASE (object,
+	      status = (*object->vTable->forEachChildObject) (object,
+							      proc,
+							      closure));
+
+    return status;
+}
+
+static void
+rootSignal (CompObject   *object,
+	    const char   *path,
+	    const char   *interface,
+	    const char   *name,
+	    const char   *signature,
+	    CompAnyValue *value,
+	    int	         nValue)
+{
+    static const char *pluginPath = "core/plugins";
+    int		      i;
+
+    ROOT (object);
+
+    for (i = 0; path[i] == pluginPath[i]; i++);
+
+    if (pluginPath[i] == '\0')
+	(*r->u.vTable->updatePlugins) (r, "core");
+
+    FOR_BASE (object, (*object->vTable->signal.signal) (object,
+							path,
+							interface,
+							name,
+							signature,
+							value,
+							nValue));
+}
+
+static CompBool
+processStackRequest (CompRoot *r)
+{
+    int i;
+
+    if (r->request == r->stack)
+	return FALSE;
+
+    for (i = 0; i < r->nRequest && i < r->nStack; i++)
+	if (strcmp (r->request[i], r->stack[i]) != 0)
+	    break;
+
+    if (i < r->nStack)
+    {
+	char **stack;
+
+	r->nStack--;
+
+	unloadPlugin (popPlugin (GET_BRANCH (r->child)));
+
+	free (r->stack[r->nStack]);
+
+	stack = realloc (r->stack, r->nStack * sizeof (char *));
+	if (stack || !r->nStack)
+	    r->stack = stack;
+    }
+    else if (i < r->nRequest)
+    {
+	char *request;
+
+	request = strdup (r->request[i]);
+	if (request)
+	{
+	    char **stack;
+
+	    stack = realloc (r->stack, (r->nStack + 1) * sizeof (char *));
+	    if (stack)
+	    {
+		CompPlugin *p;
+
+		p = loadPlugin (request);
+		if (p)
+		    pushPlugin (p, GET_BRANCH (r->child));
+
+		stack[r->nStack++] = request;
+		r->stack = stack;
+	    }
+	}
+    }
+
+    if (i == r->nRequest && i == r->nStack)
+	removeAllRequests (r);
+
+    return TRUE;
 }
 
 typedef struct _HandleSignalContext {
@@ -139,62 +325,80 @@ handleSignal (CompObject *object,
 static void
 processSignals (CompRoot *r)
 {
-    while (r->signal.head)
+    do
     {
-	HandleSignalContext ctx;
-	CompSignal	    *s = r->signal.head;
+	while (r->signal.head)
+	{
+	    HandleSignalContext ctx;
+	    CompSignal	    *s = r->signal.head;
 
-	if (s->next)
-	    r->signal.head = s->next;
-	else
-	    r->signal.head = r->signal.tail = NULL;
+	    if (s->next)
+		r->signal.head = s->next;
+	    else
+		r->signal.head = r->signal.tail = NULL;
 
-	ctx.path   = s->header->path;
-	ctx.signal = s;
+	    ctx.path   = s->header->path;
+	    ctx.signal = s;
 
-	(*r->u.base.base.vTable->forEachChildObject) (&r->u.base.base,
-						      handleSignal,
-						      (void *) &ctx);
+	    (*r->u.base.vTable->forEachChildObject) (&r->u.base,
+						     handleSignal,
+						     (void *) &ctx);
 
-	(*r->u.base.base.vTable->signal.signal) (&r->u.base.base,
-						 s->header->path,
-						 s->header->interface,
-						 s->header->name,
-						 s->header->signature,
-						 s->header->value,
-						 s->header->nValue);
+	    (*r->u.base.vTable->signal.signal) (&r->u.base,
+						s->header->path,
+						s->header->interface,
+						s->header->name,
+						s->header->signature,
+						s->header->value,
+						s->header->nValue);
 
-	free (s);
-    }
+	    free (s);
+	}
+    } while (processStackRequest (r));
 }
 
-static CompBool
-rootForEachChildObject (CompObject	        *object,
-			ChildObjectCallBackProc proc,
-			void		        *closure)
+static void
+updatePlugins (CompRoot	  *r,
+	       const char *path)
 {
-    CompBool status;
+    CompContainer *plugins;
+    char	  **request;
+    int		  i;
 
-    ROOT (object);
+    plugins = (CompContainer *) compLookupObject (&r->u.base, "core/plugins");
+    if (!plugins)
+	return;
 
-    if (r->core)
-	if (!(*proc) (r->core, closure))
-	    return FALSE;
+    request = malloc (sizeof (char *) * plugins->nItem);
+    if (plugins->nItem && !request)
+	return;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->forEachChildObject) (object,
-							      proc,
-							      closure));
+    removeAllRequests (r);
+    r->request = request;
 
-    return status;
+    for (i = 0; i < plugins->nItem; i++)
+    {
+	CompObject *o = plugins->item[i].object;
+
+	if ((*o->vTable->properties.getString) (o,
+						0, "value",
+						&request[r->nRequest],
+						0))
+	    r->nRequest++;
+    }
 }
 
 static CompRootVTable rootObjectVTable = {
     .base.finalize	     = rootFinalize,
     .base.getProp	     = rootGetProp,
     .base.setProp	     = rootSetProp,
+    .base.addChild	     = rootAddChild,
+    .base.removeChild	     = rootRemoveChild,
     .base.forEachChildObject = rootForEachChildObject,
-    .processSignals	     = processSignals
+    .base.signal.signal	     = rootSignal,
+
+    .processSignals = processSignals,
+    .updatePlugins  = updatePlugins
 };
 
 static const CompObjectType rootObjectType = {

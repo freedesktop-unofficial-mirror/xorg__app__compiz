@@ -109,7 +109,6 @@ cInsertObjectInterface (CompObject *object,
 		child = CHILD (data, &m.interface[i].child[j]);
 		(*child->vTable->insertObject) (child, object,
 						m.interface[i].child[j].name);
-		(*child->vTable->inserted) (child);
 	    }
 	}
     }
@@ -136,14 +135,15 @@ cRemoveObjectInterface (CompObject *object)
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    for (i = 0; i < m.nInterface; i++)
+    i = m.nInterface;
+    while (i--)
     {
-	for (j = 0; j < m.interface[i].nChild; j++)
+	j = m.interface[i].nChild;
+	while (j--)
 	{
 	    if (m.interface[i].child[j].type)
 	    {
 		child = CHILD (data, &m.interface[i].child[j]);
-		(*child->vTable->removed) (child);
 		(*child->vTable->removeObject) (child);
 	    }
 	}
@@ -328,8 +328,9 @@ cForEachChildObject (CompObject		     *object,
 
     for (i = 0; i < m.nInterface; i++)
 	for (j = 0; j < m.interface[i].nChild; j++)
-	    if (!(*proc) (CHILD (data, &m.interface[i].child[j]), closure))
-		return FALSE;
+	    if (CHILD (data, &m.interface[i].child[j])->parent)
+		if (!(*proc) (CHILD (data, &m.interface[i].child[j]), closure))
+		    return FALSE;
 
     FOR_BASE (object,
 	      status = (*object->vTable->forEachChildObject) (object,
@@ -1569,34 +1570,28 @@ cObjectPropertiesInit (CompObject	*object,
 
 	for (j = 0; j < interface[i].nStringProp; j++)
 	{
-	    if (interface[i].stringProp[j].defaultValue)
+	    const char *defaultValue = interface[i].stringProp[j].defaultValue;
+	    char       *str;
+
+	    if (!defaultValue)
+		defaultValue = "";
+
+	    str = strdup (defaultValue);
+	    if (!str)
 	    {
-		char *str;
-
-		str = strdup (interface[i].stringProp[j].defaultValue);
-		if (!str)
+		while (j--)
 		{
-		    while (j--)
-		    {
-			str = PROP_VALUE (data,
-					  &interface[i].stringProp[j],
-					  char *);
-			if (str)
-			    free (str);
-		    }
-
-		    while (i--)
-			cObjectPropertiesFini (object, data, &interface[i], 1);
-
-		    return FALSE;
+		    str = PROP_VALUE (data, &interface[i].stringProp[j], char *);
+			free (str);
 		}
 
-		PROP_VALUE (data, &interface[i].stringProp[j], char *) = str;
+		while (i--)
+		    cObjectPropertiesFini (object, data, &interface[i], 1);
+
+		return FALSE;
 	    }
-	    else
-	    {
-		PROP_VALUE (data, &interface[i].stringProp[j], char *) = NULL;
-	    }
+
+	    PROP_VALUE (data, &interface[i].stringProp[j], char *) = str;
 	}
     }
 
@@ -1676,10 +1671,8 @@ cObjectChildrenInit (CompObject		     *object,
 		if (cChild->type)
 		{
 		    child = CHILD (data, cChild);
-
 		    (*child->vTable->insertObject) (child, object,
 						    cChild->name);
-		    (*child->vTable->inserted) (child);
 		}
 	    }
 	}
@@ -1697,34 +1690,21 @@ cObjectChildrenFini (CompObject	      *object,
     CompObject *child;
     int	       i, j;
 
-    if (object->parent)
+    i = nInterface;
+    while (i--)
     {
-	for (i = 0; i < nInterface; i++)
-	{
-	    for (j = 0; j < interface[i].nChild; j++)
-	    {
-		CChildObject *cChild = &interface[i].child[j];
-
-		if (cChild->type)
-		{
-		    child = CHILD (data, cChild);
-
-		    (*child->vTable->removed) (child);
-		    (*child->vTable->removeObject) (child);
-		}
-	    }
-	}
-    }
-
-    for (i = 0; i < nInterface; i++)
-    {
-	for (j = 0; j < interface[i].nChild; j++)
+	j = interface[i].nChild;
+	while (j--)
 	{
 	    CChildObject *cChild = &interface[i].child[j];
 
 	    if (cChild->type)
 	    {
-		child = CHILD (data, &interface[i].child[j]);
+		child = CHILD (data, cChild);
+
+		if (child->parent)
+		    (*child->vTable->removeObject) (child);
+
 		(*child->vTable->finalize) (child);
 	    }
 	}

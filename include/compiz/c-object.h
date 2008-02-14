@@ -126,7 +126,6 @@ typedef struct _CStringProp {
     CProp base;
 
     const char *defaultValue;
-    char       *data;
 
     CSetStringPropProc set;
     CPropChangedProc   changed;

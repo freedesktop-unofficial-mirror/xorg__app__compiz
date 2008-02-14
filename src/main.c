@@ -180,64 +180,6 @@ signalHandler (int sig)
     }
 }
 
-typedef struct _CompIOCtx {
-    int	 offset;
-    char *pluginData;
-} CompIOCtx;
-
-static int
-readCoreXmlCallback (void *context,
-		     char *buffer,
-		     int  length)
-{
-    CompIOCtx *ctx = (CompIOCtx *) context;
-    int	      offset = ctx->offset;
-    int	      i, j;
-
-    i = compReadXmlChunk ("<compiz><core><display>", &offset, buffer, length);
-
-    for (j = 0; j < COMP_DISPLAY_OPTION_NUM; j++)
-    {
-	CompMetadataOptionInfo info = coreDisplayOptionInfo[j];
-
-	switch (j) {
-	case COMP_DISPLAY_OPTION_ACTIVE_PLUGINS:
-	    if (ctx->pluginData)
-		info.data = ctx->pluginData;
-	default:
-	    break;
-	}
-
-	i += compReadXmlChunkFromMetadataOptionInfo (&info,
-						     &offset,
-						     buffer + i,
-						     length - i);
-    }
-
-    i += compReadXmlChunk ("</display><screen>", &offset,
-			   buffer + i, length - 1);
-
-    for (j = 0; j < COMP_SCREEN_OPTION_NUM; j++)
-    {
-	CompMetadataOptionInfo info = coreScreenOptionInfo[j];
-
-	i += compReadXmlChunkFromMetadataOptionInfo (&info,
-						     &offset,
-						     buffer + i,
-						     length - i);
-    }
-
-    i += compReadXmlChunk ("</screen></core></compiz>", &offset, buffer + i,
-			   length - i);
-
-    if (!offset && length > i)
-	buffer[i++] = '\0';
-
-    ctx->offset += i;
-
-    return i;
-}
-
 static CompPrivate *
 getPrivates (void *closure)
 {
@@ -318,7 +260,7 @@ forEachObjectPrivates (PrivatesCallBackProc proc,
 {
     ForEachObjectPrivatesContext ctx;
     PrivatesContext		 *pCtx = (PrivatesContext *) closure;
-    CompObject			 *core = pCtx->root->core;
+    CompObject			 *core = pCtx->root->child;
 
     ctx.name   = pCtx->name;
     ctx.proc   = proc;
@@ -397,7 +339,7 @@ mainUpdatePrivatesSize (MainContext	   *m,
 
     updateFactory (&m->factory.base, name, privates);
 
-    forEachBranchTree (m->root.core, (void *) &ctx);
+    forEachBranchTree (m->root.child, (void *) &ctx);
 }
 
 static int
@@ -502,14 +444,11 @@ registerStaticObjectTypes (CompObjectFactory	*factory,
 int
 main (int argc, char **argv)
 {
-    CompIOCtx ctx;
-    char      *displayName = 0;
-    char      *plugin[256];
-    int	      i, nPlugin = 0;
-    Bool      disableSm = FALSE;
-    char      *clientId = NULL;
-    char      *hostName;
-    int	      displayNum;
+    char *displayName = 0;
+    Bool disableSm = FALSE;
+    char *clientId = NULL;
+    char *hostName;
+    int	 displayNum, i;
 
     const CompObjectType **propTypes;
     int			 nPropTypes;
@@ -530,6 +469,9 @@ main (int argc, char **argv)
 	.factory.allocatePrivateIndex = mainAllocatePrivateIndex,
 	.factory.freePrivateIndex     = mainFreePrivateIndex
     };
+
+    ROOT (&context.root);
+    OBJECT (&context.root);
 
     programName = argv[0];
     programArgc = argc;
@@ -564,8 +506,6 @@ main (int argc, char **argv)
     infiniteRegion.extents.y1 = MINSHORT;
     infiniteRegion.extents.x2 = MAXSHORT;
     infiniteRegion.extents.y2 = MAXSHORT;
-
-    memset (&ctx, 0, sizeof (ctx));
 
     for (i = 1; i < argc; i++)
     {
@@ -635,32 +575,6 @@ main (int argc, char **argv)
 	    compLogMessage (NULL, "core", CompLogLevelWarn,
 			    "Unknown option '%s'\n", argv[i]);
 	}
-	else
-	{
-	    if (nPlugin < 256)
-		plugin[nPlugin++] = argv[i];
-	}
-    }
-
-    if (nPlugin)
-    {
-	int size = 256;
-
-	for (i = 0; i < nPlugin; i++)
-	    size += strlen (plugin[i]) + 16;
-
-	ctx.pluginData = malloc (size);
-	if (ctx.pluginData)
-	{
-	    char *ptr = ctx.pluginData;
-
-	    ptr += sprintf (ptr, "<type>string</type><default>");
-
-	    for (i = 0; i < nPlugin; i++)
-		ptr += sprintf (ptr, "<value>%s</value>", plugin[i]);
-
-	    ptr += sprintf (ptr, "</default>");
-	}
     }
 
     xmlInitParser ();
@@ -674,26 +588,47 @@ main (int argc, char **argv)
 	return 1;
     }
 
-    if (!compAddMetadataFromIO (&coreMetadata,
-				readCoreXmlCallback, NULL,
-				&ctx))
-	return 1;
-
-    if (ctx.pluginData)
-	free (ctx.pluginData);
-
     compAddMetadataFromFile (&coreMetadata, "core");
 
+    if (!compObjectInitByType (&context.factory.base, o, getRootObjectType ()))
+	return 1;
+
     if (!compObjectInitByType (&context.factory.base,
-			       &context.root.u.base.base,
-			       getRootObjectType ()))
+			       &core.u.base.u.base.base,
+			       getCoreObjectType ()))
 	return 1;
 
-    /* XXX: until core object is moved into the root object */
-    context.root.core = &core.u.base.u.base.base;
-
-    if (!initCore (&context.factory.base, &context.root.u.base.base))
+    if (!(*o->vTable->addChild) (o, &core.u.base.u.base.base, "core"))
 	return 1;
+
+    for (i = 1; i < argc; i++)
+    {
+	CompObject *string;
+	char	   *error;
+
+	if (*argv[i] == '-')
+	    continue;
+
+	string = (*core.u.base.u.vTable->newObject) (&core.u.base,
+						     "plugins",
+						     STRING_PROP_TYPE_NAME,
+						     argv[i],
+						     &error);
+	if (!string)
+	{
+	    fprintf (stderr, "%s\n", error);
+	    free (error);
+	    continue;
+	}
+
+	(*string->vTable->properties.setString) (string,
+						 STRING_PROP_TYPE_NAME,
+						 "value",
+						 argv[i],
+						 NULL);
+    }
+
+    (*r->u.vTable->processSignals) (r);
 
     if (!disableSm)
 	initSession (clientId);
@@ -713,14 +648,12 @@ main (int argc, char **argv)
 	free (hostName);
     }
 
-    eventLoop (&context.root);
+    eventLoop (r);
 
     if (!disableSm)
 	closeSession ();
 
-    finiCore (&context.factory.base, &context.root.u.base.base);
-
-    (*context.root.u.base.base.vTable->finalize) (&context.root.u.base.base);
+    (*o->vTable->finalize) (o);
 
     xmlCleanupParser ();
 

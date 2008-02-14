@@ -737,18 +737,10 @@ availablePlugins (int *n)
 int
 getPluginABI (const char *name)
 {
-    CompPlugin *p = findActivePlugin (name);
-    CompOption	*option;
-    int		nOption;
-
-    if (!p || !p->vTable->getObjectOptions)
+    if (strcmp ("core", name) == 0)
+	return CORE_ABIVERSION;
+    else
 	return 0;
-
-    /* MULTIDPYERROR: ABI options should be moved into core */
-    option = (*p->vTable->getObjectOptions) (p, &core.displays->u.base,
-					     &nOption);
-
-    return getIntOptionNamed (option, nOption, "abi", 0);
 }
 
 Bool

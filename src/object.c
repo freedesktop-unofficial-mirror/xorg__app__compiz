@@ -367,8 +367,15 @@ insertObject (CompObject *object,
 	      CompObject *parent,
 	      const char *name)
 {
+    int i;
+
     object->parent = parent;
     object->name   = name;
+
+    (*object->vTable->inserted) (object);
+
+    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
+	(*object->vTable->interfaceAdded) (object, objectInterface[i].name);
 }
 
 static void
@@ -382,6 +389,13 @@ noopInsertObject (CompObject *object,
 static void
 removeObject (CompObject *object)
 {
+    int i = N_ELEMENTS (objectInterface);
+
+    while (i--)
+	(*object->vTable->interfaceRemoved) (object, objectInterface[i].name);
+
+    (*object->vTable->removed) (object);
+
     object->parent = NULL;
     object->name   = NULL;
 }
@@ -395,13 +409,8 @@ noopRemoveObject (CompObject *object)
 static void
 inserted (CompObject *object)
 {
-    int i;
-
     C_EMIT_SIGNAL_INT (object, InsertedProc, 0, object->signalVec,
 		       &insertedSignal);
-
-    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
-	(*object->vTable->interfaceAdded) (object, objectInterface[i].name);
 }
 
 static void
@@ -413,11 +422,6 @@ noopInserted (CompObject *object)
 static void
 removed (CompObject *object)
 {
-    int i;
-
-    for (i = 0; i < N_ELEMENTS (objectInterface); i++)
-	(*object->vTable->interfaceRemoved) (object, objectInterface[i].name);
-
     C_EMIT_SIGNAL_INT (object, RemovedProc, 0, object->signalVec,
 		       &removedSignal);
 }

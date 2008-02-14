@@ -105,7 +105,8 @@ containerRemoveObject (CompObject *object)
 
     CONTAINER (object);
 
-    for (i = 0; i < c->nItem; i++)
+    i = c->nItem;
+    while (i--)
 	(*c->item[i].object->vTable->removeObject) (c->item[i].object);
 
     FOR_BASE (object, (*object->vTable->removeObject) (object));
@@ -139,10 +140,7 @@ containerAddChild (CompObject *object,
     c->nItem++;
 
     if (object->parent)
-    {
 	(*child->vTable->insertObject) (child, object, itemName);
-	(*child->vTable->inserted) (child);
-    }
 
     return TRUE;
 }
@@ -163,10 +161,7 @@ containerRemoveChild (CompObject *object,
     assert (i < c->nItem);
 
     if (object->parent)
-    {
-	(*child->vTable->removed) (child);
 	(*child->vTable->removeObject) (child);
-    }
 
     free (c->item[i].name);
 

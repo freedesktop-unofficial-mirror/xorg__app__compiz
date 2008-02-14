@@ -39,7 +39,6 @@ static const CMethod coreTypeMethod[] = {
 };
 
 static CChildObject coreTypeChildObject[] = {
-    C_CHILD (plugins, CompCoreData, CONTAINER_TYPE_NAME),
     C_CHILD (inputs, CompCoreData, CONTAINER_TYPE_NAME),
     C_CHILD (outputs, CompCoreData, CONTAINER_TYPE_NAME)
 };
@@ -206,10 +205,43 @@ fileWatchRemoved (CompCore      *core,
 {
 }
 
-static CompCoreVTable coreObjectVTable = {
-    .base.base.getProp = coreGetProp,
-    .addDisplay	       = addDisplay,
-    .removeDisplay     = removeDisplay
+static void
+coreFinalize (CompObject *object)
+{
+    CORE (object);
+
+    XDestroyRegion (c->outputRegion);
+    XDestroyRegion (c->tmpRegion);
+
+    cObjectFini (object);
+}
+
+static void
+coreRemoveObject (CompObject *object)
+{
+    CORE (object);
+
+    while (c->displays)
+	(*c->u.vTable->removeDisplay) (c,
+				       c->displays->hostName,
+				       c->displays->displayNum,
+				       NULL);
+
+    cRemoveObject (object);
+}
+
+static const CompCoreVTable coreObjectVTable = {
+    .base.base.getProp	    = coreGetProp,
+    .base.base.finalize	    = coreFinalize,
+    .base.base.removeObject = coreRemoveObject,
+
+    .addDisplay	   = addDisplay,
+    .removeDisplay = removeDisplay
+};
+
+static const CompCoreVTable noopCoreObjectVTable = {
+    .addDisplay    = noopAddDisplay,
+    .removeDisplay = noopRemoveDisplay
 };
 
 static CompBool
@@ -217,7 +249,8 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 		CompObject		     *object,
 		const CompObjectFactory      *factory)
 {
-    CompObject *displays;
+    static const char *containers[] = { "displays", "plugins" };
+    int		      i;
 
     CORE (object);
 
@@ -226,20 +259,25 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 
     c->u.base.u.base.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
-    displays = (*c->u.base.u.vTable->createObject) (&c->u.base,
-						    CONTAINER_TYPE_NAME,
-						    NULL);
-    if (!displays)
+    for (i = 0; i < N_ELEMENTS (containers); i++)
     {
-	cObjectFini (object);
-	return FALSE;
-    }
+	CompObject *container;
 
-    if (!(*object->vTable->addChild) (object, displays, "displays"))
-    {
-	(*c->u.base.u.vTable->destroyObject) (&c->u.base, displays);
-	cObjectFini (object);
-	return FALSE;
+	container = (*c->u.base.u.vTable->createObject) (&c->u.base,
+							 CONTAINER_TYPE_NAME,
+							 NULL);
+	if (!container)
+	{
+	    cObjectFini (object);
+	    return FALSE;
+	}
+
+	if (!(*object->vTable->addChild) (object, container, containers[i]))
+	{
+	    (*c->u.base.u.vTable->destroyObject) (&c->u.base, container);
+	    cObjectFini (object);
+	    return FALSE;
+	}
     }
 
     c->tmpRegion = XCreateRegion ();
@@ -257,17 +295,7 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 	return FALSE;
     }
 
-    compInitOptionValue (&c->plugin);
-
-    c->plugin.list.type     = CompOptionTypeString;
-    c->plugin.list.nValue   = 1;
-    c->plugin.list.value    = malloc (sizeof (CompOptionValue));
-    c->plugin.list.value->s = strdup ("core");
-
-    c->dirtyPluginList = TRUE;
-
     c->displays = NULL;
-    c->plugins  = NULL;
 
     c->fileWatch	   = NULL;
     c->lastFileWatchHandle = 1;
@@ -299,26 +327,6 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 
     return TRUE;
 }
-
-static void
-coreFinalize (CompObject *object)
-{
-    CORE (object);
-
-    compFiniOptionValue (&c->plugin, CompOptionTypeList);
-
-    XDestroyRegion (c->outputRegion);
-    XDestroyRegion (c->tmpRegion);
-
-    cObjectFini (object);
-}
-
-static const CompCoreVTable noopCoreObjectVTable = {
-    .base.base.finalize = coreFinalize,
-
-    .addDisplay    = noopAddDisplay,
-    .removeDisplay = noopRemoveDisplay
-};
 
 const CompObjectType *
 getCoreObjectType (void)
@@ -352,57 +360,6 @@ void
 freeCorePrivateIndex (int index)
 {
     compObjectFreePrivateIndex (getCoreObjectType (), index);
-}
-
-CompBool
-initCore (const CompObjectFactory *factory,
-	  CompObject	          *parent)
-{
-    CompPlugin *corePlugin;
-
-    if (!compObjectInitByType (factory, &core.u.base.u.base.base,
-			       getCoreObjectType ()))
-	return FALSE;
-
-    (*core.u.base.u.base.base.vTable->insertObject) (&core.u.base.u.base.base,
-						     parent, CORE_TYPE_NAME);
-
-    corePlugin = loadPlugin ("core");
-    if (!corePlugin)
-    {
-	compLogMessage (0, "core", CompLogLevelFatal,
-			"Couldn't load core plugin");
-
-	(*core.u.base.u.base.base.vTable->finalize) (&core.u.base.u.base.base);
-	return FALSE;
-    }
-
-    if (!pushPlugin (corePlugin, &core.u.base))
-    {
-	compLogMessage (0, "core", CompLogLevelFatal,
-			"Couldn't activate core plugin");
-	unloadPlugin (corePlugin);
-	(*core.u.base.u.base.base.vTable->finalize) (&core.u.base.u.base.base);
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
-void
-finiCore (const CompObjectFactory *factory,
-	  CompObject	          *parent)
-{
-    while (core.displays)
-	(*core.u.vTable->removeDisplay) (&core,
-					 core.displays->hostName,
-					 core.displays->displayNum,
-					 NULL);
-
-    while (popPlugin (&core.u.base));
-
-    (*core.u.base.u.base.base.vTable->removeObject) (&core.u.base.u.base.base);
-    (*core.u.base.u.base.base.vTable->finalize) (&core.u.base.u.base.base);
 }
 
 void
