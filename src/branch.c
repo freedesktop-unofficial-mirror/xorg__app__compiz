@@ -28,10 +28,15 @@
 
 #include <compiz/branch.h>
 #include <compiz/error.h>
+#include <compiz/marshal.h>
 #include <compiz/c-object.h>
 
+static const CMethod branchTypeMethod[] = {
+    C_METHOD (addNewObject, "os", "o", CompBranchVTable, marshal__SS_S_E)
+};
+
 static CInterface branchInterface[] = {
-    C_INTERFACE (branch, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
+    C_INTERFACE (branch, Type, CompBranchVTable, _, X, _, _, _, _, _, _)
 };
 
 static CompBool
@@ -152,21 +157,133 @@ static void
 destroyObject (CompBranch *branch,
 	       CompObject *object)
 {
+    if (object->parent)
+	(*object->parent->vTable->removeChild) (object->parent, object);
+
     (*object->vTable->finalize) (object);
     free (object);
 }
 
+static CompObject *
+noopNewObject (CompBranch *branch,
+	       const char *parent,
+	       const char *type,
+	       const char *name,
+	       char	  **error)
+{
+    CompObject *object;
+
+    FOR_BASE (&branch->u.base.base,
+	      object = (*branch->u.vTable->newObject) (branch,
+						       parent,
+						       type,
+						       name,
+						       error));
+
+    return object;
+}
+
+static CompObject *
+newObject (CompBranch *branch,
+	   const char *parent,
+	   const char *type,
+	   const char *name,
+	   char	      **error)
+{
+    CompObject *object, *p;
+    char       tmp[256];
+
+    p = compLookupObject (&branch->u.base.base, parent);
+    if (!p)
+    {
+	esprintf (error, "Parent object '%s' doesn't exist", parent);
+	return NULL;
+    }
+
+    object = (*branch->u.vTable->createObject) (branch, type, error);
+    if (!object)
+	return NULL;
+
+    if (!name)
+    {
+	snprintf (tmp, sizeof (tmp), "%p", object);
+	name = tmp;
+    }
+
+    if (!(*p->vTable->addChild) (p, object, name))
+    {
+	(*branch->u.vTable->destroyObject) (branch, object);
+	esprintf (error, "Parent '%s' cannot hold object of type '%s'", parent,
+		  type);
+	return NULL;
+    }
+
+    return object;
+}
+
+static CompBool
+noopAddNewObject (CompBranch *branch,
+		  const char *parent,
+		  const char *type,
+		  char	     **name,
+		  char	     **error)
+{
+    CompBool status;
+
+    FOR_BASE (&branch->u.base.base,
+	      status = (*branch->u.vTable->addNewObject) (branch,
+							  parent,
+							  type,
+							  name,
+							  error));
+
+    return status;
+}
+
+static CompBool
+addNewObject (CompBranch *branch,
+	      const char *parent,
+	      const char *type,
+	      char	 **name,
+	      char	 **error)
+{
+    CompObject *object;
+    char       *objectName;
+
+    object = (*branch->u.vTable->newObject) (branch, parent, type, NULL, error);
+    if (!object)
+	return FALSE;
+
+    objectName = malloc (strlen (parent) + strlen (object->name) + 2);
+    if (!objectName)
+    {
+	(*branch->u.vTable->destroyObject) (branch, object);
+	esprintf (error, NO_MEMORY_ERROR_STRING);
+	return FALSE;
+    }
+
+    sprintf (objectName, "%s/%s", parent, object->name);
+    *name = objectName;
+
+    return TRUE;
+}
+
 static CompBranchVTable branchObjectVTable = {
-    .base.getProp  = branchGetProp,
+    .base.getProp = branchGetProp,
+
     .registerType  = registerType,
     .createObject  = createObject,
-    .destroyObject = destroyObject
+    .destroyObject = destroyObject,
+    .newObject     = newObject,
+    .addNewObject  = addNewObject
 };
 
 static const CompBranchVTable noopBranchObjectVTable = {
     .registerType  = noopRegisterType,
     .createObject  = noopCreateObject,
-    .destroyObject = noopDestroyObject
+    .destroyObject = noopDestroyObject,
+    .newObject     = noopNewObject,
+    .addNewObject  = noopAddNewObject
 };
 
 const CompObjectType *

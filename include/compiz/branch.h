@@ -45,12 +45,26 @@ typedef CompObject *(*CreateObjectProc) (CompBranch *branch,
 typedef void (*DestroyObjectProc) (CompBranch *branch,
 				   CompObject *object);
 
+typedef CompObject *(*NewObjectProc) (CompBranch *branch,
+				      const char *parent,
+				      const char *type,
+				      const char *name,
+				      char	 **error);
+
+typedef CompBool (*AddNewObjectProc) (CompBranch *branch,
+				      const char *parent,
+				      const char *type,
+				      char	 **name,
+				      char	 **error);
+
 typedef struct _CompBranchVTable {
     CompObjectVTable base;
 
     RegisterTypeProc  registerType;
     CreateObjectProc  createObject;
     DestroyObjectProc destroyObject;
+    NewObjectProc     newObject;
+    AddNewObjectProc  addNewObject;
 } CompBranchVTable;
 
 typedef struct _CompObjectPrivatesNode {
