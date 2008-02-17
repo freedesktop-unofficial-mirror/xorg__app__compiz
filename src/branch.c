@@ -89,7 +89,7 @@ registerType (CompBranch	   *branch,
 	      const char	   *interface,
 	      const CompObjectType *type)
 {
-    return compFactoryRegisterType (&branch->factory, interface, type);
+    return compFactoryInstallType (&branch->factory, type);
 }
 
 static CompObject *
@@ -122,13 +122,13 @@ createObject (CompBranch *branch,
 	return NULL;
     }
 
-    if (node->type->instance.size <= 0)
+    if (node->base.interface->instance.size <= 0)
     {
 	esprintf (error, "'%s' has unknown instance size", type);
 	return NULL;
     }
 
-    object = (CompObject *) malloc (node->type->instance.size);
+    object = (CompObject *) malloc (node->base.interface->instance.size);
     if (!object)
     {
 	esprintf (error, NO_MEMORY_ERROR_STRING);

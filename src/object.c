@@ -109,7 +109,7 @@ findObjectInstantiator (const CompObjectFactory *factory,
     CompObjectInstantiatorNode *node;
 
     for (node = factory->instantiators; node; node = node->next)
-	if (type == node->type)
+	if (type == node->base.interface)
 	    return node->instantiator;
 
     if (factory->master)
@@ -125,7 +125,7 @@ lookupObjectInstantiatorNode (const CompObjectFactory *factory,
     CompObjectInstantiatorNode *node;
 
     for (node = factory->instantiators; node; node = node->next)
-	if (strcmp (name, node->type->name.name) == 0)
+	if (strcmp (name, node->base.interface->name.name) == 0)
 	    return node;
 
     if (factory->master)
@@ -205,16 +205,14 @@ compVTableInit (CompObjectVTable       *vTable,
 }
 
 CompBool
-compFactoryRegisterType (CompObjectFactory    *factory,
-			 const char	      *interface,
-			 const CompObjectType *type)
+compFactoryInstallType (CompObjectFactory    *factory,
+			const CompObjectType *type)
 {
     const CompObjectInstantiatorNode *base = NULL;
     CompObjectInstantiatorNode	     *node;
-    const CompFactory		     *master;
+    CompFactory			     *master;
     const CompObjectFactory	     *f;
     CompObjectPrivatesNode	     *pNode;
-    int				     interfaceSize = 0;
 
     if (type->name.base)
     {
@@ -223,24 +221,31 @@ compFactoryRegisterType (CompObjectFactory    *factory,
 	    return FALSE;
     }
 
-    if (interface)
-	interfaceSize = strlen (interface) + 1;
-
-    node = malloc (sizeof (CompObjectInstantiatorNode) + type->vTable.size +
-		   interfaceSize);
+    node = malloc (sizeof (CompObjectInstantiatorNode) + type->vTable.size);
     if (!node)
 	return FALSE;
 
+    for (f = factory; f->master; f = f->master);
+    master = (CompFactory *) f;
+
+    if (type->factory.install)
+    {
+	if (!(*type->factory.install) (type, master))
+	{
+	    free (node);
+	    return FALSE;
+	}
+    }
+
     node->base.base	     = &base->base;
+    node->base.interface     = type;
     node->base.vTable        = NULL;
     node->base.init	     = type->instance.init;
     node->next		     = factory->instantiators;
     node->instantiator	     = &node->base;
-    node->type		     = type;
     node->privates.len	     = 0;
     node->privates.sizes     = NULL;
     node->privates.totalSize = 0;
-    node->interface	     = NULL;
 
     if (type->vTable.size)
     {
@@ -255,19 +260,12 @@ compFactoryRegisterType (CompObjectFactory    *factory,
 	{
 	    n = (const CompObjectInstantiatorNode *) p;
 
-	    if (n->type->vTable.noop)
+	    if (n->base.interface->vTable.noop)
 		compVTableInit (node->base.vTable,
-				n->type->vTable.noop,
-				n->type->vTable.size);
+				n->base.interface->vTable.noop,
+				n->base.interface->vTable.size);
 	}
     }
-
-    if (interfaceSize)
-	node->interface	= strcpy (((char *) (node + 1)) + type->vTable.size,
-				  interface);
-
-    for (f = factory; f->master; f = f->master);
-    master = (const CompFactory *) f;
 
     for (pNode = master->privates; pNode; pNode = pNode->next)
     {
@@ -281,6 +279,123 @@ compFactoryRegisterType (CompObjectFactory    *factory,
     factory->instantiators = node;
 
     return TRUE;
+}
+
+const CompObjectType *
+compFactoryUninstallType (CompObjectFactory *factory)
+{
+    CompObjectInstantiatorNode *node;
+    CompFactory		       *master;
+    const CompObjectFactory    *f;
+    const CompObjectType       *type;
+
+    node = factory->instantiators;
+    if (!node)
+	return NULL;
+
+    type = node->base.interface;
+    factory->instantiators = node->next;
+
+    for (f = factory; f->master; f = f->master);
+    master = (CompFactory *) f;
+
+    if (type->factory.uninstall)
+	(*type->factory.uninstall) (type, master);
+
+    free (node);
+
+    return type;
+}
+
+CompBool
+compFactoryInstallInterface (CompObjectFactory	       *factory,
+			     const CompObjectType      *type,
+			     const CompObjectInterface *interface)
+{
+    CompObjectInstantiatorNode *node;
+    CompObjectInstantiator     *instantiator;
+    CompFactory		       *master;
+    const CompObjectFactory    *f;
+
+    for (node = factory->instantiators; node; node = node->next)
+	if (type == node->base.interface)
+	    break;
+
+    if (!node)
+	return FALSE;
+
+    instantiator = malloc (sizeof (CompObjectInstantiator) +
+			   interface->vTable.size);
+    if (!instantiator)
+	return FALSE;
+
+    for (f = factory; f->master; f = f->master);
+    master = (CompFactory *) f;
+
+    if (interface->factory.install)
+	(*interface->factory.install) (interface, master);
+
+    instantiator->base   = NULL;
+    instantiator->vTable = NULL;
+    instantiator->init   = interface->instance.init;
+
+    if (interface->vTable.size)
+    {
+	const CompObjectInstantiatorNode *n;
+	const CompObjectInstantiator     *p;
+
+	instantiator->vTable = memcpy (instantiator + 1,
+				       interface->vTable.impl,
+				       interface->vTable.size);
+
+	for (p = &node->base; p; p = p->base)
+	{
+	    n = (const CompObjectInstantiatorNode *) p;
+
+	    if (n->base.interface->vTable.noop)
+		compVTableInit (instantiator->vTable,
+				n->base.interface->vTable.noop,
+				n->base.interface->vTable.size);
+	}
+    }
+
+    instantiator->base = node->instantiator;
+    node->instantiator = instantiator;
+
+    return TRUE;
+}
+
+const CompObjectInterface *
+compFactoryUninstallInterface (CompObjectFactory    *factory,
+			       const CompObjectType *type)
+{
+    CompObjectInstantiatorNode *node;
+    CompObjectInstantiator     *instantiator;
+    CompFactory		       *master;
+    const CompObjectFactory    *f;
+    const CompObjectInterface  *interface;
+
+    for (node = factory->instantiators; node; node = node->next)
+	if (type == node->base.interface)
+	    break;
+
+    if (!node)
+	return NULL;
+
+    interface = node->instantiator->interface;
+
+    for (f = factory; f->master; f = f->master);
+    master = (CompFactory *) f;
+
+    instantiator = (CompObjectInstantiator *) node->instantiator;
+    node->instantiator = instantiator->base;
+
+    if (interface->factory.uninstall)
+	(*interface->factory.uninstall) (interface, master);
+
+    free (instantiator);
+
+    return interface;
 }
 
 static CompBool

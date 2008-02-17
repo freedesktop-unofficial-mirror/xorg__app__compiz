@@ -52,6 +52,7 @@ COMPIZ_BEGIN_DECLS
 
 typedef struct _CompObject	       CompObject;
 typedef struct _CompObjectType	       CompObjectType;
+typedef struct _CompObjectType	       CompObjectInterface;
 typedef struct _CompObjectFactory      CompObjectFactory;
 typedef struct _CompObjectVTable       CompObjectVTable;
 typedef struct _CompObjectInstantiator CompObjectInstantiator;
@@ -65,6 +66,57 @@ typedef struct _CompObjectPrivates {
     int	*sizes;
     int	totalSize;
 } CompObjectPrivates;
+
+struct _CompObjectInstantiator {
+    const CompObjectInstantiator *base;
+    const CompObjectInterface	 *interface;
+    InitObjectProc		 init;
+    CompObjectVTable		 *vTable;
+};
+
+typedef struct _CompObjectInstantiatorNode {
+    CompObjectInstantiator	       base;
+    struct _CompObjectInstantiatorNode *next;
+    const CompObjectInstantiator       *instantiator;
+    CompObjectPrivates		       privates;
+} CompObjectInstantiatorNode;
+
+struct _CompObjectFactory {
+    const CompObjectFactory    *master;
+    CompObjectInstantiatorNode *instantiators;
+};
+
+typedef struct _CompObjectPrivatesNode {
+    struct _CompObjectPrivatesNode *next;
+    const char			   *name;
+    CompObjectPrivates		   privates;
+} CompObjectPrivatesNode;
+
+typedef struct _CompFactory CompFactory;
+
+typedef int (*AllocatePrivateIndexProc) (CompFactory *factory,
+					 const char  *name,
+					 int	     size);
+
+typedef void (*FreePrivateIndexProc) (CompFactory *factory,
+				      const char  *name,
+				      int	  index);
+
+struct _CompFactory {
+    CompObjectFactory base;
+
+    AllocatePrivateIndexProc allocatePrivateIndex;
+    FreePrivateIndexProc     freePrivateIndex;
+
+    CompObjectPrivatesNode *privates;
+};
+
+typedef CompBool (*InstallProc) (const CompObjectInterface *interface,
+				 CompFactory		   *factory);
+
+typedef void (*UninstallProc) (const CompObjectInterface *interface,
+			       CompFactory	         *factory);
+
 
 struct _CompObjectType {
     struct {
@@ -82,26 +134,11 @@ struct _CompObjectType {
 	InitObjectProc init;
 	size_t	       size;
     } instance;
-};
 
-struct _CompObjectInstantiator {
-    const CompObjectInstantiator *base;
-    InitObjectProc		 init;
-    CompObjectVTable		 *vTable;
-};
-
-typedef struct _CompObjectInstantiatorNode {
-    CompObjectInstantiator	       base;
-    struct _CompObjectInstantiatorNode *next;
-    const CompObjectInstantiator       *instantiator;
-    const CompObjectType	       *type;
-    CompObjectPrivates		       privates;
-    char			       *interface;
-} CompObjectInstantiatorNode;
-
-struct _CompObjectFactory {
-    const CompObjectFactory    *master;
-    CompObjectInstantiatorNode *instantiators;
+    struct {
+	InstallProc   install;
+	UninstallProc uninstall;
+    } factory;
 };
 
 typedef unsigned int CompObjectTypeID;
@@ -437,9 +474,20 @@ compVTableInit (CompObjectVTable       *vTable,
 		int		       size);
 
 CompBool
-compFactoryRegisterType (CompObjectFactory    *factory,
-			 const char	      *interface,
-			 const CompObjectType *type);
+compFactoryInstallType (CompObjectFactory    *factory,
+			const CompObjectType *type);
+
+const CompObjectType *
+compFactoryUninstallType (CompObjectFactory *factory);
+
+CompBool
+compFactoryInstallInterface (CompObjectFactory	       *factory,
+			     const CompObjectType      *type,
+			     const CompObjectInterface *interface);
+
+const CompObjectInterface *
+compFactoryUninstallInterface (CompObjectFactory    *factory,
+			       const CompObjectType *type);
 
 typedef struct _CompSerializedMethodCallHeader {
     char	 *path;

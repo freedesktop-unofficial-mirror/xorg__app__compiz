@@ -1863,7 +1863,7 @@ cObjectInit (const CompObjectInstantiator *instantiator,
     (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
 
     for (i = 0; i < m.nInterface; i++)
-	((CInterface *) m.interface)[i].type = node->type;
+	((CInterface *) m.interface)[i].type = node->base.interface;
 
     data->privates = allocatePrivates (node->privates.len,
 				       node->privates.sizes,
@@ -1995,15 +1995,15 @@ cObjectTypeFromTemplate (const CompObjectType *template)
     if (!type)
 	return NULL;
 
+    *type = *template;
+
     type->name.name = strcpy ((char *) (type + 1), template->name.name);
-    type->name.base = NULL;
 
-    type->vTable.size = vTableSize;
-    type->vTable.impl = NULL;
-    type->vTable.noop = NULL;
+    if (!template->vTable.size)
+	type->vTable.size = vTableSize;
 
-    type->instance.init = cObjectInit;
-    type->instance.size = template->instance.size;
+    if (!template->instance.init)
+	type->instance.init = cObjectInit;
 
     if (template->name.base)
 	type->name.base = strcpy ((char *) (type + 1) + nameSize,
@@ -2029,10 +2029,123 @@ cObjectTypeFromTemplate (const CompObjectType *template)
 	type->vTable.noop = memcpy ((char *) vTable + vTableSize,
 				    template->vTable.noop, vTableSize);
 
-    if (template->instance.init)
-	type->instance.init = template->instance.init;
-
     return type;
+}
+
+typedef struct _CObjectInterface {
+    CompObjectInterface base;
+    int		        *index;
+    int			size;
+} CObjectInterface;
+
+static CompBool
+cInstallObjectInterface (const CompObjectInterface *interface,
+			 CompFactory		   *factory)
+{
+    const CObjectInterface *cInterface = (const CObjectInterface *) interface;
+    int			   index;
+
+    index = (*factory->allocatePrivateIndex) (factory,
+					      cInterface->base.name.base,
+					      cInterface->size);
+    if (index < 0)
+	return FALSE;
+
+    *(cInterface->index) = index;
+
+    return TRUE;
+}
+
+static void
+cUninstallObjectInterface (const CompObjectInterface *interface,
+			   CompFactory	             *factory)
+{
+    const CObjectInterface *cInterface = (const CObjectInterface *) interface;
+    int			   index = *(cInterface->index);
+
+    (*factory->freePrivateIndex) (factory,
+				  cInterface->base.name.base,
+				  index);
+}
+
+CompObjectInterface *
+cObjectInterfaceFromTemplate (const CompObjectInterface *template,
+			      int			*index,
+			      int			size)
+{
+    CObjectInterface *interface;
+    CompObjectVTable *vTable;
+    int		     nameSize = strlen (template->name.name) + 1;
+    int		     baseNameSize = 0;
+    int		     vTableSize = template->vTable.size;
+    int		     noopVTableSize = 0;
+
+    if (template->name.base)
+	baseNameSize = strlen (template->name.base) + 1;
+    else
+	baseNameSize = strlen (OBJECT_TYPE_NAME) + 1;
+
+    if (!vTableSize)
+	vTableSize = sizeof (CompObjectVTable);
+
+    if (template->vTable.noop)
+	noopVTableSize = vTableSize;
+
+    interface = malloc (sizeof (CObjectInterface) +
+			nameSize +
+			baseNameSize +
+			vTableSize +
+			noopVTableSize);
+    if (!interface)
+	return NULL;
+
+    interface->base = *template;
+
+    interface->index = index;
+    interface->size  = size;
+
+    interface->base.name.name = strcpy ((char *) (interface + 1),
+					template->name.name);
+
+    if (!template->vTable.size)
+	interface->base.vTable.size = vTableSize;
+
+    if (!template->instance.init)
+	interface->base.instance.init = cObjectInterfaceInit;
+
+    if (template->name.base)
+	interface->base.name.base =
+	    strcpy ((char *) (interface + 1) + nameSize, template->name.base);
+    else
+	interface->base.name.base =
+	    strcpy ((char *) (interface + 1) + nameSize, OBJECT_TYPE_NAME);
+
+    vTable = (CompObjectVTable *) ((char *) (interface + 1) + nameSize +
+				   baseNameSize);
+
+    if (template->vTable.impl)
+	interface->base.vTable.impl = memcpy (vTable, template->vTable.impl,
+					      vTableSize);
+    else
+	interface->base.vTable.impl = memset (vTable, 0, vTableSize);
+
+    if (!vTable->finalize)
+	vTable->finalize = cObjectInterfaceFini;
+
+    compVTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
+
+    if (template->vTable.noop)
+	interface->base.vTable.noop =
+	    memcpy ((char *) vTable + vTableSize,
+		    template->vTable.noop, vTableSize);
+
+    if (!template->factory.install)
+	interface->base.factory.install = cInstallObjectInterface;
+
+    if (!template->factory.uninstall)
+	interface->base.factory.uninstall = cUninstallObjectInterface;
+
+    return &interface->base;
 }
 
 static CompBool
@@ -2293,9 +2406,10 @@ cObjectInitPrivate (CompBranch	   *branch,
 	{
 	    n = (const CompObjectInstantiatorNode *) p;
 
-	    if (n->type->vTable.noop)
-		compVTableInit (instantiator->vTable, n->type->vTable.noop,
-				n->type->vTable.size);
+	    if (n->base.interface->vTable.noop)
+		compVTableInit (instantiator->vTable,
+				n->base.interface->vTable.noop,
+				n->base.interface->vTable.size);
 	}
     }
     else
@@ -2304,7 +2418,8 @@ cObjectInitPrivate (CompBranch	   *branch,
     }
 
     /* initialize all objects of this type */
-    if (!initTypedObjects (&branch->factory, &branch->u.base.base, node->type,
+    if (!initTypedObjects (&branch->factory, &branch->u.base.base,
+			   node->base.interface,
 			   instantiator->vTable))
 	return FALSE;
 
@@ -2327,7 +2442,8 @@ cObjectFiniPrivate (CompBranch	   *branch,
     node->instantiator = instantiator->base;
 
     /* finalize all objects of this type */
-    finiTypedObjects (&branch->factory, &branch->u.base.base, node->type);
+    finiTypedObjects (&branch->factory, &branch->u.base.base,
+		      node->base.interface);
 
     free (instantiator);
 }

@@ -497,6 +497,10 @@ cSetObjectProp (CompObject   *object,
 CompObjectType *
 cObjectTypeFromTemplate (const CompObjectType *tmpl);
 
+CompObjectInterface *
+cObjectInterfaceFromTemplate (const CompObjectInterface *tmpl,
+			      int			*index,
+			      int			size);
 
 CompBool
 handleConnect (CompObject	 *object,

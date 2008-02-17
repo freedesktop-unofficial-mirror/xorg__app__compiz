@@ -67,31 +67,6 @@ typedef struct _CompBranchVTable {
     AddNewObjectProc  addNewObject;
 } CompBranchVTable;
 
-typedef struct _CompObjectPrivatesNode {
-    struct _CompObjectPrivatesNode *next;
-    const char			   *name;
-    CompObjectPrivates		   privates;
-} CompObjectPrivatesNode;
-
-typedef struct _CompFactory CompFactory;
-
-typedef int (*AllocatePrivateIndexProc) (CompFactory *factory,
-					 const char  *name,
-					 int	     size);
-
-typedef void (*FreePrivateIndexProc) (CompFactory *factory,
-				      const char  *name,
-				      int	  index);
-
-struct _CompFactory {
-    CompObjectFactory base;
-
-    AllocatePrivateIndexProc allocatePrivateIndex;
-    FreePrivateIndexProc     freePrivateIndex;
-
-    CompObjectPrivatesNode *privates;
-};
-
 struct _CompBranch {
     union {
 	CompContainer	       base;

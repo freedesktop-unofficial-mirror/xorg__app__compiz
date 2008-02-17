@@ -288,7 +288,7 @@ updateFactory (CompObjectFactory  *factory,
 
     for (node = factory->instantiators; node; node = node->next)
     {
-	if (strcmp (node->type->name.name, name) == 0)
+	if (strcmp (node->base.interface->name.name, name) == 0)
 	{
 	    node->privates = *privates;
 	    break;
@@ -430,7 +430,7 @@ registerStaticObjectTypes (CompObjectFactory	*factory,
 
     for (i = 0; i < n; i++)
     {
-	if (!compFactoryRegisterType (factory, 0, types[i]))
+	if (!compFactoryInstallType (factory, types[i]))
 	{
 	    fprintf (stderr, "Failed to register '%s' object type\n",
 		     types[i]->name.name);
