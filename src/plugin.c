@@ -34,13 +34,13 @@
 CompPlugin *plugins = 0;
 
 static CompBool
-coreInit (CompFactory *factory)
+coreInit (CompPlugin *plugin)
 {
     return TRUE;
 }
 
 static void
-coreFini (CompFactory *factory)
+coreFini (CompPlugin *plugin)
 {
 }
 
@@ -103,6 +103,8 @@ cloaderLoadPlugin (CompPlugin *p,
     if (strcmp (name, coreVTable.name))
 	return FALSE;
 
+    memset (p, 0, sizeof (*p));
+
     p->vTable	      = &coreVTable;
     p->devPrivate.ptr = NULL;
     p->devType	      = "cloader";
@@ -140,6 +142,9 @@ cloaderListPlugins (const char *path,
     return list;
 }
 
+typedef const GetTypeProc      *(*GetCompizObjectTypesProc)      (int *n);
+typedef const GetInterfaceProc *(*GetCompizObjectInterfacesProc) (int *n);
+
 static Bool
 dlloaderLoadPlugin (CompPlugin *p,
 		    const char *path,
@@ -160,44 +165,67 @@ dlloaderLoadPlugin (CompPlugin *p,
     dlhand = dlopen (file, RTLD_LAZY);
     if (dlhand)
     {
-	PluginGetInfoProc getInfo;
-	char		  *error;
+	GetCompizObjectTypesProc      getTypes;
+	GetCompizObjectInterfacesProc getInterfaces;
+	char			      *error;
+
+	p->type       = NULL;
+	p->nType      = 0;
+	p->interface  = NULL;
+	p->nInterface = 0;
 
 	dlerror ();
 
-	getInfo = (PluginGetInfoProc)
-	    dlsym (dlhand, "getCompPluginInfo20070830");
+	getTypes = (GetCompizObjectTypesProc)
+	    dlsym (dlhand, "getCompizObjectTypes20080220");
 
-	error = dlerror ();
-	if (error)
+	if (!dlerror () && getTypes)
+	    p->type = (*getTypes) (&p->nType);
+
+	getInterfaces = (GetCompizObjectInterfacesProc)
+	    dlsym (dlhand, "getCompizObjectInterfaces20080220");
+
+	if (!dlerror () && getInterfaces)
+	    p->interface = (*getInterfaces) (&p->nInterface);
+
+	if (!p->nType && !p->nInterface)
 	{
-	    compLogMessage (NULL, "core", CompLogLevelError,
-			    "dlsym: %s", error);
+	    PluginGetInfoProc getInfo;
 
-	    getInfo = 0;
-	}
+	    getInfo = (PluginGetInfoProc)
+		dlsym (dlhand, "getCompPluginInfo20070830");
 
-	if (getInfo)
-	{
-	    p->vTable = (*getInfo) ();
-	    if (!p->vTable)
+	    error = dlerror ();
+	    if (error)
 	    {
 		compLogMessage (NULL, "core", CompLogLevelError,
-				"Couldn't get vtable from '%s' plugin",
-				file);
+				"dlsym: %s", error);
 
+		getInfo = 0;
+	    }
+
+	    if (getInfo)
+	    {
+		p->vTable = (*getInfo) ();
+		if (!p->vTable)
+		{
+		    compLogMessage (NULL, "core", CompLogLevelError,
+				    "Couldn't get vtable from '%s' plugin",
+				    file);
+
+		    dlclose (dlhand);
+		    free (file);
+
+		    return FALSE;
+		}
+	    }
+	    else
+	    {
 		dlclose (dlhand);
 		free (file);
 
 		return FALSE;
 	    }
-	}
-	else
-	{
-	    dlclose (dlhand);
-	    free (file);
-
-	    return FALSE;
 	}
     }
     else
@@ -382,29 +410,127 @@ finiObjectTree (CompObject *o,
     return TRUE;
 }
 
+static CompBool
+pushType (CompBranch	       *branch,
+	  const CompObjectType *type)
+{
+    return compFactoryInstallType (&branch->factory, type);
+}
+
+static void
+popType (CompBranch *branch)
+{
+    compFactoryUninstallType (&branch->factory);
+}
+
+static CompBool
+pushInterface (CompBranch		 *branch,
+	       const CompObjectInterface *interface)
+{
+    const CompObjectType       *type;
+    CompObject		       *node;
+    char		       path[257];
+    CompObjectInstantiatorNode *n;
+
+    n = compObjectInstantiatorNode (&branch->factory, interface->name.base);
+    if (!n)
+	return FALSE;
+
+    type = n->base.interface;
+
+    sprintf (path, "%s/%s", branch->data.types.base.name, type->name.name);
+
+    node = (*branch->u.vTable->newObject) (branch,
+					   path,
+					   OBJECT_TYPE_NAME,
+					   interface->name.name,
+					   NULL);
+    if (!node)
+	return FALSE;
+
+    if (!compFactoryInstallInterface (&branch->factory, type, interface))
+    {
+	(*branch->u.vTable->destroyObject) (branch, node);
+	return FALSE;
+    }
+
+    if (!compInsertTopInterface (&branch->u.base.base, &branch->factory, type))
+    {
+	compFactoryUninstallInterface (&branch->factory, type);
+	(*branch->u.vTable->destroyObject) (branch, node);
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+static void
+popInterface (CompBranch		*branch,
+	      const CompObjectInterface *interface)
+{
+    const CompObjectType       *type;
+    CompObjectInstantiatorNode *n;
+
+    n = compObjectInstantiatorNode (&branch->factory, interface->name.base);
+    if (!n)
+	return;
+
+    type = n->base.interface;
+
+    compRemoveTopInterface (&branch->u.base.base, &branch->factory,
+			    n->base.interface);
+
+    interface = compFactoryUninstallInterface (&branch->factory,
+					       n->base.interface);
+    if (interface)
+    {
+	CompObject *node;
+	char       path[257];
+
+	sprintf (path, "%s/%s", type->name.name, interface->name.name);
+
+	node = compLookupObject (&branch->data.types.base, path);
+	if (node)
+	    (*branch->u.vTable->destroyObject) (branch, node);
+    }
+}
+
 static Bool
 initPlugin (CompPlugin *p,
 	    CompBranch *branch)
 {
-    const CompObjectFactory *f;
-    CompFactory		    *factory;
-
-    for (f = &branch->factory; f->master; f = f->master);
-    factory = (CompFactory *) f;
-
-    if (!(*p->vTable->init) (factory))
+    if (p->nType || p->nInterface)
     {
-	compLogMessage (NULL, "core", CompLogLevelError,
-			"InitPlugin '%s' failed", p->vTable->name);
-	return FALSE;
-    }
+	const CompObjectType      *type;
+	const CompObjectInterface *interface;
+	int			  i;
 
-    if (p->vTable->insert)
-    {
-	if (!(*p->vTable->insert) (branch->u.base.base.parent, branch))
+	for (i = 0; i < p->nType; i++)
 	{
-	    (*p->vTable->fini) (factory);
-	    return FALSE;
+	    type = (*(p->type[i])) ();
+	    if (!type || !pushType (branch, type))
+	    {
+		while (i--)
+		    popType (branch);
+
+		return FALSE;
+	    }
+	}
+
+	for (i = 0; i < p->nInterface; i++)
+	{
+	    interface = (*(p->interface[i])) ();
+	    if (!interface || !pushInterface (branch, interface))
+	    {
+		while (i--)
+		    popInterface (branch, (*(p->interface[i])) ());
+
+		i = p->nType;
+		while (i--)
+		    popType (branch);
+
+		return FALSE;
+	    }
 	}
     }
     else
@@ -412,6 +538,13 @@ initPlugin (CompPlugin *p,
 	InitObjectContext ctx;
 
 	OBJECT (branch);
+
+	if (!(*p->vTable->init) (p))
+	{
+	    compLogMessage (NULL, "core", CompLogLevelError,
+			    "InitPlugin '%s' failed", p->vTable->name);
+	    return FALSE;
+	}
 
 	ctx.plugin = p;
 	ctx.object = NULL;
@@ -422,7 +555,7 @@ initPlugin (CompPlugin *p,
 	    {
 		compLogMessage (NULL, p->vTable->name, CompLogLevelError,
 				"InitObject failed");
-		(*p->vTable->fini) (factory);
+		(*p->vTable->fini) (p);
 
 		return FALSE;
 	    }
@@ -439,7 +572,7 @@ initPlugin (CompPlugin *p,
 	    if (p->vTable->initObject && p->vTable->finiObject)
 		(*p->vTable->finiObject) (p, o);
 
-	    (*p->vTable->fini) (factory);
+	    (*p->vTable->fini) (p);
 
 	    return FALSE;
 	}
@@ -452,15 +585,17 @@ static void
 finiPlugin (CompPlugin *p,
 	    CompBranch *branch)
 {
-    const CompObjectFactory *f;
-    CompFactory		    *factory;
-
-    for (f = &branch->factory; f->master; f = f->master);
-    factory = (CompFactory *) f;
-
-    if (p->vTable->remove)
+    if (p->nType || p->nInterface)
     {
-	(*p->vTable->remove) (branch->u.base.base.parent, branch);
+	int i;
+
+	i = p->nInterface;
+	while (i--)
+	    popInterface (branch, (*(p->interface[i])) ());
+
+	i = p->nType;
+	while (i--)
+	    popType (branch);
     }
     else
     {
@@ -477,9 +612,9 @@ finiPlugin (CompPlugin *p,
 
 	if (p->vTable->initObject && p->vTable->finiObject)
 	    (*p->vTable->finiObject) (p, o);
-    }
 
-    (*p->vTable->fini) (factory);
+	(*p->vTable->fini) (p);
+    }
 }
 
 CompBool
@@ -555,6 +690,10 @@ unloadPlugin (CompPlugin *p)
     free (p);
 }
 
+static CompPluginVTable emptyVTable = {
+    "unknown"
+};
+
 CompPlugin *
 loadPlugin (const char *name)
 {
@@ -569,7 +708,7 @@ loadPlugin (const char *name)
     p->next	       = 0;
     p->devPrivate.uval = 0;
     p->devType	       = NULL;
-    p->vTable	       = 0;
+    p->vTable	       = &emptyVTable;
 
     home = getenv ("HOME");
     if (home)
@@ -604,7 +743,7 @@ CompBool
 pushPlugin (CompPlugin *p,
 	    CompBranch *branch)
 {
-    if (findActivePlugin (p->vTable->name))
+    if (p->vTable != &emptyVTable && findActivePlugin (p->vTable->name))
     {
 	compLogMessage (NULL, "core", CompLogLevelWarn,
 			"Plugin '%s' already active",

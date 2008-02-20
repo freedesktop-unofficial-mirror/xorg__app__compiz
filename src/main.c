@@ -462,7 +462,7 @@ main (int argc, char **argv)
 	getCoreObjectType (),
 	getDisplayObjectType (),
 	getScreenObjectType (),
-	getWindowObjectType (),
+	getWindowObjectType ()
     };
 
     MainContext context = {

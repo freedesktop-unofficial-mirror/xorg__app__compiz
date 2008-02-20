@@ -26,7 +26,7 @@
 #ifndef _COMPIZ_PLUGIN_H
 #define _COMPIZ_PLUGIN_H
 
-#include <compiz/branch.h>
+#include <compiz/object.h>
 
 COMPIZ_BEGIN_DECLS
 
@@ -36,8 +36,8 @@ typedef struct _CompMetadata CompMetadata;
 
 typedef union _CompOptionValue CompOptionValue;
 
-typedef CompBool (*InitPluginProc) (CompFactory *factory);
-typedef void     (*FiniPluginProc) (CompFactory *factory);
+typedef CompBool (*InitPluginProc) (CompPlugin *plugin);
+typedef void     (*FiniPluginProc) (CompPlugin *plugin);
 
 typedef CompMetadata *(*GetPluginMetadataProc) (CompPlugin *plugin);
 
@@ -54,11 +54,6 @@ typedef CompBool (*SetPluginObjectOptionProc) (CompPlugin      *plugin,
 					       const char      *name,
 					       CompOptionValue *value);
 
-typedef CompBool (*InsertPluginProc) (CompObject *parent,
-				      CompBranch *branch);
-typedef void     (*RemovePluginProc) (CompObject *parent,
-				      CompBranch *branch);
-
 typedef struct _CompPluginVTable {
     const char *name;
 
@@ -72,13 +67,19 @@ typedef struct _CompPluginVTable {
 
     GetPluginObjectOptionsProc getObjectOptions;
     SetPluginObjectOptionProc  setObjectOption;
-
-    InsertPluginProc insert;
-    RemovePluginProc remove;
 } CompPluginVTable;
 
 CompPluginVTable *
 getCompPluginInfo20070830 (void);
+
+typedef const CompObjectType      *(*GetTypeProc)      (void);
+typedef const CompObjectInterface *(*GetInterfaceProc) (void);
+
+const GetTypeProc *
+getCompizObjectTypes20080220 (int *n);
+
+const GetInterfaceProc *
+getCompizObjectInterfaces20080220 (int *n);
 
 COMPIZ_END_DECLS
 

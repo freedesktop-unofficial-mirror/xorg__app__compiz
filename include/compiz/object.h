@@ -111,12 +111,15 @@ struct _CompFactory {
     CompObjectPrivatesNode *privates;
 };
 
-typedef CompBool (*InstallProc) (const CompObjectInterface *interface,
-				 CompFactory		   *factory);
+typedef CompBool (*InstallProc)   (const CompObjectInterface *interface,
+				   CompFactory		      *factory);
+typedef void     (*UninstallProc) (const CompObjectInterface *interface,
+				   CompFactory	             *factory);
 
-typedef void (*UninstallProc) (const CompObjectInterface *interface,
-			       CompFactory	         *factory);
-
+typedef CompBool (*InitInterfaceProc) (CompObject	       *object,
+				       const CompObjectVTable  *vTable,
+				       const CompObjectFactory *factory);
+typedef void     (*FiniInterfaceProc) (CompObject *object);
 
 struct _CompObjectType {
     struct {
@@ -139,6 +142,11 @@ struct _CompObjectType {
 	InstallProc   install;
 	UninstallProc uninstall;
     } factory;
+
+    struct {
+	InitInterfaceProc init;
+	FiniInterfaceProc fini;
+    } interface;
 };
 
 typedef unsigned int CompObjectTypeID;
@@ -488,6 +496,16 @@ compFactoryInstallInterface (CompObjectFactory	       *factory,
 const CompObjectInterface *
 compFactoryUninstallInterface (CompObjectFactory    *factory,
 			       const CompObjectType *type);
+
+CompBool
+compInsertTopInterface (CompObject	     *root,
+			CompObjectFactory    *factory,
+			const CompObjectType *type);
+
+void
+compRemoveTopInterface (CompObject	     *root,
+			CompObjectFactory    *factory,
+			const CompObjectType *type);
 
 typedef struct _CompSerializedMethodCallHeader {
     char	 *path;

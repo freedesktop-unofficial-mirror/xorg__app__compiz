@@ -34,10 +34,6 @@ COMPIZ_BEGIN_DECLS
 
 typedef struct _CompBranch CompBranch;
 
-typedef CompBool (*RegisterTypeProc) (CompBranch	   *branch,
-				      const char	   *interface,
-				      const CompObjectType *type);
-
 typedef CompObject *(*CreateObjectProc) (CompBranch *branch,
 					 const char *type,
 					 char	    **error);
@@ -60,12 +56,16 @@ typedef CompBool (*AddNewObjectProc) (CompBranch *branch,
 typedef struct _CompBranchVTable {
     CompObjectVTable base;
 
-    RegisterTypeProc  registerType;
     CreateObjectProc  createObject;
     DestroyObjectProc destroyObject;
     NewObjectProc     newObject;
     AddNewObjectProc  addNewObject;
 } CompBranchVTable;
+
+typedef struct _CompBranchData {
+    CompObjectData base;
+    CompContainer  types;
+} CompBranchData;
 
 struct _CompBranch {
     union {
@@ -73,7 +73,7 @@ struct _CompBranch {
 	const CompBranchVTable *vTable;
     } u;
 
-    CompObjectData    data;
+    CompBranchData    data;
     CompObjectFactory factory;
 };
 
@@ -92,8 +92,6 @@ compAllocatePrivateIndex (CompFactory *factory,
 void
 compFreePrivateIndex (CompFactory *factory,
 		      int	  index);
-
-
 
 COMPIZ_END_DECLS
 

@@ -305,8 +305,6 @@ updateOutputDevices (CompScreen *s)
     int	       i, nOutput = 0;
     Region     region;
 
-    printf ("updateOutputDevices: %d\n", s->data.outputs.nItem);
-
     if (!noDetection && s->data.detectOutputs)
     {
 	if (s->display->nScreenInfo)

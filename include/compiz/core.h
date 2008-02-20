@@ -54,6 +54,7 @@
 #include <compiz/prop.h>
 #include <compiz/output.h>
 #include <compiz/plugin.h>
+#include <compiz/branch.h>
 #include <compiz/root.h>
 
 COMPIZ_BEGIN_DECLS
@@ -3162,6 +3163,11 @@ struct _CompPlugin {
     CompPrivate	     devPrivate;
     char	     *devType;
     CompPluginVTable *vTable;
+
+    const GetTypeProc	   *type;
+    int			   nType;
+    const GetInterfaceProc *interface;
+    int			   nInterface;
 };
 
 CompBool

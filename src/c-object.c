@@ -1489,63 +1489,6 @@ static const CompObjectVTable cVTable = {
     .properties.stringChanged = cStringPropChanged
 };
 
-static CompBool
-cObjectAllocPrivateIndex (CompFactory    *factory,
-			  CObjectPrivate *private)
-{
-    int	index;
-
-    index = (*factory->allocatePrivateIndex) (factory,
-					      private->name,
-					      private->size);
-    if (index < 0)
-	return FALSE;
-
-    *(private->pIndex) = index;
-
-    return TRUE;
-}
-
-static void
-cObjectFreePrivateIndex (CompFactory    *factory,
-			 CObjectPrivate *private)
-{
-    (*factory->freePrivateIndex) (factory, private->name, *(private->pIndex));
-}
-
-CompBool
-cObjectAllocPrivateIndices (CompFactory    *factory,
-			    CObjectPrivate *private,
-			    int	           nPrivate)
-{
-    int	i;
-
-    for (i = 0; i < nPrivate; i++)
-	if (!cObjectAllocPrivateIndex (factory, &private[i]))
-	    break;
-
-    if (i < nPrivate)
-    {
-	if (i)
-	    cObjectFreePrivateIndices (factory, private, i - 1);
-
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
-void
-cObjectFreePrivateIndices (CompFactory	  *factory,
-			   CObjectPrivate *private,
-			   int		  nPrivate)
-{
-    int	n = nPrivate;
-
-    while (n--)
-	cObjectFreePrivateIndex (factory, &private[n]);
-}
-
 #define SET_DEFAULT_VALUE(data, prop, type)		 \
     PROP_VALUE (data, prop, type) = (prop)->defaultValue
 
@@ -2068,6 +2011,48 @@ cUninstallObjectInterface (const CompObjectInterface *interface,
 				  index);
 }
 
+static CompBool
+cInitInterface (CompObject	        *object,
+		const CompObjectVTable  *vTable,
+		const CompObjectFactory *factory)
+{
+    const CompObjectVTable *baseVTable;
+    CompInterfaceData	   *data;
+
+    baseVTable = object->vTable;
+    object->vTable = vTable;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    data->vTable = baseVTable;
+
+    if (!cInitObjectInterface (object, factory, data))
+    {
+	object->vTable = baseVTable;
+	return FALSE;
+    }
+
+    if (object->parent)
+	cInsertObjectInterface (object, object->parent);
+
+    return TRUE;
+}
+
+static void
+cFiniInterface (CompObject *object)
+{
+    CompInterfaceData *data;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    if (object->parent)
+	cRemoveObjectInterface (object);
+
+    cFiniObjectInterface (object, data);
+
+    object->vTable = data->vTable;
+}
+
 CompObjectInterface *
 cObjectInterfaceFromTemplate (const CompObjectInterface *template,
 			      int			*index,
@@ -2145,338 +2130,11 @@ cObjectInterfaceFromTemplate (const CompObjectInterface *template,
     if (!template->factory.uninstall)
 	interface->base.factory.uninstall = cUninstallObjectInterface;
 
+    if (!template->interface.init)
+	interface->base.interface.init = cInitInterface;
+
+    if (!template->interface.fini)
+	interface->base.interface.fini = cFiniInterface;
+
     return &interface->base;
-}
-
-static CompBool
-topObjectType (CompObject	    *object,
-	       const char	    *name,
-	       size_t		    offset,
-	       const CompObjectType *type,
-	       void		    *closure)
-{
-    if (type)
-    {
-	*((const CompObjectType **) closure) = type;
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
-typedef struct _InitObjectContext {
-    const CompObjectFactory *factory;
-    const CompObjectType    *type;
-    const CompObjectVTable  *vTable;
-    CompObject		    *object;
-} InitObjectContext;
-
-static CompBool
-initBaseObject (CompObject *object,
-		void	   *closure)
-{
-    InitObjectContext    *pCtx = (InitObjectContext *) closure;
-    const CompObjectType *type;
-
-    (*object->vTable->forEachInterface) (object,
-					 topObjectType,
-					 (void *) &type);
-
-    if (type == pCtx->type)
-    {
-	const CompObjectVTable *vTable = object->vTable;
-	CompInterfaceData      *data;
-
-	object->vTable = pCtx->vTable;
-
-	(*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
-
-	data->vTable = vTable;
-
-	if (!cInitObjectInterface (object, pCtx->factory, data))
-	{
-	    object->vTable = vTable;
-	    return FALSE;
-	}
-
-	if (object->parent)
-	    cInsertObjectInterface (object, object->parent);
-
-	return TRUE;
-    }
-    else
-    {
-	const CompObjectVTable *baseVTable, *vTable = object->vTable;
-	CompBool	       status = TRUE;
-
-	(*object->vTable->getProp) (object,
-				    COMP_PROP_BASE_VTABLE,
-				    (void *) &baseVTable);
-
-	if (baseVTable)
-	{
-	    object->vTable = baseVTable;
-
-	    status = initBaseObject (object, closure);
-
-	    baseVTable = object->vTable;
-	    object->vTable = vTable;
-
-	    (*object->vTable->setProp) (object,
-					COMP_PROP_BASE_VTABLE,
-					(void *) &baseVTable);
-	}
-
-	return status;
-    }
-}
-
-static CompBool
-finiBaseObject (CompObject *object,
-		void	   *closure)
-{
-    InitObjectContext    *pCtx = (InitObjectContext *) closure;
-    const CompObjectType *type;
-
-    (*object->vTable->forEachInterface) (object,
-					 topObjectType,
-					 (void *) &type);
-
-    if (type == pCtx->type)
-    {
-	CompInterfaceData *data;
-
-	(*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
-
-	if (object->parent)
-	    cRemoveObjectInterface (object);
-
-	cFiniObjectInterface (object, data);
-
-	object->vTable = data->vTable;
-    }
-    else
-    {
-	const CompObjectVTable *baseVTable, *vTable = object->vTable;
-
-	(*object->vTable->getProp) (object,
-				    COMP_PROP_BASE_VTABLE,
-				    (void *) &baseVTable);
-
-	if (baseVTable)
-	{
-	    object->vTable = baseVTable;
-
-	    finiBaseObject (object, closure);
-
-	    baseVTable = object->vTable;
-	    object->vTable = vTable;
-
-	    (*object->vTable->setProp) (object,
-					COMP_PROP_BASE_VTABLE,
-					(void *) &baseVTable);
-	}
-    }
-
-    return TRUE;
-}
-
-static CompBool
-initTypedObjects (const CompObjectFactory *factory,
-		  CompObject              *object,
-		  const CompObjectType    *type,
-		  const CompObjectVTable  *vTable);
-
-static CompBool
-finiTypedObjects (const CompObjectFactory *factory,
-		  CompObject              *object,
-		  const CompObjectType    *type);
-
-static CompBool
-initObjectTree (CompObject *object,
-		void	   *closure)
-{
-    InitObjectContext *pCtx = (InitObjectContext *) closure;
-
-    pCtx->object = object;
-
-    return initTypedObjects (pCtx->factory, object, pCtx->type,
-			     pCtx->vTable);
-}
-
-static CompBool
-finiObjectTree (CompObject *object,
-		void	   *closure)
-{
-    InitObjectContext *pCtx = (InitObjectContext *) closure;
-
-    /* pCtx->object is set to the object that failed to be initialized */
-    if (pCtx->object == object)
-	return FALSE;
-
-    return finiTypedObjects (pCtx->factory, object, pCtx->type);
-}
-
-static CompBool
-initTypedObjects (const CompObjectFactory *factory,
-		  CompObject              *object,
-		  const CompObjectType    *type,
-		  const CompObjectVTable  *vTable)
-{
-    InitObjectContext ctx;
-
-    ctx.factory = factory;
-    ctx.type    = type;
-    ctx.vTable  = vTable;
-    ctx.object  = NULL;
-
-    if (!initBaseObject (object, (void *) &ctx))
-	return FALSE;
-
-    if (!(*object->vTable->forEachChildObject) (object,
-						initObjectTree,
-						(void *) &ctx))
-    {
-	(*object->vTable->forEachChildObject) (object,
-					       finiObjectTree,
-					       (void *) &ctx);
-
-	finiBaseObject (object, (void *) &ctx);
-
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
-static CompBool
-finiTypedObjects (const CompObjectFactory *factory,
-		  CompObject              *object,
-		  const CompObjectType    *type)
-{
-    InitObjectContext ctx;
-
-    ctx.factory = factory;
-    ctx.type    = type;
-    ctx.object  = NULL;
-
-    (*object->vTable->forEachChildObject) (object,
-					   finiObjectTree,
-					   (void *) &ctx);
-
-    finiBaseObject (object, (void *) &ctx);
-
-    return TRUE;
-}
-
-static CompBool
-cObjectInitPrivate (CompBranch	   *branch,
-		    CObjectPrivate *private)
-{
-    CompObjectInstantiatorNode *node;
-    CompObjectInstantiator     *instantiator;
-
-    node = compObjectInstantiatorNode (&branch->factory, private->name);
-    if (!node)
-	return FALSE;
-
-    instantiator = malloc (sizeof (CompObjectInstantiator) +
-			   private->vTableSize);
-    if (!instantiator)
-	return FALSE;
-
-    instantiator->base   = NULL;
-    instantiator->init   = cObjectInterfaceInit;
-    instantiator->vTable = (CompObjectVTable *) (instantiator + 1);
-
-    if (private->vTableSize)
-    {
-	const CompObjectInstantiatorNode *n;
-	const CompObjectInstantiator     *p;
-
-	memcpy (instantiator->vTable, private->vTable, private->vTableSize);
-
-	if (!instantiator->vTable->finalize)
-	    instantiator->vTable->finalize = cObjectInterfaceFini;
-
-	compVTableInit (instantiator->vTable, &cVTable,
-			sizeof (CompObjectVTable));
-
-	for (p = &node->base; p; p = p->base)
-	{
-	    n = (const CompObjectInstantiatorNode *) p;
-
-	    if (n->base.interface->vTable.noop)
-		compVTableInit (instantiator->vTable,
-				n->base.interface->vTable.noop,
-				n->base.interface->vTable.size);
-	}
-    }
-    else
-    {
-	instantiator->vTable = NULL;
-    }
-
-    /* initialize all objects of this type */
-    if (!initTypedObjects (&branch->factory, &branch->u.base.base,
-			   node->base.interface,
-			   instantiator->vTable))
-	return FALSE;
-
-    instantiator->base = node->instantiator;
-    node->instantiator = instantiator;
-
-    return TRUE;
-}
-
-static void
-cObjectFiniPrivate (CompBranch	   *branch,
-		    CObjectPrivate *private)
-{
-    CompObjectInstantiatorNode *node;
-    CompObjectInstantiator     *instantiator;
-
-    node = compObjectInstantiatorNode (&branch->factory, private->name);
-
-    instantiator = (CompObjectInstantiator *) node->instantiator;
-    node->instantiator = instantiator->base;
-
-    /* finalize all objects of this type */
-    finiTypedObjects (&branch->factory, &branch->u.base.base,
-		      node->base.interface);
-
-    free (instantiator);
-}
-
-CompBool
-cObjectInitPrivates (CompBranch	    *branch,
-		     CObjectPrivate *private,
-		     int	    nPrivate)
-{
-    int	i;
-
-    for (i = 0; i < nPrivate; i++)
-	if (!cObjectInitPrivate (branch, &private[i]))
-	    break;
-
-    if (i < nPrivate)
-    {
-	if (i)
-	    cObjectFiniPrivates (branch, private, i - 1);
-
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
-void
-cObjectFiniPrivates (CompBranch	    *branch,
-		     CObjectPrivate *private,
-		     int	    nPrivate)
-{
-    int	n = nPrivate;
-
-    while (n--)
-	cObjectFiniPrivate (branch, &private[n]);
 }

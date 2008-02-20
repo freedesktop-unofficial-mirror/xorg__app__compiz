@@ -213,28 +213,6 @@ typedef struct _CMetadata {
 #define COMP_PROP_C_DATA     (COMP_PROP_C_BASE + 0)
 #define COMP_PROP_C_METADATA (COMP_PROP_C_BASE + 2)
 
-typedef struct _CObjectPrivate {
-    const char		   *name;
-    int			   *pIndex;
-    int			   size;
-    const CompObjectVTable *vTable;
-    int			   vTableSize;
-} CObjectPrivate;
-
-#define C_INDEX__(name, type, struct) 0, 0
-#define C_INDEX_X(name, type, struct)		    \
-    & name ## type ## PrivateIndex, sizeof (struct)
-
-#define C_VTABLE__(name, type) 0, 0
-#define C_VTABLE_X(name, type)					 \
-    ((const CompObjectVTable *) & name ## type ## ObjectVTable), \
-	sizeof (name ## type ## ObjectVTable)
-
-#define C_OBJECT_PRIVATE(str, name, type, struct, index, vtable) \
-    {	str,							 \
-	    C_INDEX_ ## index (name, type, struct),		 \
-	    C_VTABLE_ ## vtable (name, type) }
-
 #define C_EMIT_SIGNAL_INT(object, prototype, offset, vec, signal, ...)	\
     if ((signal)->out)							\
     {									\
@@ -451,26 +429,6 @@ cObjectInit (const CompObjectInstantiator *instantiator,
 
 void
 cObjectFini (CompObject *object);
-
-CompBool
-cObjectInitPrivates (CompBranch	    *branch,
-		     CObjectPrivate *privates,
-		     int	    nPrivates);
-
-void
-cObjectFiniPrivates (CompBranch	    *branch,
-		     CObjectPrivate *privates,
-		     int	    nPrivates);
-
-CompBool
-cObjectAllocPrivateIndices (CompFactory    *factory,
-			    CObjectPrivate *privates,
-			    int	           nPrivate);
-
-void
-cObjectFreePrivateIndices (CompFactory	  *factory,
-			   CObjectPrivate *privates,
-			   int		  nPrivate);
 
 void
 cGetInterfaceProp (CompInterfaceData *data,

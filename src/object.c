@@ -102,6 +102,22 @@ compObjectInit (const CompObjectFactory      *factory,
     return (*instantiator->init) (instantiator, object, factory);
 }
 
+static CompObjectInstantiatorNode *
+findObjectInstantiatorNode (const CompObjectFactory *factory,
+			    const CompObjectType    *type)
+{
+    CompObjectInstantiatorNode *node;
+
+    for (node = factory->instantiators; node; node = node->next)
+	if (type == node->base.interface)
+	    return node;
+
+    if (factory->master)
+	return findObjectInstantiatorNode (factory->master, type);
+
+    return NULL;
+}
+
 static const CompObjectInstantiator *
 findObjectInstantiator (const CompObjectFactory *factory,
 			const CompObjectType	*type)
@@ -252,6 +268,9 @@ compFactoryInstallType (CompObjectFactory    *factory,
 	const CompObjectInstantiatorNode *n;
 	const CompObjectInstantiator     *p;
 
+	assert (!base ||
+		base->base.interface->vTable.size <= type->vTable.size);
+
 	node->base.vTable = memcpy (node + 1,
 				    type->vTable.impl,
 				    type->vTable.size);
@@ -317,10 +336,7 @@ compFactoryInstallInterface (CompObjectFactory	       *factory,
     CompFactory		       *master;
     const CompObjectFactory    *f;
 
-    for (node = factory->instantiators; node; node = node->next)
-	if (type == node->base.interface)
-	    break;
-
+    node = findObjectInstantiatorNode (factory, type);
     if (!node)
 	return FALSE;
 
@@ -333,16 +349,24 @@ compFactoryInstallInterface (CompObjectFactory	       *factory,
     master = (CompFactory *) f;
 
     if (interface->factory.install)
-	(*interface->factory.install) (interface, master);
+    {
+	if (!(*interface->factory.install) (interface, master))
+	{
+	    free (instantiator);
+	    return FALSE;
+	}
+    }
 
-    instantiator->base   = NULL;
-    instantiator->vTable = NULL;
-    instantiator->init   = interface->instance.init;
+    instantiator->interface = interface;
+    instantiator->vTable    = NULL;
+    instantiator->init	    = interface->instance.init;
 
     if (interface->vTable.size)
     {
 	const CompObjectInstantiatorNode *n;
 	const CompObjectInstantiator     *p;
+
+	assert (node->base.interface->vTable.size <= type->vTable.size);
 
 	instantiator->vTable = memcpy (instantiator + 1,
 				       interface->vTable.impl,
@@ -375,11 +399,11 @@ compFactoryUninstallInterface (CompObjectFactory    *factory,
     const CompObjectFactory    *f;
     const CompObjectInterface  *interface;
 
-    for (node = factory->instantiators; node; node = node->next)
-	if (type == node->base.interface)
-	    break;
-
+    node = findObjectInstantiatorNode (factory, type);
     if (!node)
+	return NULL;
+
+    if (node->instantiator == &node->base)
 	return NULL;
 
     interface = node->instantiator->interface;
@@ -396,6 +420,214 @@ compFactoryUninstallInterface (CompObjectFactory    *factory,
     free (instantiator);
 
     return interface;
+}
+
+static CompBool
+topObjectType (CompObject	    *object,
+	       const char	    *name,
+	       size_t		    offset,
+	       const CompObjectType *type,
+	       void		    *closure)
+{
+    if (type)
+    {
+	*((const CompObjectType **) closure) = type;
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+typedef struct _InitObjectInterfaceContext {
+    const CompObjectFactory	 *factory;
+    const CompObjectType	 *type;
+    const CompObjectInstantiator *instantiator;
+    CompObject			 *object;
+} InitObjectInterfaceContext;
+
+static CompBool
+initObjectInterface (CompObject *object,
+		     void	*closure)
+{
+    InitObjectInterfaceContext *pCtx = (InitObjectInterfaceContext *) closure;
+    const CompObjectType       *type;
+
+    (*object->vTable->forEachInterface) (object,
+					 topObjectType,
+					 (void *) &type);
+
+    if (type == pCtx->type)
+    {
+	const CompObjectInterface *interface = pCtx->instantiator->interface;
+
+	return (*interface->interface.init) (object,
+					     pCtx->instantiator->vTable,
+					     pCtx->factory);
+    }
+    else
+    {
+	const CompObjectVTable *baseVTable, *vTable = object->vTable;
+	CompBool	       status = TRUE;
+
+	(*object->vTable->getProp) (object,
+				    COMP_PROP_BASE_VTABLE,
+				    (void *) &baseVTable);
+
+	if (baseVTable)
+	{
+	    object->vTable = baseVTable;
+
+	    status = initObjectInterface (object, closure);
+
+	    baseVTable = object->vTable;
+	    object->vTable = vTable;
+
+	    (*object->vTable->setProp) (object,
+					COMP_PROP_BASE_VTABLE,
+					(void *) &baseVTable);
+	}
+
+	return status;
+    }
+}
+
+
+static CompBool
+finiObjectInterface (CompObject *object,
+		     void	*closure)
+{
+    InitObjectInterfaceContext *pCtx = (InitObjectInterfaceContext *) closure;
+    const CompObjectType       *type;
+
+    (*object->vTable->forEachInterface) (object,
+					 topObjectType,
+					 (void *) &type);
+
+    if (type == pCtx->type)
+    {
+	const CompObjectInterface *interface = pCtx->instantiator->interface;
+
+	(*interface->interface.fini) (object);
+    }
+    else
+    {
+	const CompObjectVTable *baseVTable, *vTable = object->vTable;
+
+	(*object->vTable->getProp) (object,
+				    COMP_PROP_BASE_VTABLE,
+				    (void *) &baseVTable);
+
+	if (baseVTable)
+	{
+	    object->vTable = baseVTable;
+
+	    finiObjectInterface (object, closure);
+
+	    baseVTable = object->vTable;
+	    object->vTable = vTable;
+
+	    (*object->vTable->setProp) (object,
+					COMP_PROP_BASE_VTABLE,
+					(void *) &baseVTable);
+	}
+    }
+
+    return TRUE;
+}
+
+static CompBool
+finiInterfaceForObjectTree (CompObject *object,
+			    void       *closure)
+{
+    InitObjectInterfaceContext ctx, *pCtx = (InitObjectInterfaceContext *)
+	closure;
+
+    /* pCtx->object is set to the object that failed to be initialized */
+    if (pCtx->object == object)
+	return FALSE;
+
+    ctx = *pCtx;
+    ctx.object = NULL;
+
+    (*object->vTable->forEachChildObject) (object,
+					   finiInterfaceForObjectTree,
+					   (void *) &ctx);
+
+    finiObjectInterface (object, (void *) &ctx);
+
+    return TRUE;
+}
+
+static CompBool
+initInterfaceForObjectTree (CompObject *object,
+			    void	*closure)
+{
+    InitObjectInterfaceContext ctx, *pCtx = (InitObjectInterfaceContext *)
+	closure;
+
+    pCtx->object = object;
+
+    if (!initObjectInterface (object, closure))
+	return FALSE;
+
+    ctx = *pCtx;
+    ctx.object = NULL;
+
+    if (!(*object->vTable->forEachChildObject) (object,
+						initInterfaceForObjectTree,
+						(void *) &ctx))
+    {
+	(*object->vTable->forEachChildObject) (object,
+					       finiInterfaceForObjectTree,
+					       (void *) &ctx);
+
+	finiObjectInterface (object, (void *) &ctx);
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+CompBool
+compInsertTopInterface (CompObject	     *root,
+			CompObjectFactory    *factory,
+			const CompObjectType *type)
+{
+    CompObjectInstantiatorNode *node;
+    InitObjectInterfaceContext ctx;
+
+    node = findObjectInstantiatorNode (factory, type);
+    if (!node)
+	return FALSE;
+
+    ctx.factory	     = factory;
+    ctx.type	     = node->base.interface;
+    ctx.instantiator = node->instantiator;
+    ctx.object	     = NULL;
+
+    return initInterfaceForObjectTree (root, (void *) &ctx);
+}
+
+void
+compRemoveTopInterface (CompObject	     *root,
+			CompObjectFactory    *factory,
+			const CompObjectType *type)
+{
+    CompObjectInstantiatorNode *node;
+
+    node = findObjectInstantiatorNode (factory, type);
+    if (node)
+    {
+	InitObjectInterfaceContext ctx;
+
+	ctx.factory	 = factory;
+	ctx.type	 = node->base.interface;
+	ctx.instantiator = node->instantiator;
+	ctx.object	 = NULL;
+
+	finiInterfaceForObjectTree (root, (void *) &ctx);
+    }
 }
 
 static CompBool

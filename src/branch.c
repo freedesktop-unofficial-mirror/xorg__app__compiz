@@ -35,8 +35,12 @@ static const CMethod branchTypeMethod[] = {
     C_METHOD (addNewObject, "os", "o", CompBranchVTable, marshal__SS_S_E)
 };
 
+static CChildObject branchTypeChildObject[] = {
+    C_CHILD (types, CompBranchData, CONTAINER_TYPE_NAME)
+};
+
 static CInterface branchInterface[] = {
-    C_INTERFACE (branch, Type, CompBranchVTable, _, X, _, _, _, _, _, _)
+    C_INTERFACE (branch, Type, CompBranchVTable, _, X, _, _, _, _, _, X)
 };
 
 static CompBool
@@ -66,30 +70,71 @@ branchGetProp (CompObject   *object,
 	.version    = COMPIZ_BRANCH_VERSION
     };
 
-    cGetObjectProp (&GET_BRANCH (object)->data, &template, what, value);
+    cGetObjectProp (&GET_BRANCH (object)->data.base, &template, what, value);
 }
 
-static CompBool
-noopRegisterType (CompBranch	       *branch,
-		  const char           *interface,
-		  const CompObjectType *type)
+static void
+branchInsertObject (CompObject *object,
+		    CompObject *parent,
+		    const char *name)
 {
-    CompBool status;
+    const CompObjectFactory *factory;
 
-    FOR_BASE (&branch->u.base.base,
-	      status = (*branch->u.vTable->registerType) (branch,
-							  interface,
-							  type));
+    BRANCH (object);
 
-    return status;
+    cInsertObject (object, parent, name);
+
+    for (factory = &b->factory; factory; factory = factory->master)
+    {
+	CompObjectInstantiatorNode *node;
+
+	for (node = factory->instantiators; node; node = node->next)
+	{
+	    const CompObjectInstantiator *instantiator;
+
+	    (*b->u.vTable->newObject) (b,
+				       b->data.types.base.name,
+				       CONTAINER_TYPE_NAME,
+				       node->base.interface->name.name,
+				       NULL);
+
+	    for (instantiator = node->instantiator;
+		 instantiator;
+		 instantiator = instantiator->base)
+	    {
+		if (instantiator->interface)
+		{
+		    const char *name = instantiator->interface->name.name;
+		    char       path[257];
+
+		    sprintf (path,
+			     "%s/%s",
+			     b->data.types.base.name,
+			     node->base.interface->name.name);
+
+		    (*b->u.vTable->newObject) (b,
+					       path,
+					       OBJECT_TYPE_NAME,
+					       name,
+					       NULL);
+		}
+
+		if (instantiator == &node->base)
+		    break;
+	    }
+	}
+    }
 }
 
-static CompBool
-registerType (CompBranch	   *branch,
-	      const char	   *interface,
-	      const CompObjectType *type)
+static void
+branchRemoveObject (CompObject *object)
 {
-    return compFactoryInstallType (&branch->factory, type);
+    BRANCH (object);
+
+    while (b->data.types.nItem)
+	(*b->u.vTable->destroyObject) (b, b->data.types.item->object);
+
+    cRemoveObject (object);
 }
 
 static CompObject *
@@ -250,7 +295,8 @@ addNewObject (CompBranch *branch,
     CompObject *object;
     char       *objectName;
 
-    object = (*branch->u.vTable->newObject) (branch, parent, type, NULL, error);
+    object = (*branch->u.vTable->newObject) (branch, parent, type, NULL,
+					     error);
     if (!object)
 	return FALSE;
 
@@ -269,9 +315,10 @@ addNewObject (CompBranch *branch,
 }
 
 static CompBranchVTable branchObjectVTable = {
-    .base.getProp = branchGetProp,
+    .base.getProp      = branchGetProp,
+    .base.insertObject = branchInsertObject,
+    .base.removeObject = branchRemoveObject,
 
-    .registerType  = registerType,
     .createObject  = createObject,
     .destroyObject = destroyObject,
     .newObject     = newObject,
@@ -279,7 +326,6 @@ static CompBranchVTable branchObjectVTable = {
 };
 
 static const CompBranchVTable noopBranchObjectVTable = {
-    .registerType  = noopRegisterType,
     .createObject  = noopCreateObject,
     .destroyObject = noopDestroyObject,
     .newObject     = noopNewObject,
