@@ -204,14 +204,15 @@ getContainerObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_CONTAINER_TYPE_NAME,
+	    .i.name	     = COMPIZ_CONTAINER_TYPE_NAME,
+	    .i.version	     = COMPIZ_CONTAINER_VERSION,
+	    .i.base.name     = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version  = COMPIZ_OBJECT_VERSION,
 	    .i.vTable.impl   = &containerObjectVTable,
 	    .i.instance.size = sizeof (CompContainer),
 
 	    .init = containerInitObject,
-	    .fini = containerFiniObject,
-
-	    .version = COMPIZ_CONTAINER_VERSION
+	    .fini = containerFiniObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);

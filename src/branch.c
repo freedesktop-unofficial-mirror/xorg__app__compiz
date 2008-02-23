@@ -79,7 +79,7 @@ branchInsertObject (CompObject *object,
 	    (*b->u.vTable->newObject) (b,
 				       b->data.types.base.name,
 				       COMPIZ_CONTAINER_TYPE_NAME,
-				       node->base.interface->name.name,
+				       node->base.interface->name,
 				       NULL);
 
 	    for (instantiator = node->instantiator;
@@ -88,13 +88,13 @@ branchInsertObject (CompObject *object,
 	    {
 		if (instantiator->interface)
 		{
-		    const char *name = instantiator->interface->name.name;
+		    const char *name = instantiator->interface->name;
 		    char       path[257];
 
 		    sprintf (path,
 			     "%s/%s",
 			     b->data.types.base.name,
-			     node->base.interface->name.name);
+			     node->base.interface->name);
 
 		    (*b->u.vTable->newObject) (b,
 					       path,
@@ -332,8 +332,10 @@ getBranchObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_BRANCH_TYPE_NAME,
-	    .i.name.base     = COMPIZ_CONTAINER_TYPE_NAME,
+	    .i.name	     = COMPIZ_BRANCH_TYPE_NAME,
+	    .i.version	     = COMPIZ_BRANCH_VERSION,
+	    .i.base.name     = COMPIZ_CONTAINER_TYPE_NAME,
+	    .i.base.version  = COMPIZ_CONTAINER_VERSION,
 	    .i.vTable.impl   = &branchObjectVTable.base,
 	    .i.vTable.noop   = &noopBranchObjectVTable.base,
 	    .i.vTable.size   = sizeof (branchObjectVTable),

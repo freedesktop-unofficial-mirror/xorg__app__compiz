@@ -53,14 +53,14 @@ cInsertObjectInterface (CompObject *object,
     if (cInterface->insert)
 	(*cInterface->insert) (object, parent);
 
-    (*object->vTable->interfaceAdded) (object, cInterface->i.name.name);
+    (*object->vTable->interfaceAdded) (object, cInterface->i.name);
 
     for (i = 0; i < cInterface->nBoolProp; i++)
     {
 	const CBoolProp *prop = &cInterface->boolProp[i];
 
 	(*object->vTable->boolChanged) (object,
-					cInterface->i.name.name,
+					cInterface->i.name,
 					prop->base.name,
 					PROP_VALUE (data, prop, CompBool));
     }
@@ -70,7 +70,7 @@ cInsertObjectInterface (CompObject *object,
 	const CIntProp *prop = &cInterface->intProp[i];
 
 	(*object->vTable->intChanged) (object,
-				       cInterface->i.name.name,
+				       cInterface->i.name,
 				       prop->base.name,
 				       PROP_VALUE (data, prop, int32_t));
     }
@@ -80,7 +80,7 @@ cInsertObjectInterface (CompObject *object,
 	const CDoubleProp *prop = &cInterface->doubleProp[i];
 
 	(*object->vTable->doubleChanged) (object,
-					  cInterface->i.name.name,
+					  cInterface->i.name,
 					  prop->base.name,
 					  PROP_VALUE (data, prop, double));
     }
@@ -90,7 +90,7 @@ cInsertObjectInterface (CompObject *object,
 	const CStringProp *prop = &cInterface->stringProp[i];
 
 	(*object->vTable->stringChanged) (object,
-					  cInterface->i.name.name,
+					  cInterface->i.name,
 					  prop->base.name,
 					  PROP_VALUE (data, prop, char *));
     }
@@ -138,7 +138,7 @@ cRemoveObjectInterface (CompObject *object)
 	}
     }
 
-    (*object->vTable->interfaceRemoved) (object, cInterface->i.name.name);
+    (*object->vTable->interfaceRemoved) (object, cInterface->i.name);
 
     if (cInterface->remove)
 	(*cInterface->remove) (object);
@@ -164,7 +164,7 @@ cForEachInterface (CompObject	         *object,
 				&cInterface);
 
     if (!(*proc) (object,
-		  cInterface->i.name.name,
+		  cInterface->i.name,
 		  0,
 		  cInterface->index ? 0 : &cInterface->i,
 		  closure))
@@ -192,7 +192,7 @@ cForEachMethod (CompObject	   *object,
 
     if (!interface  ||
 	!*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -230,7 +230,7 @@ cForEachSignal (CompObject	   *object,
 
     if (!interface  ||
 	!*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -267,7 +267,7 @@ cForEachProp (CompObject       *object,
 
     if (!interface  ||
 	!*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -407,7 +407,7 @@ signalIndex (const char		    *name,
 {
     if (interface)
     {
-	if (strcmp (name, interface->i.name.name) != 0)
+	if (strcmp (name, interface->i.name) != 0)
 	    return FALSE;
 
 	if (interface->nSignal &&
@@ -814,8 +814,8 @@ cGetVersion (CompObject *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
 
-    if (strcmp (interface, cInterface->i.name.name) == 0)
-	return cInterface->version;
+    if (strcmp (interface, cInterface->i.name) == 0)
+	return cInterface->i.version;
 
     FOR_BASE (object,
 	      version = (*object->vTable->getVersion) (object, interface));
@@ -851,7 +851,7 @@ cGetBoolProp (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -917,7 +917,7 @@ cSetBoolProp (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -950,7 +950,7 @@ cBoolPropChanged (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -994,7 +994,7 @@ cGetIntProp (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1080,7 +1080,7 @@ cSetIntProp (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1113,7 +1113,7 @@ cIntPropChanged (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1157,7 +1157,7 @@ cGetDoubleProp (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1243,7 +1243,7 @@ cSetDoubleProp (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1276,7 +1276,7 @@ cDoublePropChanged (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1330,7 +1330,7 @@ cGetStringProp (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1412,7 +1412,7 @@ cSetStringProp (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1445,7 +1445,7 @@ cStringPropChanged (CompObject *object,
 				&cInterface);
 
     if (!interface || !*interface ||
-	!strcmp (interface, cInterface->i.name.name))
+	!strcmp (interface, cInterface->i.name))
     {
 	int i;
 
@@ -1497,7 +1497,7 @@ static const CompObjectVTable cVTable = {
     .stringChanged = cStringPropChanged
 };
 
-#define SET_DEFAULT_VALUE(data, prop, type)		 \
+#define SET_DEFAULT_VALUE(data, prop, type)			\
     PROP_VALUE (data, prop, type) = (prop)->defaultValue
 
 CompBool
@@ -1887,13 +1887,13 @@ cObjectTypeFromTemplate (const CObjectInterface *template)
 {
     CObjectInterface *type;
     CompObjectVTable *vTable;
-    int		     nameSize = strlen (template->i.name.name) + 1;
+    int		     nameSize = strlen (template->i.name) + 1;
     int		     baseNameSize = 0;
     int		     vTableSize = template->i.vTable.size;
     int		     noopVTableSize = 0;
 
-    if (template->i.name.base)
-	baseNameSize = strlen (template->i.name.base) + 1;
+    if (template->i.base.name)
+	baseNameSize = strlen (template->i.base.name) + 1;
     else
 	baseNameSize = strlen (COMPIZ_OBJECT_TYPE_NAME) + 1;
 
@@ -1913,7 +1913,7 @@ cObjectTypeFromTemplate (const CObjectInterface *template)
 
     *type = *template;
 
-    type->i.name.name = strcpy ((char *) (type + 1), template->i.name.name);
+    type->i.name = strcpy ((char *) (type + 1), template->i.name);
 
     if (!template->i.vTable.size)
 	type->i.vTable.size = vTableSize;
@@ -1921,11 +1921,11 @@ cObjectTypeFromTemplate (const CObjectInterface *template)
     if (!template->i.instance.init)
 	type->i.instance.init = cObjectInit;
 
-    if (template->i.name.base)
-	type->i.name.base = strcpy ((char *) (type + 1) + nameSize,
-				    template->i.name.base);
+    if (template->i.base.name)
+	type->i.base.name = strcpy ((char *) (type + 1) + nameSize,
+				    template->i.base.name);
     else
-	type->i.name.base = strcpy ((char *) (type + 1) + nameSize,
+	type->i.base.name = strcpy ((char *) (type + 1) + nameSize,
 				    COMPIZ_OBJECT_TYPE_NAME);
 
     vTable = (CompObjectVTable *) ((char *) (type + 1) + nameSize +
@@ -1951,16 +1951,22 @@ cObjectTypeFromTemplate (const CObjectInterface *template)
 
 static CompBool
 cInstallObjectInterface (const CompObjectInterface *interface,
-			 CompFactory		   *factory)
+			 CompFactory		   *factory,
+			 char			   **error)
 {
     const CObjectInterface *cInterface = (const CObjectInterface *) interface;
     int			   index;
 
     index = (*factory->allocatePrivateIndex) (factory,
-					      cInterface->i.name.base,
+					      cInterface->i.base.name,
 					      cInterface->size);
     if (index < 0)
+    {
+	esprintf (error, "Failed to allocated private index "
+		  "and data block of size '%d' in base object type '%s'",
+		  cInterface->size, cInterface->i.base.name);
 	return FALSE;
+    }
 
     *(cInterface->index) = index;
 
@@ -1975,7 +1981,7 @@ cUninstallObjectInterface (const CompObjectInterface *interface,
     int			   index = *(cInterface->index);
 
     (*factory->freePrivateIndex) (factory,
-				  cInterface->i.name.base,
+				  cInterface->i.base.name,
 				  index);
 }
 
@@ -2028,13 +2034,13 @@ cObjectInterfaceFromTemplate (const CObjectInterface *template,
 {
     CObjectInterface *interface;
     CompObjectVTable *vTable;
-    int		     nameSize = strlen (template->i.name.name) + 1;
+    int		     nameSize = strlen (template->i.name) + 1;
     int		     baseNameSize = 0;
     int		     vTableSize = template->i.vTable.size;
     int		     noopVTableSize = 0;
 
-    if (template->i.name.base)
-	baseNameSize = strlen (template->i.name.base) + 1;
+    if (template->i.base.name)
+	baseNameSize = strlen (template->i.base.name) + 1;
     else
 	baseNameSize = strlen (COMPIZ_OBJECT_TYPE_NAME) + 1;
 
@@ -2057,8 +2063,8 @@ cObjectInterfaceFromTemplate (const CObjectInterface *template,
     interface->index = index;
     interface->size  = size;
 
-    interface->i.name.name = strcpy ((char *) (interface + 1),
-				     template->i.name.name);
+    interface->i.name = strcpy ((char *) (interface + 1),
+				template->i.name);
 
     if (!template->i.vTable.size)
 	interface->i.vTable.size = vTableSize;
@@ -2066,11 +2072,12 @@ cObjectInterfaceFromTemplate (const CObjectInterface *template,
     if (!template->i.instance.init)
 	interface->i.instance.init = cObjectInterfaceInit;
 
-    if (template->i.name.base)
-	interface->i.name.base =
-	    strcpy ((char *) (interface + 1) + nameSize, template->i.name.base);
+    if (template->i.base.name)
+	interface->i.base.name =
+	    strcpy ((char *) (interface + 1) + nameSize,
+		    template->i.base.name);
     else
-	interface->i.name.base =
+	interface->i.base.name =
 	    strcpy ((char *) (interface + 1) + nameSize,
 		    COMPIZ_OBJECT_TYPE_NAME);
 

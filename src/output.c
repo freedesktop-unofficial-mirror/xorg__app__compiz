@@ -48,10 +48,11 @@ getOutputObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name   = COMPIZ_OUTPUT_TYPE_NAME,
-	    .i.vTable.impl = &outputObjectVTable,
-
-	    .version = COMPIZ_OUTPUT_VERSION
+	    .i.name	    = COMPIZ_OUTPUT_TYPE_NAME,
+	    .i.version	    = COMPIZ_OUTPUT_VERSION,
+	    .i.base.name    = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version = COMPIZ_OBJECT_VERSION,
+	    .i.vTable.impl  = &outputObjectVTable
 	};
 
 	type = cObjectTypeFromTemplate (&template);

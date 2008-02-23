@@ -58,12 +58,13 @@ getKeyboardObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name   = COMPIZ_KEYBOARD_TYPE_NAME,
-	    .i.name.base   = COMPIZ_INPUT_TYPE_NAME,
-	    .i.vTable.impl = &keyboardObjectVTable,
+	    .i.name	    = COMPIZ_KEYBOARD_TYPE_NAME,
+	    .i.version	    = COMPIZ_KEYBOARD_VERSION,
+	    .i.base.name    = COMPIZ_INPUT_TYPE_NAME,
+	    .i.base.version = COMPIZ_INPUT_VERSION,
+	    .i.vTable.impl  = &keyboardObjectVTable,
 
-	    .init    = keyboardInitObject,
-	    .version = COMPIZ_KEYBOARD_VERSION
+	    .init = keyboardInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);

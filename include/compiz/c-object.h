@@ -181,8 +181,6 @@ typedef struct _CObjectInterface {
     CInsertObjectProc insert;
     CRemoveObjectProc remove;
 
-    int	version;
-
     int	*index;
     int	size;
 } CObjectInterface;
@@ -251,7 +249,7 @@ typedef struct _CObjectInterface {
 									\
 	C_EMIT_SIGNAL_INT (object, prototype,				\
 			   _d->signalVecOffset, _d->signalVecOffset,	\
-			   _i->i.name.name,				\
+			   _i->i.name,					\
 			   _i->signal[_index].name,			\
 			   _i->signal[_index].out,			\
 			   _index, ##__VA_ARGS__);			\

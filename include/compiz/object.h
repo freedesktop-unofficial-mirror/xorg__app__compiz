@@ -110,7 +110,8 @@ struct _CompFactory {
 };
 
 typedef CompBool (*InstallProc)   (const CompObjectInterface *interface,
-				   CompFactory		      *factory);
+				   CompFactory		      *factory,
+				   char			      **error);
 typedef void     (*UninstallProc) (const CompObjectInterface *interface,
 				   CompFactory	             *factory);
 
@@ -120,10 +121,13 @@ typedef CompBool (*InitInterfaceProc) (CompObject	       *object,
 typedef void     (*FiniInterfaceProc) (CompObject *object);
 
 struct _CompObjectType {
+    const char *name;
+    int	       version;
+
     struct {
 	const char *name;
-	const char *base;
-    } name;
+	int	   version;
+    } base;
 
     struct {
 	const CompObjectVTable *impl;
@@ -478,7 +482,8 @@ compVTableInit (CompObjectVTable       *vTable,
 
 CompBool
 compFactoryInstallType (CompObjectFactory    *factory,
-			const CompObjectType *type);
+			const CompObjectType *type,
+			char		     **error);
 
 const CompObjectType *
 compFactoryUninstallType (CompObjectFactory *factory);
@@ -486,7 +491,8 @@ compFactoryUninstallType (CompObjectFactory *factory);
 CompBool
 compFactoryInstallInterface (CompObjectFactory	       *factory,
 			     const CompObjectType      *type,
-			     const CompObjectInterface *interface);
+			     const CompObjectInterface *interface,
+			     char		       **error);
 
 const CompObjectInterface *
 compFactoryUninstallInterface (CompObjectFactory    *factory,

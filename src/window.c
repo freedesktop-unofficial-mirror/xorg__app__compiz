@@ -1756,11 +1756,13 @@ getWindowObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name   = COMPIZ_WINDOW_TYPE_NAME,
-	    .i.vTable.impl = &windowObjectVTable,
+	    .i.name	    = COMPIZ_WINDOW_TYPE_NAME,
+	    .i.version	    = COMPIZ_WINDOW_VERSION,
+	    .i.base.name    = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version = COMPIZ_OBJECT_VERSION,
+	    .i.vTable.impl  = &windowObjectVTable,
 
-	    .init    = windowInitObject,
-	    .version = COMPIZ_WINDOW_VERSION
+	    .init = windowInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);

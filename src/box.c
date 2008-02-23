@@ -55,14 +55,15 @@ getBoxObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_BOX_TYPE_NAME,
+	    .i.name	     = COMPIZ_BOX_TYPE_NAME,
+	    .i.version	     = COMPIZ_BOX_VERSION,
+	    .i.base.name     = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version  = COMPIZ_OBJECT_VERSION,
 	    .i.vTable.impl   = &boxObjectVTable,
 	    .i.instance.size = sizeof (CompBox),
 
 	    .intProp  = boxTypeIntProp,
-	    .nIntProp = N_ELEMENTS (boxTypeIntProp),
-
-	    .version = COMPIZ_BOX_VERSION
+	    .nIntProp = N_ELEMENTS (boxTypeIntProp)
 	};
 
 	type = cObjectTypeFromTemplate (&template);

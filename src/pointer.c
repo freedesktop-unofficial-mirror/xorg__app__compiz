@@ -59,13 +59,14 @@ getPointerObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name   = COMPIZ_POINTER_TYPE_NAME,
-	    .i.name.base   = COMPIZ_INPUT_TYPE_NAME,
-	    .i.vTable.impl = &pointerObjectVTable,
-	    .i.vTable.size = sizeof (pointerObjectVTable),
+	    .i.name	    = COMPIZ_POINTER_TYPE_NAME,
+	    .i.version	    = COMPIZ_POINTER_VERSION,
+	    .i.base.name    = COMPIZ_INPUT_TYPE_NAME,
+	    .i.base.version = COMPIZ_INPUT_VERSION,
+	    .i.vTable.impl  = &pointerObjectVTable,
+	    .i.vTable.size  = sizeof (pointerObjectVTable),
 
-	    .init    = pointerInitObject,
-	    .version = COMPIZ_POINTER_VERSION
+	    .init = pointerInitObject
 	};
 
 	type = cObjectTypeFromTemplate (&template);

@@ -2273,7 +2273,10 @@ getDisplayObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_DISPLAY_TYPE_NAME,
+	    .i.name	     = COMPIZ_DISPLAY_TYPE_NAME,
+	    .i.version	     = COMPIZ_DISPLAY_VERSION,
+	    .i.base.name     = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version  = COMPIZ_OBJECT_VERSION,
 	    .i.vTable.impl   = &displayObjectVTable.base,
 	    .i.vTable.noop   = &noopDisplayObjectVTable.base,
 	    .i.vTable.size   = sizeof (displayObjectVTable),
@@ -2289,9 +2292,7 @@ getDisplayObjectType (void)
 	    .nIntProp = N_ELEMENTS (displayTypeIntProp),
 
 	    .child  = displayTypeChildObject,
-	    .nChild = N_ELEMENTS (displayTypeChildObject),
-
-	    .version = COMPIZ_DISPLAY_VERSION
+	    .nChild = N_ELEMENTS (displayTypeChildObject)
 	};
 
 	type = cObjectTypeFromTemplate (&template);

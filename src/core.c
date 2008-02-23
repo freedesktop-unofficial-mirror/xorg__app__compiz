@@ -329,8 +329,10 @@ getCoreObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_CORE_TYPE_NAME,
-	    .i.name.base     = COMPIZ_BRANCH_TYPE_NAME,
+	    .i.name	     = COMPIZ_CORE_TYPE_NAME,
+	    .i.version	     = COMPIZ_CORE_VERSION,
+	    .i.base.name     = COMPIZ_BRANCH_TYPE_NAME,
+	    .i.base.version  = COMPIZ_BRANCH_VERSION,
 	    .i.vTable.impl   = &coreObjectVTable.base.base,
 	    .i.vTable.noop   = &noopCoreObjectVTable.base.base,
 	    .i.vTable.size   = sizeof (coreObjectVTable),
@@ -340,9 +342,7 @@ getCoreObjectType (void)
 	    .nMethod = N_ELEMENTS (coreTypeMethod),
 
 	    .child  = coreTypeChildObject,
-	    .nChild = N_ELEMENTS (coreTypeChildObject),
-
-	    .version = COMPIZ_CORE_VERSION
+	    .nChild = N_ELEMENTS (coreTypeChildObject)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
@@ -445,7 +445,7 @@ compObjectAllocatePrivateIndex (const CompObjectType *type,
     for (f = &core.u.base.factory; f->master; f = f->master);
     factory = (CompFactory *) f;
 
-    return (*factory->allocatePrivateIndex) (factory, type->name.name, size);
+    return (*factory->allocatePrivateIndex) (factory, type->name, size);
 }
 
 void
@@ -458,5 +458,5 @@ compObjectFreePrivateIndex (const CompObjectType *type,
     for (f = &core.u.base.factory; f->master; f = f->master);
     factory = (CompFactory *) f;
 
-    return (*factory->freePrivateIndex) (factory, type->name.name, index);
+    return (*factory->freePrivateIndex) (factory, type->name, index);
 }

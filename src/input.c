@@ -48,10 +48,11 @@ getInputObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name   = COMPIZ_INPUT_TYPE_NAME,
-	    .i.vTable.impl = &inputObjectVTable,
-
-	    .version = COMPIZ_INPUT_VERSION
+	    .i.name	    = COMPIZ_INPUT_TYPE_NAME,
+	    .i.version	    = COMPIZ_INPUT_VERSION,
+	    .i.base.name    = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version = COMPIZ_OBJECT_VERSION,
+	    .i.vTable.impl = &inputObjectVTable
 	};
 
 	type = cObjectTypeFromTemplate (&template);

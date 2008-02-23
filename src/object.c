@@ -83,7 +83,7 @@ lookupObjectInstantiatorNode (const CompObjectFactory *factory,
     CompObjectInstantiatorNode *node;
 
     for (node = factory->instantiators; node; node = node->next)
-	if (strcmp (name, node->base.interface->name.name) == 0)
+	if (strcmp (name, node->base.interface->name) == 0)
 	    return node;
 
     if (factory->master)
@@ -161,7 +161,8 @@ compVTableInit (CompObjectVTable       *vTable,
 
 CompBool
 compFactoryInstallType (CompObjectFactory    *factory,
-			const CompObjectType *type)
+			const CompObjectType *type,
+			char		     **error)
 {
     const CompObjectInstantiatorNode *base = NULL;
     CompObjectInstantiatorNode	     *node;
@@ -169,23 +170,37 @@ compFactoryInstallType (CompObjectFactory    *factory,
     const CompObjectFactory	     *f;
     CompObjectPrivatesNode	     *pNode;
 
-    if (type->name.base)
+    if (type->base.name)
     {
-	base = lookupObjectInstantiatorNode (factory, type->name.base);
+	base = lookupObjectInstantiatorNode (factory, type->base.name);
 	if (!base)
+	{
+	    esprintf (error, "Base type '%s' is not yet registered",
+		      type->base.name);
 	    return FALSE;
+	}
+
+	if (base->base.interface->version < type->base.version)
+	{
+	    esprintf (error, "Version '%d' of base type '%s' is too old",
+		      base->base.interface->version, type->base.name);
+	    return FALSE;
+	}
     }
 
     node = malloc (sizeof (CompObjectInstantiatorNode) + type->vTable.size);
     if (!node)
+    {
+	esprintf (error, NO_MEMORY_ERROR_STRING);
 	return FALSE;
+    }
 
     for (f = factory; f->master; f = f->master);
     master = (CompFactory *) f;
 
     if (type->factory.install)
     {
-	if (!(*type->factory.install) (type, master))
+	if (!(*type->factory.install) (type, master, error))
 	{
 	    free (node);
 	    return FALSE;
@@ -227,7 +242,7 @@ compFactoryInstallType (CompObjectFactory    *factory,
 
     for (pNode = master->privates; pNode; pNode = pNode->next)
     {
-	if (strcmp (pNode->name, type->name.name) == 0)
+	if (strcmp (pNode->name, type->name) == 0)
 	{
 	    node->privates = pNode->privates;
 	    break;
@@ -268,7 +283,8 @@ compFactoryUninstallType (CompObjectFactory *factory)
 CompBool
 compFactoryInstallInterface (CompObjectFactory	       *factory,
 			     const CompObjectType      *type,
-			     const CompObjectInterface *interface)
+			     const CompObjectInterface *interface,
+			     char		       **error)
 {
     CompObjectInstantiatorNode *node;
     CompObjectInstantiator     *instantiator;
@@ -277,19 +293,26 @@ compFactoryInstallInterface (CompObjectFactory	       *factory,
 
     node = findObjectInstantiatorNode (factory, type);
     if (!node)
+    {
+	esprintf (error, "Base type '%s' is not yet registered",
+		  interface->base.name);
 	return FALSE;
+    }
 
     instantiator = malloc (sizeof (CompObjectInstantiator) +
 			   interface->vTable.size);
     if (!instantiator)
+    {
+	esprintf (error, NO_MEMORY_ERROR_STRING);
 	return FALSE;
+    }
 
     for (f = factory; f->master; f = f->master);
     master = (CompFactory *) f;
 
     if (interface->factory.install)
     {
-	if (!(*interface->factory.install) (interface, master))
+	if (!(*interface->factory.install) (interface, master, error))
 	{
 	    free (instantiator);
 	    return FALSE;
@@ -652,7 +675,7 @@ insertObject (CompObject *object,
     object->name   = name;
 
     (*object->vTable->inserted) (object);
-    (*object->vTable->interfaceAdded) (object, getObjectType ()->name.name);
+    (*object->vTable->interfaceAdded) (object, getObjectType ()->name);
 }
 
 static void
@@ -666,7 +689,7 @@ noopInsertObject (CompObject *object,
 static void
 removeObject (CompObject *object)
 {
-    (*object->vTable->interfaceRemoved) (object, getObjectType ()->name.name);
+    (*object->vTable->interfaceRemoved) (object, getObjectType ()->name);
     (*object->vTable->removed) (object);
 
     object->parent = NULL;
@@ -690,7 +713,7 @@ inserted (CompObject *object)
     const CSignal	   *signal = &interface->signal[index];
 
     C_EMIT_SIGNAL_INT (object, InsertedProc, 0, object->signalVec,
-		       interface->i.name.name, signal->name, signal->out,
+		       interface->i.name, signal->name, signal->out,
 		       index);
 }
 
@@ -711,7 +734,7 @@ removed (CompObject *object)
     const CSignal	   *signal = &interface->signal[index];
 
     C_EMIT_SIGNAL_INT (object, RemovedProc, 0, object->signalVec,
-		       interface->i.name.name, signal->name, signal->out,
+		       interface->i.name, signal->name, signal->out,
 		       index);
 }
 
@@ -727,7 +750,7 @@ forEachInterface (CompObject	         *object,
 		  void		         *closure)
 {
     if (!(*proc) (object,
-		  getObjectType ()->name.name,
+		  getObjectType ()->name,
 		  0,
 		  getObjectType (),
 		  closure))
@@ -762,7 +785,7 @@ forEachMethod (CompObject	   *object,
     int                    i;
 
     if (interface)
-	if (*interface && strcmp (interface, cInterface->i.name.name))
+	if (*interface && strcmp (interface, cInterface->i.name))
 	    return TRUE;
 
     for (i = 0; i < cInterface->nMethod; i++)
@@ -806,7 +829,7 @@ forEachSignal (CompObject	   *object,
     int                    i;
 
     if (interface)
-	if (*interface && strcmp (interface, cInterface->i.name.name))
+	if (*interface && strcmp (interface, cInterface->i.name))
 	    return TRUE;
 
     for (i = 0; i < cInterface->nSignal; i++)
@@ -849,7 +872,7 @@ forEachProp (CompObject       *object,
     int                    i;
 
     if (interface)
-	if (*interface && strcmp (interface, cInterface->i.name.name))
+	if (*interface && strcmp (interface, cInterface->i.name))
 	    return TRUE;
 
     for (i = 0; i < cInterface->nBoolProp; i++)
@@ -905,7 +928,7 @@ interfaceAdded (CompObject *object,
     const CSignal	   *signal = &cInterface->signal[index];
 
     C_EMIT_SIGNAL_INT (object, InterfaceAddedProc, 0, object->signalVec,
-		       cInterface->i.name.name, signal->name, signal->out,
+		       cInterface->i.name, signal->name, signal->out,
 		       index,
 		       interface);
 }
@@ -978,7 +1001,7 @@ interfaceRemoved (CompObject *object,
     }
 
     C_EMIT_SIGNAL_INT (object, InterfaceRemovedProc, 0, object->signalVec,
-		       cInterface->i.name.name, signal->name, signal->out,
+		       cInterface->i.name, signal->name, signal->out,
 		       index,
 		       interface);
 }
@@ -1225,7 +1248,7 @@ signal (CompObject   *object,
     const CSignal	   *signal = &cInterface->signal[index];
 
     C_EMIT_SIGNAL_INT (object, SignalProc, 0, object->signalVec,
-		       cInterface->i.name.name, signal->name, signal->out,
+		       cInterface->i.name, signal->name, signal->out,
 		       index,
 		       path, interface, name, signature, value, nValue);
 }
@@ -1252,7 +1275,7 @@ static int
 getVersion (CompObject *object,
 	    const char *interface)
 {
-    if (strcmp (interface, getObjectType ()->name.name) == 0)
+    if (strcmp (interface, getObjectType ()->name) == 0)
 	return COMPIZ_OBJECT_VERSION;
 
     return 0;
@@ -1346,7 +1369,7 @@ boolPropChanged (CompObject *object,
     const CSignal	   *signal = &cInterface->signal[index];
 
     C_EMIT_SIGNAL_INT (object, BoolPropChangedProc, 0, object->signalVec,
-		       cInterface->i.name.name, signal->name, signal->out,
+		       cInterface->i.name, signal->name, signal->out,
 		       index,
 		       interface, name, value);
 }
@@ -1439,7 +1462,7 @@ intPropChanged (CompObject *object,
     const CSignal	   *signal = &cInterface->signal[index];
 
     C_EMIT_SIGNAL_INT (object, IntPropChangedProc, 0, object->signalVec,
-		       cInterface->i.name.name, signal->name, signal->out,
+		       cInterface->i.name, signal->name, signal->out,
 		       index,
 		       interface, name, value);
 }
@@ -1533,7 +1556,7 @@ doublePropChanged (CompObject *object,
     const CSignal	   *signal = &cInterface->signal[index];
 
     C_EMIT_SIGNAL_INT (object, DoublePropChangedProc, 0, object->signalVec,
-		       cInterface->i.name.name, signal->name, signal->out,
+		       cInterface->i.name, signal->name, signal->out,
 		       index,
 		       interface, name, value);
 }
@@ -1627,7 +1650,7 @@ stringPropChanged (CompObject *object,
     const CSignal	   *signal = &cInterface->signal[index];
 
     C_EMIT_SIGNAL_INT (object, StringPropChangedProc, 0, object->signalVec,
-		       cInterface->i.name.name, signal->name, signal->out,
+		       cInterface->i.name, signal->name, signal->out,
 		       index,
 		       interface, name, value);
 }
@@ -1761,7 +1784,8 @@ static const CSignal objectTypeSignal[] = {
 };
 
 static const CObjectInterface objectType = {
-    .i.name.name     = COMPIZ_OBJECT_TYPE_NAME,
+    .i.name	     = COMPIZ_OBJECT_TYPE_NAME,
+    .i.version	     = COMPIZ_OBJECT_VERSION,
     .i.vTable.impl   = &objectVTable,
     .i.vTable.noop   = &noopObjectVTable,
     .i.vTable.size   = sizeof (objectVTable),

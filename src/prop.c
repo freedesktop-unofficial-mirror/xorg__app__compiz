@@ -33,11 +33,14 @@ propObjectTypeFromTemplate (const CObjectInterface *template)
 {
     CObjectInterface propTemplate = *template;
 
-    if (!propTemplate.i.name.base)
-	propTemplate.i.name.base = COMPIZ_PROP_TYPE_NAME;
+    if (!propTemplate.i.base.name)
+    {
+	propTemplate.i.base.name    = COMPIZ_PROP_TYPE_NAME;
+	propTemplate.i.base.version = COMPIZ_PROP_VERSION;
+    }
 
-    if (!propTemplate.version)
-	propTemplate.version = COMPIZ_PROP_VERSION;
+    if (!propTemplate.i.version)
+	propTemplate.i.version = COMPIZ_PROP_VERSION;
 
     return cObjectTypeFromTemplate (&propTemplate);
 }
@@ -66,11 +69,12 @@ getPropObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_PROP_TYPE_NAME,
+	    .i.name	     = COMPIZ_PROP_TYPE_NAME,
+	    .i.version	     = COMPIZ_PROP_VERSION,
+	    .i.base.name     = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version  = COMPIZ_OBJECT_VERSION,
 	    .i.vTable.impl   = &propObjectVTable,
-	    .i.instance.size = sizeof (CompProp),
-
-	    .version = COMPIZ_PROP_VERSION
+	    .i.instance.size = sizeof (CompProp)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
@@ -108,7 +112,7 @@ getBoolPropObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_BOOL_PROP_TYPE_NAME,
+	    .i.name	     = COMPIZ_BOOL_PROP_TYPE_NAME,
 	    .i.vTable.impl   = &boolPropObjectVTable,
 	    .i.instance.size = sizeof (CompBoolProp),
 
@@ -151,7 +155,7 @@ getIntPropObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_INT_PROP_TYPE_NAME,
+	    .i.name          = COMPIZ_INT_PROP_TYPE_NAME,
 	    .i.vTable.impl   = &intPropObjectVTable,
 	    .i.instance.size = sizeof (CompIntProp),
 
@@ -194,7 +198,7 @@ getDoublePropObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_DOUBLE_PROP_TYPE_NAME,
+	    .i.name          = COMPIZ_DOUBLE_PROP_TYPE_NAME,
 	    .i.vTable.impl   = &doublePropObjectVTable,
 	    .i.instance.size = sizeof (CompDoubleProp),
 
@@ -237,7 +241,7 @@ getStringPropObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_STRING_PROP_TYPE_NAME,
+	    .i.name          = COMPIZ_STRING_PROP_TYPE_NAME,
 	    .i.vTable.impl   = &stringPropObjectVTable,
 	    .i.instance.size = sizeof (CompStringProp),
 

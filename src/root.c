@@ -399,8 +399,10 @@ static CompRootVTable rootObjectVTable = {
 };
 
 static const CompObjectType rootObjectType = {
-    .name.name     = COMPIZ_ROOT_TYPE_NAME,
-    .name.base     = COMPIZ_OBJECT_TYPE_NAME,
+    .name	   = COMPIZ_ROOT_TYPE_NAME,
+    .version	   = COMPIZ_ROOT_VERSION,
+    .base.name     = COMPIZ_OBJECT_TYPE_NAME,
+    .base.version  = COMPIZ_OBJECT_VERSION,
     .vTable.impl   = &rootObjectVTable.base,
     .vTable.size   = sizeof (rootObjectVTable),
     .instance.init = rootInitObject

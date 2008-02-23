@@ -219,7 +219,7 @@ forEachInterfacePrivates (CompObject	       *object,
     ForEachObjectPrivatesContext *pCtx =
 	(ForEachObjectPrivatesContext *) closure;
 
-    if (type && strcmp (type->name.name, pCtx->name) == 0)
+    if (type && strcmp (type->name, pCtx->name) == 0)
     {
 	pCtx->status = (*pCtx->proc) (getPrivates, setPrivates, pCtx->data,
 				      object);
@@ -288,7 +288,7 @@ updateFactory (CompObjectFactory  *factory,
 
     for (node = factory->instantiators; node; node = node->next)
     {
-	if (strcmp (node->base.interface->name.name, name) == 0)
+	if (strcmp (node->base.interface->name, name) == 0)
 	{
 	    node->privates = *privates;
 	    break;
@@ -429,14 +429,17 @@ registerStaticObjectTypes (CompObjectFactory	*factory,
 			   const CompObjectType **types,
 			   int			n)
 {
-    int i;
+    char *error;
+    int  i;
 
     for (i = 0; i < n; i++)
     {
-	if (!compFactoryInstallType (factory, types[i]))
+	if (!compFactoryInstallType (factory, types[i], &error))
 	{
-	    fprintf (stderr, "Failed to register '%s' object type\n",
-		     types[i]->name.name);
+	    fprintf (stderr, "%s\n"
+		     "Failed to register version '%d' of '%s' object type\n",
+		     error, types[i]->version, types[i]->name);
+	    free (error);
 	    return 1;
 	}
     }

@@ -30,6 +30,7 @@
 #include <dirent.h>
 
 #include <compiz/core.h>
+#include <compiz/error.h>
 
 CompPlugin *plugins = 0;
 
@@ -412,9 +413,10 @@ finiObjectTree (CompObject *o,
 
 static CompBool
 pushType (CompBranch	       *branch,
-	  const CompObjectType *type)
+	  const CompObjectType *type,
+	  char		       **error)
 {
-    return compFactoryInstallType (&branch->factory, type);
+    return compFactoryInstallType (&branch->factory, type, error);
 }
 
 static void
@@ -425,30 +427,40 @@ popType (CompBranch *branch)
 
 static CompBool
 pushInterface (CompBranch		 *branch,
-	       const CompObjectInterface *interface)
+	       const CompObjectInterface *interface,
+	       char			 **error)
 {
     const CompObjectType       *type;
     CompObject		       *node;
     char		       path[257];
     CompObjectInstantiatorNode *n;
 
-    n = compObjectInstantiatorNode (&branch->factory, interface->name.base);
+    n = compObjectInstantiatorNode (&branch->factory, interface->base.name);
     if (!n)
+    {
+	esprintf (error, "Base type '%s' is not yet registered",
+		  interface->base.name);
 	return FALSE;
+    }
 
     type = n->base.interface;
 
-    sprintf (path, "%s/%s", branch->data.types.base.name, type->name.name);
+    sprintf (path, "%s/%s", branch->data.types.base.name, type->name);
 
     node = (*branch->u.vTable->newObject) (branch,
 					   path,
 					   COMPIZ_OBJECT_TYPE_NAME,
-					   interface->name.name,
+					   interface->name,
 					   NULL);
     if (!node)
+    {
+	esprintf (error, "Failed to allocate node for '%s' interface",
+		  interface->name);
 	return FALSE;
+    }
 
-    if (!compFactoryInstallInterface (&branch->factory, type, interface))
+    if (!compFactoryInstallInterface (&branch->factory, type, interface,
+				      error))
     {
 	(*branch->u.vTable->destroyObject) (branch, node);
 	return FALSE;
@@ -456,6 +468,8 @@ pushInterface (CompBranch		 *branch,
 
     if (!compInsertTopInterface (&branch->u.base.base, &branch->factory, type))
     {
+	esprintf (error, "Failed to insert '%s' interface",
+		  interface->name);
 	compFactoryUninstallInterface (&branch->factory, type);
 	(*branch->u.vTable->destroyObject) (branch, node);
 	return FALSE;
@@ -471,7 +485,7 @@ popInterface (CompBranch		*branch,
     const CompObjectType       *type;
     CompObjectInstantiatorNode *n;
 
-    n = compObjectInstantiatorNode (&branch->factory, interface->name.base);
+    n = compObjectInstantiatorNode (&branch->factory, interface->base.name);
     if (!n)
 	return;
 
@@ -487,7 +501,7 @@ popInterface (CompBranch		*branch,
 	CompObject *node;
 	char       path[257];
 
-	sprintf (path, "%s/%s", type->name.name, interface->name.name);
+	sprintf (path, "%s/%s", type->name, interface->name);
 
 	node = compLookupObject (&branch->data.types.base, path);
 	if (node)
@@ -508,7 +522,7 @@ initPlugin (CompPlugin *p,
 	for (i = 0; i < p->nType; i++)
 	{
 	    type = (*(p->type[i])) ();
-	    if (!type || !pushType (branch, type))
+	    if (!type || !pushType (branch, type, NULL))
 	    {
 		while (i--)
 		    popType (branch);
@@ -520,7 +534,7 @@ initPlugin (CompPlugin *p,
 	for (i = 0; i < p->nInterface; i++)
 	{
 	    interface = (*(p->interface[i])) ();
-	    if (!interface || !pushInterface (branch, interface))
+	    if (!interface || !pushInterface (branch, interface, NULL))
 	    {
 		while (i--)
 		    popInterface (branch, (*(p->interface[i])) ());

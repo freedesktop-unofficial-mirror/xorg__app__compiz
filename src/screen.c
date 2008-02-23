@@ -1577,7 +1577,10 @@ getScreenObjectType (void)
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name.name     = COMPIZ_SCREEN_TYPE_NAME,
+	    .i.name	     = COMPIZ_SCREEN_TYPE_NAME,
+	    .i.version	     = COMPIZ_SCREEN_VERSION,
+	    .i.base.name     = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version  = COMPIZ_OBJECT_VERSION,
 	    .i.vTable.impl   = &screenObjectVTable.base,
 	    .i.vTable.noop   = &noopScreenObjectVTable.base,
 	    .i.vTable.size   = sizeof (screenObjectVTable),
@@ -1596,9 +1599,7 @@ getScreenObjectType (void)
 	    .nStringProp = N_ELEMENTS (screenTypeStringProp),
 
 	    .child  = screenTypeChildObject,
-	    .nChild = N_ELEMENTS (screenTypeChildObject),
-
-	    .version = COMPIZ_DISPLAY_VERSION
+	    .nChild = N_ELEMENTS (screenTypeChildObject)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
