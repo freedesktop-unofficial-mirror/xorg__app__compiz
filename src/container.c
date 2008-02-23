@@ -30,10 +30,6 @@
 #include <compiz/container.h>
 #include <compiz/c-object.h>
 
-static CInterface containerInterface[] = {
-    C_INTERFACE (container, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
-};
-
 static CompBool
 containerInitObject (CompObject	*object)
 {
@@ -71,15 +67,9 @@ containerGetProp (CompObject   *object,
 		  unsigned int what,
 		  void	       *value)
 {
-    static const CMetadata template = {
-	.interface  = containerInterface,
-	.nInterface = N_ELEMENTS (containerInterface),
-	.init       = containerInitObject,
-	.fini	    = containerFiniObject,
-	.version    = COMPIZ_CONTAINER_VERSION
-    };
-
-    cGetObjectProp (&GET_CONTAINER (object)->data, &template, what, value);
+    cGetObjectProp (&GET_CONTAINER (object)->data,
+		    getContainerObjectType (),
+		    what, value);
 }
 
 static void
@@ -213,10 +203,15 @@ getContainerObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name     = CONTAINER_TYPE_NAME,
-	    .vTable.impl   = &containerObjectVTable,
-	    .instance.size = sizeof (CompContainer)
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_CONTAINER_TYPE_NAME,
+	    .i.vTable.impl   = &containerObjectVTable,
+	    .i.instance.size = sizeof (CompContainer),
+
+	    .init = containerInitObject,
+	    .fini = containerFiniObject,
+
+	    .version = COMPIZ_CONTAINER_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

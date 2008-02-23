@@ -26,22 +26,14 @@
 #include <compiz/input.h>
 #include <compiz/c-object.h>
 
-static CInterface inputInterface[] = {
-    C_INTERFACE (input, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
-};
-
 static void
 inputGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    static const CMetadata template = {
-	.interface  = inputInterface,
-	.nInterface = N_ELEMENTS (inputInterface),
-	.version    = COMPIZ_INPUT_VERSION
-    };
-
-    cGetObjectProp (&GET_INPUT (object)->data, &template, what, value);
+    cGetObjectProp (&GET_INPUT (object)->data,
+		    getInputObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable inputObjectVTable = {
@@ -55,9 +47,11 @@ getInputObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name   = INPUT_TYPE_NAME,
-	    .vTable.impl = &inputObjectVTable
+	static const CObjectInterface template = {
+	    .i.name.name   = COMPIZ_INPUT_TYPE_NAME,
+	    .i.vTable.impl = &inputObjectVTable,
+
+	    .version = COMPIZ_INPUT_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

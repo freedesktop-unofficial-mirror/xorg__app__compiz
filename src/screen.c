@@ -204,62 +204,14 @@ defaultIconChanged (CompObject *object)
     updateDefaultIcon (GET_SCREEN (object));
 }
 
-static const CMethod screenTypeMethod[] = {
-    C_METHOD (updateOutputDevices, "", "", CompScreenVTable, marshal____)
-};
-
-static CBoolProp screenTypeBoolProp[] = {
-    C_PROP (detectOutputs, CompScreenData, .changed = detectOutputsChanged),
-    C_PROP (detectRefreshRate, CompScreenData,
-	    .changed = detectRefreshRateChanged),
-    C_PROP (lighting, CompScreenData),
-    C_PROP (syncToVBlank, CompScreenData),
-    C_PROP (unredirectFullscreenWindows, CompScreenData)
-};
-
-static CIntProp screenTypeIntProp[] = {
-    C_INT_PROP (hSize, CompScreenData, 1, 32, .changed = virtualSizeChanged),
-    C_INT_PROP (numberOfDesktops, CompScreenData, 1, 36,
-		.changed = numberOfDesktopsChanged),
-    C_INT_PROP (opacityStep, CompScreenData, 1, 50),
-    C_INT_PROP (refreshRate, CompScreenData, 1, 200,
-		.changed = refreshRateChanged, .defaultValue = 75),
-    C_INT_PROP (vSize, CompScreenData, 1, 32, .changed = virtualSizeChanged)
-};
-
-static CStringProp screenTypeStringProp[] = {
-    C_PROP (defaultIconImage, CompScreenData, .changed = defaultIconChanged)
-};
-
-static CSignalHandler outputsSignal[] = {
-    C_SIGNAL_HANDLER (updateOutputDevices, CompScreenVTable, "object", "removed"),
-    C_SIGNAL_HANDLER (updateOutputDevices, CompScreenVTable,
-		      "properties", "intChanged"),
-};
-
-static CChildObject screenTypeChildObject[] = {
-    C_CHILD (windows, CompScreenData, CONTAINER_TYPE_NAME),
-    C_CHILD (outputs, CompScreenData, CONTAINER_TYPE_NAME,
-	     .signal  = outputsSignal,
-	     .nSignal = N_ELEMENTS (outputsSignal))
-};
-
-static CInterface screenInterface[] = {
-    C_INTERFACE (screen, Type, CompObjectVTable, _, X, _, X, X, _, X, X)
-};
-
 static void
 screenGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    static const CMetadata template = {
-	.interface  = screenInterface,
-	.nInterface = N_ELEMENTS (screenInterface),
-	.version    = COMPIZ_SCREEN_VERSION
-    };
-
-    cGetObjectProp (&GET_SCREEN (object)->data.base, &template, what, value);
+    cGetObjectProp (&GET_SCREEN (object)->data.base,
+		    getScreenObjectType (),
+		    what, value);
 }
 
 static void
@@ -332,10 +284,10 @@ updateOutputDevices (CompScreen *s)
 	{
 	    CompObject *o = s->data.outputs.item[i].object;
 
-	    if ((*o->vTable->properties.getInt) (o, 0, "x1", &x1, 0) &&
-		(*o->vTable->properties.getInt) (o, 0, "y1", &y1, 0) &&
-		(*o->vTable->properties.getInt) (o, 0, "x2", &x2, 0) &&
-		(*o->vTable->properties.getInt) (o, 0, "y2", &y2, 0))
+	    if ((*o->vTable->getInt) (o, 0, "x1", &x1, 0) &&
+		(*o->vTable->getInt) (o, 0, "y1", &y1, 0) &&
+		(*o->vTable->getInt) (o, 0, "x2", &x2, 0) &&
+		(*o->vTable->getInt) (o, 0, "y2", &y2, 0))
 		addOutputDevice (s, x1, y1, x2, y2, &output, &nOutput);
 	}
     }
@@ -1576,6 +1528,47 @@ static const CompScreenVTable noopScreenObjectVTable = {
     .updateOutputDevices = noopUpdateOutputDevices
 };
 
+static const CMethod screenTypeMethod[] = {
+    C_METHOD (updateOutputDevices, "", "", CompScreenVTable, marshal____)
+};
+
+static const CBoolProp screenTypeBoolProp[] = {
+    C_PROP (detectOutputs, CompScreenData, .changed = detectOutputsChanged),
+    C_PROP (detectRefreshRate, CompScreenData,
+	    .changed = detectRefreshRateChanged),
+    C_PROP (lighting, CompScreenData),
+    C_PROP (syncToVBlank, CompScreenData),
+    C_PROP (unredirectFullscreenWindows, CompScreenData)
+};
+
+static const CIntProp screenTypeIntProp[] = {
+    C_INT_PROP (hSize, CompScreenData, 1, 32, .changed = virtualSizeChanged),
+    C_INT_PROP (numberOfDesktops, CompScreenData, 1, 36,
+		.changed = numberOfDesktopsChanged),
+    C_INT_PROP (opacityStep, CompScreenData, 1, 50),
+    C_INT_PROP (refreshRate, CompScreenData, 1, 200,
+		.changed = refreshRateChanged, .defaultValue = 75),
+    C_INT_PROP (vSize, CompScreenData, 1, 32, .changed = virtualSizeChanged)
+};
+
+static const CStringProp screenTypeStringProp[] = {
+    C_PROP (defaultIconImage, CompScreenData, .changed = defaultIconChanged)
+};
+
+static const CSignalHandler outputsSignal[] = {
+    C_SIGNAL_HANDLER (updateOutputDevices, CompScreenVTable,
+		      COMPIZ_OBJECT_TYPE_NAME, "removed"),
+    C_SIGNAL_HANDLER (updateOutputDevices, CompScreenVTable,
+		      COMPIZ_OBJECT_TYPE_NAME, "intChanged"),
+};
+
+static const CChildObject screenTypeChildObject[] = {
+    C_CHILD (windows, CompScreenData, COMPIZ_CONTAINER_TYPE_NAME),
+    C_CHILD (outputs, CompScreenData, COMPIZ_CONTAINER_TYPE_NAME,
+	     .signal  = outputsSignal,
+	     .nSignal = N_ELEMENTS (outputsSignal))
+};
+
 const CompObjectType *
 getScreenObjectType (void)
 {
@@ -1583,12 +1576,29 @@ getScreenObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name     = SCREEN_TYPE_NAME,
-	    .vTable.impl   = &screenObjectVTable.base,
-	    .vTable.noop   = &noopScreenObjectVTable.base,
-	    .vTable.size   = sizeof (screenObjectVTable),
-	    .instance.init = screenInitObject
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_SCREEN_TYPE_NAME,
+	    .i.vTable.impl   = &screenObjectVTable.base,
+	    .i.vTable.noop   = &noopScreenObjectVTable.base,
+	    .i.vTable.size   = sizeof (screenObjectVTable),
+	    .i.instance.init = screenInitObject,
+
+	    .method  = screenTypeMethod,
+	    .nMethod = N_ELEMENTS (screenTypeMethod),
+
+	    .boolProp  = screenTypeBoolProp,
+	    .nBoolProp = N_ELEMENTS (screenTypeBoolProp),
+
+	    .intProp  = screenTypeIntProp,
+	    .nIntProp = N_ELEMENTS (screenTypeIntProp),
+
+	    .stringProp  = screenTypeStringProp,
+	    .nStringProp = N_ELEMENTS (screenTypeStringProp),
+
+	    .child  = screenTypeChildObject,
+	    .nChild = N_ELEMENTS (screenTypeChildObject),
+
+	    .version = COMPIZ_DISPLAY_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

@@ -321,7 +321,10 @@ static CompBool
 forEachBranchTree (CompObject *object,
 		   void       *closure)
 {
-    compForInterface (object, BRANCH_TYPE_NAME, forBranchInterface, closure);
+    compForInterface (object,
+		      COMPIZ_BRANCH_TYPE_NAME, forBranchInterface,
+		      closure);
+
     return (*object->vTable->forEachChildObject) (object,
 						  forEachBranchTree,
 						  closure);
@@ -450,9 +453,6 @@ main (int argc, char **argv)
     char *hostName;
     int	 displayNum, i;
 
-    const CompObjectType **propTypes;
-    int			 nPropTypes;
-
     const CompObjectType *staticTypes[] = {
 	getObjectType (),
 	getContainerObjectType (),
@@ -462,7 +462,12 @@ main (int argc, char **argv)
 	getCoreObjectType (),
 	getDisplayObjectType (),
 	getScreenObjectType (),
-	getWindowObjectType ()
+	getWindowObjectType (),
+	getPropObjectType (),
+	getBoolPropObjectType (),
+	getIntPropObjectType (),
+	getDoublePropObjectType (),
+	getStringPropObjectType ()
     };
 
     MainContext context = {
@@ -477,14 +482,8 @@ main (int argc, char **argv)
     programArgc = argc;
     programArgv = argv;
 
-    propTypes = getPropObjectTypes (&nPropTypes);
-
     if (registerStaticObjectTypes (&context.factory.base,
 				   staticTypes, N_ELEMENTS (staticTypes)))
-	return 1;
-
-    if (registerStaticObjectTypes (&context.factory.base,
-				   propTypes, nPropTypes))
 	return 1;
 
     signal (SIGHUP, signalHandler);
@@ -609,11 +608,12 @@ main (int argc, char **argv)
 	if (*argv[i] == '-')
 	    continue;
 
-	string = (*core.u.base.u.vTable->newObject) (&core.u.base,
-						     "plugins",
-						     STRING_PROP_TYPE_NAME,
-						     argv[i],
-						     &error);
+	string =
+	    (*core.u.base.u.vTable->newObject) (&core.u.base,
+						"plugins",
+						COMPIZ_STRING_PROP_TYPE_NAME,
+						argv[i],
+						&error);
 	if (!string)
 	{
 	    fprintf (stderr, "%s\n", error);
@@ -621,11 +621,11 @@ main (int argc, char **argv)
 	    continue;
 	}
 
-	(*string->vTable->properties.setString) (string,
-						 STRING_PROP_TYPE_NAME,
-						 "value",
-						 argv[i],
-						 NULL);
+	(*string->vTable->setString) (string,
+				      COMPIZ_STRING_PROP_TYPE_NAME,
+				      "value",
+				      argv[i],
+				      NULL);
     }
 
     (*r->u.vTable->processSignals) (r);

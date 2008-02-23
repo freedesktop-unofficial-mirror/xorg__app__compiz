@@ -183,47 +183,14 @@ pingChanged (CompObject *object)
     d->pingHandle = compAddTimeout (d->data.pingDelay, pingTimeout, d);
 }
 
-static const CMethod displayTypeMethod[] = {
-    C_METHOD (addScreen,    "i", "", CompDisplayVTable, marshal__I__E),
-    C_METHOD (removeScreen, "i", "", CompDisplayVTable, marshal__I__E)
-};
-
-static CBoolProp displayTypeBoolProp[] = {
-    C_PROP (audibleBell, CompDisplayData, .changed = audibleBellChanged),
-    C_PROP (autoRaise, CompDisplayData),
-    C_PROP (clickToFocus, CompDisplayData),
-    C_PROP (hideSkipTaskbarWindows, CompDisplayData),
-    C_PROP (ignoreHintsWhenMaximized, CompDisplayData),
-    C_PROP (raiseOnClick, CompDisplayData)
-};
-
-static CIntProp displayTypeIntProp[] = {
-    C_INT_PROP (autoRaiseDelay, CompDisplayData, 0, 10000),
-    C_INT_PROP (filter, CompDisplayData, 0, 2, .changed = filterChanged),
-    C_INT_PROP (pingDelay, CompDisplayData, 1000, 60000,
-		.changed = pingChanged)
-};
-
-static CChildObject displayTypeChildObject[] = {
-    C_CHILD (screens, CompDisplayData, CONTAINER_TYPE_NAME)
-};
-
-static CInterface displayInterface[] = {
-    C_INTERFACE (display, Type, CompObjectVTable, _, X, _, X, X, _, _, X)
-};
-
 static void
 displayGetProp (CompObject   *object,
 		unsigned int what,
 		void	     *value)
 {
-    static const CMetadata template = {
-	.interface  = displayInterface,
-	.nInterface = N_ELEMENTS (displayInterface),
-	.version    = COMPIZ_DISPLAY_VERSION
-    };
-
-    cGetObjectProp (&GET_DISPLAY (object)->data.base, &template, what, value);
+    cGetObjectProp (&GET_DISPLAY (object)->data.base,
+		    getDisplayObjectType (),
+		    what, value);
 }
 
 static CompBool
@@ -2273,6 +2240,31 @@ static const CompDisplayVTable noopDisplayObjectVTable = {
     .removeScreen = noopRemoveScreen
 };
 
+static const CMethod displayTypeMethod[] = {
+    C_METHOD (addScreen,    "i", "", CompDisplayVTable, marshal__I__E),
+    C_METHOD (removeScreen, "i", "", CompDisplayVTable, marshal__I__E)
+};
+
+static const CBoolProp displayTypeBoolProp[] = {
+    C_PROP (audibleBell, CompDisplayData, .changed = audibleBellChanged),
+    C_PROP (autoRaise, CompDisplayData),
+    C_PROP (clickToFocus, CompDisplayData),
+    C_PROP (hideSkipTaskbarWindows, CompDisplayData),
+    C_PROP (ignoreHintsWhenMaximized, CompDisplayData),
+    C_PROP (raiseOnClick, CompDisplayData)
+};
+
+static const CIntProp displayTypeIntProp[] = {
+    C_INT_PROP (autoRaiseDelay, CompDisplayData, 0, 10000),
+    C_INT_PROP (filter, CompDisplayData, 0, 2, .changed = filterChanged),
+    C_INT_PROP (pingDelay, CompDisplayData, 1000, 60000,
+		.changed = pingChanged)
+};
+
+static const CChildObject displayTypeChildObject[] = {
+    C_CHILD (screens, CompDisplayData, COMPIZ_CONTAINER_TYPE_NAME)
+};
+
 const CompObjectType *
 getDisplayObjectType (void)
 {
@@ -2280,12 +2272,26 @@ getDisplayObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name     = DISPLAY_TYPE_NAME,
-	    .vTable.impl   = &displayObjectVTable.base,
-	    .vTable.noop   = &noopDisplayObjectVTable.base,
-	    .vTable.size   = sizeof (displayObjectVTable),
-	    .instance.init = displayInitObject
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_DISPLAY_TYPE_NAME,
+	    .i.vTable.impl   = &displayObjectVTable.base,
+	    .i.vTable.noop   = &noopDisplayObjectVTable.base,
+	    .i.vTable.size   = sizeof (displayObjectVTable),
+	    .i.instance.init = displayInitObject,
+
+	    .method  = displayTypeMethod,
+	    .nMethod = N_ELEMENTS (displayTypeMethod),
+
+	    .boolProp  = displayTypeBoolProp,
+	    .nBoolProp = N_ELEMENTS (displayTypeBoolProp),
+
+	    .intProp  = displayTypeIntProp,
+	    .nIntProp = N_ELEMENTS (displayTypeIntProp),
+
+	    .child  = displayTypeChildObject,
+	    .nChild = N_ELEMENTS (displayTypeChildObject),
+
+	    .version = COMPIZ_DISPLAY_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

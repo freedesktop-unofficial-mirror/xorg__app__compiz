@@ -1724,10 +1724,6 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
     wa->screen		      = NULL;
 }
 
-static CInterface windowInterface[] = {
-    C_INTERFACE (window, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
-};
-
 static CompBool
 windowInitObject (CompObject *object)
 {
@@ -1743,14 +1739,9 @@ windowGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    static const CMetadata template = {
-	.interface  = windowInterface,
-	.nInterface = N_ELEMENTS (windowInterface),
-	.init       = windowInitObject,
-	.version    = COMPIZ_WINDOW_VERSION
-    };
-
-    cGetObjectProp (&GET_WINDOW (object)->data, &template, what, value);
+    cGetObjectProp (&GET_WINDOW (object)->data,
+		    getWindowObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable windowObjectVTable = {
@@ -1764,9 +1755,12 @@ getWindowObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name   = WINDOW_TYPE_NAME,
-	    .vTable.impl = &windowObjectVTable
+	static const CObjectInterface template = {
+	    .i.name.name   = COMPIZ_WINDOW_TYPE_NAME,
+	    .i.vTable.impl = &windowObjectVTable,
+
+	    .init    = windowInitObject,
+	    .version = COMPIZ_WINDOW_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

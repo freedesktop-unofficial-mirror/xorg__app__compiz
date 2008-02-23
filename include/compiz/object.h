@@ -34,8 +34,6 @@
 #include <compiz/macros.h>
 #include <compiz/privates.h>
 
-#define COMPIZ_OBJECT_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 /*
@@ -312,18 +310,8 @@ typedef void (*SignalProc) (CompObject   *object,
 			    CompAnyValue *value,
 			    int	         nValue);
 
-typedef struct _CompSignalVTable {
-    ConnectProc    connect;
-    DisconnectProc disconnect;
-    SignalProc     signal;
-} CompSignalVTable;
-
 typedef int (*GetVersionProc) (CompObject *object,
 			       const char *interface);
-
-typedef struct _CompVersionVTable {
-    GetVersionProc get;
-} CompVersionVTable;
 
 typedef CompBool (*GetBoolPropProc) (CompObject *object,
 				     const char *interface,
@@ -393,24 +381,6 @@ typedef void (*StringPropChangedProc) (CompObject *object,
 				       const char *name,
 				       const char *value);
 
-typedef struct _CompPropertiesVTable {
-    GetBoolPropProc     getBool;
-    SetBoolPropProc     setBool;
-    BoolPropChangedProc boolChanged;
-
-    GetIntPropProc     getInt;
-    SetIntPropProc     setInt;
-    IntPropChangedProc intChanged;
-
-    GetDoublePropProc     getDouble;
-    SetDoublePropProc     setDouble;
-    DoublePropChangedProc doubleChanged;
-
-    GetStringPropProc     getString;
-    SetStringPropProc     setString;
-    StringPropChangedProc stringChanged;
-} CompPropertiesVTable;
-
 struct _CompObjectVTable {
 
     /* finalize function*/
@@ -426,8 +396,6 @@ struct _CompObjectVTable {
     */
     InsertObjectProc insertObject;
     RemoveObjectProc removeObject;
-    InsertedProc     inserted;
-    RemovedProc      removed;
 
     /* interface functions
 
@@ -437,8 +405,6 @@ struct _CompObjectVTable {
     ForEachMethodProc    forEachMethod;
     ForEachSignalProc    forEachSignal;
     ForEachPropProc      forEachProp;
-    InterfaceAddedProc   interfaceAdded;
-    InterfaceRemovedProc interfaceRemoved;
 
     /* child object functions
 
@@ -448,9 +414,38 @@ struct _CompObjectVTable {
     RemoveChildObjectProc  removeChild;
     ForEachChildObjectProc forEachChildObject;
 
-    CompSignalVTable     signal;
-    CompVersionVTable    version;
-    CompPropertiesVTable properties;
+    ConnectProc    connect;
+    DisconnectProc disconnect;
+
+    GetVersionProc getVersion;
+
+    GetBoolPropProc getBool;
+    SetBoolPropProc setBool;
+
+    GetIntPropProc getInt;
+    SetIntPropProc setInt;
+
+    GetDoublePropProc getDouble;
+    SetDoublePropProc setDouble;
+
+    GetStringPropProc getString;
+    SetStringPropProc setString;
+
+
+    /* signals */
+
+    SignalProc signal;
+
+    InsertedProc inserted;
+    RemovedProc  removed;
+
+    InterfaceAddedProc   interfaceAdded;
+    InterfaceRemovedProc interfaceRemoved;
+
+    BoolPropChangedProc   boolChanged;
+    IntPropChangedProc    intChanged;
+    DoublePropChangedProc doubleChanged;
+    StringPropChangedProc stringChanged;
 };
 
 typedef struct _CompObjectVTableVec {
@@ -539,7 +534,8 @@ struct _CompObject {
 #define GET_OBJECT(object) ((CompObject *) (object))
 #define OBJECT(object) CompObject *o = GET_OBJECT (object)
 
-#define OBJECT_TYPE_NAME "object"
+#define COMPIZ_OBJECT_VERSION   20080221
+#define COMPIZ_OBJECT_TYPE_NAME COMPIZ_NAME_PREFIX "object"
 
 /* useful structures for object and interface implementations */
 

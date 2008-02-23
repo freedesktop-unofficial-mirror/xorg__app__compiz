@@ -26,33 +26,25 @@
 #include <compiz/box.h>
 #include <compiz/c-object.h>
 
-static CIntProp boxTypeIntProp[] = {
-    C_PROP (x1, CompBoxData),
-    C_PROP (y1, CompBoxData),
-    C_PROP (x2, CompBoxData),
-    C_PROP (y2, CompBoxData)
-};
-
-static CInterface boxInterface[] = {
-    C_INTERFACE (box, Type, CompObjectVTable, _, _, _, _, X, _, _, _)
-};
-
 static void
 boxGetProp (CompObject   *object,
 	    unsigned int what,
 	    void	 *value)
 {
-    static const CMetadata template = {
-	.interface  = boxInterface,
-	.nInterface = N_ELEMENTS (boxInterface),
-	.version    = COMPIZ_BOX_VERSION
-    };
-
-    cGetObjectProp (&GET_BOX (object)->data.base, &template, what, value);
+    cGetObjectProp (&GET_BOX (object)->data.base,
+		    getBoxObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable boxObjectVTable = {
     .getProp = boxGetProp
+};
+
+static const CIntProp boxTypeIntProp[] = {
+    C_PROP (x1, CompBoxData),
+    C_PROP (y1, CompBoxData),
+    C_PROP (x2, CompBoxData),
+    C_PROP (y2, CompBoxData)
 };
 
 const CompObjectType *
@@ -62,10 +54,15 @@ getBoxObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name     = BOX_TYPE_NAME,
-	    .vTable.impl   = &boxObjectVTable,
-	    .instance.size = sizeof (CompBox)
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_BOX_TYPE_NAME,
+	    .i.vTable.impl   = &boxObjectVTable,
+	    .i.instance.size = sizeof (CompBox),
+
+	    .intProp  = boxTypeIntProp,
+	    .nIntProp = N_ELEMENTS (boxTypeIntProp),
+
+	    .version = COMPIZ_BOX_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

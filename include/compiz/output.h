@@ -31,8 +31,6 @@
 
 #include <compiz/object.h>
 
-#define COMPIZ_OUTPUT_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompOutput {
@@ -49,7 +47,8 @@ typedef struct _CompOutput {
 #define GET_OUTPUT(object) ((CompOutput *) (object))
 #define OUTPUT(object) CompOutput *o = GET_OUTPUT (object)
 
-#define OUTPUT_TYPE_NAME "output"
+#define COMPIZ_OUTPUT_VERSION   20080221
+#define COMPIZ_OUTPUT_TYPE_NAME COMPIZ_NAME_PREFIX "output"
 
 const CompObjectType *
 getOutputObjectType (void);

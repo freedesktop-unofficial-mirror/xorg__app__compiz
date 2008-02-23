@@ -28,219 +28,225 @@
 #include <compiz/prop.h>
 #include <compiz/c-object.h>
 
-static void
-propGetObjectProp (CompObjectData  *data,
-		   const CMetadata *template,
-		   unsigned int    what,
-		   void		   *value)
+static CompObjectType *
+propObjectTypeFromTemplate (const CObjectInterface *template)
 {
-    CMetadata propTemplate = *template;
+    CObjectInterface propTemplate = *template;
+
+    if (!propTemplate.i.name.base)
+	propTemplate.i.name.base = COMPIZ_PROP_TYPE_NAME;
 
     if (!propTemplate.version)
 	propTemplate.version = COMPIZ_PROP_VERSION;
 
-    cGetObjectProp (data, &propTemplate, what, value);
+    return cObjectTypeFromTemplate (&propTemplate);
 }
 
-
 /* prop */
-
-static CInterface propInterface[] = {
-    C_INTERFACE (prop, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
-};
 
 static void
 propGetProp (CompObject   *object,
 	     unsigned int what,
 	     void	  *value)
 {
-    static const CMetadata template = {
-	.interface  = propInterface,
-	.nInterface = N_ELEMENTS (propInterface)
-    };
-
-    propGetObjectProp (&GET_PROP (object)->data, &template, what, value);
+    cGetObjectProp (&GET_PROP (object)->data,
+		    getPropObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable propObjectVTable = {
     .getProp = propGetProp
 };
 
+const CompObjectType *
+getPropObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_PROP_TYPE_NAME,
+	    .i.vTable.impl   = &propObjectVTable,
+	    .i.instance.size = sizeof (CompProp),
+
+	    .version = COMPIZ_PROP_VERSION
+	};
+
+	type = cObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
 
 /* bool prop */
-
-static CBoolProp boolPropTypeBoolProp[] = {
-    C_PROP (value, CompBoolPropData)
-};
-
-static CInterface boolPropInterface[] = {
-    C_INTERFACE (boolProp, Type, CompObjectVTable, _, _, _, X, _, _, _, _)
-};
 
 static void
 boolPropGetProp (CompObject   *object,
 		 unsigned int what,
 		 void	      *value)
 {
-    static const CMetadata template = {
-	.interface  = boolPropInterface,
-	.nInterface = N_ELEMENTS (boolPropInterface)
-    };
-
-    propGetObjectProp (&GET_BOOL_PROP (object)->data.base, &template, what,
-		       value);
+    cGetObjectProp (&GET_BOOL_PROP (object)->data.base,
+		    getBoolPropObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable boolPropObjectVTable = {
     .getProp = boolPropGetProp
 };
 
+static const CBoolProp boolPropTypeBoolProp[] = {
+    C_PROP (value, CompBoolPropData)
+};
+
+const CompObjectType *
+getBoolPropObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_BOOL_PROP_TYPE_NAME,
+	    .i.vTable.impl   = &boolPropObjectVTable,
+	    .i.instance.size = sizeof (CompBoolProp),
+
+	    .boolProp  = boolPropTypeBoolProp,
+	    .nBoolProp = N_ELEMENTS (boolPropTypeBoolProp)
+	};
+
+	type = propObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
 
 /* int prop */
 
-static CIntProp intPropTypeIntProp[] = {
-    C_PROP (value, CompIntPropData)
-};
-
-static CInterface intPropInterface[] = {
-    C_INTERFACE (intProp, Type, CompObjectVTable, _, _, _, _, X, _, _, _)
-};
-
 static void
 intPropGetProp (CompObject   *object,
-		 unsigned int what,
-		 void	      *value)
+		unsigned int what,
+		void	     *value)
 {
-    static const CMetadata template = {
-	.interface  = intPropInterface,
-	.nInterface = N_ELEMENTS (intPropInterface),
-    };
-
-    propGetObjectProp (&GET_INT_PROP (object)->data.base, &template, what,
-		       value);
+    cGetObjectProp (&GET_INT_PROP (object)->data.base,
+		    getIntPropObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable intPropObjectVTable = {
     .getProp = intPropGetProp
 };
 
+static const CIntProp intPropTypeIntProp[] = {
+    C_PROP (value, CompIntPropData)
+};
+
+const CompObjectType *
+getIntPropObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_INT_PROP_TYPE_NAME,
+	    .i.vTable.impl   = &intPropObjectVTable,
+	    .i.instance.size = sizeof (CompIntProp),
+
+	    .intProp  = intPropTypeIntProp,
+	    .nIntProp = N_ELEMENTS (intPropTypeIntProp)
+	};
+
+	type = propObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
 
 /* double prop */
-
-static CDoubleProp doublePropTypeDoubleProp[] = {
-    C_PROP (value, CompDoublePropData)
-};
-
-static CInterface doublePropInterface[] = {
-    C_INTERFACE (doubleProp, Type, CompObjectVTable, _, _, _, _, _, X, _, _)
-};
 
 static void
 doublePropGetProp (CompObject   *object,
 		   unsigned int what,
 		   void	        *value)
 {
-    static const CMetadata template = {
-	.interface  = doublePropInterface,
-	.nInterface = N_ELEMENTS (doublePropInterface),
-    };
-
-    propGetObjectProp (&GET_DOUBLE_PROP (object)->data.base, &template, what,
-		       value);
+    cGetObjectProp (&GET_DOUBLE_PROP (object)->data.base,
+		    getDoublePropObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable doublePropObjectVTable = {
     .getProp = doublePropGetProp
 };
 
+static const CDoubleProp doublePropTypeDoubleProp[] = {
+    C_PROP (value, CompDoublePropData)
+};
+
+const CompObjectType *
+getDoublePropObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_DOUBLE_PROP_TYPE_NAME,
+	    .i.vTable.impl   = &doublePropObjectVTable,
+	    .i.instance.size = sizeof (CompDoubleProp),
+
+	    .doubleProp  = doublePropTypeDoubleProp,
+	    .nDoubleProp = N_ELEMENTS (doublePropTypeDoubleProp)
+	};
+
+	type = propObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
 
 /* string prop */
-
-static CStringProp stringPropTypeStringProp[] = {
-    C_PROP (value, CompStringPropData)
-};
-
-static CInterface stringPropInterface[] = {
-    C_INTERFACE (stringProp, Type, CompObjectVTable, _, _, _, _, _, _, X, _)
-};
 
 static void
 stringPropGetProp (CompObject   *object,
 		   unsigned int what,
 		   void	        *value)
 {
-    static const CMetadata template = {
-	.interface  = stringPropInterface,
-	.nInterface = N_ELEMENTS (stringPropInterface),
-    };
-
-    propGetObjectProp (&GET_STRING_PROP (object)->data.base, &template, what,
-		       value);
+    cGetObjectProp (&GET_STRING_PROP (object)->data.base,
+		    getStringPropObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable stringPropObjectVTable = {
     .getProp = stringPropGetProp
 };
 
+static const CStringProp stringPropTypeStringProp[] = {
+    C_PROP (value, CompStringPropData)
+};
 
-static CompObjectType *
-propObjectTypeFromTemplate (const CompObjectType *template)
+const CompObjectType *
+getStringPropObjectType (void)
 {
-    CompObjectType propTemplate = *template;
-
-    if (!propTemplate.name.base)
-	propTemplate.name.base = PROP_TYPE_NAME;
-
-    if (!propTemplate.vTable.size)
-	propTemplate.vTable.size = sizeof (propObjectVTable);
-
-    return cObjectTypeFromTemplate (&propTemplate);
-}
-
-const CompObjectType **
-getPropObjectTypes (int *n)
-{
-    static const CompObjectType **type = NULL;
-    static int			nType = 0;
+    static CompObjectType *type = NULL;
 
     if (!type)
     {
-	static const CompObjectType template[] = {
-	    {
-		.name.name   = PROP_TYPE_NAME,
-		.name.base   = OBJECT_TYPE_NAME,
-		.vTable.impl = &propObjectVTable
-	    }, {
-		.name.name     = BOOL_PROP_TYPE_NAME,
-		.vTable.impl   = &boolPropObjectVTable,
-		.instance.size = sizeof (CompBoolProp)
-	    }, {
-		.name.name     = INT_PROP_TYPE_NAME,
-		.vTable.impl   = &intPropObjectVTable,
-		.instance.size = sizeof (CompIntProp)
-	    }, {
-		.name.name     = DOUBLE_PROP_TYPE_NAME,
-		.vTable.impl   = &doublePropObjectVTable,
-		.instance.size = sizeof (CompDoubleProp)
-	    }, {
-		.name.name     = STRING_PROP_TYPE_NAME,
-		.vTable.impl   = &stringPropObjectVTable,
-		.instance.size = sizeof (CompStringProp)
-	    }
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_STRING_PROP_TYPE_NAME,
+	    .i.vTable.impl   = &stringPropObjectVTable,
+	    .i.instance.size = sizeof (CompStringProp),
+
+	    .stringProp  = stringPropTypeStringProp,
+	    .nStringProp = N_ELEMENTS (stringPropTypeStringProp)
 	};
 
-	type = malloc (sizeof (CompObjectType *) * N_ELEMENTS (template));
-	if (type)
-	{
-	    int i;
-
-	    for (i = 0; i < N_ELEMENTS (template); i++)
-		type[i] = propObjectTypeFromTemplate (&template[i]);
-
-	    nType = N_ELEMENTS (template);
-	}
+	type = propObjectTypeFromTemplate (&template);
     }
 
-    *n = nType;
     return type;
 }

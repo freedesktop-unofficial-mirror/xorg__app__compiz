@@ -33,32 +33,14 @@
 
 CompCore core;
 
-static const CMethod coreTypeMethod[] = {
-    C_METHOD (addDisplay,    "si", "", CompCoreVTable, marshal__SI__E),
-    C_METHOD (removeDisplay, "si", "", CompCoreVTable, marshal__SI__E)
-};
-
-static CChildObject coreTypeChildObject[] = {
-    C_CHILD (inputs, CompCoreData, CONTAINER_TYPE_NAME),
-    C_CHILD (outputs, CompCoreData, CONTAINER_TYPE_NAME)
-};
-
-static CInterface coreInterface[] = {
-    C_INTERFACE (core, Type, CompObjectVTable, _, X, _, _, _, _, _, X)
-};
-
 static void
 coreGetProp (CompObject   *object,
 	     unsigned int what,
 	     void	  *value)
 {
-    static const CMetadata template = {
-	.interface  = coreInterface,
-	.nInterface = N_ELEMENTS (coreInterface),
-	.version    = COMPIZ_CORE_VERSION
-    };
-
-    cGetObjectProp (&GET_CORE (object)->data.base, &template, what, value);
+    cGetObjectProp (&GET_CORE (object)->data.base,
+		    getCoreObjectType (),
+		    what, value);
 }
 
 static CompBool
@@ -263,9 +245,10 @@ coreInitObject (const CompObjectInstantiator *instantiator,
     {
 	CompObject *container;
 
-	container = (*c->u.base.u.vTable->createObject) (&c->u.base,
-							 CONTAINER_TYPE_NAME,
-							 NULL);
+	container =
+	    (*c->u.base.u.vTable->createObject) (&c->u.base,
+						 COMPIZ_CONTAINER_TYPE_NAME,
+						 NULL);
 	if (!container)
 	{
 	    cObjectFini (object);
@@ -328,6 +311,16 @@ coreInitObject (const CompObjectInstantiator *instantiator,
     return TRUE;
 }
 
+static const CMethod coreTypeMethod[] = {
+    C_METHOD (addDisplay,    "si", "", CompCoreVTable, marshal__SI__E),
+    C_METHOD (removeDisplay, "si", "", CompCoreVTable, marshal__SI__E)
+};
+
+static const CChildObject coreTypeChildObject[] = {
+    C_CHILD (inputs,  CompCoreData, COMPIZ_CONTAINER_TYPE_NAME),
+    C_CHILD (outputs, CompCoreData, COMPIZ_CONTAINER_TYPE_NAME)
+};
+
 const CompObjectType *
 getCoreObjectType (void)
 {
@@ -335,13 +328,21 @@ getCoreObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name     = CORE_TYPE_NAME,
-	    .name.base     = BRANCH_TYPE_NAME,
-	    .vTable.impl   = &coreObjectVTable.base.base,
-	    .vTable.noop   = &noopCoreObjectVTable.base.base,
-	    .vTable.size   = sizeof (coreObjectVTable),
-	    .instance.init = coreInitObject
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_CORE_TYPE_NAME,
+	    .i.name.base     = COMPIZ_BRANCH_TYPE_NAME,
+	    .i.vTable.impl   = &coreObjectVTable.base.base,
+	    .i.vTable.noop   = &noopCoreObjectVTable.base.base,
+	    .i.vTable.size   = sizeof (coreObjectVTable),
+	    .i.instance.init = coreInitObject,
+
+	    .method  = coreTypeMethod,
+	    .nMethod = N_ELEMENTS (coreTypeMethod),
+
+	    .child  = coreTypeChildObject,
+	    .nChild = N_ELEMENTS (coreTypeChildObject),
+
+	    .version = COMPIZ_CORE_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

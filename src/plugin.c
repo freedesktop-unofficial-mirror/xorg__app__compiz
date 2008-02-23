@@ -442,7 +442,7 @@ pushInterface (CompBranch		 *branch,
 
     node = (*branch->u.vTable->newObject) (branch,
 					   path,
-					   OBJECT_TYPE_NAME,
+					   COMPIZ_OBJECT_TYPE_NAME,
 					   interface->name.name,
 					   NULL);
     if (!node)

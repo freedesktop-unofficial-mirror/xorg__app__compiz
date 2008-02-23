@@ -28,8 +28,6 @@
 
 #include <compiz/input.h>
 
-#define COMPIZ_POINTER_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompPointer {
@@ -42,7 +40,8 @@ typedef struct _CompPointer {
 #define GET_POINTER(object) ((CompPointer *) (object))
 #define POINTER(object) CompPointer *p = GET_POINTER (object)
 
-#define POINTER_TYPE_NAME "pointer"
+#define COMPIZ_POINTER_VERSION   20080221
+#define COMPIZ_POINTER_TYPE_NAME COMPIZ_NAME_PREFIX "pointer"
 
 const CompObjectType *
 getPointerObjectType (void);

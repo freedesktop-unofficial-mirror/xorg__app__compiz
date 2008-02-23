@@ -28,8 +28,6 @@
 
 #include <compiz/object.h>
 
-#define COMPIZ_INPUT_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompInput {
@@ -40,7 +38,8 @@ typedef struct _CompInput {
 #define GET_INPUT(object) ((CompInput *) (object))
 #define INPUT(object) CompInput *i = GET_INPUT (object)
 
-#define INPUT_TYPE_NAME "input"
+#define COMPIZ_INPUT_VERSION   20080221
+#define COMPIZ_INPUT_TYPE_NAME COMPIZ_NAME_PREFIX "input"
 
 const CompObjectType *
 getInputObjectType (void);

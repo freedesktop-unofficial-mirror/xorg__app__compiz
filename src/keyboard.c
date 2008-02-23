@@ -26,10 +26,6 @@
 #include <compiz/keyboard.h>
 #include <compiz/c-object.h>
 
-static CInterface keyboardInterface[] = {
-    C_INTERFACE (keyboard, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
-};
-
 static CompBool
 keyboardInitObject (CompObject *object)
 {
@@ -45,14 +41,9 @@ keyboardGetProp (CompObject   *object,
 		  unsigned int what,
 		  void	       *value)
 {
-    static const CMetadata template = {
-	.interface  = keyboardInterface,
-	.nInterface = N_ELEMENTS (keyboardInterface),
-	.init       = keyboardInitObject,
-	.version    = COMPIZ_KEYBOARD_VERSION
-    };
-
-    cGetObjectProp (&GET_KEYBOARD (object)->data, &template, what, value);
+    cGetObjectProp (&GET_KEYBOARD (object)->data,
+		    getKeyboardObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable keyboardObjectVTable = {
@@ -66,10 +57,13 @@ getKeyboardObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name   = KEYBOARD_TYPE_NAME,
-	    .name.base   = INPUT_TYPE_NAME,
-	    .vTable.impl = &keyboardObjectVTable
+	static const CObjectInterface template = {
+	    .i.name.name   = COMPIZ_KEYBOARD_TYPE_NAME,
+	    .i.name.base   = COMPIZ_INPUT_TYPE_NAME,
+	    .i.vTable.impl = &keyboardObjectVTable,
+
+	    .init    = keyboardInitObject,
+	    .version = COMPIZ_KEYBOARD_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

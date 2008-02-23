@@ -26,22 +26,14 @@
 #include <compiz/output.h>
 #include <compiz/c-object.h>
 
-static CInterface outputInterface[] = {
-    C_INTERFACE (output, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
-};
-
 static void
 outputGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    static const CMetadata template = {
-	.interface  = outputInterface,
-	.nInterface = N_ELEMENTS (outputInterface),
-	.version    = COMPIZ_OUTPUT_VERSION
-    };
-
-    cGetObjectProp (&GET_OUTPUT (object)->data, &template, what, value);
+    cGetObjectProp (&GET_OUTPUT (object)->data,
+		    getOutputObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable outputObjectVTable = {
@@ -55,9 +47,11 @@ getOutputObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name   = OUTPUT_TYPE_NAME,
-	    .vTable.impl = &outputObjectVTable
+	static const CObjectInterface template = {
+	    .i.name.name   = COMPIZ_OUTPUT_TYPE_NAME,
+	    .i.vTable.impl = &outputObjectVTable,
+
+	    .version = COMPIZ_OUTPUT_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

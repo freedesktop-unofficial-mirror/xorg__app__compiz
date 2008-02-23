@@ -46,12 +46,10 @@ typedef struct _CSignal {
     const char *name;
     const char *out;
     size_t     offset;
-    int        index;
-    const char *interface;
 } CSignal;
 
-#define C_SIGNAL(name, out, vtable)		      \
-    { # name, out, offsetof (vtable, name), 0, NULL }
+#define C_SIGNAL(name, out, vtable)	     \
+    { # name, out, offsetof (vtable, name) }
 
 typedef void (*CPropChangedProc) (CompObject *object);
 
@@ -142,36 +140,52 @@ typedef struct _CSignalHandler {
     { offsetof (vtable, method), interface, name,  __VA_ARGS__ }
 
 typedef struct _CChildObject {
-    const char	   *name;
-    size_t	   offset;
-    const char	   *type;
-    CSignalHandler *signal;
-    int		   nSignal;
+    const char		 *name;
+    size_t		 offset;
+    const char		 *type;
+    const CSignalHandler *signal;
+    int		         nSignal;
 } CChildObject;
 
 #define C_CHILD(name, object, type, ...)		    \
     { # name, offsetof (object, name), type,  __VA_ARGS__ }
 
-typedef struct _CInterface {
-    const char		 *name;
-    const CompObjectType *type;
-    size_t		 offset;
-    const CMethod	 *method;
-    int			 nMethod;
-    CSignal		 **signal;
-    int			 nSignal;
-    CBoolProp		 *boolProp;
-    int			 nBoolProp;
-    CIntProp		 *intProp;
-    int			 nIntProp;
-    CDoubleProp		 *doubleProp;
-    int			 nDoubleProp;
-    CStringProp		 *stringProp;
-    int			 nStringProp;
-    CChildObject	 *child;
-    int			 nChild;
-    CompBool		 initialized;
-} CInterface;
+typedef CompBool (*CInitObjectProc) (CompObject *object);
+typedef void     (*CFiniObjectProc) (CompObject	*object);
+
+typedef void (*CInsertObjectProc) (CompObject *object,
+				   CompObject *parent);
+typedef void (*CRemoveObjectProc) (CompObject *object);
+
+typedef struct _CObjectInterface {
+    CompObjectInterface i;
+
+    const CMethod      *method;
+    int		       nMethod;
+    const CSignal      *signal;
+    int		       nSignal;
+    const CBoolProp    *boolProp;
+    int		       nBoolProp;
+    const CIntProp     *intProp;
+    int		       nIntProp;
+    const CDoubleProp  *doubleProp;
+    int		       nDoubleProp;
+    const CStringProp  *stringProp;
+    int		       nStringProp;
+    const CChildObject *child;
+    int		       nChild;
+
+    CInitObjectProc init;
+    CFiniObjectProc fini;
+
+    CInsertObjectProc insert;
+    CRemoveObjectProc remove;
+
+    int	version;
+
+    int	*index;
+    int	size;
+} CObjectInterface;
 
 #define C_OFFSET__(vtable, name) 0
 #define C_OFFSET_X(vtable, name) offsetof (vtable, name)
@@ -182,7 +196,7 @@ typedef struct _CInterface {
 
 #define C_INTERFACE(name, type, vtable, offset, method, signal,		\
 		    bool, int, double, string, child)			\
-    { # name, NULL,							\
+    { COMPIZ_NAME_PREFIX # name, NULL,					\
 	    C_OFFSET_ ## offset (vtable, name),				\
 	    C_MEMBER_ ## method (name, type, Method),			\
 	    C_MEMBER_ ## signal (name, type, Signal),			\
@@ -192,58 +206,55 @@ typedef struct _CInterface {
 	    C_MEMBER_ ## string (name, type, StringProp),		\
 	    C_MEMBER_ ## child  (name, type, ChildObject), FALSE }
 
-typedef CompBool (*CInitObjectProc) (CompObject *object);
-typedef void     (*CFiniObjectProc) (CompObject	*object);
+#define C_MEMBER_INDEX_FROM_OFFSET(members, vTableOffset)		   \
+    (((vTableOffset) - (members)[0].offset) / sizeof (FinalizeObjectProc))
 
-typedef void (*CInsertObjectProc) (CompObject *object,
-				   CompObject *parent);
-typedef void (*CRemoveObjectProc) (CompObject *object);
+#define COMP_PROP_C_BASE      1024
+#define COMP_PROP_C_DATA      (COMP_PROP_C_BASE + 0)
+#define COMP_PROP_C_INTERFACE (COMP_PROP_C_BASE + 2)
 
-typedef struct _CMetadata {
-    const CInterface  *interface;
-    int		      nInterface;
-    CInitObjectProc   init;
-    CFiniObjectProc   fini;
-    CInsertObjectProc insert;
-    CRemoveObjectProc remove;
-    int		      version;
-} CMetadata;
-
-#define COMP_PROP_C_BASE     1024
-#define COMP_PROP_C_DATA     (COMP_PROP_C_BASE + 0)
-#define COMP_PROP_C_METADATA (COMP_PROP_C_BASE + 2)
-
-#define C_EMIT_SIGNAL_INT(object, prototype, offset, vec, signal, ...)	\
-    if ((signal)->out)							\
-    {									\
-	if (vec)							\
-	{								\
-	    EMIT_SIGNAL (object, prototype,				\
-			 (offset) + (signal)->index, ##__VA_ARGS__);	\
-	}								\
-									\
-	compEmitSignedSignal (object,					\
-			      (signal)->interface, (signal)->name,	\
-			      (signal)->out, ##__VA_ARGS__);		\
-    }									\
-    else if (vec)							\
-    {									\
-	EMIT_SIGNAL (object, prototype,					\
-		     (offset) + (signal)->index, ##__VA_ARGS__);	\
+#define C_EMIT_SIGNAL_INT(object, prototype, offset, vec, \
+			  interface, name, out, index, ...)	     \
+    if (out)							     \
+    {								     \
+	if (vec)						     \
+	{							     \
+	    EMIT_SIGNAL (object, prototype,			     \
+			 (offset) + (index), ##__VA_ARGS__);	     \
+	}							     \
+								     \
+	compEmitSignedSignal (object,				     \
+			      interface, name,			     \
+			      out, ##__VA_ARGS__);		     \
+    }								     \
+    else if (vec)						     \
+    {								     \
+	EMIT_SIGNAL (object, prototype,				     \
+		     (offset) + (index), ##__VA_ARGS__);	     \
     }
 
-#define C_EMIT_SIGNAL(object, prototype, signal, ...)			\
+#define C_EMIT_SIGNAL(object, prototype, offset, ...)		        \
     do {								\
-	CompInterfaceData *_d;						\
-	CompObject	  *_obj = (CompObject *) (object);		\
+	CompInterfaceData      *_d;					\
+	const CObjectInterface *_i;					\
+	int		       _index;					\
 									\
-	(*_obj->vTable->getProp) (object,				\
-				  COMP_PROP_C_DATA,			\
-				  (void *) &_d);			\
+	(*GET_OBJECT (object)->vTable->getProp) (GET_OBJECT (object),	\
+						 COMP_PROP_C_DATA,	\
+						 (void *) &_d);		\
+									\
+	(*GET_OBJECT (object)->vTable->getProp) (GET_OBJECT (object),	\
+						 COMP_PROP_C_INTERFACE, \
+						 (void *) &_i);		\
+									\
+	_index = C_MEMBER_INDEX_FROM_OFFSET (_i->signal, offset);	\
 									\
 	C_EMIT_SIGNAL_INT (object, prototype,				\
 			   _d->signalVecOffset, _d->signalVecOffset,	\
-			   signal, ##__VA_ARGS__);			\
+			   _i->i.name.name,				\
+			   _i->signal[_index].name,			\
+			   _i->signal[_index].out,			\
+			   _index, ##__VA_ARGS__);			\
     } while (0)
 
 
@@ -384,35 +395,25 @@ cGetVersion (CompObject *object,
 	     const char *interface);
 
 CompBool
-cGetMetadata (CompObject *object,
-	      const char *interface,
-	      char	 **data,
-	      char	 **error);
-
-CompBool
-cObjectPropertiesInit (CompObject	*object,
-		       char	        *data,
-		       const CInterface *interface,
-		       int		nInterface);
+cObjectPropertiesInit (CompObject	      *object,
+		       char		      *data,
+		       const CObjectInterface *interface);
 
 void
-cObjectPropertiesFini (CompObject	*object,
-		       char	        *data,
-		       const CInterface *interface,
-		       int		nInterface);
+cObjectPropertiesFini (CompObject	      *object,
+		       char		      *data,
+		       const CObjectInterface *interface);
 
 CompBool
 cObjectChildrenInit (CompObject		     *object,
 		     char		     *data,
-		     const CInterface	     *interface,
-		     int		     nInterface,
+		     const CObjectInterface  *interface,
 		     const CompObjectFactory *factory);
 
 void
-cObjectChildrenFini (CompObject	      *object,
-		     char	      *data,
-		     const CInterface *interface,
-		     int	      nInterface);
+cObjectChildrenFini (CompObject	            *object,
+		     char		    *data,
+		     const CObjectInterface *interface);
 
 CompBool
 cObjectInterfaceInit (const CompObjectInstantiator *instantiator,
@@ -431,16 +432,16 @@ void
 cObjectFini (CompObject *object);
 
 void
-cGetInterfaceProp (CompInterfaceData *data,
-		   const CMetadata   *tmpl,
-		   unsigned int	     what,
-		   void		     *value);
+cGetInterfaceProp (CompInterfaceData	     *data,
+		   const CompObjectInterface *interface,
+		   unsigned int		     what,
+		   void			     *value);
 
 void
-cGetObjectProp (CompObjectData	 *data,
-		const CMetadata  *tmpl,
-		unsigned int	 what,
-		void		 *value);
+cGetObjectProp (CompObjectData	          *data,
+		const CompObjectInterface *interface,
+		unsigned int	          what,
+		void		          *value);
 
 void
 cSetInterfaceProp (CompObject   *object,
@@ -453,41 +454,33 @@ cSetObjectProp (CompObject   *object,
 		void	     *value);
 
 CompObjectType *
-cObjectTypeFromTemplate (const CompObjectType *tmpl);
+cObjectTypeFromTemplate (const CObjectInterface *tmpl);
 
 CompObjectInterface *
-cObjectInterfaceFromTemplate (const CompObjectInterface *tmpl,
-			      int			*index,
-			      int			size);
+cObjectInterfaceFromTemplate (const CObjectInterface *tmpl,
+			      int		     *index,
+			      int		     size);
 
 CompBool
-handleConnect (CompObject	 *object,
-	       const CInterface  *interface,
-	       int		 nInterface,
-	       int		 *signalVecOffset,
-	       const char	 *name,
-	       size_t		 offset,
-	       CompObject	 *descendant,
-	       const char	 *descendantInterface,
-	       size_t		 descendantOffset,
-	       const char	 *details,
-	       va_list		 args,
-	       int		 *id);
+handleConnect (CompObject	      *object,
+	       const CObjectInterface *interface,
+	       int		      *signalVecOffset,
+	       const char	      *name,
+	       size_t		      offset,
+	       CompObject	      *descendant,
+	       const char	      *descendantInterface,
+	       size_t		      descendantOffset,
+	       const char	      *details,
+	       va_list		      args,
+	       int		      *id);
 
 CompBool
-handleDisconnect (CompObject	   *object,
-		  const CInterface *interface,
-		  int		   nInterface,
-		  int		   *signalVecOffset,
-		  const char	   *name,
-		  size_t	   offset,
-		  int		   id);
-
-CompBool
-handleGetMetadata (CompObject *object,
-		   const char *interface,
-		   char       **data,
-		   char       **error);
+handleDisconnect (CompObject		 *object,
+		  const CObjectInterface *interface,
+		  int			 *signalVecOffset,
+		  const char		 *name,
+		  size_t		 offset,
+		  int			 id);
 
 COMPIZ_END_DECLS
 

@@ -28,8 +28,6 @@
 
 #include <compiz/object.h>
 
-#define COMPIZ_CONTAINER_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompContainerItem {
@@ -47,7 +45,8 @@ typedef struct _CompContainer {
 #define GET_CONTAINER(object) ((CompContainer *) (object))
 #define CONTAINER(object) CompContainer *c = GET_CONTAINER (object)
 
-#define CONTAINER_TYPE_NAME "container"
+#define COMPIZ_CONTAINER_VERSION   20080221
+#define COMPIZ_CONTAINER_TYPE_NAME COMPIZ_NAME_PREFIX "container"
 
 const CompObjectType *
 getContainerObjectType (void);

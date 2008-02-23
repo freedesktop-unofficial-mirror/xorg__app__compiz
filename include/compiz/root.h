@@ -28,8 +28,6 @@
 
 #include <compiz/object.h>
 
-#define COMPIZ_ROOT_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompSignal CompSignal;
@@ -72,7 +70,8 @@ struct _CompRoot {
 #define GET_ROOT(object) ((CompRoot *) (object))
 #define ROOT(object) CompRoot *r = GET_ROOT (object)
 
-#define ROOT_TYPE_NAME "root"
+#define COMPIZ_ROOT_VERSION   COMPIZ_PROP_VERSION
+#define COMPIZ_ROOT_TYPE_NAME COMPIZ_NAME_PREFIX "root"
 
 const CompObjectType *
 getRootObjectType (void);

@@ -31,18 +31,6 @@
 #include <compiz/marshal.h>
 #include <compiz/c-object.h>
 
-static const CMethod branchTypeMethod[] = {
-    C_METHOD (addNewObject, "os", "o", CompBranchVTable, marshal__SS_S_E)
-};
-
-static CChildObject branchTypeChildObject[] = {
-    C_CHILD (types, CompBranchData, CONTAINER_TYPE_NAME)
-};
-
-static CInterface branchInterface[] = {
-    C_INTERFACE (branch, Type, CompBranchVTable, _, X, _, _, _, _, _, X)
-};
-
 static CompBool
 branchInitObject (const CompObjectInstantiator *instantiator,
 		  CompObject		       *object,
@@ -64,13 +52,9 @@ branchGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    static const CMetadata template = {
-	.interface  = branchInterface,
-	.nInterface = N_ELEMENTS (branchInterface),
-	.version    = COMPIZ_BRANCH_VERSION
-    };
-
-    cGetObjectProp (&GET_BRANCH (object)->data.base, &template, what, value);
+    cGetObjectProp (&GET_BRANCH (object)->data.base,
+		    getBranchObjectType (),
+		    what, value);
 }
 
 static void
@@ -94,7 +78,7 @@ branchInsertObject (CompObject *object,
 
 	    (*b->u.vTable->newObject) (b,
 				       b->data.types.base.name,
-				       CONTAINER_TYPE_NAME,
+				       COMPIZ_CONTAINER_TYPE_NAME,
 				       node->base.interface->name.name,
 				       NULL);
 
@@ -114,7 +98,7 @@ branchInsertObject (CompObject *object,
 
 		    (*b->u.vTable->newObject) (b,
 					       path,
-					       OBJECT_TYPE_NAME,
+					       COMPIZ_OBJECT_TYPE_NAME,
 					       name,
 					       NULL);
 		}
@@ -332,6 +316,14 @@ static const CompBranchVTable noopBranchObjectVTable = {
     .addNewObject  = noopAddNewObject
 };
 
+static const CMethod branchTypeMethod[] = {
+    C_METHOD (addNewObject, "os", "o", CompBranchVTable, marshal__SS_S_E)
+};
+
+static const CChildObject branchTypeChildObject[] = {
+    C_CHILD (types, CompBranchData, COMPIZ_CONTAINER_TYPE_NAME)
+};
+
 const CompObjectType *
 getBranchObjectType (void)
 {
@@ -339,13 +331,19 @@ getBranchObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name     = BRANCH_TYPE_NAME,
-	    .name.base     = CONTAINER_TYPE_NAME,
-	    .vTable.impl   = &branchObjectVTable.base,
-	    .vTable.noop   = &noopBranchObjectVTable.base,
-	    .vTable.size   = sizeof (branchObjectVTable),
-	    .instance.init = branchInitObject
+	static const CObjectInterface template = {
+	    .i.name.name     = COMPIZ_BRANCH_TYPE_NAME,
+	    .i.name.base     = COMPIZ_CONTAINER_TYPE_NAME,
+	    .i.vTable.impl   = &branchObjectVTable.base,
+	    .i.vTable.noop   = &noopBranchObjectVTable.base,
+	    .i.vTable.size   = sizeof (branchObjectVTable),
+	    .i.instance.init = branchInitObject,
+
+	    .method  = branchTypeMethod,
+	    .nMethod = N_ELEMENTS (branchTypeMethod),
+
+	    .child  = branchTypeChildObject,
+	    .nChild = N_ELEMENTS (branchTypeChildObject)
 	};
 
 	type = cObjectTypeFromTemplate (&template);

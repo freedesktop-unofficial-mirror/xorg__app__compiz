@@ -41,75 +41,67 @@ static void
 cInsertObjectInterface (CompObject *object,
 			CompObject *parent)
 {
-    CompObject *child;
-    CMetadata  m;
-    char       *data;
-    int        i, j;
+    CompObject	     *child;
+    CObjectInterface *cInterface;
+    char	     *data;
+    int		     i;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    if (m.insert)
-	(*m.insert) (object, parent);
+    if (cInterface->insert)
+	(*cInterface->insert) (object, parent);
 
-    for (i = 0; i < m.nInterface; i++)
+    (*object->vTable->interfaceAdded) (object, cInterface->i.name.name);
+
+    for (i = 0; i < cInterface->nBoolProp; i++)
     {
-	(*object->vTable->interfaceAdded) (object, m.interface[i].name);
+	const CBoolProp *prop = &cInterface->boolProp[i];
 
-	for (j = 0; j < m.interface[i].nBoolProp; j++)
+	(*object->vTable->boolChanged) (object,
+					cInterface->i.name.name,
+					prop->base.name,
+					PROP_VALUE (data, prop, CompBool));
+    }
+
+    for (i = 0; i < cInterface->nIntProp; i++)
+    {
+	const CIntProp *prop = &cInterface->intProp[i];
+
+	(*object->vTable->intChanged) (object,
+				       cInterface->i.name.name,
+				       prop->base.name,
+				       PROP_VALUE (data, prop, int32_t));
+    }
+
+    for (i = 0; i < cInterface->nDoubleProp; i++)
+    {
+	const CDoubleProp *prop = &cInterface->doubleProp[i];
+
+	(*object->vTable->doubleChanged) (object,
+					  cInterface->i.name.name,
+					  prop->base.name,
+					  PROP_VALUE (data, prop, double));
+    }
+
+    for (i = 0; i < cInterface->nStringProp; i++)
+    {
+	const CStringProp *prop = &cInterface->stringProp[i];
+
+	(*object->vTable->stringChanged) (object,
+					  cInterface->i.name.name,
+					  prop->base.name,
+					  PROP_VALUE (data, prop, char *));
+    }
+
+    for (i = 0; i < cInterface->nChild; i++)
+    {
+	if (cInterface->child[i].type)
 	{
-	    CBoolProp *prop = &m.interface[i].boolProp[j];
-
-	    (*object->vTable->properties.boolChanged) (object,
-						       m.interface[i].name,
-						       prop->base.name,
-						       PROP_VALUE (data, prop,
-								   CompBool));
-	}
-
-	for (j = 0; j < m.interface[i].nIntProp; j++)
-	{
-	    CIntProp *prop = &m.interface[i].intProp[j];
-
-	    (*object->vTable->properties.intChanged) (object,
-						      m.interface[i].name,
-						      prop->base.name,
-						      PROP_VALUE (data, prop,
-								  int32_t));
-	}
-
-	for (j = 0; j < m.interface[i].nDoubleProp; j++)
-	{
-	    CDoubleProp *prop = &m.interface[i].doubleProp[j];
-
-	    (*object->vTable->properties.doubleChanged) (object,
-							 m.interface[i].name,
-							 prop->base.name,
-							 PROP_VALUE (data,
-								     prop,
-								     double));
-	}
-
-	for (j = 0; j < m.interface[i].nStringProp; j++)
-	{
-	    CStringProp *prop = &m.interface[i].stringProp[j];
-
-	    (*object->vTable->properties.stringChanged) (object,
-							 m.interface[i].name,
-							 prop->base.name,
-							 PROP_VALUE (data,
-								     prop,
-								     char *));
-	}
-
-	for (j = 0; j < m.interface[i].nChild; j++)
-	{
-	    if (m.interface[i].child[j].type)
-	    {
-		child = CHILD (data, &m.interface[i].child[j]);
-		(*child->vTable->insertObject) (child, object,
-						m.interface[i].child[j].name);
-	    }
+	    child = CHILD (data, &cInterface->child[i]);
+	    (*child->vTable->insertObject) (child, object,
+					    cInterface->child[i].name);
 	}
     }
 }
@@ -127,32 +119,29 @@ cInsertObject (CompObject *object,
 static void
 cRemoveObjectInterface (CompObject *object)
 {
-    CompObject *child;
-    CMetadata  m;
-    char       *data;
-    int        i, j;
+    CompObject	     *child;
+    CObjectInterface *cInterface;
+    char	     *data;
+    int		     i;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    i = m.nInterface;
+    i = cInterface->nChild;
     while (i--)
     {
-	j = m.interface[i].nChild;
-	while (j--)
+	if (cInterface->child[i].type)
 	{
-	    if (m.interface[i].child[j].type)
-	    {
-		child = CHILD (data, &m.interface[i].child[j]);
-		(*child->vTable->removeObject) (child);
-	    }
+	    child = CHILD (data, &cInterface->child[i]);
+	    (*child->vTable->removeObject) (child);
 	}
-
-	(*object->vTable->interfaceRemoved) (object, m.interface[i].name);
     }
 
-    if (m.remove)
-	(*m.remove) (object);
+    (*object->vTable->interfaceRemoved) (object, cInterface->i.name.name);
+
+    if (cInterface->remove)
+	(*cInterface->remove) (object);
 }
 
 void
@@ -168,19 +157,18 @@ cForEachInterface (CompObject	         *object,
 		   InterfaceCallBackProc proc,
 		   void		         *closure)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i;
+    CompBool	     status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!(*proc) (object,
-		      m.interface[i].name,
-		      m.interface[i].offset,
-		      m.interface[i].type,
-		      closure))
-	    return FALSE;
+    if (!(*proc) (object,
+		  cInterface->i.name.name,
+		  0,
+		  cInterface->index ? 0 : &cInterface->i,
+		  closure))
+	return FALSE;
 
     FOR_BASE (object,
 	      status = (*object->vTable->forEachInterface) (object,
@@ -196,25 +184,25 @@ cForEachMethod (CompObject	   *object,
 		MethodCallBackProc proc,
 		void	           *closure)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
+    if (!interface  ||
+	!*interface ||
+	!strcmp (interface, cInterface->i.name.name))
     {
-	if (interface)
-	    if (*interface && strcmp (interface, m.interface[i].name))
-		continue;
+	int i;
 
-	for (j = 0; j < m.interface[i].nMethod; j++)
+	for (i = 0; i < cInterface->nMethod; i++)
 	    if (!(*proc) (object,
-			  m.interface[i].method[j].name,
-			  m.interface[i].method[j].in,
-			  m.interface[i].method[j].out,
-			  m.interface[i].method[j].offset,
-			  m.interface[i].method[j].marshal,
+			  cInterface->method[i].name,
+			  cInterface->method[i].in,
+			  cInterface->method[i].out,
+			  cInterface->method[i].offset,
+			  cInterface->method[i].marshal,
 			  closure))
 		return FALSE;
     }
@@ -234,24 +222,24 @@ cForEachSignal (CompObject	   *object,
 		SignalCallBackProc proc,
 		void		   *closure)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
+    if (!interface  ||
+	!*interface ||
+	!strcmp (interface, cInterface->i.name.name))
     {
-	if (interface)
-	    if (*interface && strcmp (interface, m.interface[i].name))
-		continue;
+	int i;
 
-	for (j = 0; j < m.interface[i].nSignal; j++)
-	    if (m.interface[i].signal[j]->out)
+	for (i = 0; i < cInterface->nSignal; i++)
+	    if (cInterface->signal[i].out)
 		if (!(*proc) (object,
-			      m.interface[i].signal[j]->name,
-			      m.interface[i].signal[j]->out,
-			      m.interface[i].signal[j]->offset,
+			      cInterface->signal[i].name,
+			      cInterface->signal[i].out,
+			      cInterface->signal[i].offset,
 			      closure))
 		    return FALSE;
     }
@@ -271,35 +259,35 @@ cForEachProp (CompObject       *object,
 	      PropCallBackProc proc,
 	      void	       *closure)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
+    if (!interface  ||
+	!*interface ||
+	!strcmp (interface, cInterface->i.name.name))
     {
-	if (interface)
-	    if (*interface && strcmp (interface, m.interface[i].name))
-		continue;
+	int i;
 
-	for (j = 0; j < m.interface[i].nBoolProp; j++)
-	    if (!(*proc) (object, m.interface[i].boolProp[j].base.name,
+	for (i = 0; i < cInterface->nBoolProp; i++)
+	    if (!(*proc) (object, cInterface->boolProp[i].base.name,
 			  COMP_TYPE_BOOLEAN, closure))
 		return FALSE;
 
-	for (j = 0; j < m.interface[i].nIntProp; j++)
-	    if (!(*proc) (object, m.interface[i].intProp[j].base.name,
+	for (i = 0; i < cInterface->nIntProp; i++)
+	    if (!(*proc) (object, cInterface->intProp[i].base.name,
 			  COMP_TYPE_INT32, closure))
 		return FALSE;
 
-	for (j = 0; j < m.interface[i].nDoubleProp; j++)
-	    if (!(*proc) (object, m.interface[i].doubleProp[j].base.name,
+	for (i = 0; i < cInterface->nDoubleProp; i++)
+	    if (!(*proc) (object, cInterface->doubleProp[i].base.name,
 			  COMP_TYPE_DOUBLE, closure))
 		return FALSE;
 
-	for (j = 0; j < m.interface[i].nStringProp; j++)
-	    if (!(*proc) (object, m.interface[i].stringProp[j].base.name,
+	for (i = 0; i < cInterface->nStringProp; i++)
+	    if (!(*proc) (object, cInterface->stringProp[i].base.name,
 			  COMP_TYPE_STRING, closure))
 		return FALSE;
     }
@@ -318,19 +306,19 @@ cForEachChildObject (CompObject		     *object,
 		     ChildObjectCallBackProc proc,
 		     void		     *closure)
 {
-    CompBool   status;
-    CMetadata  m;
-    char       *data;
-    int        i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
+    char             *data;
+    int		     i;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    for (i = 0; i < m.nInterface; i++)
-	for (j = 0; j < m.interface[i].nChild; j++)
-	    if (CHILD (data, &m.interface[i].child[j])->parent)
-		if (!(*proc) (CHILD (data, &m.interface[i].child[j]), closure))
-		    return FALSE;
+    for (i = 0; i < cInterface->nChild; i++)
+	if (CHILD (data, &cInterface->child[i])->parent)
+	    if (!(*proc) (CHILD (data, &cInterface->child[i]), closure))
+		return FALSE;
 
     FOR_BASE (object,
 	      status = (*object->vTable->forEachChildObject) (object,
@@ -411,71 +399,59 @@ connectInterface (CompObject	       *object,
 }
 
 static CompBool
-signalIndex (const char	      *name,
-	     const CInterface *interface,
-	     int	      nInterface,
-	     size_t	      offset,
-	     int	      *index,
-	     const char	      **signature)
+signalIndex (const char		    *name,
+	     const CObjectInterface *interface,
+	     size_t		    offset,
+	     int		    *index,
+	     const char		    **signature)
 {
-    int i, j;
-
-    for (i = 0; i < nInterface; i++)
+    if (interface)
     {
-	if (strcmp (name, interface[i].name) == 0)
+	if (strcmp (name, interface->i.name.name) != 0)
+	    return FALSE;
+
+	if (interface->nSignal &&
+	    (offset % sizeof (FinalizeObjectProc)) == 0 &&
+	    offset >= interface->signal[0].offset &&
+	    offset <= interface->signal[interface->nSignal - 1].offset)
 	{
-	    for (j = 0; j < interface[i].nSignal; j++)
-	    {
-		if (offset == interface[i].signal[j]->offset)
-		{
-		    if (signature)
-			*signature = interface[i].signal[j]->out;
+	    int i;
 
-		    *index = interface[i].signal[j]->index;
+	    i = C_MEMBER_INDEX_FROM_OFFSET (interface->signal, offset);
 
-		    return TRUE;
-		}
-	    }
+	    if (signature)
+		*signature = interface->signal[i].out;
 
-	    *index = -1;
-
-	    return TRUE;
+	    *index = i;
 	}
+	else
+	{
+	    *index = -1;
+	}
+
+	return TRUE;
     }
 
     return FALSE;
 }
 
-static int
-getSignalVecSize (const CInterface *interface,
-		  int		   nInterface)
-{
-    int	i, size = 0;
-
-    for (i = 0; i < nInterface; i++)
-	size += interface[i].nSignal;
-
-    return size;
-}
-
 CompBool
-handleConnect (CompObject	 *object,
-	       const CInterface  *interface,
-	       int		 nInterface,
-	       int		 *signalVecOffset,
-	       const char	 *name,
-	       size_t		 offset,
-	       CompObject	 *descendant,
-	       const char	 *descendantInterface,
-	       size_t		 descendantOffset,
-	       const char	 *details,
-	       va_list		 args,
-	       int		 *id)
+handleConnect (CompObject	      *object,
+	       const CObjectInterface *interface,
+	       int		      *signalVecOffset,
+	       const char	      *name,
+	       size_t		      offset,
+	       CompObject	      *descendant,
+	       const char	      *descendantInterface,
+	       size_t		      descendantOffset,
+	       const char	      *details,
+	       va_list		      args,
+	       int		      *id)
 {
     const char *in;
     int	       index;
 
-    if (signalIndex (name, interface, nInterface, offset, &index, &in))
+    if (signalIndex (name, interface, offset, &index, &in))
     {
 	HandleConnectContext ctx;
 	CompSignalHandler    *handler;
@@ -514,7 +490,7 @@ handleConnect (CompObject	 *object,
 	    free (ctx.in);
 
 	vec = compGetSignalVecRange (object,
-				     getSignalVecSize (interface, nInterface),
+				     interface->nSignal,
 				     signalVecOffset);
 	if (!vec)
 	    return -1;
@@ -571,17 +547,16 @@ handleConnect (CompObject	 *object,
 }
 
 CompBool
-handleDisconnect (CompObject	   *object,
-		  const CInterface *interface,
-		  int		   nInterface,
-		  int		   *signalVecOffset,
-		  const char	   *name,
-		  size_t	   offset,
-		  int		   id)
+handleDisconnect (CompObject		 *object,
+		  const CObjectInterface *interface,
+		  int			 *signalVecOffset,
+		  const char		 *name,
+		  size_t		 offset,
+		  int			 id)
 {
     int	index;
 
-    if (signalIndex (name, interface, nInterface, offset, &index, NULL))
+    if (signalIndex (name, interface, offset, &index, NULL))
     {
 	CompSignalHandler *handler, *prev = NULL;
 	CompSignalHandler **vec = object->signalVec;
@@ -632,14 +607,15 @@ cConnect (CompObject *object,
 	  va_list    args)
 {
     CompInterfaceData *data;
-    CMetadata	      m;
+    CObjectInterface *cInterface;
     int		      id;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
     if (handleConnect (object,
-		       m.interface, m.nInterface,
+		       cInterface,
 		       &data->signalVecOffset,
 		       interface,
 		       offset,
@@ -651,15 +627,14 @@ cConnect (CompObject *object,
 		       &id))
 	return id;
 
-    FOR_BASE (object,
-	      id = (*object->vTable->signal.connect) (object,
-						      interface,
-						      offset,
-						      descendant,
-						      descendantInterface,
-						      descendantOffset,
-						      details,
-						      args));
+    FOR_BASE (object, id = (*object->vTable->connect) (object,
+						       interface,
+						       offset,
+						       descendant,
+						       descendantInterface,
+						       descendantOffset,
+						       details,
+						       args));
 
     return id;
 }
@@ -671,23 +646,24 @@ cDisconnect (CompObject *object,
 	     int	id)
 {
     CompInterfaceData *data;
-    CMetadata	      m;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
     if (handleDisconnect (object,
-			  m.interface, m.nInterface,
+			  cInterface,
 			  &data->signalVecOffset,
 			  interface,
 			  offset,
 			  id))
 	return;
 
-    FOR_BASE (object, (*object->vTable->signal.disconnect) (object,
-							    interface,
-							    offset,
-							    id));
+    FOR_BASE (object, (*object->vTable->disconnect) (object,
+						     interface,
+						     offset,
+						     id));
 }
 
 typedef struct _SignalArgs {
@@ -772,78 +748,77 @@ cSignal (CompObject   *object,
 	 int	      nValue)
 {
     const CompObjectVTable *vTable = object->vTable;
-    CMetadata		   m;
-    int			   index, offset, i, j, k;
-    MethodMarshalProc	   marshal;
-    SignalArgs		   args;
+    int		           index, offset, i, j;
+    MethodMarshalProc      marshal;
+    SignalArgs	           args;
+    CObjectInterface       *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
+    for (i = 0; i < cInterface->nChild; i++)
     {
-	for (j = 0; j < m.interface[i].nChild; j++)
+	for (j = 0; path[j] && cInterface->child[i].name[j]; j++)
+	    if (path[j] != cInterface->child[i].name[j])
+		break;
+
+	if (cInterface->child[i].name[j] != '\0')
+	    continue;
+
+	if (path[j] != '/' && path[j] != '\0')
+	    continue;
+
+	for (j = 0; j < cInterface->child[i].nSignal; j++)
 	{
-	    for (k = 0; path[k] && m.interface[i].child[j].name[k]; k++)
-		if (path[k] != m.interface[i].child[j].name[k])
-		    break;
+	    const CSignalHandler *signal =
+		&cInterface->child[i].signal[j];
 
-	    if (m.interface[i].child[j].name[k] != '\0')
+	    if (signal->path && strcmp (signal->path, path))
 		continue;
 
-	    if (path[k] != '/' && path[k] != '\0')
+	    if (strcmp (signal->interface, interface) ||
+		strcmp (signal->name,      name))
 		continue;
 
-	    for (k = 0; k < m.interface[i].child[j].nSignal; k++)
-	    {
-		CSignalHandler *signal = &m.interface[i].child[j].signal[k];
+	    offset = signal->offset;
 
-		if (signal->path && strcmp (signal->path, path))
-		    continue;
+	    index = (offset - cInterface->method[0].offset) /
+		sizeof (object->vTable->finalize);
 
-		if (strcmp (signal->interface, interface) ||
-		    strcmp (signal->name,      name))
-		    continue;
+	    marshal = cInterface->method[index].marshal;
 
-		offset = signal->offset;
+	    signalInitArgs (&args, value, nValue);
 
-		index = (offset - m.interface[i].method[0].offset) /
-		    sizeof (object->vTable->finalize);
-
-		marshal = m.interface[i].method[index].marshal;
-
-		signalInitArgs (&args, value, nValue);
-
-		(*marshal) (object,
-			    *((void (**) (void)) (((char *) vTable) + offset)),
-			    &args.base);
-	    }
+	    (*marshal) (object,
+			*((void (**) (void)) (((char *) vTable) + offset)),
+			&args.base);
 	}
     }
 
-    FOR_BASE (object, (*object->vTable->signal.signal) (object,
-							path,
-							interface,
-							name,
-							signature,
-							value,
-							nValue));
+    FOR_BASE (object, (*object->vTable->signal) (object,
+						 path,
+						 interface,
+						 name,
+						 signature,
+						 value,
+						 nValue));
 }
 
 int
 cGetVersion (CompObject *object,
 	     const char *interface)
 {
-    CMetadata  m;
-    int        version, i;
+    CObjectInterface *cInterface;
+    int              version;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (strcmp (interface, m.interface[i].name) == 0)
-	    return m.version;
+    if (strcmp (interface, cInterface->i.name.name) == 0)
+	return cInterface->version;
 
     FOR_BASE (object,
-	      version = (*object->vTable->version.get) (object, interface));
+	      version = (*object->vTable->getVersion) (object, interface));
 
     return version;
 }
@@ -869,26 +844,29 @@ cGetBoolProp (CompObject *object,
 	      CompBool   *value,
 	      char	 **error)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nBoolProp; j++)
-		if (strcmp (name, m.interface[i].boolProp[j].base.name) == 0)
-		    return handleGetBoolProp (object,
-					      &m.interface[i].boolProp[j],
-					      value);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.getBool) (object,
-							      interface,
-							      name,
-							      value,
-							      error));
+	for (i = 0; i < cInterface->nBoolProp; i++)
+	    if (strcmp (name, cInterface->boolProp[i].base.name) == 0)
+		return handleGetBoolProp (object,
+					  &cInterface->boolProp[i],
+					  value);
+    }
+
+    FOR_BASE (object, status = (*object->vTable->getBool) (object,
+							   interface,
+							   name,
+							   value,
+							   error));
 
     return status;
 }
@@ -920,9 +898,7 @@ handleSetBoolProp (CompObject	   *object,
     }
 
     if (!*ptr != !oldValue)
-	(*object->vTable->properties.boolChanged) (object,
-						   interface, name,
-						   *ptr);
+	(*object->vTable->boolChanged) (object, interface, name, *ptr);
 
     return TRUE;
 }
@@ -934,27 +910,30 @@ cSetBoolProp (CompObject *object,
 	      CompBool   value,
 	      char	 **error)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nBoolProp; j++)
-		if (strcmp (name, m.interface[i].boolProp[j].base.name) == 0)
-		    return handleSetBoolProp (object,
-					      &m.interface[i].boolProp[j],
-					      interface, name,
-					      value, error);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.setBool) (object,
-							      interface,
-							      name,
-							      value,
-							      error));
+	for (i = 0; i < cInterface->nBoolProp; i++)
+	    if (strcmp (name, cInterface->boolProp[i].base.name) == 0)
+		return handleSetBoolProp (object,
+					  &cInterface->boolProp[i],
+					  interface, name,
+					  value, error);
+    }
+
+    FOR_BASE (object, status = (*object->vTable->setBool) (object,
+							   interface,
+							   name,
+							   value,
+							   error));
 
     return status;
 }
@@ -965,22 +944,26 @@ cBoolPropChanged (CompObject *object,
 		  const char *name,
 		  CompBool   value)
 {
-    CMetadata m;
-    int       i, j;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nBoolProp; j++)
-		if (strcmp (name, m.interface[i].boolProp[j].base.name) == 0)
-		    if (m.interface[i].boolProp[j].changed)
-			(*m.interface[i].boolProp[j].changed) (object);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object, (*object->vTable->properties.boolChanged) (object,
-								 interface,
-								 name,
-								 value));
+	for (i = 0; i < cInterface->nBoolProp; i++)
+	    if (strcmp (name, cInterface->boolProp[i].base.name) == 0)
+		if (cInterface->boolProp[i].changed)
+		    (*cInterface->boolProp[i].changed) (object);
+    }
+
+    FOR_BASE (object, (*object->vTable->boolChanged) (object,
+						      interface,
+						      name,
+						      value));
 }
 
 static CompBool
@@ -1004,26 +987,29 @@ cGetIntProp (CompObject *object,
 	     int32_t    *value,
 	     char	**error)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nIntProp; j++)
-		if (strcmp (name, m.interface[i].intProp[j].base.name) == 0)
-		    return handleGetIntProp (object,
-					     &m.interface[i].intProp[j],
-					     value);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.getInt) (object,
-							      interface,
-							      name,
-							      value,
-							      error));
+	for (i = 0; i < cInterface->nIntProp; i++)
+	    if (strcmp (name, cInterface->intProp[i].base.name) == 0)
+		return handleGetIntProp (object,
+					 &cInterface->intProp[i],
+					 value);
+    }
+
+    FOR_BASE (object, status = (*object->vTable->getInt) (object,
+							  interface,
+							  name,
+							  value,
+							  error));
 
     return status;
 }
@@ -1075,9 +1061,7 @@ handleSetIntProp (CompObject	 *object,
     }
 
     if (*ptr != oldValue)
-	(*object->vTable->properties.intChanged) (object,
-						  interface, name,
-						  *ptr);
+	(*object->vTable->intChanged) (object, interface, name, *ptr);
 
     return TRUE;
 }
@@ -1089,27 +1073,30 @@ cSetIntProp (CompObject *object,
 	     int32_t    value,
 	     char	**error)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nIntProp; j++)
-		if (strcmp (name, m.interface[i].intProp[j].base.name) == 0)
-		    return handleSetIntProp (object,
-					     &m.interface[i].intProp[j],
-					     interface, name,
-					     value, error);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.setInt) (object,
-							     interface,
-							     name,
-							     value,
-							     error));
+	for (i = 0; i < cInterface->nIntProp; i++)
+	    if (strcmp (name, cInterface->intProp[i].base.name) == 0)
+		return handleSetIntProp (object,
+					 &cInterface->intProp[i],
+					 interface, name,
+					 value, error);
+    }
+
+    FOR_BASE (object, status = (*object->vTable->setInt) (object,
+							  interface,
+							  name,
+							  value,
+							  error));
 
     return status;
 }
@@ -1120,22 +1107,26 @@ cIntPropChanged (CompObject *object,
 		 const char *name,
 		 int32_t    value)
 {
-    CMetadata m;
-    int       i, j;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nIntProp; j++)
-		if (strcmp (name, m.interface[i].intProp[j].base.name) == 0)
-		    if (m.interface[i].intProp[j].changed)
-			(*m.interface[i].intProp[j].changed) (object);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object, (*object->vTable->properties.intChanged) (object,
-								interface,
-								name,
-								value));
+	for (i = 0; i < cInterface->nIntProp; i++)
+	    if (strcmp (name, cInterface->intProp[i].base.name) == 0)
+		if (cInterface->intProp[i].changed)
+		    (*cInterface->intProp[i].changed) (object);
+    }
+
+    FOR_BASE (object, (*object->vTable->intChanged) (object,
+						     interface,
+						     name,
+						     value));
 }
 
 static CompBool
@@ -1159,26 +1150,29 @@ cGetDoubleProp (CompObject *object,
 		double	   *value,
 		char	   **error)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nDoubleProp; j++)
-		if (strcmp (name, m.interface[i].doubleProp[j].base.name) == 0)
-		    return handleGetDoubleProp (object,
-						&m.interface[i].doubleProp[j],
-						value);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.getDouble) (object,
-								interface,
-								name,
-								value,
-								error));
+	for (i = 0; i < cInterface->nDoubleProp; i++)
+	    if (strcmp (name, cInterface->doubleProp[i].base.name) == 0)
+		return handleGetDoubleProp (object,
+					    &cInterface->doubleProp[i],
+					    value);
+    }
+
+    FOR_BASE (object, status = (*object->vTable->getDouble) (object,
+							     interface,
+							     name,
+							     value,
+							     error));
 
     return status;
 }
@@ -1230,9 +1224,7 @@ handleSetDoubleProp (CompObject	       *object,
     }
 
     if (*ptr != oldValue)
-	(*object->vTable->properties.doubleChanged) (object,
-						     interface, name,
-						     *ptr);
+	(*object->vTable->doubleChanged) (object, interface, name, *ptr);
 
     return TRUE;
 }
@@ -1244,27 +1236,30 @@ cSetDoubleProp (CompObject *object,
 		double	   value,
 		char	   **error)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nDoubleProp; j++)
-		if (strcmp (name, m.interface[i].doubleProp[j].base.name) == 0)
-		    return handleSetDoubleProp (object,
-						&m.interface[i].doubleProp[j],
-						interface, name,
-						value, error);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.setDouble) (object,
-								interface,
-								name,
-								value,
-								error));
+	for (i = 0; i < cInterface->nDoubleProp; i++)
+	    if (strcmp (name, cInterface->doubleProp[i].base.name) == 0)
+		return handleSetDoubleProp (object,
+					    &cInterface->doubleProp[i],
+					    interface, name,
+					    value, error);
+    }
+
+    FOR_BASE (object, status = (*object->vTable->setDouble) (object,
+							     interface,
+							     name,
+							     value,
+							     error));
 
     return status;
 }
@@ -1275,22 +1270,26 @@ cDoublePropChanged (CompObject *object,
 		    const char *name,
 		    double     value)
 {
-    CMetadata m;
-    int       i, j;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nDoubleProp; j++)
-		if (strcmp (name, m.interface[i].doubleProp[j].base.name) == 0)
-		    if (m.interface[i].doubleProp[j].changed)
-			(*m.interface[i].doubleProp[j].changed) (object);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object, (*object->vTable->properties.doubleChanged) (object,
-								   interface,
-								   name,
-								   value));
+	for (i = 0; i < cInterface->nDoubleProp; i++)
+	    if (strcmp (name, cInterface->doubleProp[i].base.name) == 0)
+		if (cInterface->doubleProp[i].changed)
+		    (*cInterface->doubleProp[i].changed) (object);
+    }
+
+    FOR_BASE (object, (*object->vTable->doubleChanged) (object,
+							interface,
+							name,
+							value));
 }
 
 static CompBool
@@ -1324,26 +1323,30 @@ cGetStringProp (CompObject *object,
 		char	   **value,
 		char	   **error)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nStringProp; j++)
-		if (strcmp (name, m.interface[i].stringProp[j].base.name) == 0)
-		    return handleGetStringProp (object,
-						&m.interface[i].stringProp[j],
-						value, error);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.getString) (object,
-								interface,
-								name,
-								value,
-								error));
+	for (i = 0; i < cInterface->nStringProp; i++)
+	    if (strcmp (name, cInterface->stringProp[i].base.name) == 0)
+		return handleGetStringProp (object,
+					    &cInterface->stringProp[i],
+					    value,
+					    error);
+    }
+
+    FOR_BASE (object, status = (*object->vTable->getString) (object,
+							     interface,
+							     name,
+							     value,
+							     error));
 
     return status;
 }
@@ -1390,9 +1393,7 @@ handleSetStringProp (CompObject	       *object,
     }
 
     if (*ptr != oldValue)
-	(*object->vTable->properties.stringChanged) (object,
-						     interface, name,
-						     *ptr);
+	(*object->vTable->stringChanged) (object, interface, name, *ptr);
 
     return TRUE;
 }
@@ -1404,27 +1405,30 @@ cSetStringProp (CompObject *object,
 		const char *value,
 		char	   **error)
 {
-    CompBool  status;
-    CMetadata m;
-    int       i, j;
+    CompBool         status;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nStringProp; j++)
-		if (strcmp (name, m.interface[i].stringProp[j].base.name) == 0)
-		    return handleSetStringProp (object,
-						&m.interface[i].stringProp[j],
-						interface, name,
-						value, error);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object,
-	      status = (*object->vTable->properties.setString) (object,
-								interface,
-								name,
-								value,
-								error));
+	for (i = 0; i < cInterface->nStringProp; i++)
+	    if (strcmp (name, cInterface->stringProp[i].base.name) == 0)
+		return handleSetStringProp (object,
+					    &cInterface->stringProp[i],
+					    interface, name,
+					    value, error);
+    }
+
+    FOR_BASE (object, status = (*object->vTable->setString) (object,
+							     interface,
+							     name,
+							     value,
+							     error));
 
     return status;
 }
@@ -1435,22 +1439,26 @@ cStringPropChanged (CompObject *object,
 		    const char *name,
 		    const char *value)
 {
-    CMetadata m;
-    int       i, j;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    for (i = 0; i < m.nInterface; i++)
-	if (!interface || strcmp (interface, m.interface[i].name) == 0)
-	    for (j = 0; j < m.interface[i].nStringProp; j++)
-		if (strcmp (name, m.interface[i].stringProp[j].base.name) == 0)
-		    if (m.interface[i].stringProp[j].changed)
-			(*m.interface[i].stringProp[j].changed) (object);
+    if (!interface || !*interface ||
+	!strcmp (interface, cInterface->i.name.name))
+    {
+	int i;
 
-    FOR_BASE (object, (*object->vTable->properties.stringChanged) (object,
-								   interface,
-								   name,
-								   value));
+	for (i = 0; i < cInterface->nStringProp; i++)
+	    if (strcmp (name, cInterface->stringProp[i].base.name) == 0)
+		if (cInterface->stringProp[i].changed)
+		    (*cInterface->stringProp[i].changed) (object);
+    }
+
+    FOR_BASE (object, (*object->vTable->stringChanged) (object,
+							interface,
+							name,
+							value));
 }
 
 static const CompObjectVTable cVTable = {
@@ -1466,54 +1474,53 @@ static const CompObjectVTable cVTable = {
 
     .forEachChildObject = cForEachChildObject,
 
-    .signal.connect    = cConnect,
-    .signal.disconnect = cDisconnect,
-    .signal.signal     = cSignal,
+    .connect    = cConnect,
+    .disconnect = cDisconnect,
+    .signal     = cSignal,
 
-    .version.get = cGetVersion,
+    .getVersion = cGetVersion,
 
-    .properties.getBool     = cGetBoolProp,
-    .properties.setBool     = cSetBoolProp,
-    .properties.boolChanged = cBoolPropChanged,
+    .getBool     = cGetBoolProp,
+    .setBool     = cSetBoolProp,
+    .boolChanged = cBoolPropChanged,
 
-    .properties.getInt     = cGetIntProp,
-    .properties.setInt     = cSetIntProp,
-    .properties.intChanged = cIntPropChanged,
+    .getInt     = cGetIntProp,
+    .setInt     = cSetIntProp,
+    .intChanged = cIntPropChanged,
 
-    .properties.getDouble     = cGetDoubleProp,
-    .properties.setDouble     = cSetDoubleProp,
-    .properties.doubleChanged = cDoublePropChanged,
+    .getDouble     = cGetDoubleProp,
+    .setDouble     = cSetDoubleProp,
+    .doubleChanged = cDoublePropChanged,
 
-    .properties.getString     = cGetStringProp,
-    .properties.setString     = cSetStringProp,
-    .properties.stringChanged = cStringPropChanged
+    .getString     = cGetStringProp,
+    .setString     = cSetStringProp,
+    .stringChanged = cStringPropChanged
 };
 
 #define SET_DEFAULT_VALUE(data, prop, type)		 \
     PROP_VALUE (data, prop, type) = (prop)->defaultValue
 
 CompBool
-cObjectPropertiesInit (CompObject	*object,
-		       char		*data,
-		       const CInterface *interface,
-		       int		nInterface)
+cObjectPropertiesInit (CompObject	      *object,
+		       char		      *data,
+		       const CObjectInterface *interface)
 {
-    int i, j;
-
-    for (i = 0; i < nInterface; i++)
+    if (interface)
     {
-	for (j = 0; j < interface[i].nBoolProp; j++)
-	    SET_DEFAULT_VALUE (data, &interface[i].boolProp[j], CompBool);
+	int i;
 
-	for (j = 0; j < interface[i].nIntProp; j++)
-	    SET_DEFAULT_VALUE (data, &interface[i].intProp[j], int32_t);
+	for (i = 0; i < interface->nBoolProp; i++)
+	    SET_DEFAULT_VALUE (data, &interface->boolProp[i], CompBool);
 
-	for (j = 0; j < interface[i].nDoubleProp; j++)
-	    SET_DEFAULT_VALUE (data, &interface[i].doubleProp[j], double);
+	for (i = 0; i < interface->nIntProp; i++)
+	    SET_DEFAULT_VALUE (data, &interface->intProp[i], int32_t);
 
-	for (j = 0; j < interface[i].nStringProp; j++)
+	for (i = 0; i < interface->nDoubleProp; i++)
+	    SET_DEFAULT_VALUE (data, &interface->doubleProp[i], double);
+
+	for (i = 0; i < interface->nStringProp; i++)
 	{
-	    const char *defaultValue = interface[i].stringProp[j].defaultValue;
+	    const char *defaultValue = interface->stringProp[i].defaultValue;
 	    char       *str;
 
 	    if (!defaultValue)
@@ -1522,19 +1529,16 @@ cObjectPropertiesInit (CompObject	*object,
 	    str = strdup (defaultValue);
 	    if (!str)
 	    {
-		while (j--)
-		{
-		    str = PROP_VALUE (data, &interface[i].stringProp[j], char *);
-			free (str);
-		}
-
 		while (i--)
-		    cObjectPropertiesFini (object, data, &interface[i], 1);
+		{
+		    str = PROP_VALUE (data, &interface->stringProp[i], char *);
+		    free (str);
+		}
 
 		return FALSE;
 	    }
 
-	    PROP_VALUE (data, &interface[i].stringProp[j], char *) = str;
+	    PROP_VALUE (data, &interface->stringProp[i], char *) = str;
 	}
     }
 
@@ -1542,20 +1546,19 @@ cObjectPropertiesInit (CompObject	*object,
 }
 
 void
-cObjectPropertiesFini (CompObject	*object,
-		       char		*data,
-		       const CInterface *interface,
-		       int		nInterface)
+cObjectPropertiesFini (CompObject	      *object,
+		       char		      *data,
+		       const CObjectInterface *interface)
 {
-    int i, j;
-
-    for (i = 0; i < nInterface; i++)
+    if (interface)
     {
-	for (j = 0; j < interface[i].nStringProp; j++)
+	int i;
+
+	for (i = 0; i < interface->nStringProp; i++)
 	{
 	    char *str;
 
-	    str = PROP_VALUE (data, &interface[i].stringProp[j], char *);
+	    str = PROP_VALUE (data, &interface->stringProp[i], char *);
 	    if (str)
 		free (str);
 	}
@@ -1565,18 +1568,18 @@ cObjectPropertiesFini (CompObject	*object,
 CompBool
 cObjectChildrenInit (CompObject		     *object,
 		     char		     *data,
-		     const CInterface	     *interface,
-		     int		     nInterface,
+		     const CObjectInterface  *interface,
 		     const CompObjectFactory *factory)
 {
     CompObject *child;
-    int	       i, j;
 
-    for (i = 0; i < nInterface; i++)
+    if (interface)
     {
-	for (j = 0; j < interface[i].nChild; j++)
+	int i;
+
+	for (i = 0; i < interface->nChild; i++)
 	{
-	    CChildObject *cChild = &interface[i].child[j];
+	    const CChildObject *cChild = &interface->child[i];
 
 	    if (cChild->type)
 	    {
@@ -1584,18 +1587,15 @@ cObjectChildrenInit (CompObject		     *object,
 
 		if (!compObjectInitByTypeName (factory, child, cChild->type))
 		{
-		    while (j--)
+		    while (i--)
 		    {
-			cChild = &interface[i].child[j];
+			cChild = &interface->child[i];
 			if (cChild->type)
 			{
 			    child = CHILD (data, cChild);
 			    (*child->vTable->finalize) (child);
 			}
 		    }
-
-		    while (i--)
-			cObjectChildrenFini (object, data, &interface[i], 1);
 
 		    return FALSE;
 		}
@@ -1605,11 +1605,13 @@ cObjectChildrenInit (CompObject		     *object,
 
     if (object->parent)
     {
-	for (i = 0; i < nInterface; i++)
+	if (interface)
 	{
-	    for (j = 0; j < interface[i].nChild; j++)
+	    int i;
+
+	    for (i = 0; i < interface->nChild; i++)
 	    {
-		CChildObject *cChild = &interface[i].child[j];
+		const CChildObject *cChild = &interface->child[i];
 
 		if (cChild->type)
 		{
@@ -1625,21 +1627,20 @@ cObjectChildrenInit (CompObject		     *object,
 }
 
 void
-cObjectChildrenFini (CompObject	      *object,
-		     char	      *data,
-		     const CInterface *interface,
-		     int	      nInterface)
+cObjectChildrenFini (CompObject		    *object,
+		     char		    *data,
+		     const CObjectInterface *interface)
 {
     CompObject *child;
-    int	       i, j;
 
-    i = nInterface;
-    while (i--)
+    if (interface)
     {
-	j = interface[i].nChild;
-	while (j--)
+	int i;
+
+	i = interface->nChild;
+	while (i--)
 	{
-	    CChildObject *cChild = &interface[i].child[j];
+	    const CChildObject *cChild = &interface->child[i];
 
 	    if (cChild->type)
 	    {
@@ -1659,49 +1660,26 @@ cInitObjectInterface (CompObject	      *object,
 		      const CompObjectFactory *factory,
 		      CompInterfaceData	      *data)
 {
-    CMetadata m;
-    int	      i, j, signalIndex = 0;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
-
-    for (i = 0; i < m.nInterface; i++)
-    {
-	if (!m.interface[i].initialized)
-	{
-	    CInterface *interface = (CInterface *) &m.interface[i];
-
-	    for (j = 0; j < interface->nSignal; j++)
-	    {
-		interface->signal[j]->index     = signalIndex + j;
-		interface->signal[j]->interface = interface->name;
-	    }
-
-	    interface->initialized = TRUE;
-	}
-
-	signalIndex += m.interface[i].nSignal;
-    }
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
     data->signalVecOffset = 0;
 
-    if (!cObjectPropertiesInit (object, (char *) data,
-				m.interface, m.nInterface))
+    if (!cObjectPropertiesInit (object, (char *) data, cInterface))
 	return FALSE;
 
-    if (!cObjectChildrenInit (object, (char *) data,
-			      m.interface, m.nInterface,
-			      factory))
+    if (!cObjectChildrenInit (object, (char *) data, cInterface, factory))
     {
-	cObjectPropertiesFini (object, (char *) data,
-			       m.interface, m.nInterface);
+	cObjectPropertiesFini (object, (char *) data, cInterface);
 	return FALSE;
     }
 
-    if (m.init && !(*m.init) (object))
+    if (cInterface->init && !(*cInterface->init) (object))
     {
-	cObjectChildrenFini (object, (char *) data, m.interface, m.nInterface);
-	cObjectPropertiesFini (object, (char *) data,
-			       m.interface, m.nInterface);
+	cObjectChildrenFini (object, (char *) data, cInterface);
+	cObjectPropertiesFini (object, (char *) data, cInterface);
 	return FALSE;
     }
 
@@ -1712,19 +1690,20 @@ static void
 cFiniObjectInterface (CompObject	*object,
 		      CompInterfaceData	*data)
 {
-    CMetadata m;
+    CObjectInterface *cInterface;
 
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
 
-    if (m.fini)
-	(*m.fini) (object);
+    if (cInterface->fini)
+	(*cInterface->fini) (object);
 
-    cObjectChildrenFini (object, (char *) data, m.interface, m.nInterface);
-    cObjectPropertiesFini (object, (char *) data, m.interface, m.nInterface);
+    cObjectChildrenFini (object, (char *) data, cInterface);
+    cObjectPropertiesFini (object, (char *) data, cInterface);
 
     if (data->signalVecOffset)
 	compFreeSignalVecRange (object,
-				getSignalVecSize (m.interface, m.nInterface),
+				cInterface->nSignal,
 				data->signalVecOffset);
 }
 
@@ -1777,8 +1756,6 @@ cObjectInit (const CompObjectInstantiator *instantiator,
 	     const CompObjectFactory      *factory)
 {
     CompObjectData		     *data;
-    CMetadata			     m;
-    int				     i;
     const CompObjectInstantiatorNode *node =
 	(const CompObjectInstantiatorNode *) instantiator;
     const CompObjectInstantiatorNode *baseNode =
@@ -1802,11 +1779,6 @@ cObjectInit (const CompObjectInstantiator *instantiator,
 	(*object->vTable->finalize) (object);
 	return FALSE;
     }
-
-    (*object->vTable->getProp) (object, COMP_PROP_C_METADATA, (void *) &m);
-
-    for (i = 0; i < m.nInterface; i++)
-	((CInterface *) m.interface)[i].type = node->base.interface;
 
     data->privates = allocatePrivates (node->privates.len,
 				       node->privates.sizes,
@@ -1840,10 +1812,10 @@ cObjectFini (CompObject *object)
 }
 
 void
-cGetInterfaceProp (CompInterfaceData *data,
-		   const CMetadata   *template,
-		   unsigned int	     what,
-		   void		     *value)
+cGetInterfaceProp (CompInterfaceData	     *data,
+		   const CompObjectInterface *interface,
+		   unsigned int		     what,
+		   void			     *value)
 {
     switch (what) {
     case COMP_PROP_BASE_VTABLE:
@@ -1852,24 +1824,25 @@ cGetInterfaceProp (CompInterfaceData *data,
     case COMP_PROP_C_DATA:
 	*((CompInterfaceData **) value) = data;
 	break;
-    case COMP_PROP_C_METADATA:
-	*((CMetadata *) value) = *template;
+    case COMP_PROP_C_INTERFACE:
+	*((const CObjectInterface **) value) =
+	    (const CObjectInterface *) interface;
 	break;
     }
 }
 
 void
-cGetObjectProp (CompObjectData	*data,
-		const CMetadata *template,
-		unsigned int	what,
-		void		*value)
+cGetObjectProp (CompObjectData	          *data,
+		const CompObjectInterface *interface,
+		unsigned int	          what,
+		void		          *value)
 {
     switch (what) {
     case COMP_PROP_PRIVATES:
 	*((CompPrivate **) value) = data->privates;
 	break;
     default:
-	cGetInterfaceProp (&data->base, template, what, value);
+	cGetInterfaceProp (&data->base, interface, what, value);
 	break;
     }
 }
@@ -1910,27 +1883,27 @@ cSetObjectProp (CompObject   *object,
 }
 
 CompObjectType *
-cObjectTypeFromTemplate (const CompObjectType *template)
+cObjectTypeFromTemplate (const CObjectInterface *template)
 {
-    CompObjectType   *type;
+    CObjectInterface *type;
     CompObjectVTable *vTable;
-    int		     nameSize = strlen (template->name.name) + 1;
+    int		     nameSize = strlen (template->i.name.name) + 1;
     int		     baseNameSize = 0;
-    int		     vTableSize = template->vTable.size;
+    int		     vTableSize = template->i.vTable.size;
     int		     noopVTableSize = 0;
 
-    if (template->name.base)
-	baseNameSize = strlen (template->name.base) + 1;
+    if (template->i.name.base)
+	baseNameSize = strlen (template->i.name.base) + 1;
     else
-	baseNameSize = strlen (OBJECT_TYPE_NAME) + 1;
+	baseNameSize = strlen (COMPIZ_OBJECT_TYPE_NAME) + 1;
 
     if (!vTableSize)
 	vTableSize = sizeof (CompObjectVTable);
 
-    if (template->vTable.noop)
+    if (template->i.vTable.noop)
 	noopVTableSize = vTableSize;
 
-    type = malloc (sizeof (CompObjectType) +
+    type = malloc (sizeof (CObjectInterface) +
 		   nameSize +
 		   baseNameSize +
 		   vTableSize +
@@ -1940,46 +1913,41 @@ cObjectTypeFromTemplate (const CompObjectType *template)
 
     *type = *template;
 
-    type->name.name = strcpy ((char *) (type + 1), template->name.name);
+    type->i.name.name = strcpy ((char *) (type + 1), template->i.name.name);
 
-    if (!template->vTable.size)
-	type->vTable.size = vTableSize;
+    if (!template->i.vTable.size)
+	type->i.vTable.size = vTableSize;
 
-    if (!template->instance.init)
-	type->instance.init = cObjectInit;
+    if (!template->i.instance.init)
+	type->i.instance.init = cObjectInit;
 
-    if (template->name.base)
-	type->name.base = strcpy ((char *) (type + 1) + nameSize,
-				  template->name.base);
+    if (template->i.name.base)
+	type->i.name.base = strcpy ((char *) (type + 1) + nameSize,
+				    template->i.name.base);
     else
-	type->name.base = strcpy ((char *) (type + 1) + nameSize,
-				  OBJECT_TYPE_NAME);
+	type->i.name.base = strcpy ((char *) (type + 1) + nameSize,
+				    COMPIZ_OBJECT_TYPE_NAME);
 
     vTable = (CompObjectVTable *) ((char *) (type + 1) + nameSize +
 				   baseNameSize);
 
-    if (template->vTable.impl)
-	type->vTable.impl = memcpy (vTable, template->vTable.impl, vTableSize);
+    if (template->i.vTable.impl)
+	type->i.vTable.impl = memcpy (vTable, template->i.vTable.impl,
+				      vTableSize);
     else
-	type->vTable.impl = memset (vTable, 0, vTableSize);
+	type->i.vTable.impl = memset (vTable, 0, vTableSize);
 
     if (!vTable->finalize)
 	vTable->finalize = cObjectFini;
 
     compVTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
 
-    if (template->vTable.noop)
-	type->vTable.noop = memcpy ((char *) vTable + vTableSize,
-				    template->vTable.noop, vTableSize);
+    if (template->i.vTable.noop)
+	type->i.vTable.noop = memcpy ((char *) vTable + vTableSize,
+				      template->i.vTable.noop, vTableSize);
 
-    return type;
+    return &type->i;
 }
-
-typedef struct _CObjectInterface {
-    CompObjectInterface base;
-    int		        *index;
-    int			size;
-} CObjectInterface;
 
 static CompBool
 cInstallObjectInterface (const CompObjectInterface *interface,
@@ -1989,7 +1957,7 @@ cInstallObjectInterface (const CompObjectInterface *interface,
     int			   index;
 
     index = (*factory->allocatePrivateIndex) (factory,
-					      cInterface->base.name.base,
+					      cInterface->i.name.base,
 					      cInterface->size);
     if (index < 0)
 	return FALSE;
@@ -2007,7 +1975,7 @@ cUninstallObjectInterface (const CompObjectInterface *interface,
     int			   index = *(cInterface->index);
 
     (*factory->freePrivateIndex) (factory,
-				  cInterface->base.name.base,
+				  cInterface->i.name.base,
 				  index);
 }
 
@@ -2054,26 +2022,26 @@ cFiniInterface (CompObject *object)
 }
 
 CompObjectInterface *
-cObjectInterfaceFromTemplate (const CompObjectInterface *template,
-			      int			*index,
-			      int			size)
+cObjectInterfaceFromTemplate (const CObjectInterface *template,
+			      int		     *index,
+			      int		     size)
 {
     CObjectInterface *interface;
     CompObjectVTable *vTable;
-    int		     nameSize = strlen (template->name.name) + 1;
+    int		     nameSize = strlen (template->i.name.name) + 1;
     int		     baseNameSize = 0;
-    int		     vTableSize = template->vTable.size;
+    int		     vTableSize = template->i.vTable.size;
     int		     noopVTableSize = 0;
 
-    if (template->name.base)
-	baseNameSize = strlen (template->name.base) + 1;
+    if (template->i.name.base)
+	baseNameSize = strlen (template->i.name.base) + 1;
     else
-	baseNameSize = strlen (OBJECT_TYPE_NAME) + 1;
+	baseNameSize = strlen (COMPIZ_OBJECT_TYPE_NAME) + 1;
 
     if (!vTableSize)
 	vTableSize = sizeof (CompObjectVTable);
 
-    if (template->vTable.noop)
+    if (template->i.vTable.noop)
 	noopVTableSize = vTableSize;
 
     interface = malloc (sizeof (CObjectInterface) +
@@ -2084,57 +2052,58 @@ cObjectInterfaceFromTemplate (const CompObjectInterface *template,
     if (!interface)
 	return NULL;
 
-    interface->base = *template;
+    *interface = *template;
 
     interface->index = index;
     interface->size  = size;
 
-    interface->base.name.name = strcpy ((char *) (interface + 1),
-					template->name.name);
+    interface->i.name.name = strcpy ((char *) (interface + 1),
+				     template->i.name.name);
 
-    if (!template->vTable.size)
-	interface->base.vTable.size = vTableSize;
+    if (!template->i.vTable.size)
+	interface->i.vTable.size = vTableSize;
 
-    if (!template->instance.init)
-	interface->base.instance.init = cObjectInterfaceInit;
+    if (!template->i.instance.init)
+	interface->i.instance.init = cObjectInterfaceInit;
 
-    if (template->name.base)
-	interface->base.name.base =
-	    strcpy ((char *) (interface + 1) + nameSize, template->name.base);
+    if (template->i.name.base)
+	interface->i.name.base =
+	    strcpy ((char *) (interface + 1) + nameSize, template->i.name.base);
     else
-	interface->base.name.base =
-	    strcpy ((char *) (interface + 1) + nameSize, OBJECT_TYPE_NAME);
+	interface->i.name.base =
+	    strcpy ((char *) (interface + 1) + nameSize,
+		    COMPIZ_OBJECT_TYPE_NAME);
 
     vTable = (CompObjectVTable *) ((char *) (interface + 1) + nameSize +
 				   baseNameSize);
 
-    if (template->vTable.impl)
-	interface->base.vTable.impl = memcpy (vTable, template->vTable.impl,
-					      vTableSize);
+    if (template->i.vTable.impl)
+	interface->i.vTable.impl = memcpy (vTable, template->i.vTable.impl,
+					   vTableSize);
     else
-	interface->base.vTable.impl = memset (vTable, 0, vTableSize);
+	interface->i.vTable.impl = memset (vTable, 0, vTableSize);
 
     if (!vTable->finalize)
 	vTable->finalize = cObjectInterfaceFini;
 
     compVTableInit (vTable, &cVTable, sizeof (CompObjectVTable));
 
-    if (template->vTable.noop)
-	interface->base.vTable.noop =
+    if (template->i.vTable.noop)
+	interface->i.vTable.noop =
 	    memcpy ((char *) vTable + vTableSize,
-		    template->vTable.noop, vTableSize);
+		    template->i.vTable.noop, vTableSize);
 
-    if (!template->factory.install)
-	interface->base.factory.install = cInstallObjectInterface;
+    if (!template->i.factory.install)
+	interface->i.factory.install = cInstallObjectInterface;
 
-    if (!template->factory.uninstall)
-	interface->base.factory.uninstall = cUninstallObjectInterface;
+    if (!template->i.factory.uninstall)
+	interface->i.factory.uninstall = cUninstallObjectInterface;
 
-    if (!template->interface.init)
-	interface->base.interface.init = cInitInterface;
+    if (!template->i.interface.init)
+	interface->i.interface.init = cInitInterface;
 
-    if (!template->interface.fini)
-	interface->base.interface.fini = cFiniInterface;
+    if (!template->i.interface.fini)
+	interface->i.interface.fini = cFiniInterface;
 
-    return &interface->base;
+    return &interface->i;
 }

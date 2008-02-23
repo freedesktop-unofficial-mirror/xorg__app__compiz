@@ -26,10 +26,6 @@
 #include <compiz/pointer.h>
 #include <compiz/c-object.h>
 
-static CInterface pointerInterface[] = {
-    C_INTERFACE (pointer, Type, CompObjectVTable, _, _, _, _, _, _, _, _)
-};
-
 static CompBool
 pointerInitObject (CompObject *object)
 {
@@ -43,17 +39,12 @@ pointerInitObject (CompObject *object)
 
 static void
 pointerGetProp (CompObject   *object,
-		  unsigned int what,
-		  void	       *value)
+		unsigned int what,
+		void	     *value)
 {
-    static const CMetadata template = {
-	.interface  = pointerInterface,
-	.nInterface = N_ELEMENTS (pointerInterface),
-	.init       = pointerInitObject,
-	.version    = COMPIZ_POINTER_VERSION
-    };
-
-    cGetObjectProp (&GET_POINTER (object)->data, &template, what, value);
+    cGetObjectProp (&GET_POINTER (object)->data,
+		    getPointerObjectType (),
+		    what, value);
 }
 
 static const CompObjectVTable pointerObjectVTable = {
@@ -67,11 +58,14 @@ getPointerObjectType (void)
 
     if (!type)
     {
-	static const CompObjectType template = {
-	    .name.name   = POINTER_TYPE_NAME,
-	    .name.base   = INPUT_TYPE_NAME,
-	    .vTable.impl = &pointerObjectVTable,
-	    .vTable.size = sizeof (pointerObjectVTable)
+	static const CObjectInterface template = {
+	    .i.name.name   = COMPIZ_POINTER_TYPE_NAME,
+	    .i.name.base   = COMPIZ_INPUT_TYPE_NAME,
+	    .i.vTable.impl = &pointerObjectVTable,
+	    .i.vTable.size = sizeof (pointerObjectVTable),
+
+	    .init    = pointerInitObject,
+	    .version = COMPIZ_POINTER_VERSION
 	};
 
 	type = cObjectTypeFromTemplate (&template);

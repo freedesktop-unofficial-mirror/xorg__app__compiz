@@ -28,8 +28,6 @@
 
 #include <compiz/container.h>
 
-#define COMPIZ_BRANCH_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompBranch CompBranch;
@@ -80,7 +78,8 @@ struct _CompBranch {
 #define GET_BRANCH(object) ((CompBranch *) (object))
 #define BRANCH(object) CompBranch *b = GET_BRANCH (object)
 
-#define BRANCH_TYPE_NAME "branch"
+#define COMPIZ_BRANCH_VERSION   20080221
+#define COMPIZ_BRANCH_TYPE_NAME COMPIZ_NAME_PREFIX "branch"
 
 const CompObjectType *
 getBranchObjectType (void);

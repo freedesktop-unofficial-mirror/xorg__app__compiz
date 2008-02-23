@@ -26,9 +26,6 @@
 #ifndef _COMPIZ_CORE_H
 #define _COMPIZ_CORE_H
 
-#define COMPIZ_CORE_VERSION 20071116
-#define CORE_ABIVERSION COMPIZ_CORE_VERSION
-
 #include <stdio.h>
 #include <sys/time.h>
 
@@ -741,7 +738,10 @@ struct _CompCore {
 #define GET_CORE(object) ((CompCore *) (object))
 #define CORE(object) CompCore *c = GET_CORE (object)
 
-#define CORE_TYPE_NAME "core"
+#define COMPIZ_CORE_VERSION   20080221
+#define COMPIZ_CORE_TYPE_NAME COMPIZ_NAME_PREFIX "core"
+
+#define CORE_ABIVERSION COMPIZ_CORE_VERSION
 
 const CompObjectType *
 getCoreObjectType (void);
@@ -783,8 +783,6 @@ compObjectFreePrivateIndex (const CompObjectType *type,
 
 
 /* display.c */
-
-#define COMPIZ_DISPLAY_VERSION 20071116
 
 #define COMP_DISPLAY_OPTION_CLOSE_WINDOW_KEY                 0
 #define COMP_DISPLAY_OPTION_CLOSE_WINDOW_BUTTON              1
@@ -1188,7 +1186,8 @@ struct _CompDisplay {
 #define GET_DISPLAY(object) ((CompDisplay *) (object))
 #define DISPLAY(object) CompDisplay *d = GET_DISPLAY (object)
 
-#define DISPLAY_TYPE_NAME "display"
+#define COMPIZ_DISPLAY_VERSION   20080221
+#define COMPIZ_DISPLAY_TYPE_NAME COMPIZ_NAME_PREFIX "display"
 
 const CompObjectType *
 getDisplayObjectType (void);
@@ -1788,8 +1787,6 @@ disableTexture (CompScreen  *screen,
 
 /* screen.c */
 
-#define COMPIZ_SCREEN_VERSION 20071116
-
 #define COMP_SCREEN_OPTION_OVERLAPPING_OUTPUTS	  0
 #define COMP_SCREEN_OPTION_FOCUS_PREVENTION_MATCH 1
 #define COMP_SCREEN_OPTION_OPACITY_MATCHES	  2
@@ -2310,7 +2307,8 @@ struct _CompScreen {
 #define GET_SCREEN(object) ((CompScreen *) (object))
 #define SCREEN(object) CompScreen *s = GET_SCREEN (object)
 
-#define SCREEN_TYPE_NAME "screen"
+#define COMPIZ_SCREEN_VERSION   20080221
+#define COMPIZ_SCREEN_TYPE_NAME COMPIZ_NAME_PREFIX "screen"
 
 const CompObjectType *
 getScreenObjectType (void);
@@ -2587,8 +2585,6 @@ setWindowPaintOffset (CompScreen *s,
 
 /* window.c */
 
-#define COMPIZ_WINDOW_VERSION 20071116
-
 #define WINDOW_INVISIBLE(w)				       \
     ((w)->attrib.map_state != IsViewable		    || \
      (!(w)->damaged)					    || \
@@ -2754,7 +2750,8 @@ struct _CompWindow {
 #define GET_WINDOW(object) ((CompWindow *) (object))
 #define WINDOW(object) CompWindow *w = GET_WINDOW (object)
 
-#define WINDOW_TYPE_NAME "window"
+#define COMPIZ_WINDOW_VERSION   20080221
+#define COMPIZ_WINDOW_TYPE_NAME COMPIZ_NAME_PREFIX "window"
 
 const CompObjectType *
 getWindowObjectType (void);

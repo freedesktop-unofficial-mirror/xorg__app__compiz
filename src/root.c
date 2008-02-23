@@ -210,13 +210,13 @@ rootSignal (CompObject   *object,
     if (pluginPath[i] == '\0')
 	(*r->u.vTable->updatePlugins) (r, "core");
 
-    FOR_BASE (object, (*object->vTable->signal.signal) (object,
-							path,
-							interface,
-							name,
-							signature,
-							value,
-							nValue));
+    FOR_BASE (object, (*object->vTable->signal) (object,
+						 path,
+						 interface,
+						 name,
+						 signature,
+						 value,
+						 nValue));
 }
 
 static CompBool
@@ -309,12 +309,12 @@ handleSignal (CompObject *object,
 	    return TRUE;
 	}
 
-	(*object->vTable->signal.signal) (object, &pCtx->path[i],
-					  pCtx->signal->header->interface,
-					  pCtx->signal->header->name,
-					  pCtx->signal->header->signature,
-					  pCtx->signal->header->value,
-					  pCtx->signal->header->nValue);
+	(*object->vTable->signal) (object, &pCtx->path[i],
+				   pCtx->signal->header->interface,
+				   pCtx->signal->header->name,
+				   pCtx->signal->header->signature,
+				   pCtx->signal->header->value,
+				   pCtx->signal->header->nValue);
 
 	return FALSE;
     }
@@ -344,13 +344,13 @@ processSignals (CompRoot *r)
 						     handleSignal,
 						     (void *) &ctx);
 
-	    (*r->u.base.vTable->signal.signal) (&r->u.base,
-						s->header->path,
-						s->header->interface,
-						s->header->name,
-						s->header->signature,
-						s->header->value,
-						s->header->nValue);
+	    (*r->u.base.vTable->signal) (&r->u.base,
+					 s->header->path,
+					 s->header->interface,
+					 s->header->name,
+					 s->header->signature,
+					 s->header->value,
+					 s->header->nValue);
 
 	    free (s);
 	}
@@ -380,10 +380,7 @@ updatePlugins (CompRoot	  *r,
     {
 	CompObject *o = plugins->item[i].object;
 
-	if ((*o->vTable->properties.getString) (o,
-						0, "value",
-						&request[r->nRequest],
-						0))
+	if ((*o->vTable->getString) (o, 0, "value", &request[r->nRequest], 0))
 	    r->nRequest++;
     }
 }
@@ -395,15 +392,15 @@ static CompRootVTable rootObjectVTable = {
     .base.addChild	     = rootAddChild,
     .base.removeChild	     = rootRemoveChild,
     .base.forEachChildObject = rootForEachChildObject,
-    .base.signal.signal	     = rootSignal,
+    .base.signal	     = rootSignal,
 
     .processSignals = processSignals,
     .updatePlugins  = updatePlugins
 };
 
 static const CompObjectType rootObjectType = {
-    .name.name     = ROOT_TYPE_NAME,
-    .name.base     = OBJECT_TYPE_NAME,
+    .name.name     = COMPIZ_ROOT_TYPE_NAME,
+    .name.base     = COMPIZ_OBJECT_TYPE_NAME,
     .vTable.impl   = &rootObjectVTable.base,
     .vTable.size   = sizeof (rootObjectVTable),
     .instance.init = rootInitObject

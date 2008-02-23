@@ -28,8 +28,6 @@
 
 #include <compiz/object.h>
 
-#define COMPIZ_BOX_VERSION 20080103
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompBoxData {
@@ -48,7 +46,8 @@ typedef struct _CompBox {
 #define GET_BOX(object) ((CompBox *) (object))
 #define BOX(object) CompBox *b = GET_BOX (object)
 
-#define BOX_TYPE_NAME "box"
+#define COMPIZ_BOX_VERSION   20080221
+#define COMPIZ_BOX_TYPE_NAME COMPIZ_NAME_PREFIX "box"
 
 const CompObjectType *
 getBoxObjectType (void);

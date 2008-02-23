@@ -28,8 +28,6 @@
 
 #include <compiz/input.h>
 
-#define COMPIZ_KEYBOARD_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompKeyboard {
@@ -41,7 +39,8 @@ typedef struct _CompKeyboard {
 #define GET_KEYBOARD(object) ((CompKeyboard *) (object))
 #define KEYBOARD(object) CompKeyboard *k = GET_KEYBOARD (object)
 
-#define KEYBOARD_TYPE_NAME "keyboard"
+#define COMPIZ_KEYBOARD_VERSION   20080221
+#define COMPIZ_KEYBOARD_TYPE_NAME COMPIZ_NAME_PREFIX "keyboard"
 
 const CompObjectType *
 getKeyboardObjectType (void);

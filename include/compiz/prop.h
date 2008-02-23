@@ -28,8 +28,6 @@
 
 #include <compiz/object.h>
 
-#define COMPIZ_PROP_VERSION 20071116
-
 COMPIZ_BEGIN_DECLS
 
 typedef struct _CompProp {
@@ -40,10 +38,11 @@ typedef struct _CompProp {
 #define GET_PROP(object) ((CompProp *) (object))
 #define PROP(object) CompProp *p = GET_PROP (object)
 
-#define PROP_TYPE_NAME "prop"
+#define COMPIZ_PROP_VERSION   20080221
+#define COMPIZ_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "prop"
 
-const CompObjectType **
-getPropObjectTypes (int *n);
+const CompObjectType *
+getPropObjectType (void);
 
 
 typedef struct _CompBoolPropData {
@@ -59,7 +58,11 @@ typedef struct _CompBoolProp {
 #define GET_BOOL_PROP(object) ((CompBoolProp *) (object))
 #define BOOL_PROP(object) CompBoolProp *b = GET_BOOL_PROP (object)
 
-#define BOOL_PROP_TYPE_NAME "boolProp"
+#define COMPIZ_BOOL_PROP_VERSION   COMPIZ_PROP_VERSION
+#define COMPIZ_BOOL_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "boolProp"
+
+const CompObjectType *
+getBoolPropObjectType (void);
 
 
 typedef struct _CompIntPropData {
@@ -75,7 +78,11 @@ typedef struct _CompIntProp {
 #define GET_INT_PROP(object) ((CompIntProp *) (object))
 #define INT_PROP(object) CompIntProp *i = GET_INT_PROP (object)
 
-#define INT_PROP_TYPE_NAME "intProp"
+#define COMPIZ_INT_PROP_VERSION   COMPIZ_PROP_VERSION
+#define COMPIZ_INT_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "intProp"
+
+const CompObjectType *
+getIntPropObjectType (void);
 
 
 typedef struct _CompDoublePropData {
@@ -91,7 +98,11 @@ typedef struct _CompDoubleProp {
 #define GET_DOUBLE_PROP(object) ((CompDoubleProp *) (object))
 #define DOUBLE_PROP(object) CompDoubleProp *d = GET_DOUBLE_PROP (object)
 
-#define DOUBLE_PROP_TYPE_NAME "doubleProp"
+#define COMPIZ_DOUBLE_PROP_VERSION   COMPIZ_PROP_VERSION
+#define COMPIZ_DOUBLE_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "doubleProp"
+
+const CompObjectType *
+getDoublePropObjectType (void);
 
 
 typedef struct _CompStringPropData {
@@ -107,7 +118,11 @@ typedef struct _CompStringProp {
 #define GET_STRING_PROP(object) ((CompStringProp *) (object))
 #define STRING_PROP(object) CompStringProp *s = GET_STRING_PROP (object)
 
-#define STRING_PROP_TYPE_NAME "stringProp"
+#define COMPIZ_STRING_PROP_VERSION   COMPIZ_PROP_VERSION
+#define COMPIZ_STRING_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "stringProp"
+
+const CompObjectType *
+getStringPropObjectType (void);
 
 COMPIZ_END_DECLS
 

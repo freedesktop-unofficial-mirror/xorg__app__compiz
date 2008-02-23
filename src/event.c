@@ -1765,12 +1765,12 @@ handleEvent (CompDisplay *d,
 		int hSize = event->xclient.data.l[0] / s->width;
 		int vSize = event->xclient.data.l[1] / s->height;
 
-		(*s->u.base.vTable->properties.setInt) (&s->u.base,
-							SCREEN_TYPE_NAME,
-							"hSize", hSize, NULL);
-		(*s->u.base.vTable->properties.setInt) (&s->u.base,
-							SCREEN_TYPE_NAME,
-							"vSize", vSize, NULL);
+		(*s->u.base.vTable->setInt) (&s->u.base,
+					     COMPIZ_SCREEN_TYPE_NAME,
+					     "hSize", hSize, NULL);
+		(*s->u.base.vTable->setInt) (&s->u.base,
+					     COMPIZ_SCREEN_TYPE_NAME,
+					     "vSize", vSize, NULL);
 	    }
 	}
 	else if (event->xclient.message_type == d->moveResizeWindowAtom)
@@ -1873,11 +1873,11 @@ handleEvent (CompDisplay *d,
 	    {
 		int32_t numberOfDesktops = event->xclient.data.l[0];
 
-		(*s->u.base.vTable->properties.setInt) (&s->u.base,
-							SCREEN_TYPE_NAME,
-							"numberOfDesktops",
-							numberOfDesktops,
-							NULL);
+		(*s->u.base.vTable->setInt) (&s->u.base,
+					     COMPIZ_SCREEN_TYPE_NAME,
+					     "numberOfDesktops",
+					     numberOfDesktops,
+					     NULL);
 	    }
 	}
 	else if (event->xclient.message_type == d->currentDesktopAtom)
