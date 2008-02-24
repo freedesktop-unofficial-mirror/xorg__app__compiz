@@ -459,18 +459,12 @@ pushInterface (CompBranch		 *branch,
 	return FALSE;
     }
 
-    if (!compFactoryInstallInterface (&branch->factory, type, interface,
+    if (!compFactoryInstallInterface (&branch->factory,
+				      &branch->u.base.base,
+				      type,
+				      interface,
 				      error))
     {
-	(*branch->u.vTable->destroyObject) (branch, node);
-	return FALSE;
-    }
-
-    if (!compInsertTopInterface (&branch->u.base.base, &branch->factory, type))
-    {
-	esprintf (error, "Failed to insert '%s' interface",
-		  interface->name);
-	compFactoryUninstallInterface (&branch->factory, type);
 	(*branch->u.vTable->destroyObject) (branch, node);
 	return FALSE;
     }
@@ -491,10 +485,8 @@ popInterface (CompBranch		*branch,
 
     type = n->base.interface;
 
-    compRemoveTopInterface (&branch->u.base.base, &branch->factory,
-			    n->base.interface);
-
     interface = compFactoryUninstallInterface (&branch->factory,
+					       &branch->u.base.base,
 					       n->base.interface);
     if (interface)
     {

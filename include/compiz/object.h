@@ -490,23 +490,15 @@ compFactoryUninstallType (CompObjectFactory *factory);
 
 CompBool
 compFactoryInstallInterface (CompObjectFactory	       *factory,
+			     CompObject		       *root,
 			     const CompObjectType      *type,
 			     const CompObjectInterface *interface,
 			     char		       **error);
 
 const CompObjectInterface *
 compFactoryUninstallInterface (CompObjectFactory    *factory,
+			       CompObject	    *root,
 			       const CompObjectType *type);
-
-CompBool
-compInsertTopInterface (CompObject	     *root,
-			CompObjectFactory    *factory,
-			const CompObjectType *type);
-
-void
-compRemoveTopInterface (CompObject	     *root,
-			CompObjectFactory    *factory,
-			const CompObjectType *type);
 
 typedef struct _CompSerializedMethodCallHeader {
     char	 *path;

@@ -280,131 +280,11 @@ compFactoryUninstallType (CompObjectFactory *factory)
     return type;
 }
 
-CompBool
-compFactoryInstallInterface (CompObjectFactory	       *factory,
-			     const CompObjectType      *type,
-			     const CompObjectInterface *interface,
-			     char		       **error)
-{
-    CompObjectInstantiatorNode *node;
-    CompObjectInstantiator     *instantiator;
-    CompFactory		       *master;
-    const CompObjectFactory    *f;
-
-    node = findObjectInstantiatorNode (factory, type);
-    if (!node)
-    {
-	esprintf (error, "Base type '%s' is not yet registered",
-		  interface->base.name);
-	return FALSE;
-    }
-
-    instantiator = malloc (sizeof (CompObjectInstantiator) +
-			   interface->vTable.size);
-    if (!instantiator)
-    {
-	esprintf (error, NO_MEMORY_ERROR_STRING);
-	return FALSE;
-    }
-
-    for (f = factory; f->master; f = f->master);
-    master = (CompFactory *) f;
-
-    if (interface->factory.install)
-    {
-	if (!(*interface->factory.install) (interface, master, error))
-	{
-	    free (instantiator);
-	    return FALSE;
-	}
-    }
-
-    instantiator->interface = interface;
-    instantiator->vTable    = NULL;
-    instantiator->init	    = interface->instance.init;
-
-    if (interface->vTable.size)
-    {
-	const CompObjectInstantiatorNode *n;
-	const CompObjectInstantiator     *p;
-
-	assert (node->base.interface->vTable.size <= type->vTable.size);
-
-	instantiator->vTable = memcpy (instantiator + 1,
-				       interface->vTable.impl,
-				       interface->vTable.size);
-
-	for (p = &node->base; p; p = p->base)
-	{
-	    n = (const CompObjectInstantiatorNode *) p;
-
-	    if (n->base.interface->vTable.noop)
-		compVTableInit (instantiator->vTable,
-				n->base.interface->vTable.noop,
-				n->base.interface->vTable.size);
-	}
-    }
-
-    instantiator->base = node->instantiator;
-    node->instantiator = instantiator;
-
-    return TRUE;
-}
-
-const CompObjectInterface *
-compFactoryUninstallInterface (CompObjectFactory    *factory,
-			       const CompObjectType *type)
-{
-    CompObjectInstantiatorNode *node;
-    CompObjectInstantiator     *instantiator;
-    CompFactory		       *master;
-    const CompObjectFactory    *f;
-    const CompObjectInterface  *interface;
-
-    node = findObjectInstantiatorNode (factory, type);
-    if (!node)
-	return NULL;
-
-    if (node->instantiator == &node->base)
-	return NULL;
-
-    interface = node->instantiator->interface;
-
-    for (f = factory; f->master; f = f->master);
-    master = (CompFactory *) f;
-
-    instantiator = (CompObjectInstantiator *) node->instantiator;
-    node->instantiator = instantiator->base;
-
-    if (interface->factory.uninstall)
-	(*interface->factory.uninstall) (interface, master);
-
-    free (instantiator);
-
-    return interface;
-}
-
-static CompBool
-topObjectType (CompObject	    *object,
-	       const char	    *name,
-	       size_t		    offset,
-	       const CompObjectType *type,
-	       void		    *closure)
-{
-    if (type)
-    {
-	*((const CompObjectType **) closure) = type;
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
 typedef struct _InitObjectInterfaceContext {
     const CompObjectFactory	 *factory;
-    const CompObjectType	 *type;
     const CompObjectInstantiator *instantiator;
     CompObject			 *object;
+    char			 **error;
 } InitObjectInterfaceContext;
 
 static CompBool
@@ -412,19 +292,22 @@ initObjectInterface (CompObject *object,
 		     void	*closure)
 {
     InitObjectInterfaceContext *pCtx = (InitObjectInterfaceContext *) closure;
-    const CompObjectType       *type;
 
-    (*object->vTable->forEachInterface) (object,
-					 topObjectType,
-					 (void *) &type);
-
-    if (type == pCtx->type)
+    if (object->vTable == pCtx->instantiator->base->vTable)
     {
 	const CompObjectInterface *interface = pCtx->instantiator->interface;
 
-	return (*interface->interface.init) (object,
-					     pCtx->instantiator->vTable,
-					     pCtx->factory);
+	if (!(*interface->interface.init) (object,
+					   pCtx->instantiator->vTable,
+					   pCtx->factory))
+	{
+	    esprintf (pCtx->error,
+		      "Failed to initialize interface '%s' for '%s' object",
+		      interface->name, object->name);
+	    return FALSE;
+	}
+
+	return TRUE;
     }
     else
     {
@@ -453,19 +336,13 @@ initObjectInterface (CompObject *object,
     }
 }
 
-
 static CompBool
 finiObjectInterface (CompObject *object,
 		     void	*closure)
 {
     InitObjectInterfaceContext *pCtx = (InitObjectInterfaceContext *) closure;
-    const CompObjectType       *type;
 
-    (*object->vTable->forEachInterface) (object,
-					 topObjectType,
-					 (void *) &type);
-
-    if (type == pCtx->type)
+    if (object->vTable == pCtx->instantiator->vTable)
     {
 	const CompObjectInterface *interface = pCtx->instantiator->interface;
 
@@ -552,44 +429,133 @@ initInterfaceForObjectTree (CompObject *object,
 }
 
 CompBool
-compInsertTopInterface (CompObject	     *root,
-			CompObjectFactory    *factory,
-			const CompObjectType *type)
+compFactoryInstallInterface (CompObjectFactory	       *factory,
+			     CompObject		       *root,
+			     const CompObjectType      *type,
+			     const CompObjectInterface *interface,
+			     char		       **error)
 {
-    CompObjectInstantiatorNode *node;
     InitObjectInterfaceContext ctx;
+    CompObjectInstantiatorNode *node;
+    CompObjectInstantiator     *instantiator;
+    CompFactory		       *master;
+    const CompObjectFactory    *f;
 
     node = findObjectInstantiatorNode (factory, type);
     if (!node)
+    {
+	esprintf (error, "Base type '%s' is not yet registered",
+		  interface->base.name);
 	return FALSE;
+    }
+
+    instantiator = malloc (sizeof (CompObjectInstantiator) +
+			   interface->vTable.size);
+    if (!instantiator)
+    {
+	esprintf (error, NO_MEMORY_ERROR_STRING);
+	return FALSE;
+    }
+
+    for (f = factory; f->master; f = f->master);
+    master = (CompFactory *) f;
+
+    if (interface->factory.install)
+    {
+	if (!(*interface->factory.install) (interface, master, error))
+	{
+	    free (instantiator);
+	    return FALSE;
+	}
+    }
+
+    instantiator->interface = interface;
+    instantiator->vTable    = NULL;
+    instantiator->init	    = interface->instance.init;
+
+    if (interface->vTable.size)
+    {
+	const CompObjectInstantiatorNode *n;
+	const CompObjectInstantiator     *p;
+
+	assert (node->base.interface->vTable.size <= type->vTable.size);
+
+	instantiator->vTable = memcpy (instantiator + 1,
+				       interface->vTable.impl,
+				       interface->vTable.size);
+
+	for (p = &node->base; p; p = p->base)
+	{
+	    n = (const CompObjectInstantiatorNode *) p;
+
+	    if (n->base.interface->vTable.noop)
+		compVTableInit (instantiator->vTable,
+				n->base.interface->vTable.noop,
+				n->base.interface->vTable.size);
+	}
+    }
+
+    instantiator->base = node->instantiator;
+    node->instantiator = instantiator;
 
     ctx.factory	     = factory;
-    ctx.type	     = node->base.interface;
     ctx.instantiator = node->instantiator;
     ctx.object	     = NULL;
+    ctx.error	     = error;
 
-    return initInterfaceForObjectTree (root, (void *) &ctx);
+    if (!initInterfaceForObjectTree (root, (void *) &ctx))
+    {
+	node->instantiator = instantiator->base;
+
+	if (interface->factory.uninstall)
+	    (*interface->factory.uninstall) (interface, master);
+
+	free (instantiator);
+    }
+
+    return TRUE;
 }
 
-void
-compRemoveTopInterface (CompObject	     *root,
-			CompObjectFactory    *factory,
-			const CompObjectType *type)
+const CompObjectInterface *
+compFactoryUninstallInterface (CompObjectFactory    *factory,
+			       CompObject	    *root,
+			       const CompObjectType *type)
 {
+    InitObjectInterfaceContext ctx;
     CompObjectInstantiatorNode *node;
+    CompObjectInstantiator     *instantiator;
+    CompFactory		       *master;
+    const CompObjectFactory    *f;
+    const CompObjectInterface  *interface;
 
     node = findObjectInstantiatorNode (factory, type);
-    if (node)
-    {
-	InitObjectInterfaceContext ctx;
+    if (!node)
+	return NULL;
 
-	ctx.factory	 = factory;
-	ctx.type	 = node->base.interface;
-	ctx.instantiator = node->instantiator;
-	ctx.object	 = NULL;
+    if (node->instantiator == &node->base)
+	return NULL;
 
-	finiInterfaceForObjectTree (root, (void *) &ctx);
-    }
+    interface = node->instantiator->interface;
+
+    for (f = factory; f->master; f = f->master);
+    master = (CompFactory *) f;
+
+    instantiator = (CompObjectInstantiator *) node->instantiator;
+    node->instantiator = instantiator->base;
+
+    if (interface->factory.uninstall)
+	(*interface->factory.uninstall) (interface, master);
+
+    ctx.factory	     = factory;
+    ctx.instantiator = instantiator;
+    ctx.object	     = NULL;
+    ctx.error	     = NULL;
+
+    finiInterfaceForObjectTree (root, (void *) &ctx);
+
+    free (instantiator);
+
+    return interface;
 }
 
 static CompBool
