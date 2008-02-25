@@ -290,6 +290,9 @@ typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
 					    ChildObjectCallBackProc proc,
 					    void		    *closure);
 
+typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
+					      const char *name);
+
 typedef int (*ConnectProc) (CompObject *object,
 			    const char *interface,
 			    size_t     offset,
@@ -415,6 +418,7 @@ struct _CompObjectVTable {
     AddChildObjectProc     addChild;
     RemoveChildObjectProc  removeChild;
     ForEachChildObjectProc forEachChildObject;
+    LookupChildObjectProc  lookupChildObject;
 
     ConnectProc    connect;
     DisconnectProc disconnect;

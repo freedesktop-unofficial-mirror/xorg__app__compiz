@@ -327,6 +327,29 @@ cForEachChildObject (CompObject		     *object,
     return status;
 }
 
+CompObject *
+cLookupChildObject (CompObject *object,
+		    const char *name)
+{
+    CompObject	     *child;
+    CObjectInterface *cInterface;
+    char             *data;
+    int		     i;
+
+    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
+				&cInterface);
+    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+    for (i = 0; i < cInterface->nChild; i++)
+	if (strcmp (CHILD (data, &cInterface->child[i])->name, name) == 0)
+	    return CHILD (data, &cInterface->child[i]);
+
+    FOR_BASE (object,
+	      child = (*object->vTable->lookupChildObject) (object, name));
+
+    return child;
+}
+
 typedef struct _HandleConnectContext {
     const char		   *interface;
     size_t		   offset;
@@ -1467,6 +1490,7 @@ static const CompObjectVTable cVTable = {
     .forEachProp      = cForEachProp,
 
     .forEachChildObject = cForEachChildObject,
+    .lookupChildObject  = cLookupChildObject,
 
     .connect    = cConnect,
     .disconnect = cDisconnect,

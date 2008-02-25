@@ -308,6 +308,10 @@ cForEachChildObject (CompObject		     *object,
 		     ChildObjectCallBackProc proc,
 		     void		     *closure);
 
+CompObject *
+cLookupChildObject (CompObject *object,
+		    const char *name);
+
 CompBool
 cGetBoolProp (CompObject *object,
 	      const char *interface,

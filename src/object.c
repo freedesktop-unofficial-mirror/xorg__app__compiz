@@ -1124,6 +1124,31 @@ noopForEachChildObject (CompObject		*object,
     return status;
 }
 
+static CompObject *
+lookupChildObject (CompObject *object,
+		   const char *name)
+{
+    int	i;
+
+    for (i = 0; i < object->nChild; i++)
+	if (strcmp (object->child[i].name, name) == 0)
+	    return object->child[i].ref;
+
+    return NULL;
+}
+
+static CompObject *
+noopLookupChildObject (CompObject *object,
+		       const char *name)
+{
+    CompObject *child;
+
+    FOR_BASE (object,
+	      child = (*object->vTable->lookupChildObject) (object, name));
+
+    return child;
+}
+
 CompSignalHandler **
 compGetSignalVecRange (CompObject *object,
 		       int	  size,
@@ -1740,6 +1765,7 @@ static const CompObjectVTable objectVTable = {
     .addChild		= addChild,
     .removeChild	= removeChild,
     .forEachChildObject = forEachChildObject,
+    .lookupChildObject  = lookupChildObject,
 
     .interfaceAdded   = interfaceAdded,
     .interfaceRemoved = interfaceRemoved,
@@ -1786,6 +1812,7 @@ static const CompObjectVTable noopObjectVTable = {
     .addChild		= noopAddChild,
     .removeChild	= noopRemoveChild,
     .forEachChildObject = noopForEachChildObject,
+    .lookupChildObject  = noopLookupChildObject,
 
     .connect    = noopConnect,
     .disconnect = noopDisconnect,
