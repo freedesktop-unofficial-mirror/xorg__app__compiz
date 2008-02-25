@@ -210,16 +210,14 @@ typedef struct _ForEachObjectPrivatesContext {
 } ForEachObjectPrivatesContext;
 
 static CompBool
-forEachInterfacePrivates (CompObject	       *object,
-			  const char	       *name,
-			  size_t	       offset,
-			  const CompObjectType *type,
-			  void		       *closure)
+forEachInterfacePrivates (CompObject		    *object,
+			  const CompObjectInterface *interface,
+			  void			    *closure)
 {
     ForEachObjectPrivatesContext *pCtx =
 	(ForEachObjectPrivatesContext *) closure;
 
-    if (type && strcmp (type->name, pCtx->name) == 0)
+    if (strcmp (interface->name, pCtx->name) == 0)
     {
 	pCtx->status = (*pCtx->proc) (getPrivates, setPrivates, pCtx->data,
 				      object);
@@ -302,11 +300,9 @@ typedef struct _BranchContext {
 } BranchContext;
 
 static CompBool
-forBranchInterface (CompObject		 *object,
-		    const char		 *name,
-		    size_t		 offset,
-		    const CompObjectType *type,
-		    void		 *closure)
+forBranchInterface (CompObject		      *object,
+		    const CompObjectInterface *interface,
+		    void		      *closure)
 {
     BranchContext *pCtx = (BranchContext *) closure;
 

@@ -1126,12 +1126,10 @@ initOptionFromMetadataPath (CompDisplay   *d,
 
 static CompBool
 isNotObjectType (CompObject	      *object,
-		 const char	      *name,
-		 size_t		      offset,
-		 const CompObjectType *type,
+		 const CompObjectInterface *interface,
 		 void		      *closure)
 {
-    if (type == (const CompObjectType *) closure)
+    if (interface == (const CompObjectType *) closure)
 	return FALSE;
 
     return TRUE;

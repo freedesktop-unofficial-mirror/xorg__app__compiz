@@ -286,22 +286,22 @@ cDisconnect (CompObject *object,
 	     int	id);
 
 CompBool
-cForEachMethod (CompObject	   *object,
-		const char	   *interface,
-		MethodCallBackProc proc,
-		void	           *closure);
+cForEachMethod (CompObject		  *object,
+		const CompObjectInterface *interface,
+		MethodCallBackProc	  proc,
+		void			  *closure);
 
 CompBool
-cForEachSignal (CompObject	   *object,
-		const char	   *interface,
-		SignalCallBackProc proc,
-		void		   *closure);
+cForEachSignal (CompObject		  *object,
+		const CompObjectInterface *interface,
+		SignalCallBackProc	  proc,
+		void			  *closure);
 
 CompBool
-cForEachProp (CompObject       *object,
-	      const char       *interface,
-	      PropCallBackProc proc,
-	      void	       *closure);
+cForEachProp (CompObject		*object,
+	      const CompObjectInterface *interface,
+	      PropCallBackProc	        proc,
+	      void		        *closure);
 
 CompBool
 cForEachChildObject (CompObject		     *object,

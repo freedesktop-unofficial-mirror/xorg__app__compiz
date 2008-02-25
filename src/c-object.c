@@ -163,11 +163,7 @@ cForEachInterface (CompObject	         *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
 
-    if (!(*proc) (object,
-		  cInterface->i.name,
-		  0,
-		  cInterface->index ? 0 : &cInterface->i,
-		  closure))
+    if (!(*proc) (object, &cInterface->i, closure))
 	return FALSE;
 
     FOR_BASE (object,
@@ -179,10 +175,10 @@ cForEachInterface (CompObject	         *object,
 }
 
 CompBool
-cForEachMethod (CompObject	   *object,
-		const char	   *interface,
-		MethodCallBackProc proc,
-		void	           *closure)
+cForEachMethod (CompObject		  *object,
+		const CompObjectInterface *interface,
+		MethodCallBackProc	  proc,
+		void			  *closure)
 {
     CompBool         status;
     CObjectInterface *cInterface;
@@ -190,9 +186,7 @@ cForEachMethod (CompObject	   *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
 
-    if (!interface  ||
-	!*interface ||
-	!strcmp (interface, cInterface->i.name))
+    if (!interface || interface == &cInterface->i)
     {
 	int i;
 
@@ -205,6 +199,9 @@ cForEachMethod (CompObject	   *object,
 			  cInterface->method[i].marshal,
 			  closure))
 		return FALSE;
+
+	if (interface)
+	    return TRUE;
     }
 
     FOR_BASE (object,
@@ -217,10 +214,10 @@ cForEachMethod (CompObject	   *object,
 }
 
 CompBool
-cForEachSignal (CompObject	   *object,
-		const char	   *interface,
-		SignalCallBackProc proc,
-		void		   *closure)
+cForEachSignal (CompObject		  *object,
+		const CompObjectInterface *interface,
+		SignalCallBackProc	  proc,
+		void			  *closure)
 {
     CompBool         status;
     CObjectInterface *cInterface;
@@ -228,9 +225,7 @@ cForEachSignal (CompObject	   *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
 
-    if (!interface  ||
-	!*interface ||
-	!strcmp (interface, cInterface->i.name))
+    if (!interface || interface == &cInterface->i)
     {
 	int i;
 
@@ -242,6 +237,9 @@ cForEachSignal (CompObject	   *object,
 			      cInterface->signal[i].offset,
 			      closure))
 		    return FALSE;
+
+	if (interface)
+	    return TRUE;
     }
 
     FOR_BASE (object,
@@ -254,10 +252,10 @@ cForEachSignal (CompObject	   *object,
 }
 
 CompBool
-cForEachProp (CompObject       *object,
-	      const char       *interface,
-	      PropCallBackProc proc,
-	      void	       *closure)
+cForEachProp (CompObject		*object,
+	      const CompObjectInterface *interface,
+	      PropCallBackProc	        proc,
+	      void		        *closure)
 {
     CompBool         status;
     CObjectInterface *cInterface;
@@ -265,9 +263,7 @@ cForEachProp (CompObject       *object,
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
 
-    if (!interface  ||
-	!*interface ||
-	!strcmp (interface, cInterface->i.name))
+    if (!interface || interface == &cInterface->i)
     {
 	int i;
 
@@ -290,6 +286,9 @@ cForEachProp (CompObject       *object,
 	    if (!(*proc) (object, cInterface->stringProp[i].base.name,
 			  COMP_TYPE_STRING, closure))
 		return FALSE;
+
+	if (interface)
+	    return TRUE;
     }
 
     FOR_BASE (object,
@@ -366,17 +365,17 @@ connectMethod (CompObject	 *object,
 }
 
 static CompBool
-connectInterface (CompObject	       *object,
-		  const char	       *name,
-		  size_t	       offset,
-		  const CompObjectType *type,
-		  void		       *closure)
+connectInterface (CompObject	            *object,
+		  const CompObjectInterface *interface,
+		  void		            *closure)
 {
     HandleConnectContext *pCtx = (HandleConnectContext *) closure;
 
-    if (strcmp (name, pCtx->interface) == 0)
+    if (strcmp (interface->name, pCtx->interface) == 0)
     {
-	if (!(*object->vTable->forEachMethod) (object, name, connectMethod,
+	if (!(*object->vTable->forEachMethod) (object,
+					       interface,
+					       connectMethod,
 					       closure))
 	{
 	    /* method must not have any output arguments */
@@ -384,13 +383,8 @@ connectInterface (CompObject	       *object,
 		return TRUE;
 	}
 
-	/* need vTable if interface is not part of object type */
-	if (!type)
+	if (!interface->vTable.noop)
 	    pCtx->vTable = object->vTable;
-
-	/* add interface vTable offset to method offset set by
-	   connectMethod function */
-	pCtx->offset += offset;
 
 	return FALSE;
     }

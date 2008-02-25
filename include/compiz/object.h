@@ -224,11 +224,9 @@ typedef void (*InsertedProc) (CompObject *object);
 
 typedef void (*RemovedProc)  (CompObject *object);
 
-typedef CompBool (*InterfaceCallBackProc) (CompObject		*object,
-					   const char		*name,
-					   size_t		offset,
-					   const CompObjectType *type,
-					   void			*closure);
+typedef CompBool (*InterfaceCallBackProc) (CompObject		     *object,
+					   const CompObjectInterface *iface,
+					   void			     *closure);
 
 typedef CompBool (*ForEachInterfaceProc) (CompObject		*object,
 					  InterfaceCallBackProc proc,
@@ -246,10 +244,10 @@ typedef CompBool (*MethodCallBackProc) (CompObject	  *object,
 					MethodMarshalProc marshal,
 					void		  *closure);
 
-typedef CompBool (*ForEachMethodProc) (CompObject	  *object,
-				       const char	  *interface,
-				       MethodCallBackProc proc,
-				       void		  *closure);
+typedef CompBool (*ForEachMethodProc) (CompObject		 *object,
+				       const CompObjectInterface *interface,
+				       MethodCallBackProc	 proc,
+				       void			 *closure);
 
 typedef CompBool (*SignalCallBackProc) (CompObject *object,
 					const char *name,
@@ -257,20 +255,20 @@ typedef CompBool (*SignalCallBackProc) (CompObject *object,
 					size_t	   offset,
 					void	   *closure);
 
-typedef CompBool (*ForEachSignalProc) (CompObject	  *object,
-				       const char	  *interface,
-				       SignalCallBackProc proc,
-				       void		  *closure);
+typedef CompBool (*ForEachSignalProc) (CompObject		 *object,
+				       const CompObjectInterface *interface,
+				       SignalCallBackProc	 proc,
+				       void			 *closure);
 
 typedef CompBool (*PropCallBackProc) (CompObject *object,
 				      const char *name,
 				      int	 type,
 				      void	 *closure);
 
-typedef CompBool (*ForEachPropProc) (CompObject	      *object,
-				     const char	      *interface,
-				     PropCallBackProc proc,
-				     void	      *closure);
+typedef CompBool (*ForEachPropProc) (CompObject		       *object,
+				     const CompObjectInterface *interface,
+				     PropCallBackProc	       proc,
+				     void		       *closure);
 
 typedef void (*InterfaceAddedProc) (CompObject *object,
 				    const char *interface);
@@ -617,15 +615,6 @@ compForInterface (CompObject		*object,
 CompObject *
 compLookupObject (CompObject *root,
 		  const char *path);
-
-CompBool
-compObjectCheckVersion (CompObject *object,
-			const char *interface,
-			int	   version);
-
-CompBool
-compObjectInterfaceIsPartOfType (CompObject *object,
-				 const char *interface);
 
 CompBool
 compInvokeMethodWithArgs (CompObject *object,
