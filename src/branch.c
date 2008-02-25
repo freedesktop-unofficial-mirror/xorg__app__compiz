@@ -77,8 +77,8 @@ branchInsertObject (CompObject *object,
 	    const CompObjectInstantiator *instantiator;
 
 	    (*b->u.vTable->newObject) (b,
-				       b->data.types.base.name,
-				       COMPIZ_CONTAINER_TYPE_NAME,
+				       b->data.types.name,
+				       COMPIZ_OBJECT_TYPE_NAME,
 				       node->base.interface->name,
 				       NULL);
 
@@ -93,7 +93,7 @@ branchInsertObject (CompObject *object,
 
 		    sprintf (path,
 			     "%s/%s",
-			     b->data.types.base.name,
+			     b->data.types.name,
 			     node->base.interface->name);
 
 		    (*b->u.vTable->newObject) (b,
@@ -110,17 +110,6 @@ branchInsertObject (CompObject *object,
     }
 }
 
-static void
-branchRemoveObject (CompObject *object)
-{
-    BRANCH (object);
-
-    while (b->data.types.nItem)
-	(*b->u.vTable->destroyObject) (b, b->data.types.item->object);
-
-    cRemoveObject (object);
-}
-
 static CompObject *
 noopCreateObject (CompBranch *branch,
 		  const char *type,
@@ -128,7 +117,7 @@ noopCreateObject (CompBranch *branch,
 {
     CompObject *object;
 
-    FOR_BASE (&branch->u.base.base,
+    FOR_BASE (&branch->u.base,
 	      object = (*branch->u.vTable->createObject) (branch,
 							  type,
 							  error));
@@ -178,7 +167,7 @@ static void
 noopDestroyObject (CompBranch *branch,
 		   CompObject *object)
 {
-    FOR_BASE (&branch->u.base.base,
+    FOR_BASE (&branch->u.base,
 	      (*branch->u.vTable->destroyObject) (branch, object));
 }
 
@@ -187,7 +176,7 @@ destroyObject (CompBranch *branch,
 	       CompObject *object)
 {
     if (object->parent)
-	(*object->parent->vTable->removeChild) (object->parent, object);
+	(*object->parent->vTable->removeChild) (object->parent, object->name);
 
     (*object->vTable->finalize) (object);
     free (object);
@@ -202,7 +191,7 @@ noopNewObject (CompBranch *branch,
 {
     CompObject *object;
 
-    FOR_BASE (&branch->u.base.base,
+    FOR_BASE (&branch->u.base,
 	      object = (*branch->u.vTable->newObject) (branch,
 						       parent,
 						       type,
@@ -222,7 +211,7 @@ newObject (CompBranch *branch,
     CompObject *object, *p;
     char       tmp[256];
 
-    p = compLookupObject (&branch->u.base.base, parent);
+    p = compLookupObject (&branch->u.base, parent);
     if (!p)
     {
 	esprintf (error, "Parent object '%s' doesn't exist", parent);
@@ -259,7 +248,7 @@ noopAddNewObject (CompBranch *branch,
 {
     CompBool status;
 
-    FOR_BASE (&branch->u.base.base,
+    FOR_BASE (&branch->u.base,
 	      status = (*branch->u.vTable->addNewObject) (branch,
 							  parent,
 							  type,
@@ -301,7 +290,6 @@ addNewObject (CompBranch *branch,
 static CompBranchVTable branchObjectVTable = {
     .base.getProp      = branchGetProp,
     .base.insertObject = branchInsertObject,
-    .base.removeObject = branchRemoveObject,
 
     .createObject  = createObject,
     .destroyObject = destroyObject,
@@ -321,7 +309,7 @@ static const CMethod branchTypeMethod[] = {
 };
 
 static const CChildObject branchTypeChildObject[] = {
-    C_CHILD (types, CompBranchData, COMPIZ_CONTAINER_TYPE_NAME)
+    C_CHILD (types, CompBranchData, COMPIZ_OBJECT_TYPE_NAME)
 };
 
 const CompObjectType *
@@ -334,8 +322,8 @@ getBranchObjectType (void)
 	static const CObjectInterface template = {
 	    .i.name	     = COMPIZ_BRANCH_TYPE_NAME,
 	    .i.version	     = COMPIZ_BRANCH_VERSION,
-	    .i.base.name     = COMPIZ_CONTAINER_TYPE_NAME,
-	    .i.base.version  = COMPIZ_CONTAINER_VERSION,
+	    .i.base.name     = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version  = COMPIZ_OBJECT_VERSION,
 	    .i.vTable.impl   = &branchObjectVTable.base,
 	    .i.vTable.noop   = &noopBranchObjectVTable.base,
 	    .i.vTable.size   = sizeof (branchObjectVTable),

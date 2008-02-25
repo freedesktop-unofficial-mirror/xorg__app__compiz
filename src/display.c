@@ -2262,7 +2262,7 @@ static const CIntProp displayTypeIntProp[] = {
 };
 
 static const CChildObject displayTypeChildObject[] = {
-    C_CHILD (screens, CompDisplayData, COMPIZ_CONTAINER_TYPE_NAME)
+    C_CHILD (screens, CompDisplayData, COMPIZ_OBJECT_TYPE_NAME)
 };
 
 const CompObjectType *
@@ -2659,7 +2659,7 @@ addDisplayOld (CompCore   *c,
     snprintf (displayName, sizeof (displayName), "%s_%d",
 	      *d->hostName == '\0' ? "localhost" : d->hostName, d->displayNum);
 
-    displays = compLookupObject (&c->u.base.u.base.base, "displays");
+    displays = compLookupObject (&c->u.base.u.base, "displays");
     if (displays)
 	if ((*displays->vTable->addChild) (displays, &d->u.base, displayName))
 	    (*c->objectAdd) (displays, &d->u.base, displayName);
@@ -2752,11 +2752,11 @@ removeDisplayOld (CompCore    *c,
     while (d->screens)
 	removeScreenOld (d->screens);
 
-    displays = compLookupObject (&c->u.base.u.base.base, "displays");
+    displays = compLookupObject (&c->u.base.u.base, "displays");
     if (displays)
     {
 	(*c->objectRemove) (displays, &d->u.base);
-	(*displays->vTable->removeChild) (displays, &d->u.base);
+	(*displays->vTable->removeChild) (displays, d->u.base.name);
     }
 
     objectFiniPlugins (&d->u.base);

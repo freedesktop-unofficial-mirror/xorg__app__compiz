@@ -445,7 +445,7 @@ pushInterface (CompBranch		 *branch,
 
     type = n->base.interface;
 
-    sprintf (path, "%s/%s", branch->data.types.base.name, type->name);
+    sprintf (path, "%s/%s", branch->data.types.name, type->name);
 
     node = (*branch->u.vTable->newObject) (branch,
 					   path,
@@ -460,7 +460,7 @@ pushInterface (CompBranch		 *branch,
     }
 
     if (!compFactoryInstallInterface (&branch->factory,
-				      &branch->u.base.base,
+				      &branch->u.base,
 				      type,
 				      interface,
 				      error))
@@ -486,7 +486,7 @@ popInterface (CompBranch		*branch,
     type = n->base.interface;
 
     interface = compFactoryUninstallInterface (&branch->factory,
-					       &branch->u.base.base,
+					       &branch->u.base,
 					       n->base.interface);
     if (interface)
     {
@@ -495,7 +495,7 @@ popInterface (CompBranch		*branch,
 
 	sprintf (path, "%s/%s", type->name, interface->name);
 
-	node = compLookupObject (&branch->data.types.base, path);
+	node = compLookupObject (&branch->data.types, path);
 	if (node)
 	    (*branch->u.vTable->destroyObject) (branch, node);
     }

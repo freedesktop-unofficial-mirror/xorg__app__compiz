@@ -26,7 +26,7 @@
 #ifndef _COMPIZ_BRANCH_H
 #define _COMPIZ_BRANCH_H
 
-#include <compiz/container.h>
+#include <compiz/object.h>
 
 COMPIZ_BEGIN_DECLS
 
@@ -62,12 +62,12 @@ typedef struct _CompBranchVTable {
 
 typedef struct _CompBranchData {
     CompObjectData base;
-    CompContainer  types;
+    CompObject     types;
 } CompBranchData;
 
 struct _CompBranch {
     union {
-	CompContainer	       base;
+	CompObject	       base;
 	const CompBranchVTable *vTable;
     } u;
 

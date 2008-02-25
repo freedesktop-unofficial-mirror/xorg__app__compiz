@@ -52,9 +52,6 @@ struct _CompRoot {
 
     CompObjectVTableVec object;
 
-    CompObject *child;
-    char       *childName;
-
     struct {
 	CompSignal *head;
 	CompSignal *tail;

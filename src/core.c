@@ -51,7 +51,7 @@ noopAddDisplay (CompCore   *c,
 {
     CompBool status;
 
-    FOR_BASE (&c->u.base.u.base.base,
+    FOR_BASE (&c->u.base.u.base,
 	      status = (*c->u.vTable->addDisplay) (c,
 						   hostName,
 						   displayNum,
@@ -99,7 +99,7 @@ noopRemoveDisplay (CompCore   *c,
 {
     CompBool status;
 
-    FOR_BASE (&c->u.base.u.base.base,
+    FOR_BASE (&c->u.base.u.base,
 	      status = (*c->u.vTable->removeDisplay) (c,
 						      hostName,
 						      displayNum,
@@ -239,7 +239,7 @@ coreInitObject (const CompObjectInstantiator *instantiator,
     if (!cObjectInit (instantiator, object, factory))
 	return FALSE;
 
-    c->u.base.u.base.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
+    c->u.base.u.base.id = COMP_OBJECT_TYPE_CORE; /* XXX: remove id asap */
 
     for (i = 0; i < N_ELEMENTS (containers); i++)
     {
@@ -247,7 +247,7 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 
 	container =
 	    (*c->u.base.u.vTable->createObject) (&c->u.base,
-						 COMPIZ_CONTAINER_TYPE_NAME,
+						 COMPIZ_OBJECT_TYPE_NAME,
 						 NULL);
 	if (!container)
 	{
@@ -317,8 +317,8 @@ static const CMethod coreTypeMethod[] = {
 };
 
 static const CChildObject coreTypeChildObject[] = {
-    C_CHILD (inputs,  CompCoreData, COMPIZ_CONTAINER_TYPE_NAME),
-    C_CHILD (outputs, CompCoreData, COMPIZ_CONTAINER_TYPE_NAME)
+    C_CHILD (inputs,  CompCoreData, COMPIZ_OBJECT_TYPE_NAME),
+    C_CHILD (outputs, CompCoreData, COMPIZ_OBJECT_TYPE_NAME)
 };
 
 const CompObjectType *

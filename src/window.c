@@ -2149,9 +2149,9 @@ addWindow (CompScreen *screen,
 
     snprintf (windowName, sizeof (windowName), "%lu", w->id);
 
-    if ((*screen->data.windows.base.vTable->addChild)
-	(&screen->data.windows.base, &w->base, windowName))
-	(*core.objectAdd) (&screen->data.windows.base, &w->base, windowName);
+    if ((*screen->data.windows.vTable->addChild)
+	(&screen->data.windows, &w->base, windowName))
+	(*core.objectAdd) (&screen->data.windows, &w->base, windowName);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
@@ -2218,9 +2218,8 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (s);
     }
 
-    (*core.objectRemove) (&s->data.windows.base, &w->base);
-    (*s->data.windows.base.vTable->removeChild) (&s->data.windows.base,
-						 &w->base);
+    (*core.objectRemove) (&s->data.windows, &w->base);
+    (*s->data.windows.vTable->removeChild) (&s->data.windows, w->base.name);
 
     objectFiniPlugins (&w->base);
 

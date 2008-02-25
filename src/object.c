@@ -576,6 +576,8 @@ initObject (const CompObjectInstantiator *instantiator,
     object->parent    = NULL;
     object->name      = NULL;
     object->signalVec = NULL;
+    object->child     = NULL;
+    object->nChild    = 0;
 
     object->id = ~0; /* XXX: remove id asap */
 
@@ -585,6 +587,21 @@ initObject (const CompObjectInstantiator *instantiator,
 static void
 finalize (CompObject *object)
 {
+    if (object->child)
+    {
+	int i;
+
+	for (i = 0; i < object->nChild; i++)
+	{
+	    (*object->child[i].ref->vTable->finalize) (object->child[i].ref);
+
+	    free (object->child[i].ref);
+	    free (object->child[i].name);
+	}
+
+	free (object->child);
+    }
+
     if (object->privates)
 	free (object->privates);
 
@@ -637,11 +654,18 @@ insertObject (CompObject *object,
 	      CompObject *parent,
 	      const char *name)
 {
+    int i;
+
     object->parent = parent;
     object->name   = name;
 
     (*object->vTable->inserted) (object);
     (*object->vTable->interfaceAdded) (object, getObjectType ()->name);
+
+    for (i = 0; i < object->nChild; i++)
+	(*object->child[i].ref->vTable->insertObject) (object->child[i].ref,
+						       object,
+						       object->child[i].name);
 }
 
 static void
@@ -655,6 +679,12 @@ noopInsertObject (CompObject *object,
 static void
 removeObject (CompObject *object)
 {
+    int i;
+
+    i = object->nChild;
+    while (i--)
+	(*object->child[i].ref->vTable->removeObject) (object->child[i].ref);
+
     (*object->vTable->interfaceRemoved) (object, getObjectType ()->name);
     (*object->vTable->removed) (object);
 
@@ -980,7 +1010,31 @@ addChild (CompObject *object,
 	  CompObject *child,
 	  const char *name)
 {
-    return FALSE;
+    CompChild *children;
+    char      *childName;
+
+    childName = strdup (name);
+    if (!childName)
+	return FALSE;
+
+    children = realloc (object->child, sizeof (CompChild) *
+			(object->nChild + 1));
+    if (!children)
+    {
+	free (childName);
+	return FALSE;
+    }
+
+    children[object->nChild].ref  = child;
+    children[object->nChild].name = childName;
+
+    object->child = children;
+    object->nChild++;
+
+    if (object->parent)
+	(*child->vTable->insertObject) (child, object, childName);
+
+    return TRUE;
 }
 
 static CompBool
@@ -996,17 +1050,49 @@ noopAddChild (CompObject *object,
     return status;
 }
 
-static void
+static CompObject *
 removeChild (CompObject *object,
-	     CompObject *child)
+	     const char *name)
 {
+    CompObject *child;
+    CompChild  *children;
+    int	       i;
+
+    for (i = 0; i < object->nChild; i++)
+	if (strcmp (object->child[i].name, name) == 0)
+	    break;
+
+    if (i == object->nChild)
+	return NULL;
+
+    child = object->child[i].ref;
+
+    if (object->parent)
+	(*child->vTable->removeObject) (child);
+
+    free (object->child[i].name);
+
+    object->nChild--;
+
+    for (; i < object->nChild; i++)
+	object->child[i] = object->child[i + 1];
+
+    children = realloc (object->child, sizeof (CompChild) * object->nChild);
+    if (children || !object->nChild)
+	object->child = children;
+
+    return child;
 }
 
-static void
+static CompObject *
 noopRemoveChild (CompObject *object,
-		 CompObject *child)
+		 const char *name)
 {
-    FOR_BASE (object, (*object->vTable->removeChild) (object, child));
+    CompObject *child;
+
+    FOR_BASE (object, child = (*object->vTable->removeChild) (object, name));
+
+    return child;
 }
 
 static CompBool
@@ -1014,6 +1100,12 @@ forEachChildObject (CompObject		    *object,
 		    ChildObjectCallBackProc proc,
 		    void		    *closure)
 {
+    int	i;
+
+    for (i = 0; i < object->nChild; i++)
+	if (!(*proc) (object->child[i].ref, closure))
+	    return FALSE;
+
     return TRUE;
 }
 

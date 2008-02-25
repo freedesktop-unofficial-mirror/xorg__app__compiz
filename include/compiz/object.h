@@ -280,8 +280,8 @@ typedef CompBool (*AddChildObjectProc) (CompObject *object,
 					CompObject *child,
 					const char *name);
 
-typedef void (*RemoveChildObjectProc) (CompObject *object,
-				       CompObject *child);
+typedef CompObject *(*RemoveChildObjectProc) (CompObject *object,
+					      const char *name);
 
 typedef CompBool (*ChildObjectCallBackProc) (CompObject *object,
 					     void	*closure);
@@ -517,11 +517,18 @@ typedef struct _CompSignalHandler {
     CompSerializedMethodCallHeader *header;
 } CompSignalHandler;
 
+typedef struct _CompChild {
+    CompObject *ref;
+    char       *name;
+} CompChild;
+
 struct _CompObject {
     const CompObjectVTable *vTable;
     const char		   *name;
     CompObject		   *parent;
     CompSignalHandler      **signalVec;
+    CompChild		   *child;
+    int			   nChild;
     CompPrivate		   *privates;
 
     CompObjectTypeID id;

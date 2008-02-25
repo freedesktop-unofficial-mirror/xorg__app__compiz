@@ -47,7 +47,6 @@
 #include <libxml/parser.h>
 
 #include <compiz/object.h>
-#include <compiz/container.h>
 #include <compiz/prop.h>
 #include <compiz/output.h>
 #include <compiz/plugin.h>
@@ -690,8 +689,8 @@ typedef struct _CompCoreVTable {
 typedef struct _CompCoreData {
     CompObjectData base;
 
-    CompContainer inputs;
-    CompContainer outputs;
+    CompObject inputs;
+    CompObject outputs;
 } CompCoreData;
 
 struct _CompCore {
@@ -969,7 +968,7 @@ typedef struct _CompDisplayData {
     int32_t filter;
     int32_t pingDelay;
 
-    CompContainer screens;
+    CompObject screens;
 } CompDisplayData;
 
 struct _CompDisplay {
@@ -2093,8 +2092,8 @@ typedef struct _CompScreenData {
 
     char *defaultIconImage;
 
-    CompContainer windows;
-    CompContainer outputs;
+    CompObject windows;
+    CompObject outputs;
 } CompScreenData;
 
 struct _CompScreen {

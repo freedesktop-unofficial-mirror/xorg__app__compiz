@@ -280,9 +280,9 @@ updateOutputDevices (CompScreen *s)
     {
 	int32_t x1, y1, x2, y2;
 
-	for (i = 0; i < s->data.outputs.nItem; i++)
+	for (i = 0; i < s->data.outputs.nChild; i++)
 	{
-	    CompObject *o = s->data.outputs.item[i].object;
+	    CompObject *o = s->data.outputs.child[i].ref;
 
 	    if ((*o->vTable->getInt) (o, 0, "x1", &x1, 0) &&
 		(*o->vTable->getInt) (o, 0, "y1", &y1, 0) &&
@@ -1563,8 +1563,8 @@ static const CSignalHandler outputsSignal[] = {
 };
 
 static const CChildObject screenTypeChildObject[] = {
-    C_CHILD (windows, CompScreenData, COMPIZ_CONTAINER_TYPE_NAME),
-    C_CHILD (outputs, CompScreenData, COMPIZ_CONTAINER_TYPE_NAME,
+    C_CHILD (windows, CompScreenData, COMPIZ_OBJECT_TYPE_NAME),
+    C_CHILD (outputs, CompScreenData, COMPIZ_OBJECT_TYPE_NAME,
 	     .signal  = outputsSignal,
 	     .nSignal = N_ELEMENTS (outputsSignal))
 };
@@ -2144,10 +2144,9 @@ addScreenOld (CompDisplay *display,
 
     snprintf (screenName, sizeof (screenName), "%d", s->screenNum);
 
-    if ((*display->data.screens.base.vTable->addChild)
-	(&display->data.screens.base, &s->u.base, screenName))
-	(*core.objectAdd) (&display->data.screens.base, &s->u.base,
-			   screenName);
+    if ((*display->data.screens.vTable->addChild)
+	(&display->data.screens, &s->u.base, screenName))
+	(*core.objectAdd) (&display->data.screens, &s->u.base, screenName);
 
     XQueryTree (dpy, s->root,
 		&rootReturn, &parentReturn,
@@ -2231,9 +2230,8 @@ removeScreenOld (CompScreen *s)
     while (s->windows)
 	removeWindow (s->windows);
 
-    (*core.objectRemove) (&d->data.screens.base, &s->u.base);
-    (*d->data.screens.base.vTable->removeChild) (&d->data.screens.base,
-						 &s->u.base);
+    (*core.objectRemove) (&d->data.screens, &s->u.base);
+    (*d->data.screens.vTable->removeChild) (&d->data.screens, s->u.base.name);
 
     objectFiniPlugins (&s->u.base);
 

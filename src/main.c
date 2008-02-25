@@ -258,21 +258,14 @@ forEachObjectPrivates (PrivatesCallBackProc proc,
 {
     ForEachObjectPrivatesContext ctx;
     PrivatesContext		 *pCtx = (PrivatesContext *) closure;
-    CompObject			 *core = pCtx->root->child;
+    CompObject			 *root = &pCtx->root->u.base;
 
     ctx.name   = pCtx->name;
     ctx.proc   = proc;
     ctx.data   = data;
     ctx.status = TRUE;
 
-    (*core->vTable->forEachInterface) (core,
-				       forEachInterfacePrivates,
-				       (void *) &ctx);
-
-    if (!ctx.status)
-	return FALSE;
-
-    return (*core->vTable->forEachChildObject) (core,
+    return (*root->vTable->forEachChildObject) (root,
 						forEachObjectPrivatesTree,
 						(void *) &ctx);
 }
@@ -338,7 +331,7 @@ mainUpdatePrivatesSize (MainContext	   *m,
 
     updateFactory (&m->factory.base, name, privates);
 
-    forEachBranchTree (m->root.child, (void *) &ctx);
+    forEachBranchTree (&m->root.u.base, (void *) &ctx);
 }
 
 static int
@@ -454,7 +447,6 @@ main (int argc, char **argv)
 
     const CompObjectType *staticTypes[] = {
 	getObjectType (),
-	getContainerObjectType (),
 	getBranchObjectType (),
 	getBoxObjectType (),
 	getRootObjectType (),
@@ -592,11 +584,11 @@ main (int argc, char **argv)
 	return 1;
 
     if (!compObjectInitByType (&context.factory.base,
-			       &core.u.base.u.base.base,
+			       &core.u.base.u.base,
 			       getCoreObjectType ()))
 	return 1;
 
-    if (!(*o->vTable->addChild) (o, &core.u.base.u.base.base, "core"))
+    if (!(*o->vTable->addChild) (o, &core.u.base.u.base, "core"))
 	return 1;
 
     for (i = 1; i < argc; i++)

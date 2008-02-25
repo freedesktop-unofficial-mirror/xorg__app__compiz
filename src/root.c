@@ -45,9 +45,6 @@ rootInitObject (const CompObjectInstantiator *instantiator,
 
     ROOT (object);
 
-    r->child     = NULL;
-    r->childName = NULL;
-
     r->signal.head = NULL;
     r->signal.tail = NULL;
 
@@ -94,14 +91,15 @@ rootFinalize (CompObject *object)
     /* remove plugins and empty signal buffer */
     (*r->u.vTable->processSignals) (r);
 
-    if (r->child)
+    /* --- unnecessary when 'core' global variable has been removed */
+    while (object->nChild)
     {
-	CompObject *child = r->child;
+	CompObject *child;
 
-	(*object->vTable->removeChild) (object, child);
+	child = (*object->vTable->removeChild) (object, object->child->name);
 	(*child->vTable->finalize) (child);
-	/* free (child); */
     }
+    /* --- */
 
     UNWRAP (&r->object, object, vTable);
 
@@ -136,59 +134,30 @@ rootAddChild (CompObject *object,
 	      CompObject *child,
 	      const char *name)
 {
-    ROOT (object);
-
-    if (r->child)
-    {
-	return FALSE;
-    }
-
-    r->childName = strdup (name);
-    if (!r->childName)
-	return FALSE;
-
-    r->child = child;
-
-    (*child->vTable->insertObject) (child, object, r->childName);
-
-    return TRUE;
-}
-
-static void
-rootRemoveChild (CompObject *object,
-		 CompObject *child)
-{
-    ROOT (object);
-
-    assert (child == r->child);
-
-    (*child->vTable->removeObject) (child);
-
-    free (r->childName);
-
-    r->child     = NULL;
-    r->childName = NULL;
-}
-
-static CompBool
-rootForEachChildObject (CompObject		*object,
-			ChildObjectCallBackProc proc,
-			void		        *closure)
-{
     CompBool status;
-
-    ROOT (object);
-
-    if (r->child)
-	if (!(*proc) (r->child, closure))
-	    return FALSE;
+    int	     n = object->nChild;
 
     FOR_BASE (object,
-	      status = (*object->vTable->forEachChildObject) (object,
-							      proc,
-							      closure));
+	      status = (*object->vTable->addChild) (object, child, name));
+
+    if (status)
+	(*child->vTable->insertObject) (child, object, object->child[n].name);
 
     return status;
+}
+
+static CompObject *
+rootRemoveChild (CompObject *object,
+		 const char *name)
+{
+    CompObject *child;
+
+    FOR_BASE (object, child = (*object->vTable->removeChild) (object, name));
+
+    if (child)
+	(*child->vTable->removeObject) (child);
+
+    return child;
 }
 
 static void
@@ -237,7 +206,7 @@ processStackRequest (CompRoot *r)
 
 	r->nStack--;
 
-	unloadPlugin (popPlugin (GET_BRANCH (r->child)));
+	unloadPlugin (popPlugin (GET_BRANCH (r->u.base.child->ref)));
 
 	free (r->stack[r->nStack]);
 
@@ -261,7 +230,7 @@ processStackRequest (CompRoot *r)
 
 		p = loadPlugin (request);
 		if (p)
-		    pushPlugin (p, GET_BRANCH (r->child));
+		    pushPlugin (p, GET_BRANCH (r->u.base.child->ref));
 
 		stack[r->nStack++] = request;
 		r->stack = stack;
@@ -361,38 +330,37 @@ static void
 updatePlugins (CompRoot	  *r,
 	       const char *path)
 {
-    CompContainer *plugins;
-    char	  **request;
-    int		  i;
+    CompObject *plugins;
+    char       **request;
+    int	       i;
 
-    plugins = (CompContainer *) compLookupObject (&r->u.base, "core/plugins");
+    plugins = compLookupObject (&r->u.base, "core/plugins");
     if (!plugins)
 	return;
 
-    request = malloc (sizeof (char *) * plugins->nItem);
-    if (plugins->nItem && !request)
+    request = malloc (sizeof (char *) * plugins->nChild);
+    if (plugins->nChild && !request)
 	return;
 
     removeAllRequests (r);
     r->request = request;
 
-    for (i = 0; i < plugins->nItem; i++)
-    {
-	CompObject *o = plugins->item[i].object;
-
-	if ((*o->vTable->getString) (o, 0, "value", &request[r->nRequest], 0))
+    for (i = 0; i < plugins->nChild; i++)
+	if ((*plugins->child[i].ref->vTable->getString) (plugins->child[i].ref,
+							 0,
+							 "value",
+							 &request[r->nRequest],
+							 0))
 	    r->nRequest++;
-    }
 }
 
 static CompRootVTable rootObjectVTable = {
-    .base.finalize	     = rootFinalize,
-    .base.getProp	     = rootGetProp,
-    .base.setProp	     = rootSetProp,
-    .base.addChild	     = rootAddChild,
-    .base.removeChild	     = rootRemoveChild,
-    .base.forEachChildObject = rootForEachChildObject,
-    .base.signal	     = rootSignal,
+    .base.finalize    = rootFinalize,
+    .base.getProp     = rootGetProp,
+    .base.setProp     = rootSetProp,
+    .base.addChild    = rootAddChild,
+    .base.removeChild = rootRemoveChild,
+    .base.signal      = rootSignal,
 
     .processSignals = processSignals,
     .updatePlugins  = updatePlugins
