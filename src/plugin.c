@@ -491,11 +491,11 @@ popInterface (CompBranch		*branch,
     if (interface)
     {
 	CompObject *node;
-	char       path[257];
 
-	sprintf (path, "%s/%s", type->name, interface->name);
-
-	node = compLookupObject (&branch->data.types, path);
+	node = compLookupDescendantVa (&branch->data.types,
+				       type->name,
+				       interface->name,
+				       NULL);
 	if (node)
 	    (*branch->u.vTable->destroyObject) (branch, node);
     }

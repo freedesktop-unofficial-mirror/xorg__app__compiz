@@ -334,7 +334,7 @@ updatePlugins (CompRoot	  *r,
     char       **request;
     int	       i;
 
-    plugins = compLookupObject (&r->u.base, "core/plugins");
+    plugins = compLookupDescendantVa (&r->u.base, "core", "plugins", NULL);
     if (!plugins)
 	return;
 

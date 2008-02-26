@@ -2659,7 +2659,7 @@ addDisplayOld (CompCore   *c,
     snprintf (displayName, sizeof (displayName), "%s_%d",
 	      *d->hostName == '\0' ? "localhost" : d->hostName, d->displayNum);
 
-    displays = compLookupObject (&c->u.base.u.base, "displays");
+    displays = compLookupDescendantVa (&c->u.base.u.base, "displays", NULL);
     if (displays)
 	if ((*displays->vTable->addChild) (displays, &d->u.base, displayName))
 	    (*c->objectAdd) (displays, &d->u.base, displayName);
@@ -2752,7 +2752,7 @@ removeDisplayOld (CompCore    *c,
     while (d->screens)
 	removeScreenOld (d->screens);
 
-    displays = compLookupObject (&c->u.base.u.base, "displays");
+    displays = compLookupDescendantVa (&c->u.base.u.base, "displays", NULL);
     if (displays)
     {
 	(*c->objectRemove) (displays, &d->u.base);

@@ -1923,61 +1923,42 @@ compForInterface (CompObject		*object,
 						(void *) &ctx);
 }
 
-typedef struct _LookupObjectContext {
-    const char *path;
-    int	       size;
-    CompObject *object;
-} LookupObjectContext;
-
-static CompBool
-checkChildObject (CompObject *object,
-		  void	     *closure)
+CompObject *
+compLookupDescendant (CompObject *object,
+		      const char *path)
 {
-    LookupObjectContext *pCtx = (LookupObjectContext *) closure;
-    int			i;
+    char name[128];
+    int  i, j = 0;
 
-    if (strncmp (object->name, pCtx->path, pCtx->size))
-	return TRUE;
+    do {
+	for (i = 0; path[j] != '\0' && path[j] != '/'; j++)
+	    name[i++] = path[j];
 
-    if (object->name[pCtx->size] != '\0')
-	return TRUE;
+	name[i] = '\0';
 
-    pCtx->path += pCtx->size;
+	object = (*object->vTable->lookupChildObject) (object, name);
+    } while (object && path[j++]);
 
-    if (*pCtx->path++)
-    {
-	for (i = 0; pCtx->path[i] != '\0' && pCtx->path[i] != '/'; i++);
-
-	pCtx->size = i;
-
-	return (*object->vTable->forEachChildObject) (object,
-						      checkChildObject,
-						      closure);
-    }
-
-    pCtx->object = object;
-
-    return FALSE;
+    return object;
 }
 
 CompObject *
-compLookupObject (CompObject *root,
-		  const char *path)
+compLookupDescendantVa (CompObject *object,
+			const char *name,
+			...)
 {
-    LookupObjectContext ctx;
-    int			i;
+    va_list args;
 
-    for (i = 0; path[i] != '\0' && path[i] != '/'; i++);
+    va_start (args, name);
 
-    ctx.path = path;
-    ctx.size = i;
+    do {
+	object = (*object->vTable->lookupChildObject) (object, name);
+	name = va_arg (args, const char *);
+    } while (object && name);
 
-    if ((*root->vTable->forEachChildObject) (root,
-					     checkChildObject,
-					     (void *) &ctx))
-	return NULL;
+    va_end (args);
 
-    return ctx.object;
+    return object;
 }
 
 typedef struct _MethodCallContext {

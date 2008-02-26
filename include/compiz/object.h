@@ -624,8 +624,13 @@ compForInterface (CompObject		*object,
 		  void			*closure);
 
 CompObject *
-compLookupObject (CompObject *root,
-		  const char *path);
+compLookupDescendant (CompObject *object,
+		      const char *path);
+
+CompObject *
+compLookupDescendantVa (CompObject *object,
+			const char *name,
+			...);
 
 CompBool
 compInvokeMethodWithArgs (CompObject *object,

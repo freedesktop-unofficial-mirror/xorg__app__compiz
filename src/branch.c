@@ -211,7 +211,7 @@ newObject (CompBranch *branch,
     CompObject *object, *p;
     char       tmp[256];
 
-    p = compLookupObject (&branch->u.base, parent);
+    p = compLookupDescendant (&branch->u.base, parent);
     if (!p)
     {
 	esprintf (error, "Parent object '%s' doesn't exist", parent);
