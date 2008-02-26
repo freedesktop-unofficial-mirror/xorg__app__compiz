@@ -293,19 +293,19 @@ typedef CompBool (*ForEachChildObjectProc) (CompObject		    *object,
 typedef CompObject *(*LookupChildObjectProc) (CompObject *object,
 					      const char *name);
 
-typedef int (*ConnectProc) (CompObject *object,
-			    const char *interface,
-			    size_t     offset,
-			    CompObject *descendant,
-			    const char *descendantInterface,
-			    size_t     descendantOffset,
-			    const char *details,
-			    va_list    args);
+typedef int (*ConnectProc) (CompObject		      *object,
+			    const CompObjectInterface *interface,
+			    size_t		      offset,
+			    CompObject		      *descendant,
+			    const CompObjectInterface *descendantInterface,
+			    size_t		      descendantOffset,
+			    const char		      *details,
+			    va_list		      args);
 
-typedef void (*DisconnectProc) (CompObject *object,
-				const char *interface,
-				size_t     offset,
-				int	   index);
+typedef void (*DisconnectProc) (CompObject		  *object,
+				const CompObjectInterface *interface,
+				size_t			  offset,
+				int			  index);
 
 typedef void (*SignalProc) (CompObject   *object,
 			    const char   *path,
@@ -674,20 +674,20 @@ compCheckEqualityOfValuesAndArgs (const char   *signature,
 				  ...);
 
 int
-compConnect (CompObject *object,
-	     const char *interface,
-	     size_t     offset,
-	     CompObject *descendant,
-	     const char *descendantInterface,
-	     size_t     descendantOffset,
-	     const char *details,
+compConnect (CompObject		       *object,
+	     const CompObjectInterface *interface,
+	     size_t		       offset,
+	     CompObject		       *descendant,
+	     const CompObjectInterface *descendantInterface,
+	     size_t		       descendantOffset,
+	     const char		       *details,
 	     ...);
 
 void
-compDisconnect (CompObject *object,
-		const char *interface,
-		size_t     offset,
-		int	   index);
+compDisconnect (CompObject		  *object,
+		const CompObjectInterface *interface,
+		size_t			  offset,
+		int			  index);
 
 const char *
 compTranslateObjectPath (CompObject *ancestor,

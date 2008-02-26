@@ -270,20 +270,20 @@ cForEachInterface (CompObject	         *object,
 		   void		         *closure);
 
 int
-cConnect (CompObject *object,
-	  const char *interface,
-	  size_t     offset,
-	  CompObject *descendant,
-	  const char *descendantInterface,
-	  size_t     descendantOffset,
-	  const char *details,
-	  va_list    args);
+cConnect (CompObject		    *object,
+	  const CompObjectInterface *interface,
+	  size_t		    offset,
+	  CompObject		    *descendant,
+	  const CompObjectInterface *descendantInterface,
+	  size_t		    descendantOffset,
+	  const char		    *details,
+	  va_list		    args);
 
 void
-cDisconnect (CompObject *object,
-	     const char *interface,
-	     size_t     offset,
-	     int	id);
+cDisconnect (CompObject		       *object,
+	     const CompObjectInterface *interface,
+	     size_t		       offset,
+	     int		       id);
 
 CompBool
 cForEachMethod (CompObject		  *object,
@@ -463,24 +463,22 @@ cObjectInterfaceFromTemplate (const CObjectInterface *tmpl,
 			      int		     *index,
 			      int		     size);
 
-CompBool
-handleConnect (CompObject	      *object,
-	       const CObjectInterface *interface,
-	       int		      *signalVecOffset,
-	       const char	      *name,
-	       size_t		      offset,
-	       CompObject	      *descendant,
-	       const char	      *descendantInterface,
-	       size_t		      descendantOffset,
-	       const char	      *details,
-	       va_list		      args,
-	       int		      *id);
 
-CompBool
+int
+handleConnect (CompObject		 *object,
+	       const CObjectInterface	 *interface,
+	       int			 *signalVecOffset,
+	       size_t			 offset,
+	       CompObject		 *descendant,
+	       const CompObjectInterface *descendantInterface,
+	       size_t			 descendantOffset,
+	       const char		 *details,
+	       va_list			 args);
+
+void
 handleDisconnect (CompObject		 *object,
 		  const CObjectInterface *interface,
 		  int			 *signalVecOffset,
-		  const char		 *name,
 		  size_t		 offset,
 		  int			 id);
 

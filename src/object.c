@@ -1235,41 +1235,37 @@ compFreeSignalVecRange (CompObject *object,
 }
 
 static int
-connect (CompObject *object,
-	 const char *interface,
-	 size_t     offset,
-	 CompObject *descendant,
-	 const char *descendantInterface,
-	 size_t     descendantOffset,
-	 const char *details,
-	 va_list    args)
+connect (CompObject		   *object,
+	 const CompObjectInterface *interface,
+	 size_t			   offset,
+	 CompObject		   *descendant,
+	 const CompObjectInterface *descendantInterface,
+	 size_t			   descendantOffset,
+	 const char		   *details,
+	 va_list		   args)
 {
-    int id;
-
-    if (handleConnect (object,
-		       (const CObjectInterface *) getObjectType (), NULL,
-		       interface,
-		       offset,
-		       descendant,
-		       descendantInterface,
-		       descendantOffset,
-		       details,
-		       args,
-		       &id))
-	return id;
+    if (getObjectType () == interface)
+	return handleConnect (object,
+			      (const CObjectInterface *) interface, NULL,
+			      offset,
+			      descendant,
+			      descendantInterface,
+			      descendantOffset,
+			      details,
+			      args);
 
     return -1;
 }
 
 static int
-noopConnect (CompObject *object,
-	     const char *interface,
-	     size_t     offset,
-	     CompObject *descendant,
-	     const char *descendantInterface,
-	     size_t     descendantOffset,
-	     const char *details,
-	     va_list	args)
+noopConnect (CompObject		       *object,
+	     const CompObjectInterface *interface,
+	     size_t		       offset,
+	     CompObject		       *descendant,
+	     const CompObjectInterface *descendantInterface,
+	     size_t		       descendantOffset,
+	     const char		       *details,
+	     va_list		       args)
 {
     int index;
 
@@ -1286,23 +1282,23 @@ noopConnect (CompObject *object,
 }
 
 static void
-disconnect (CompObject *object,
-	    const char *interface,
-	    size_t     offset,
-	    int	       id)
+disconnect (CompObject		      *object,
+	    const CompObjectInterface *interface,
+	    size_t		      offset,
+	    int			      index)
 {
-    handleDisconnect (object,
-		      (const CObjectInterface *) getObjectType (), NULL,
-		      interface,
-		      offset,
-		      id);
+    if (getObjectType () == interface)
+	handleDisconnect (object,
+			  (const CObjectInterface *) interface, NULL,
+			  offset,
+			  index);
 }
 
 static void
-noopDisconnect (CompObject *object,
-		const char *interface,
-		size_t     offset,
-		int	   index)
+noopDisconnect (CompObject		  *object,
+		const CompObjectInterface *interface,
+		size_t			  offset,
+		int			  index)
 {
     FOR_BASE (object, (*object->vTable->disconnect) (object,
 						     interface,
@@ -2458,13 +2454,13 @@ compCheckEqualityOfValuesAndArgs (const char   *signature,
 }
 
 int
-compConnect (CompObject *object,
-	     const char *interface,
-	     size_t     offset,
-	     CompObject *descendant,
-	     const char *descendantInterface,
-	     size_t     descendantOffset,
-	     const char *details,
+compConnect (CompObject		       *object,
+	     const CompObjectInterface *interface,
+	     size_t		       offset,
+	     CompObject		       *descendant,
+	     const CompObjectInterface *descendantInterface,
+	     size_t		       descendantOffset,
+	     const char		       *details,
 	     ...)
 {
     va_list args;
@@ -2487,10 +2483,10 @@ compConnect (CompObject *object,
 }
 
 void
-compDisconnect (CompObject *object,
-		const char *interface,
-		size_t     offset,
-		int	   index)
+compDisconnect (CompObject		  *object,
+		const CompObjectInterface *interface,
+		size_t			  offset,
+		int			  index)
 {
     (*object->vTable->disconnect) (object,
 				   interface,

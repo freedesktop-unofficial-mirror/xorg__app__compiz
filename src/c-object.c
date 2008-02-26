@@ -41,10 +41,10 @@ static void
 cInsertObjectInterface (CompObject *object,
 			CompObject *parent)
 {
-    CompObject	     *child;
-    CObjectInterface *cInterface;
-    char	     *data;
-    int		     i;
+    CompObject	           *child;
+    const CObjectInterface *cInterface;
+    char	           *data;
+    int		           i;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -119,10 +119,10 @@ cInsertObject (CompObject *object,
 static void
 cRemoveObjectInterface (CompObject *object)
 {
-    CompObject	     *child;
-    CObjectInterface *cInterface;
-    char	     *data;
-    int		     i;
+    CompObject	           *child;
+    const CObjectInterface *cInterface;
+    char	           *data;
+    int		           i;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -157,8 +157,8 @@ cForEachInterface (CompObject	         *object,
 		   InterfaceCallBackProc proc,
 		   void		         *closure)
 {
-    CompBool	     status;
-    CObjectInterface *cInterface;
+    CompBool	           status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -180,8 +180,8 @@ cForEachMethod (CompObject		  *object,
 		MethodCallBackProc	  proc,
 		void			  *closure)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -219,8 +219,8 @@ cForEachSignal (CompObject		  *object,
 		SignalCallBackProc	  proc,
 		void			  *closure)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -257,8 +257,8 @@ cForEachProp (CompObject		*object,
 	      PropCallBackProc	        proc,
 	      void		        *closure)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -305,10 +305,10 @@ cForEachChildObject (CompObject		     *object,
 		     ChildObjectCallBackProc proc,
 		     void		     *closure)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
-    char             *data;
-    int		     i;
+    CompBool               status;
+    const CObjectInterface *cInterface;
+    char                   *data;
+    int		           i;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -331,10 +331,10 @@ CompObject *
 cLookupChildObject (CompObject *object,
 		    const char *name)
 {
-    CompObject	     *child;
-    CObjectInterface *cInterface;
-    char             *data;
-    int		     i;
+    CompObject	           *child;
+    const CObjectInterface *cInterface;
+    char                   *data;
+    int		           i;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -351,12 +351,12 @@ cLookupChildObject (CompObject *object,
 }
 
 typedef struct _HandleConnectContext {
-    const char		   *interface;
-    size_t		   offset;
-    char		   *in;
-    CompBool		   out;
-    const CompObjectVTable *vTable;
-    MethodMarshalProc	   marshal;
+    const CompObjectInterface *interface;
+    size_t		      offset;
+    char		      *in;
+    CompBool		      out;
+    const CompObjectVTable    *vTable;
+    MethodMarshalProc	      marshal;
 } HandleConnectContext;
 
 static CompBool
@@ -394,7 +394,7 @@ connectInterface (CompObject	            *object,
 {
     HandleConnectContext *pCtx = (HandleConnectContext *) closure;
 
-    if (strcmp (interface->name, pCtx->interface) == 0)
+    if (interface == pCtx->interface)
     {
 	if (!(*object->vTable->forEachMethod) (object,
 					       interface,
@@ -415,234 +415,206 @@ connectInterface (CompObject	            *object,
     return TRUE;
 }
 
-static CompBool
-signalIndex (const char		    *name,
-	     const CObjectInterface *interface,
+static int
+signalIndex (const CObjectInterface *interface,
 	     size_t		    offset,
-	     int		    *index,
 	     const char		    **signature)
 {
-    if (interface)
+    if (interface->nSignal &&
+	(offset % sizeof (FinalizeObjectProc)) == 0 &&
+	offset >= interface->signal[0].offset &&
+	offset <= interface->signal[interface->nSignal - 1].offset)
     {
-	if (strcmp (name, interface->i.name) != 0)
-	    return FALSE;
+	int i;
 
-	if (interface->nSignal &&
-	    (offset % sizeof (FinalizeObjectProc)) == 0 &&
-	    offset >= interface->signal[0].offset &&
-	    offset <= interface->signal[interface->nSignal - 1].offset)
-	{
-	    int i;
+	i = C_MEMBER_INDEX_FROM_OFFSET (interface->signal, offset);
 
-	    i = C_MEMBER_INDEX_FROM_OFFSET (interface->signal, offset);
+	if (signature)
+	    *signature = interface->signal[i].out;
 
-	    if (signature)
-		*signature = interface->signal[i].out;
-
-	    *index = i;
-	}
-	else
-	{
-	    *index = -1;
-	}
-
-	return TRUE;
+	return i;
     }
 
-    return FALSE;
-}
-
-CompBool
-handleConnect (CompObject	      *object,
-	       const CObjectInterface *interface,
-	       int		      *signalVecOffset,
-	       const char	      *name,
-	       size_t		      offset,
-	       CompObject	      *descendant,
-	       const char	      *descendantInterface,
-	       size_t		      descendantOffset,
-	       const char	      *details,
-	       va_list		      args,
-	       int		      *id)
-{
-    const char *in;
-    int	       index;
-
-    if (signalIndex (name, interface, offset, &index, &in))
-    {
-	HandleConnectContext ctx;
-	CompSignalHandler    *handler;
-	int		     size;
-	CompSignalHandler    **vec;
-
-	if (index < 0)
-	    return -1;
-
-	/* make sure details match if signal got a signature */
-	if (in && details && strncmp (in, details, strlen (details)))
-	    return -1;
-
-	if (!details)
-	    details = "";
-
-	ctx.interface = descendantInterface;
-	ctx.in	      = NULL;
-	ctx.vTable    = NULL;
-	ctx.offset    = descendantOffset;
-	ctx.marshal   = NULL;
-
-	if ((*descendant->vTable->forEachInterface) (descendant,
-						     connectInterface,
-						     (void *) &ctx))
-	    return -1;
-
-	/* make sure signatures match */
-	if (ctx.in && in && strcmp (ctx.in, in))
-	{
-	    free (ctx.in);
-	    return -1;
-	}
-
-	if (ctx.in)
-	    free (ctx.in);
-
-	vec = compGetSignalVecRange (object,
-				     interface->nSignal,
-				     signalVecOffset);
-	if (!vec)
-	    return -1;
-
-	size = compSerializeMethodCall (object,
-					descendant,
-					descendantInterface,
-					name,
-					details,
-					args,
-					NULL,
-					0);
-
-	handler = malloc (sizeof (CompSignalHandler) + size);
-	if (!handler)
-	    return -1;
-
-	handler->next    = NULL;
-	handler->object  = descendant;
-	handler->vTable  = ctx.vTable;
-	handler->offset  = ctx.offset;
-	handler->marshal = ctx.marshal;
-	handler->header  = (CompSerializedMethodCallHeader *) (handler + 1);
-
-	compSerializeMethodCall (object,
-				 descendant,
-				 descendantInterface,
-				 name,
-				 details,
-				 args,
-				 handler->header,
-				 size);
-
-	if (vec[index])
-	{
-	    CompSignalHandler *last;
-
-	    for (last = vec[index]; last->next; last = last->next);
-
-	    handler->id = last->id + 1;
-	    last->next  = handler;
-	}
-	else
-	{
-	    handler->id = 1;
-	    vec[index]  = handler;
-	}
-
-	*id = handler->id;
-	return TRUE;
-    }
-
-    return FALSE;
-}
-
-CompBool
-handleDisconnect (CompObject		 *object,
-		  const CObjectInterface *interface,
-		  int			 *signalVecOffset,
-		  const char		 *name,
-		  size_t		 offset,
-		  int			 id)
-{
-    int	index;
-
-    if (signalIndex (name, interface, offset, &index, NULL))
-    {
-	CompSignalHandler *handler, *prev = NULL;
-	CompSignalHandler **vec = object->signalVec;
-
-	if (index < 0)
-	    return TRUE;
-
-	if (signalVecOffset)
-	{
-	    if (!*signalVecOffset)
-		return TRUE;
-
-	    object->signalVec += *signalVecOffset;
-	}
-
-	for (handler = vec[index]; handler; handler = handler->next)
-	{
-	    if (handler->id == id)
-	    {
-		if (prev)
-		    prev->next = handler->next;
-		else
-		    vec[index] = handler->next;
-
-		break;
-	    }
-
-	    prev = handler;
-	}
-
-	if (handler)
-	    free (handler);
-
-	return TRUE;
-    }
-
-    return FALSE;
+    return -1;
 }
 
 int
-cConnect (CompObject *object,
-	  const char *interface,
-	  size_t     offset,
-	  CompObject *descendant,
-	  const char *descendantInterface,
-	  size_t     descendantOffset,
-	  const char *details,
-	  va_list    args)
+handleConnect (CompObject		 *object,
+	       const CObjectInterface	 *interface,
+	       int			 *signalVecOffset,
+	       size_t			 offset,
+	       CompObject		 *descendant,
+	       const CompObjectInterface *descendantInterface,
+	       size_t			 descendantOffset,
+	       const char		 *details,
+	       va_list			 args)
 {
-    CompInterfaceData *data;
-    CObjectInterface *cInterface;
-    int		      id;
+    HandleConnectContext ctx;
+    CompSignalHandler    *handler;
+    int			 size;
+    CompSignalHandler    **vec;
+    const char		 *in;
+    int			 index;
+
+    index = signalIndex (interface, offset, &in);
+    if (index < 0)
+	return -1;
+
+    /* make sure details match if signal got a signature */
+    if (in && details && strncmp (in, details, strlen (details)))
+	return -1;
+
+    if (!details)
+	details = "";
+
+    ctx.interface = descendantInterface;
+    ctx.in	  = NULL;
+    ctx.vTable    = NULL;
+    ctx.offset    = descendantOffset;
+    ctx.marshal   = NULL;
+
+    if ((*descendant->vTable->forEachInterface) (descendant,
+						 connectInterface,
+						 (void *) &ctx))
+	return -1;
+
+    /* make sure signatures match */
+    if (ctx.in && in && strcmp (ctx.in, in))
+    {
+	free (ctx.in);
+	return -1;
+    }
+
+    if (ctx.in)
+	free (ctx.in);
+
+    vec = compGetSignalVecRange (object,
+				 interface->nSignal,
+				 signalVecOffset);
+    if (!vec)
+	return -1;
+
+    size = compSerializeMethodCall (object,
+				    descendant,
+				    descendantInterface->name,
+				    interface->i.name,
+				    details,
+				    args,
+				    NULL,
+				    0);
+
+    handler = malloc (sizeof (CompSignalHandler) + size);
+    if (!handler)
+	return -1;
+
+    handler->next    = NULL;
+    handler->object  = descendant;
+    handler->vTable  = ctx.vTable;
+    handler->offset  = ctx.offset;
+    handler->marshal = ctx.marshal;
+    handler->header  = (CompSerializedMethodCallHeader *) (handler + 1);
+
+    compSerializeMethodCall (object,
+			     descendant,
+			     descendantInterface->name,
+			     interface->i.name,
+			     details,
+			     args,
+			     handler->header,
+			     size);
+
+    if (vec[index])
+    {
+	CompSignalHandler *last;
+
+	for (last = vec[index]; last->next; last = last->next);
+
+	handler->id = last->id + 1;
+	last->next  = handler;
+    }
+    else
+    {
+	handler->id = 1;
+	vec[index]  = handler;
+    }
+
+    return handler->id;
+}
+
+void
+handleDisconnect (CompObject		 *object,
+		  const CObjectInterface *interface,
+		  int			 *signalVecOffset,
+		  size_t		 offset,
+		  int			 id)
+{
+    CompSignalHandler *handler, *prev = NULL;
+    CompSignalHandler **vec = object->signalVec;
+    int		      index;
+
+    index = signalIndex (interface, offset, NULL);
+    if (index < 0)
+	return;
+
+    if (signalVecOffset)
+    {
+	if (!*signalVecOffset)
+	    return;
+
+	object->signalVec += *signalVecOffset;
+    }
+
+    for (handler = vec[index]; handler; handler = handler->next)
+    {
+	if (handler->id == id)
+	{
+	    if (prev)
+		prev->next = handler->next;
+	    else
+		vec[index] = handler->next;
+
+	    break;
+	}
+
+	prev = handler;
+    }
+
+    if (handler)
+	free (handler);
+}
+
+int
+cConnect (CompObject		    *object,
+	  const CompObjectInterface *interface,
+	  size_t		    offset,
+	  CompObject		    *descendant,
+	  const CompObjectInterface *descendantInterface,
+	  size_t		    descendantOffset,
+	  const char		    *details,
+	  va_list		    args)
+{
+    const CObjectInterface *cInterface;
+    int			   id;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    if (handleConnect (object,
-		       cInterface,
-		       &data->signalVecOffset,
-		       interface,
-		       offset,
-		       descendant,
-		       descendantInterface,
-		       descendantOffset,
-		       details,
-		       args,
-		       &id))
-	return id;
+    if (interface == &cInterface->i)
+    {
+	CompInterfaceData *data;
+
+	(*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+	return handleConnect (object,
+			      cInterface,
+			      &data->signalVecOffset,
+			      offset,
+			      descendant,
+			      descendantInterface,
+			      descendantOffset,
+			      details,
+			      args);
+    }
 
     FOR_BASE (object, id = (*object->vTable->connect) (object,
 						       interface,
@@ -657,30 +629,35 @@ cConnect (CompObject *object,
 }
 
 void
-cDisconnect (CompObject *object,
-	     const char *interface,
-	     size_t     offset,
-	     int	id)
+cDisconnect (CompObject		       *object,
+	     const CompObjectInterface *interface,
+	     size_t		       offset,
+	     int		       id)
 {
-    CompInterfaceData *data;
-    CObjectInterface *cInterface;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
-    (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-    if (handleDisconnect (object,
+    if (interface == &cInterface->i)
+    {
+	CompInterfaceData *data;
+
+	(*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
+
+	handleDisconnect (object,
 			  cInterface,
 			  &data->signalVecOffset,
-			  interface,
 			  offset,
-			  id))
-	return;
-
-    FOR_BASE (object, (*object->vTable->disconnect) (object,
-						     interface,
-						     offset,
-						     id));
+			  id);
+    }
+    else
+    {
+	FOR_BASE (object, (*object->vTable->disconnect) (object,
+							 interface,
+							 offset,
+							 id));
+    }
 }
 
 typedef struct _SignalArgs {
@@ -768,7 +745,7 @@ cSignal (CompObject   *object,
     int		           index, offset, i, j;
     MethodMarshalProc      marshal;
     SignalArgs	           args;
-    CObjectInterface       *cInterface;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -825,8 +802,8 @@ int
 cGetVersion (CompObject *object,
 	     const char *interface)
 {
-    CObjectInterface *cInterface;
-    int              version;
+    const CObjectInterface *cInterface;
+    int                    version;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -861,8 +838,8 @@ cGetBoolProp (CompObject *object,
 	      CompBool   *value,
 	      char	 **error)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -927,8 +904,8 @@ cSetBoolProp (CompObject *object,
 	      CompBool   value,
 	      char	 **error)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -961,7 +938,7 @@ cBoolPropChanged (CompObject *object,
 		  const char *name,
 		  CompBool   value)
 {
-    CObjectInterface *cInterface;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1004,8 +981,8 @@ cGetIntProp (CompObject *object,
 	     int32_t    *value,
 	     char	**error)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1090,8 +1067,8 @@ cSetIntProp (CompObject *object,
 	     int32_t    value,
 	     char	**error)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1124,7 +1101,7 @@ cIntPropChanged (CompObject *object,
 		 const char *name,
 		 int32_t    value)
 {
-    CObjectInterface *cInterface;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1167,8 +1144,8 @@ cGetDoubleProp (CompObject *object,
 		double	   *value,
 		char	   **error)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1253,8 +1230,8 @@ cSetDoubleProp (CompObject *object,
 		double	   value,
 		char	   **error)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1287,7 +1264,7 @@ cDoublePropChanged (CompObject *object,
 		    const char *name,
 		    double     value)
 {
-    CObjectInterface *cInterface;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1340,8 +1317,8 @@ cGetStringProp (CompObject *object,
 		char	   **value,
 		char	   **error)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1422,8 +1399,8 @@ cSetStringProp (CompObject *object,
 		const char *value,
 		char	   **error)
 {
-    CompBool         status;
-    CObjectInterface *cInterface;
+    CompBool               status;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1456,7 +1433,7 @@ cStringPropChanged (CompObject *object,
 		    const char *name,
 		    const char *value)
 {
-    CObjectInterface *cInterface;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1678,7 +1655,7 @@ cInitObjectInterface (CompObject	      *object,
 		      const CompObjectFactory *factory,
 		      CompInterfaceData	      *data)
 {
-    CObjectInterface *cInterface;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -1708,7 +1685,7 @@ static void
 cFiniObjectInterface (CompObject	*object,
 		      CompInterfaceData	*data)
 {
-    CObjectInterface *cInterface;
+    const CObjectInterface *cInterface;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
