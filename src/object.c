@@ -1346,28 +1346,6 @@ noopSignal (CompObject   *object,
 						 nValue));
 }
 
-static int
-getVersion (CompObject *object,
-	    const char *interface)
-{
-    if (strcmp (interface, getObjectType ()->name) == 0)
-	return COMPIZ_OBJECT_VERSION;
-
-    return 0;
-}
-
-static int
-noopGetVersion (CompObject *object,
-		const char *interface)
-{
-    int result;
-
-    FOR_BASE (object,
-	      result = (*object->vTable->getVersion) (object, interface));
-
-    return result;
-}
-
 static CompBool
 getBoolProp (CompObject *object,
 	     const char *interface,
@@ -1770,8 +1748,6 @@ static const CompObjectVTable objectVTable = {
     .disconnect = disconnect,
     .signal     = signal,
 
-    .getVersion = getVersion,
-
     .getBool     = getBoolProp,
     .setBool     = setBoolProp,
     .boolChanged = boolPropChanged,
@@ -1814,8 +1790,6 @@ static const CompObjectVTable noopObjectVTable = {
     .disconnect = noopDisconnect,
     .signal     = noopSignal,
 
-    .getVersion = noopGetVersion,
-
     .getBool     = noopGetBoolProp,
     .setBool     = noopSetBoolProp,
     .boolChanged = noopBoolPropChanged,
@@ -1834,7 +1808,6 @@ static const CompObjectVTable noopObjectVTable = {
 };
 
 static const CMethod objectTypeMethod[] = {
-    C_METHOD (getVersion, "s",   "i", CompObjectVTable, marshal_I_S),
     C_METHOD (getBool,    "ss",  "b", CompObjectVTable, marshal__SS_B_E),
     C_METHOD (setBool,    "ssb", "",  CompObjectVTable, marshal__SSB__E),
     C_METHOD (getInt,     "ss",  "i", CompObjectVTable, marshal__SS_I_E),

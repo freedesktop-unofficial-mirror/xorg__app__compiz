@@ -798,25 +798,6 @@ cSignal (CompObject   *object,
 						 nValue));
 }
 
-int
-cGetVersion (CompObject *object,
-	     const char *interface)
-{
-    const CObjectInterface *cInterface;
-    int                    version;
-
-    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
-				&cInterface);
-
-    if (strcmp (interface, cInterface->i.name) == 0)
-	return cInterface->i.version;
-
-    FOR_BASE (object,
-	      version = (*object->vTable->getVersion) (object, interface));
-
-    return version;
-}
-
 static CompBool
 handleGetBoolProp (CompObject	   *object,
 		   const CBoolProp *prop,
@@ -1472,8 +1453,6 @@ static const CompObjectVTable cVTable = {
     .connect    = cConnect,
     .disconnect = cDisconnect,
     .signal     = cSignal,
-
-    .getVersion = cGetVersion,
 
     .getBool     = cGetBoolProp,
     .setBool     = cSetBoolProp,

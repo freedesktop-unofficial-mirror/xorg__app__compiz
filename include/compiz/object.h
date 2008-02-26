@@ -315,9 +315,6 @@ typedef void (*SignalProc) (CompObject   *object,
 			    CompAnyValue *value,
 			    int	         nValue);
 
-typedef int (*GetVersionProc) (CompObject *object,
-			       const char *interface);
-
 typedef CompBool (*GetBoolPropProc) (CompObject *object,
 				     const char *interface,
 				     const char *name,
@@ -422,8 +419,6 @@ struct _CompObjectVTable {
 
     ConnectProc    connect;
     DisconnectProc disconnect;
-
-    GetVersionProc getVersion;
 
     GetBoolPropProc getBool;
     SetBoolPropProc setBool;

@@ -392,10 +392,6 @@ cStringPropChanged (CompObject *object,
 		    const char *name,
 		    const char *value);
 
-int
-cGetVersion (CompObject *object,
-	     const char *interface);
-
 CompBool
 cObjectPropertiesInit (CompObject	      *object,
 		       char		      *data,
