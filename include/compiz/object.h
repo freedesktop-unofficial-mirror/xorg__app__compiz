@@ -302,6 +302,14 @@ typedef int (*ConnectProc) (CompObject		      *object,
 			    const char		      *details,
 			    va_list		      args);
 
+typedef int (*ConnectAsyncProc) (CompObject		   *object,
+				 CompObject		   *descendant,
+				 const CompObjectInterface *descendantIface,
+				 size_t			   descendantOffset,
+				 CompObject		   *target,
+				 const CompObjectInterface *targetInterface,
+				 size_t			   targetOffset);
+
 typedef void (*DisconnectProc) (CompObject		  *object,
 				const CompObjectInterface *interface,
 				size_t			  offset,
@@ -417,8 +425,9 @@ struct _CompObjectVTable {
     ForEachChildObjectProc forEachChildObject;
     LookupChildObjectProc  lookupChildObject;
 
-    ConnectProc    connect;
-    DisconnectProc disconnect;
+    ConnectProc      connect;
+    ConnectAsyncProc connectAsync;
+    DisconnectProc   disconnect;
 
     GetBoolPropProc getBool;
     SetBoolPropProc setBool;
@@ -642,6 +651,12 @@ compInvokeMethod (CompObject *object,
 		  const char *in,
 		  const char *out,
 		  ...);
+
+int
+compGetObjectPath (CompObject *ancestor,
+		   CompObject *descendant,
+		   char	      *path,
+		   int	      size);
 
 int
 compSerializeMethodCall (CompObject *observer,

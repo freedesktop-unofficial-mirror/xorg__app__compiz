@@ -1555,18 +1555,9 @@ static const CStringProp screenTypeStringProp[] = {
     C_PROP (defaultIconImage, CompScreenData, .changed = defaultIconChanged)
 };
 
-static const CSignalHandler outputsSignal[] = {
-    C_SIGNAL_HANDLER (updateOutputDevices, CompScreenVTable,
-		      COMPIZ_OBJECT_TYPE_NAME, "removed"),
-    C_SIGNAL_HANDLER (updateOutputDevices, CompScreenVTable,
-		      COMPIZ_OBJECT_TYPE_NAME, "intChanged"),
-};
-
 static const CChildObject screenTypeChildObject[] = {
     C_CHILD (windows, CompScreenData, COMPIZ_OBJECT_TYPE_NAME),
-    C_CHILD (outputs, CompScreenData, COMPIZ_OBJECT_TYPE_NAME,
-	     .signal  = outputsSignal,
-	     .nSignal = N_ELEMENTS (outputsSignal))
+    C_CHILD (outputs, CompScreenData, COMPIZ_OBJECT_TYPE_NAME)
 };
 
 const CompObjectType *

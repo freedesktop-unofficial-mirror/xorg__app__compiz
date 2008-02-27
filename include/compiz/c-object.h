@@ -129,26 +129,14 @@ typedef struct _CStringProp {
     CPropChangedProc   changed;
 } CStringProp;
 
-typedef struct _CSignalHandler {
-    size_t     offset;
-    const char *interface;
-    const char *name;
-    const char *path;
-} CSignalHandler;
-
-#define C_SIGNAL_HANDLER(method, vtable, interface, name, ...)	 \
-    { offsetof (vtable, method), interface, name,  __VA_ARGS__ }
-
 typedef struct _CChildObject {
-    const char		 *name;
-    size_t		 offset;
-    const char		 *type;
-    const CSignalHandler *signal;
-    int		         nSignal;
+    const char *name;
+    size_t     offset;
+    const char *type;
 } CChildObject;
 
-#define C_CHILD(name, object, type, ...)		    \
-    { # name, offsetof (object, name), type,  __VA_ARGS__ }
+#define C_CHILD(name, object, type, ...)       \
+    { # name, offsetof (object, name), type  }
 
 typedef CompBool (*CInitObjectProc) (CompObject *object);
 typedef void     (*CFiniObjectProc) (CompObject	*object);
@@ -461,6 +449,18 @@ cObjectInterfaceFromTemplate (const CObjectInterface *tmpl,
 
 
 int
+handleConnectVa (CompObject		   *object,
+		 const CObjectInterface	   *interface,
+		 int			   *signalVecOffset,
+		 size_t			   offset,
+		 CompObject		   *descendant,
+		 const CompObjectInterface *descendantInterface,
+		 size_t			   descendantOffset,
+		 const char		   *signature,
+		 const char		   *details,
+		 va_list		   args);
+
+int
 handleConnect (CompObject		 *object,
 	       const CObjectInterface	 *interface,
 	       int			 *signalVecOffset,
@@ -468,8 +468,9 @@ handleConnect (CompObject		 *object,
 	       CompObject		 *descendant,
 	       const CompObjectInterface *descendantInterface,
 	       size_t			 descendantOffset,
+	       const char		 *signature,
 	       const char		 *details,
-	       va_list			 args);
+	       ...);
 
 void
 handleDisconnect (CompObject		 *object,

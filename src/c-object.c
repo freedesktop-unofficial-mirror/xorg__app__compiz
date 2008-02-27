@@ -353,8 +353,7 @@ cLookupChildObject (CompObject *object,
 typedef struct _HandleConnectContext {
     const CompObjectInterface *interface;
     size_t		      offset;
-    char		      *in;
-    CompBool		      out;
+    const char		      *in;
     const CompObjectVTable    *vTable;
     MethodMarshalProc	      marshal;
 } HandleConnectContext;
@@ -374,37 +373,34 @@ connectMethod (CompObject	 *object,
 	return TRUE;
 
     if (out[0] != '\0')
-    {
-	pCtx->out = TRUE;
-	return FALSE;
-    }
+	return TRUE;
 
-    pCtx->out     = FALSE;
-    pCtx->in      = strdup (in);
-    pCtx->offset  = offset;
+    if (!marshal)
+	return TRUE;
+
+    if (strcmp (pCtx->in, in))
+	return TRUE;
+
     pCtx->marshal = marshal;
 
     return FALSE;
 }
 
 static CompBool
-connectInterface (CompObject	            *object,
+connectInterface (CompObject		    *object,
 		  const CompObjectInterface *interface,
-		  void		            *closure)
+		  void			    *closure)
 {
     HandleConnectContext *pCtx = (HandleConnectContext *) closure;
 
     if (interface == pCtx->interface)
     {
-	if (!(*object->vTable->forEachMethod) (object,
-					       interface,
-					       connectMethod,
-					       closure))
-	{
-	    /* method must not have any output arguments */
-	    if (pCtx->out)
+	if (pCtx->in)
+	    if ((*object->vTable->forEachMethod) (object,
+						  interface,
+						  connectMethod,
+						  closure))
 		return TRUE;
-	}
 
 	if (!interface->vTable.noop)
 	    pCtx->vTable = object->vTable;
@@ -439,15 +435,16 @@ signalIndex (const CObjectInterface *interface,
 }
 
 int
-handleConnect (CompObject		 *object,
-	       const CObjectInterface	 *interface,
-	       int			 *signalVecOffset,
-	       size_t			 offset,
-	       CompObject		 *descendant,
-	       const CompObjectInterface *descendantInterface,
-	       size_t			 descendantOffset,
-	       const char		 *details,
-	       va_list			 args)
+handleConnectVa (CompObject		   *object,
+		 const CObjectInterface	   *interface,
+		 int			   *signalVecOffset,
+		 size_t			   offset,
+		 CompObject		   *descendant,
+		 const CompObjectInterface *descendantInterface,
+		 size_t			   descendantOffset,
+		 const char		   *signature,
+		 const char		   *details,
+		 va_list		   args)
 {
     HandleConnectContext ctx;
     CompSignalHandler    *handler;
@@ -468,25 +465,16 @@ handleConnect (CompObject		 *object,
 	details = "";
 
     ctx.interface = descendantInterface;
-    ctx.in	  = NULL;
+    ctx.in	  = signature;
     ctx.vTable    = NULL;
     ctx.offset    = descendantOffset;
     ctx.marshal   = NULL;
 
-    if ((*descendant->vTable->forEachInterface) (descendant,
-						 connectInterface,
-						 (void *) &ctx))
-	return -1;
-
-    /* make sure signatures match */
-    if (ctx.in && in && strcmp (ctx.in, in))
-    {
-	free (ctx.in);
-	return -1;
-    }
-
-    if (ctx.in)
-	free (ctx.in);
+    if (signature || !descendantInterface->vTable.noop)
+	if ((*descendant->vTable->forEachInterface) (descendant,
+						     connectInterface,
+						     (void *) &ctx))
+	    return -1;
 
     vec = compGetSignalVecRange (object,
 				 interface->nSignal,
@@ -510,7 +498,7 @@ handleConnect (CompObject		 *object,
     handler->next    = NULL;
     handler->object  = descendant;
     handler->vTable  = ctx.vTable;
-    handler->offset  = ctx.offset;
+    handler->offset  = descendantOffset;
     handler->marshal = ctx.marshal;
     handler->header  = (CompSerializedMethodCallHeader *) (handler + 1);
 
@@ -539,6 +527,39 @@ handleConnect (CompObject		 *object,
     }
 
     return handler->id;
+}
+
+int
+handleConnect (CompObject		 *object,
+	       const CObjectInterface	 *interface,
+	       int			 *signalVecOffset,
+	       size_t			 offset,
+	       CompObject		 *descendant,
+	       const CompObjectInterface *descendantInterface,
+	       size_t			 descendantOffset,
+	       const char		 *signature,
+	       const char		 *details,
+	       ...)
+{
+    va_list args;
+    int     index;
+
+    va_start (args, details);
+
+    index = handleConnectVa (object,
+			     interface,
+			     signalVecOffset,
+			     offset,
+			     descendant,
+			     descendantInterface,
+			     descendantOffset,
+			     signature,
+			     details,
+			     args);
+
+    va_end (args);
+
+    return index;
 }
 
 void
@@ -605,15 +626,16 @@ cConnect (CompObject		    *object,
 
 	(*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 
-	return handleConnect (object,
-			      cInterface,
-			      &data->signalVecOffset,
-			      offset,
-			      descendant,
-			      descendantInterface,
-			      descendantOffset,
-			      details,
-			      args);
+	return handleConnectVa (object,
+				cInterface,
+				&data->signalVecOffset,
+				offset,
+				descendant,
+				descendantInterface,
+				descendantOffset,
+				NULL,
+				details,
+				args);
     }
 
     FOR_BASE (object, id = (*object->vTable->connect) (object,
@@ -658,144 +680,6 @@ cDisconnect (CompObject		       *object,
 							 offset,
 							 id));
     }
-}
-
-typedef struct _SignalArgs {
-    CompArgs base;
-
-    CompAnyValue *value;
-    int		 nValue;
-    int		 i;
-} SignalArgs;
-
-static void
-signalArgsLoad (CompArgs *args,
-		int      type,
-		void     *value)
-{
-    SignalArgs *sa = (SignalArgs *) args;
-
-    assert (sa->nValue > sa->i);
-
-    switch (type) {
-    case COMP_TYPE_BOOLEAN:
-	*((CompBool *) value) = sa->value[sa->i].b;
-	break;
-    case COMP_TYPE_INT32:
-	*((int32_t *) value) = sa->value[sa->i].i;
-	break;
-    case COMP_TYPE_DOUBLE:
-	*((double *) value) = sa->value[sa->i].d;
-	break;
-    case COMP_TYPE_STRING:
-    case COMP_TYPE_OBJECT:
-	*((char **) value) = sa->value[sa->i].s;
-	break;
-    }
-
-    sa->i++;
-}
-
-static void
-signalArgsStore (CompArgs *args,
-		 int      type,
-		 void     *value)
-{
-    switch (type) {
-    case COMP_TYPE_STRING:
-    case COMP_TYPE_OBJECT: {
-	if (*((char **) value))
-	    free (*((char **) value));
-    } break;
-    }
-}
-
-static void
-signalArgsError (CompArgs *args,
-		 char     *error)
-{
-    if (error)
-	free (error);
-}
-
-static void
-signalInitArgs (SignalArgs   *sa,
-		CompAnyValue *value,
-		int	     nValue)
-{
-    sa->base.load  = signalArgsLoad;
-    sa->base.store = signalArgsStore;
-    sa->base.error = signalArgsError;
-
-    sa->value  = value;
-    sa->nValue = nValue;
-    sa->i      = 0;
-}
-
-static void
-cSignal (CompObject   *object,
-	 const char   *path,
-	 const char   *interface,
-	 const char   *name,
-	 const char   *signature,
-	 CompAnyValue *value,
-	 int	      nValue)
-{
-    const CompObjectVTable *vTable = object->vTable;
-    int		           index, offset, i, j;
-    MethodMarshalProc      marshal;
-    SignalArgs	           args;
-    const CObjectInterface *cInterface;
-
-    (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
-				&cInterface);
-
-    for (i = 0; i < cInterface->nChild; i++)
-    {
-	for (j = 0; path[j] && cInterface->child[i].name[j]; j++)
-	    if (path[j] != cInterface->child[i].name[j])
-		break;
-
-	if (cInterface->child[i].name[j] != '\0')
-	    continue;
-
-	if (path[j] != '/' && path[j] != '\0')
-	    continue;
-
-	for (j = 0; j < cInterface->child[i].nSignal; j++)
-	{
-	    const CSignalHandler *signal =
-		&cInterface->child[i].signal[j];
-
-	    if (signal->path && strcmp (signal->path, path))
-		continue;
-
-	    if (strcmp (signal->interface, interface) ||
-		strcmp (signal->name,      name))
-		continue;
-
-	    offset = signal->offset;
-
-	    index = (offset - cInterface->method[0].offset) /
-		sizeof (object->vTable->finalize);
-
-	    marshal = cInterface->method[index].marshal;
-
-	    signalInitArgs (&args, value, nValue);
-
-	    (*marshal) (object,
-			*((void (**) (void)) (((char *) vTable) + offset)),
-			&args.base);
-	}
-    }
-
-    FOR_BASE (object, (*object->vTable->signal) (object,
-						 path,
-						 interface,
-						 name,
-						 signature,
-						 value,
-						 nValue));
 }
 
 static CompBool
@@ -1452,7 +1336,6 @@ static const CompObjectVTable cVTable = {
 
     .connect    = cConnect,
     .disconnect = cDisconnect,
-    .signal     = cSignal,
 
     .getBool     = cGetBoolProp,
     .setBool     = cSetBoolProp,

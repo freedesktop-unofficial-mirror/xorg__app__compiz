@@ -1245,14 +1245,15 @@ connect (CompObject		   *object,
 	 va_list		   args)
 {
     if (getObjectType () == interface)
-	return handleConnect (object,
-			      (const CObjectInterface *) interface, NULL,
-			      offset,
-			      descendant,
-			      descendantInterface,
-			      descendantOffset,
-			      details,
-			      args);
+	return handleConnectVa (object,
+				(const CObjectInterface *) interface, NULL,
+				offset,
+				descendant,
+				descendantInterface,
+				descendantOffset,
+				NULL,
+				details,
+				args);
 
     return -1;
 }
@@ -1277,6 +1278,120 @@ noopConnect (CompObject		       *object,
 							  descendantOffset,
 							  details,
 							  args));
+
+    return index;
+}
+
+typedef struct _CheckSignalContext {
+    size_t offset;
+    char   *name;
+    char   *signature;
+} CheckSignalContext;
+
+static CompBool
+checkSignal (CompObject	 *object,
+	     const char	 *name,
+	     const char	 *out,
+	     size_t	 offset,
+	     void	 *closure)
+{
+    CheckSignalContext *pCtx = (CheckSignalContext *) closure;
+
+    if (offset != pCtx->offset || !out)
+	return TRUE;
+
+    pCtx->name = strdup (name);
+    if (!pCtx->name)
+	return TRUE;
+
+    pCtx->signature = strdup (out);
+    if (!pCtx->signature)
+    {
+	free (pCtx->name);
+	return TRUE;
+    }
+
+    return FALSE;
+}
+
+static int
+connectAsync (CompObject		*object,
+	      CompObject		*descendant,
+	      const CompObjectInterface *descendantInterface,
+	      size_t			descendantOffset,
+	      CompObject		*target,
+	      const CompObjectInterface *targetInterface,
+	      size_t			targetOffset)
+{
+    CheckSignalContext ctx;
+    char	       *path;
+    int		       index, pathSize = 0;
+
+    ctx.offset = descendantOffset;
+
+    if ((*descendant->vTable->forEachSignal) (descendant,
+					      descendantInterface,
+					      checkSignal,
+					      (void *) &ctx))
+	return -1;
+
+    pathSize = compGetObjectPath (object, descendant, NULL, 0);
+    if (!pathSize)
+    {
+	free (ctx.name);
+	free (ctx.signature);
+	return -1;
+    }
+
+    path = malloc (pathSize);
+    if (!path)
+    {
+	free (ctx.name);
+	free (ctx.signature);
+	return -1;
+    }
+
+    compGetObjectPath (object, descendant, path, pathSize);
+
+    index = handleConnect (object,
+			   (const CObjectInterface *) getObjectType (), NULL,
+			   offsetof (CompObjectVTable, signal),
+			   target,
+			   targetInterface,
+			   targetOffset,
+			   ctx.signature,
+			   "osss",
+			   path,
+			   descendantInterface->name,
+			   ctx.name,
+			   ctx.signature);
+
+    free (path);
+    free (ctx.name);
+    free (ctx.signature);
+
+    return index;
+}
+
+static int
+noopConnectAsync (CompObject		    *object,
+		  CompObject		    *descendant,
+		  const CompObjectInterface *descendantInterface,
+		  size_t		    descendantOffset,
+		  CompObject		    *target,
+		  const CompObjectInterface *targetInterface,
+		  size_t		    targetOffset)
+{
+    int index;
+
+    FOR_BASE (object,
+	      index = (*object->vTable->connectAsync) (object,
+						       descendant,
+						       descendantInterface,
+						       descendantOffset,
+						       target,
+						       targetInterface,
+						       targetOffset));
 
     return index;
 }
@@ -1306,6 +1421,113 @@ noopDisconnect (CompObject		  *object,
 						     index));
 }
 
+typedef struct _SignalArgs {
+    CompArgs base;
+
+    CompAnyValue *value;
+    int		 nValue;
+    int		 i;
+} SignalArgs;
+
+static void
+signalArgsLoad (CompArgs *args,
+		int      type,
+		void     *value)
+{
+    SignalArgs *sa = (SignalArgs *) args;
+
+    assert (sa->nValue > sa->i);
+
+    switch (type) {
+    case COMP_TYPE_BOOLEAN:
+	*((CompBool *) value) = sa->value[sa->i].b;
+	break;
+    case COMP_TYPE_INT32:
+	*((int32_t *) value) = sa->value[sa->i].i;
+	break;
+    case COMP_TYPE_DOUBLE:
+	*((double *) value) = sa->value[sa->i].d;
+	break;
+    case COMP_TYPE_STRING:
+    case COMP_TYPE_OBJECT:
+	*((char **) value) = sa->value[sa->i].s;
+	break;
+    }
+
+    sa->i++;
+}
+
+static void
+signalArgsStore (CompArgs *args,
+		 int      type,
+		 void     *value)
+{
+    switch (type) {
+    case COMP_TYPE_STRING:
+    case COMP_TYPE_OBJECT: {
+	if (*((char **) value))
+	    free (*((char **) value));
+    } break;
+    }
+}
+
+static void
+signalArgsError (CompArgs *args,
+		 char     *error)
+{
+    if (error)
+	free (error);
+}
+
+static void
+signalInitArgs (SignalArgs   *sa,
+		CompAnyValue *value,
+		int	     nValue)
+{
+    sa->base.load  = signalArgsLoad;
+    sa->base.store = signalArgsStore;
+    sa->base.error = signalArgsError;
+
+    sa->value  = value;
+    sa->nValue = nValue;
+    sa->i      = 0;
+}
+
+static void
+invokeSignalHandler (CompObject        *object,
+		     size_t	       offset,
+		     MethodMarshalProc marshal,
+		     const char        *path,
+		     const char        *interface,
+		     const char        *name,
+		     const char        *signature,
+		     CompAnyValue      *value,
+		     int               nValue)
+{
+    if (marshal)
+    {
+	SignalArgs args;
+
+	signalInitArgs (&args, value, nValue);
+
+	(*marshal) (object,
+		    *((void (**) (void)) (((char *) object->vTable) + offset)),
+		    &args.base);
+    }
+    else
+    {
+	INVOKE_HANDLER_PROC (object,
+			     offset,
+			     SignalProc,
+			     path,
+			     interface,
+			     name,
+			     signature,
+			     value,
+			     nValue);
+    }
+}
+
 static void
 signal (CompObject   *object,
 	const char   *path,
@@ -1315,17 +1537,59 @@ signal (CompObject   *object,
 	CompAnyValue *value,
 	int	     nValue)
 {
-    const CObjectInterface *cInterface = (const CObjectInterface *)
-	getObjectType ();
-    int			   index =
-	C_MEMBER_INDEX_FROM_OFFSET (cInterface->signal,
-				    offsetof (CompObjectVTable, signal));
-    const CSignal	   *signal = &cInterface->signal[index];
+    if (object->signalVec)
+    {
+	const CObjectInterface *cInterface = (const CObjectInterface *)
+	    getObjectType ();
+	int		       index =
+	    C_MEMBER_INDEX_FROM_OFFSET (cInterface->signal,
+					offsetof (CompObjectVTable, signal));
+	CompSignalHandler      *handler = object->signalVec[index];
+	CompObjectVTableVec    save;
 
-    C_EMIT_SIGNAL_INT (object, SignalProc, 0, object->signalVec,
-		       cInterface->i.name, signal->name, signal->out,
-		       index,
-		       path, interface, name, signature, value, nValue);
+	while (handler)
+	{
+	    if (MATCHING_DETAILS (handler,
+				  path,
+				  interface,
+				  name,
+				  signature))
+	    {
+		if (handler->vTable)
+		{
+		    save.vTable = handler->object->vTable;
+		    UNWRAP (handler, handler->object, vTable);
+
+		    invokeSignalHandler (handler->object,
+					 handler->offset,
+					 handler->marshal,
+					 path,
+					 interface,
+					 name,
+					 signature,
+					 value,
+					 nValue);
+
+		    WRAP (handler, handler->object, vTable, save.vTable);
+
+		}
+		else
+		{
+		    invokeSignalHandler (handler->object,
+					 handler->offset,
+					 handler->marshal,
+					 path,
+					 interface,
+					 name,
+					 signature,
+					 value,
+					 nValue);
+		}
+	    }
+
+	    handler = handler->next;
+	}
+    }
 }
 
 static void
@@ -1744,9 +2008,10 @@ static const CompObjectVTable objectVTable = {
     .interfaceAdded   = interfaceAdded,
     .interfaceRemoved = interfaceRemoved,
 
-    .connect    = connect,
-    .disconnect = disconnect,
-    .signal     = signal,
+    .connect      = connect,
+    .connectAsync = connectAsync,
+    .disconnect   = disconnect,
+    .signal       = signal,
 
     .getBool     = getBoolProp,
     .setBool     = setBoolProp,
@@ -1786,9 +2051,10 @@ static const CompObjectVTable noopObjectVTable = {
     .forEachChildObject = noopForEachChildObject,
     .lookupChildObject  = noopLookupChildObject,
 
-    .connect    = noopConnect,
-    .disconnect = noopDisconnect,
-    .signal     = noopSignal,
+    .connect      = noopConnect,
+    .connectAsync = noopConnectAsync,
+    .disconnect   = noopDisconnect,
+    .signal       = noopSignal,
 
     .getBool     = noopGetBoolProp,
     .setBool     = noopSetBoolProp,
@@ -2232,6 +2498,53 @@ compInvokeMethod (CompObject *object,
 }
 
 int
+compGetObjectPath (CompObject *ancestor,
+		   CompObject *descendant,
+		   char	      *path,
+		   int	      size)
+{
+    CompObject *node;
+    int	       pathSize = 0;
+
+    for (node = descendant; node; node = node->parent)
+    {
+	if (node == ancestor)
+	    break;
+
+	pathSize += strlen (node->name) + 1;
+    }
+
+    assert (node);
+
+    if (!pathSize)
+	pathSize = 1;
+
+    if (pathSize <= size)
+    {
+	int offset = pathSize;
+
+	path[offset - 1] = '\0';
+
+	for (node = descendant; node; node = node->parent)
+	{
+	    int len;
+
+	    if (node == ancestor)
+		break;
+
+	    if (offset-- < pathSize)
+		path[offset] = '/';
+
+	    len = strlen (node->name);
+	    offset -= len;
+	    memcpy (&path[offset], node->name, len);
+	}
+    }
+
+    return pathSize;
+}
+
+int
 compSerializeMethodCall (CompObject *observer,
 			 CompObject *subject,
 			 const char *interface,
@@ -2241,26 +2554,17 @@ compSerializeMethodCall (CompObject *observer,
 			 void	    *data,
 			 int	    size)
 {
-    CompObject *node;
-    char       *str, *ptr;
-    int	       pathSize = 0;
-    int	       interfaceSize = strlen (interface) + 1;
-    int	       nameSize = strlen (name) + 1;
-    int	       signatureSize = strlen (signature) + 1;
-    int	       valueSize = 0;
-    int	       nValue = 0;
-    int	       requiredSize, i;
-    va_list    ap;
+    char    *str, *ptr;
+    int	    pathSize;
+    int	    interfaceSize = strlen (interface) + 1;
+    int	    nameSize = strlen (name) + 1;
+    int	    signatureSize = strlen (signature) + 1;
+    int	    valueSize = 0;
+    int	    nValue = 0;
+    int	    requiredSize, i;
+    va_list ap;
 
-    for (node = subject; node; node = node->parent)
-    {
-	if (node == observer)
-	    break;
-
-	pathSize += strlen (node->name) + 1;
-    }
-
-    assert (node);
+    pathSize = compGetObjectPath (observer, subject, NULL, 0);
 
     va_copy (ap, args);
 
@@ -2296,27 +2600,9 @@ compSerializeMethodCall (CompObject *observer,
     if (requiredSize <= size)
     {
 	CompSerializedMethodCallHeader *header = data;
-	int			       offset;
 
 	header->path = (char *) (header + 1);
-
-	offset = pathSize;
-	header->path[offset - 1] = '\0';
-
-	for (node = subject; node; node = node->parent)
-	{
-	    int len;
-
-	    if (node == observer)
-		break;
-
-	    if (offset-- < pathSize)
-		header->path[offset] = '/';
-
-	    len = strlen (node->name);
-	    offset -= len;
-	    memcpy (&header->path[offset], node->name, len);
-	}
+	compGetObjectPath (observer, subject, header->path, pathSize);
 
 	header->interface = (char *) (header->path + pathSize);
 	strcpy (header->interface, interface);

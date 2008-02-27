@@ -50,6 +50,19 @@ marshal_I_S (CompObject *object,
 }
 
 void
+marshal__I__ (CompObject *object,
+	      void       (*method) (CompObject *,
+				    int32_t     ),
+	      CompArgs   *args)
+{
+    int32_t in0;
+
+    (*args->load) (args, COMP_TYPE_INT32, &in0);
+
+    (*method) (object, in0);
+}
+
+void
 marshal__I__E (CompObject *object,
 	       CompBool   (*method) (CompObject *,
 				     int32_t     ,
@@ -65,6 +78,19 @@ marshal__I__E (CompObject *object,
     {
 	(*args->error) (args, error);
     }
+}
+
+void
+marshal__S__ (CompObject *object,
+	      void       (*method) (CompObject *,
+				    const char *),
+	      CompArgs   *args)
+{
+    const char *in0;
+
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+
+    (*method) (object, in0);
 }
 
 void
