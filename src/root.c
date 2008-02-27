@@ -151,11 +151,16 @@ rootRemoveChild (CompObject *object,
 		 const char *name)
 {
     CompObject *child;
+    int	       i;
+
+    for (i = 0; i < object->nChild; i++)
+	if (strcmp (object->child[i].name, name) == 0)
+	    break;
+
+    if (i < object->nChild)
+	(*object->child[i].ref->vTable->removeObject) (object->child[i].ref);
 
     FOR_BASE (object, child = (*object->vTable->removeChild) (object, name));
-
-    if (child)
-	(*child->vTable->removeObject) (child);
 
     return child;
 }
