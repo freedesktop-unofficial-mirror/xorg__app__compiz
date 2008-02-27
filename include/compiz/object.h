@@ -391,6 +391,10 @@ typedef void (*StringPropChangedProc) (CompObject *object,
 				       const char *name,
 				       const char *value);
 
+typedef void (*LogProc) (CompObject *object,
+			 const char *interface,
+			 const char *message);
+
 struct _CompObjectVTable {
 
     /* finalize function*/
@@ -456,6 +460,8 @@ struct _CompObjectVTable {
     IntPropChangedProc    intChanged;
     DoublePropChangedProc doubleChanged;
     StringPropChangedProc stringChanged;
+
+    LogProc log;
 };
 
 typedef struct _CompObjectVTableVec {

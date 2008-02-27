@@ -1984,6 +1984,32 @@ noopStringPropChanged (CompObject *object,
 							value));
 }
 
+static void
+logImpl (CompObject *object,
+	 const char *interface,
+	 const char *message)
+{
+    const CObjectInterface *cInterface = (const CObjectInterface *)
+	getObjectType ();
+    int			   index =
+	C_MEMBER_INDEX_FROM_OFFSET (cInterface->signal,
+				    offsetof (CompObjectVTable, log));
+    const CSignal	   *signal = &cInterface->signal[index];
+
+    C_EMIT_SIGNAL_INT (object, LogProc, 0, object->signalVec,
+		       cInterface->i.name, signal->name, signal->out,
+		       index,
+		       interface, message);
+}
+
+static void
+noopLog (CompObject *object,
+	 const char *interface,
+	 const char *message)
+{
+    FOR_BASE (object, (*object->vTable->log) (object, interface, message));
+}
+
 static const CompObjectVTable objectVTable = {
     .finalize = finalize,
 
@@ -2027,7 +2053,9 @@ static const CompObjectVTable objectVTable = {
 
     .getString     = getStringProp,
     .setString     = setStringProp,
-    .stringChanged = stringPropChanged
+    .stringChanged = stringPropChanged,
+
+    .log = logImpl
 };
 
 static const CompObjectVTable noopObjectVTable = {
@@ -2070,7 +2098,9 @@ static const CompObjectVTable noopObjectVTable = {
 
     .getString     = noopGetStringProp,
     .setString     = noopSetStringProp,
-    .stringChanged = noopStringPropChanged
+    .stringChanged = noopStringPropChanged,
+
+    .log = noopLog
 };
 
 static const CMethod objectTypeMethod[] = {
@@ -2096,7 +2126,9 @@ static const CSignal objectTypeSignal[] = {
     C_SIGNAL (boolChanged,   "ssb", CompObjectVTable),
     C_SIGNAL (intChanged,    "ssi", CompObjectVTable),
     C_SIGNAL (doubleChanged, "ssd", CompObjectVTable),
-    C_SIGNAL (stringChanged, "sss", CompObjectVTable)
+    C_SIGNAL (stringChanged, "sss", CompObjectVTable),
+
+    C_SIGNAL (log, "ss", CompObjectVTable)
 };
 
 static const CObjectInterface objectType = {
