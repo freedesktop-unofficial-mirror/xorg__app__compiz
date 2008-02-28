@@ -1,5 +1,5 @@
 <compiz>
-  <interface name="metadata">
+  <interface name="org.compiz.metadata.xml">
     <method name="get">
       <arg name="interface" type="s" direction="in"/>
       <arg name="data" type="s" direction="out"/>

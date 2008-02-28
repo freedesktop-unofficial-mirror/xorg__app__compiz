@@ -1,5 +1,5 @@
 <compiz>
-  <interface name="box">
+  <interface name="org.compiz.box">
     <property name="x1" type="i">
       <_short>X1</_short>
       <_long>Top Left X coordinate</_long>

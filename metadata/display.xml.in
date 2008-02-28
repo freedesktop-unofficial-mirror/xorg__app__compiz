@@ -1,5 +1,5 @@
 <compiz>
-  <interface name="display">
+  <interface name="org.compiz.display">
     <method name="addScreen">
       <arg name="number" type="i" direction="in"/>
     </method>

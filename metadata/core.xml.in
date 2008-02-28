@@ -1,5 +1,5 @@
 <compiz>
-  <interface name="core">
+  <interface name="org.compiz.core">
     <method name="addDisplay">
       <arg name="hostName" type="s" direction="in"/>
       <arg name="displayNum" type="i" direction="in"/>

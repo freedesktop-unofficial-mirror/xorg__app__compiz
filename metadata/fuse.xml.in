@@ -1,5 +1,5 @@
 <compiz>
-  <interface name="fuse">
+  <interface name="org.compiz.fuse.core">
     <_short>Userspace File System</_short>
     <_long>Userspace file system</_long>
     <property name="mountPoint" type="s">

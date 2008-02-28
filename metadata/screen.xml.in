@@ -1,5 +1,5 @@
 <compiz>
-  <interface name="screen">
+  <interface name="org.compiz.screen">
     <property name="detectOutputs" type="b">
       <_short>Detect Outputs</_short>
       <_long>Automatic detection of output devices</_long>

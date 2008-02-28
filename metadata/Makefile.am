@@ -1,9 +1,7 @@
 xmldir       = $(metadatadir)
 xml_in_files =		  \
 	object.xml.in	  \
-	properties.xml.in \
 	metadata.xml.in   \
-	version.xml.in    \
 	core.xml.in	  \
 	display.xml.in	  \
 	screen.xml.in	  \
