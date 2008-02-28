@@ -180,18 +180,6 @@ typedef struct _CObjectInterface {
 #define C_MEMBER_X(name, type, member)				\
     name ## type ## member, N_ELEMENTS (name ## type ## member)
 
-#define C_INTERFACE(name, type, vtable, offset, method, signal,		\
-		    bool, int, double, string, child)			\
-    { COMPIZ_NAME_PREFIX # name, NULL,					\
-	    C_OFFSET_ ## offset (vtable, name),				\
-	    C_MEMBER_ ## method (name, type, Method),			\
-	    C_MEMBER_ ## signal (name, type, Signal),			\
-	    C_MEMBER_ ## bool   (name, type, BoolProp),			\
-	    C_MEMBER_ ## int    (name, type, IntProp),			\
-	    C_MEMBER_ ## double (name, type, DoubleProp),		\
-	    C_MEMBER_ ## string (name, type, StringProp),		\
-	    C_MEMBER_ ## child  (name, type, ChildObject), FALSE }
-
 #define C_MEMBER_INDEX_FROM_OFFSET(members, vTableOffset)		   \
     (((vTableOffset) - (members)[0].offset) / sizeof (FinalizeObjectProc))
 
