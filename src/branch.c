@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include <compiz/branch.h>
+#include <compiz/prop.h>
 #include <compiz/error.h>
 #include <compiz/marshal.h>
 #include <compiz/c-object.h>
@@ -75,12 +76,21 @@ branchInsertObject (CompObject *object,
 	for (node = factory->instantiators; node; node = node->next)
 	{
 	    const CompObjectInstantiator *instantiator;
+	    CompObject			 *type;
 
-	    (*b->u.vTable->newObject) (b,
-				       b->data.types.name,
-				       COMPIZ_OBJECT_TYPE_NAME,
-				       node->base.interface->name,
-				       NULL);
+	    type = (*b->u.vTable->newObject) (b,
+					      b->data.types.name,
+					      COMPIZ_STRING_PROP_TYPE_NAME,
+					      NULL,
+					      NULL);
+	    if (!type)
+		continue;
+
+	    (*type->vTable->setString) (type,
+					COMPIZ_STRING_PROP_TYPE_NAME,
+					"value",
+					node->base.interface->name,
+					NULL);
 
 	    for (instantiator = node->instantiator;
 		 instantiator;
@@ -88,19 +98,29 @@ branchInsertObject (CompObject *object,
 	    {
 		if (instantiator->interface)
 		{
+		    CompObject *interface;
 		    const char *name = instantiator->interface->name;
 		    char       path[257];
 
 		    sprintf (path,
 			     "%s/%s",
 			     b->data.types.name,
-			     node->base.interface->name);
+			     type->name);
 
-		    (*b->u.vTable->newObject) (b,
-					       path,
-					       COMPIZ_OBJECT_TYPE_NAME,
-					       name,
-					       NULL);
+		    interface =
+			(*b->u.vTable->newObject) (b,
+						   path,
+						   COMPIZ_STRING_PROP_TYPE_NAME,
+						   NULL,
+						   NULL);
+		    if (!interface)
+			continue;
+
+		    (*interface->vTable->setString) (interface,
+						     COMPIZ_STRING_PROP_TYPE_NAME,
+						     "value",
+						     name,
+						     NULL);
 		}
 
 		if (instantiator == &node->base)

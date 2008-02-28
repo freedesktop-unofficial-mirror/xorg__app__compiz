@@ -425,15 +425,34 @@ popType (CompBranch *branch)
     compFactoryUninstallType (&branch->factory);
 }
 
+static CompObject *
+hasStringPropValue (CompObject *object,
+		    const char *value)
+{
+    char *v;
+
+    if ((*object->vTable->getString) (object, 0, "value", &v, 0))
+    {
+	if (strcmp (v, value) == 0)
+	{
+	    free (v);
+	    return object;
+	}
+	free (v);
+    }
+
+    return NULL;
+}
+
 static CompBool
 pushInterface (CompBranch		 *branch,
 	       const CompObjectInterface *interface,
 	       char			 **error)
 {
     const CompObjectType       *type;
-    CompObject		       *node;
-    char		       path[257];
+    CompObject		       *node = NULL;
     CompObjectInstantiatorNode *n;
+    int			       i;
 
     n = compObjectInstantiatorNode (&branch->factory, interface->base.name);
     if (!n)
@@ -445,18 +464,50 @@ pushInterface (CompBranch		 *branch,
 
     type = n->base.interface;
 
-    sprintf (path, "%s/%s", branch->data.types.name, type->name);
+    for (i = 0; i < branch->data.types.nChild; i++)
+	if (hasStringPropValue (branch->data.types.child[i].ref, type->name))
+	    break;
 
-    node = (*branch->u.vTable->newObject) (branch,
-					   path,
-					   COMPIZ_OBJECT_TYPE_NAME,
-					   interface->name,
-					   NULL);
-    if (!node)
+    if (i < branch->data.types.nChild)
     {
-	esprintf (error, "Failed to allocate node for '%s' interface",
-		  interface->name);
-	return FALSE;
+	char path[257];
+
+	sprintf (path, "%s/%s", branch->data.types.name,
+		 branch->data.types.child[i].ref->name);
+
+	node = (*branch->u.vTable->newObject) (branch,
+					       path,
+					       COMPIZ_STRING_PROP_TYPE_NAME,
+					       NULL,
+					       NULL);
+	if (node)
+	{
+	    char *error;
+
+	    if (!(*node->vTable->setString) (node,
+					     COMPIZ_STRING_PROP_TYPE_NAME,
+					     "value",
+					     interface->name,
+					     &error))
+	    {
+		(*branch->u.base.vTable->log) (&branch->u.base,
+					       getBranchObjectType ()->name,
+					       error);
+		free (error);
+	    }
+	}
+	else
+	{
+	    (*branch->u.base.vTable->log) (&branch->u.base,
+					   getBranchObjectType ()->name,
+					   "Failed to create interface node");
+	}
+    }
+    else
+    {
+	(*branch->u.base.vTable->log) (&branch->u.base,
+				       getBranchObjectType ()->name,
+				       "Failed to locate type node");
     }
 
     if (!compFactoryInstallInterface (&branch->factory,
@@ -465,7 +516,9 @@ pushInterface (CompBranch		 *branch,
 				      interface,
 				      error))
     {
-	(*branch->u.vTable->destroyObject) (branch, node);
+	if (node)
+	    (*branch->u.vTable->destroyObject) (branch, node);
+
 	return FALSE;
     }
 
@@ -491,13 +544,24 @@ popInterface (CompBranch		*branch,
     if (interface)
     {
 	CompObject *node;
+	int	   i;
 
-	node = compLookupDescendantVa (&branch->data.types,
-				       type->name,
-				       interface->name,
-				       NULL);
-	if (node)
-	    (*branch->u.vTable->destroyObject) (branch, node);
+	for (i = 0; i < branch->data.types.nChild; i++)
+	    if (hasStringPropValue (branch->data.types.child[i].ref,
+				    type->name))
+		break;
+
+	if (i < branch->data.types.nChild)
+	{
+	    int j;
+
+	    for (j = 0; j < branch->data.types.child[i].ref->nChild; j++)
+	    {
+		node = branch->data.types.child[i].ref->child[j].ref;
+		if (hasStringPropValue (node, interface->name))
+		    (*branch->u.vTable->destroyObject) (branch, node);
+	    }
+	}
     }
 }
 
