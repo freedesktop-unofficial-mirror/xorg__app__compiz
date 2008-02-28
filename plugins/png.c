@@ -526,7 +526,7 @@ pngFiniObject (CompPlugin *p,
 }
 
 static CompBool
-pngInit (CompFactory *factory)
+pngInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&pngMetadata, "png",
 					 0, 0, 0, 0))
@@ -545,7 +545,7 @@ pngInit (CompFactory *factory)
 }
 
 static void
-pngFini (CompFactory *factory)
+pngFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&pngMetadata);

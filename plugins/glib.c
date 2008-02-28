@@ -30,7 +30,11 @@
 #include <compiz/c-object.h>
 #include <compiz/marshal.h>
 
-#define COMPIZ_GLIB_VERSION 20071116
+#define COMPIZ_GLIB_INTERFACE_NAME "org.compiz.glib"
+#define COMPIZ_GLIB_VERSION	   20071116
+
+const CompObjectInterface *
+getGlibCoreObjectInterface (void);
 
 static int glibCorePrivateIndex;
 
@@ -63,14 +67,6 @@ typedef struct _GLibCoreVTable {
 #define GLIB_CORE(c)		     \
     GLibCore *gc = GET_GLIB_CORE (c)
 
-
-static CMethod glibCoreMethod[] = {
-    C_METHOD (wakeUp, "", "", GLibCoreVTable, marshal____)
-};
-
-static CInterface glibCoreInterface[] = {
-    C_INTERFACE (glib, Core, GLibCoreVTable, _, X, _, _, _, _, _, _)
-};
 
 static void
 glibDispatch (CompCore     *c,
@@ -222,17 +218,9 @@ glibGetProp (CompObject   *object,
 	     unsigned int what,
 	     void	  *value)
 {
-    static const CMetadata template = {
-	.interface  = glibCoreInterface,
-	.nInterface = N_ELEMENTS (glibCoreInterface),
-	.init       = glibInitCore,
-	.fini       = glibFiniCore,
-	.version    = COMPIZ_GLIB_VERSION
-    };
-
-    CORE (object);
-
-    cGetInterfaceProp (&GET_GLIB_CORE (c)->base, &template, what, value);
+    cGetInterfaceProp (&GET_GLIB_CORE (GET_CORE (object))->base,
+		       getGlibCoreObjectInterface (),
+		       what, value);
 }
 
 static const GLibCoreVTable glibCoreObjectVTable = {
@@ -241,57 +229,47 @@ static const GLibCoreVTable glibCoreObjectVTable = {
     .wakeUp = glibWakeup
 };
 
-static CObjectPrivate glibObj[] = {
-    C_OBJECT_PRIVATE (CORE_TYPE_NAME, glib, Core, GLibCore, X, X)
+static const CMethod glibCoreMethod[] = {
+    C_METHOD (wakeUp, "", "", GLibCoreVTable, marshal____)
 };
 
-static CompBool
-glibInsert (CompObject *parent,
-	    CompBranch *branch)
+const CompObjectInterface *
+getGlibCoreObjectInterface (void)
 {
-    if (!cObjectInitPrivates (branch, glibObj, N_ELEMENTS (glibObj)))
-	return FALSE;
+    static CompObjectInterface *interface = NULL;
 
-    return TRUE;
+    if (!interface)
+    {
+	static const CObjectInterface template = {
+	    .i.name	    = COMPIZ_GLIB_INTERFACE_NAME,
+	    .i.version	    = COMPIZ_GLIB_VERSION,
+	    .i.base.name    = COMPIZ_CORE_TYPE_NAME,
+	    .i.base.version = COMPIZ_CORE_VERSION,
+	    .i.vTable.impl  = &glibCoreObjectVTable.base.base.base,
+	    .i.vTable.size  = sizeof (glibCoreObjectVTable),
+
+	    .method  = glibCoreMethod,
+	    .nMethod = N_ELEMENTS (glibCoreMethod),
+
+	    .init = glibInitCore,
+	    .fini = glibFiniCore
+	};
+
+	interface = cObjectInterfaceFromTemplate (&template,
+						  &glibCorePrivateIndex,
+						  sizeof (GLibCore));
+    }
+
+    return interface;
 }
 
-static void
-glibRemove (CompObject *parent,
-	    CompBranch *branch)
+const GetInterfaceProc *
+getCompizObjectInterfaces20080220 (int *n)
 {
-    cObjectFiniPrivates (branch, glibObj, N_ELEMENTS (glibObj));
-}
+    static const GetInterfaceProc interfaces[] = {
+	getGlibCoreObjectInterface
+    };
 
-static CompBool
-glibInit (CompFactory *factory)
-{
-    if (!cObjectAllocPrivateIndices (factory, glibObj, N_ELEMENTS (glibObj)))
-	return FALSE;
-
-    return TRUE;
-}
-
-static void
-glibFini (CompFactory *factory)
-{
-    cObjectFreePrivateIndices (factory, glibObj, N_ELEMENTS (glibObj));
-}
-
-CompPluginVTable glibVTable = {
-    "glib",
-    0, /* GetMetadata */
-    glibInit,
-    glibFini,
-    0, /* InitObject */
-    0, /* FiniObject */
-    0, /* GetObjectOptions */
-    0, /* SetObjectOption */
-    glibInsert,
-    glibRemove
-};
-
-CompPluginVTable *
-getCompPluginInfo20070830 (void)
-{
-    return &glibVTable;
+    *n = N_ELEMENTS (interfaces);
+    return interfaces;
 }

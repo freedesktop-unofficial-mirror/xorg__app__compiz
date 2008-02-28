@@ -26,7 +26,11 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
-#define COMPIZ_KCONFIG_VERSION 20071123
+#define COMPIZ_KCONFIG_INTERFACE_NAME "org.compiz.kconfig"
+#define COMPIZ_KCONFIG_VERSION        20071123
+
+const CompObjectInterface *
+getKconfigCoreObjectInterface (void);
 
 #define COMPIZ_KCONFIG_RC "compizrc"
 
@@ -49,10 +53,6 @@ typedef struct _KconfigCore {
     KconfigCore *kc = GET_KCONFIG_CORE (c)
 
 
-static CInterface kconfigCoreInterface[] = {
-    C_INTERFACE (kconfig, Core, CompCoreVTable, _, _, _, _, _, _, _, _)
-};
-
 static QString
 kconfigObjectPath (CompObject *object)
 {
@@ -70,10 +70,6 @@ kconfigGroup (CompObject *object,
 {
     QString path = kconfigObjectPath (object);
 
-    /* include interface name when it's not part of type */
-    if (compObjectInterfaceIsPartOfType (object, interface))
-	return path;
-
     return path + "_" + QString (interface);
 }
 
@@ -84,33 +80,31 @@ kconfigReadProp (CompObject *object,
 		 const char *name,
 		 int	    type)
 {
-    const CompPropertiesVTable *vTable = &object->vTable->properties;
-
     switch (type) {
     case COMP_TYPE_BOOLEAN:
-	return (*vTable->setBool) (object,
-				   interface,
-				   name,
-				   config->readBoolEntry (name),
-				   NULL);
+	return (*object->vTable->setBool) (object,
+					   interface,
+					   name,
+					   config->readBoolEntry (name),
+					   NULL);
     case COMP_TYPE_INT32:
-	return (*vTable->setInt) (object,
-				  interface,
-				  name,
-				  config->readNumEntry (name),
-				  NULL);
+	return (*object->vTable->setInt) (object,
+					  interface,
+					  name,
+					  config->readNumEntry (name),
+					  NULL);
     case COMP_TYPE_DOUBLE:
-	return (*vTable->setDouble) (object,
-				     interface,
-				     name,
-				     config->readDoubleNumEntry (name),
-				     NULL);
+	return (*object->vTable->setDouble) (object,
+					     interface,
+					     name,
+					     config->readDoubleNumEntry (name),
+					     NULL);
     case COMP_TYPE_STRING:
-	return (*vTable->setString) (object,
-				     interface,
-				     name,
-				     config->readEntry (name),
-				     NULL);
+	return (*object->vTable->setString) (object,
+					     interface,
+					     name,
+					     config->readEntry (name),
+					     NULL);
     }
 
     return FALSE;
@@ -144,11 +138,9 @@ typedef struct _ReloadInterfaceContext {
 } ReloadInterfaceContext;
 
 static CompBool
-kconfigReloadInterface (CompObject	     *object,
-			const char	     *name,
-			size_t		     offset,
-			const CompObjectType *type,
-			void		     *closure)
+kconfigReloadInterface (CompObject	          *object,
+			const CompObjectInterface *interface,
+			void		          *closure)
 {
     ReloadPropContext ctx;
     CompCore          *c = (CompCore *) closure;
@@ -156,11 +148,11 @@ kconfigReloadInterface (CompObject	     *object,
     KCONFIG_CORE (c);
 
     ctx.core      = c;
-    ctx.interface = name;
+    ctx.interface = interface->name;
 
-    kc->config->setGroup (kconfigGroup (object, name));
+    kc->config->setGroup (kconfigGroup (object, interface->name));
 
-    (*object->vTable->forEachProp) (object, name,
+    (*object->vTable->forEachProp) (object, interface,
 				    kconfigReloadProp,
 				    (void *) &ctx);
 
@@ -210,6 +202,7 @@ kconfigRcSync (void *closure)
     return FALSE;
 }
 
+/*
 static void
 kconfigPropChanged (CompCore   *c,
 		    CompObject *object,
@@ -284,6 +277,7 @@ kconfigHandleSignal (CompObject *object,
 	    kconfigPropChanged (c, source, name, signature, args);
     }
 }
+*/
 
 static void
 kconfigRcChanged (const char *name,
@@ -343,87 +337,72 @@ kconfigFiniCore (CompObject *object)
 
 static void
 kconfigGetProp (CompObject   *object,
-	      unsigned int what,
-	      void	   *value)
+		unsigned int what,
+		void	     *value)
 {
-    static const CMetadata tmpl = {
-	kconfigCoreInterface,
-	N_ELEMENTS (kconfigCoreInterface),
-	kconfigInitCore,
-	kconfigFiniCore,
-	NULL, NULL,
-	COMPIZ_KCONFIG_VERSION
-    };
-
-    CORE (object);
-
-    cGetInterfaceProp (&GET_KCONFIG_CORE (c)->base, &tmpl, what, value);
+    cGetInterfaceProp (&GET_KCONFIG_CORE (GET_CORE (object))->base,
+		       getKconfigCoreObjectInterface (),
+		       what, value);
 }
 
 static const CompCoreVTable kconfigCoreObjectVTable = {
     { { NULL, kconfigGetProp } }
 };
 
-static CObjectPrivate kconfigObj[] = {
-    C_OBJECT_PRIVATE (CORE_TYPE_NAME, kconfig, Core, KconfigCore, X, X)
-};
-
-static CompBool
-kconfigInsert (CompObject *parent,
-	       CompBranch *branch)
+const CompObjectInterface *
+getKconfigCoreObjectInterface (void)
 {
-    if (!cObjectInitPrivates (branch, kconfigObj, N_ELEMENTS (kconfigObj)))
-	return FALSE;
+    static CompObjectInterface *interface = NULL;
 
-    return TRUE;
-}
-
-static void
-kconfigRemove (CompObject *parent,
-	       CompBranch *branch)
-{
-    cObjectFiniPrivates (branch, kconfigObj, N_ELEMENTS (kconfigObj));
-}
-
-static Bool
-kconfigInit (CompFactory *factory)
-{
-    kInstance = new KInstance ("compiz-kconfig");
-    if (!kInstance)
-	return FALSE;
-
-    if (!cObjectAllocPrivateIndices (factory, kconfigObj,
-				     N_ELEMENTS (kconfigObj)))
+    if (!interface)
     {
-	delete kInstance;
-	return FALSE;
+	static const CObjectInterface tmpl = {
+	    {
+		COMPIZ_KCONFIG_INTERFACE_NAME,
+		COMPIZ_KCONFIG_VERSION,
+		{
+		    COMPIZ_CORE_TYPE_NAME,
+		    COMPIZ_CORE_VERSION
+		}, {
+		    &kconfigCoreObjectVTable.base.base,
+		    NULL,
+		    sizeof (kconfigCoreObjectVTable)
+		}
+	    },
+
+	    NULL, 0,
+	    NULL, 0,
+	    NULL, 0,
+	    NULL, 0,
+	    NULL, 0,
+	    NULL, 0,
+	    NULL, 0,
+
+	    kconfigInitCore,
+	    kconfigFiniCore,
+
+	    NULL, NULL
+	};
+
+	interface = cObjectInterfaceFromTemplate (&tmpl,
+						  &kconfigCorePrivateIndex,
+						  sizeof (KconfigCore));
+
+	kInstance = new KInstance ("compiz-kconfig");
+	if (!kInstance)
+	  return NULL;
     }
 
-    return TRUE;
+    return interface;
 }
 
-static void
-kconfigFini (CompFactory *factory)
+const GetInterfaceProc *
+getCompizObjectInterfaces20080220 (int *n)
 {
-    cObjectFreePrivateIndices (factory, kconfigObj, N_ELEMENTS (kconfigObj));
-    delete kInstance;
-}
+    static const GetInterfaceProc interfaces[] = {
+	getKconfigCoreObjectInterface
+    };
 
-CompPluginVTable kconfigVTable = {
-    "kconfig",
-    0, /* GetMetadata */
-    kconfigInit,
-    kconfigFini,
-    0, /* InitObject */
-    0, /* FiniObject */
-    0, /* GetObjectOptions */
-    0, /* SetObjectOption */
-    kconfigInsert,
-    kconfigRemove
-};
-
-CompPluginVTable *
-getCompPluginInfo20070830 (void)
-{
-    return &kconfigVTable;
+    *n = N_ELEMENTS (interfaces);
+    return interfaces;
 }

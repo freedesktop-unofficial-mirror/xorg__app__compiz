@@ -876,7 +876,7 @@ cloneSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-cloneInit (CompFactory *factory)
+cloneInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&cloneMetadata,
 					 "clone",
@@ -898,7 +898,7 @@ cloneInit (CompFactory *factory)
 }
 
 static void
-cloneFini (CompFactory *factory)
+cloneFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&cloneMetadata);

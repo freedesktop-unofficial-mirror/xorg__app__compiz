@@ -871,7 +871,7 @@ fadeSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-fadeInit (CompFactory *factory)
+fadeInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&fadeMetadata, "fade", 0, 0,
 					 fadeScreenOptionInfo,
@@ -891,7 +891,7 @@ fadeInit (CompFactory *factory)
 }
 
 static void
-fadeFini (CompFactory *factory)
+fadeFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&fadeMetadata);

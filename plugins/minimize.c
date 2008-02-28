@@ -1036,7 +1036,7 @@ minSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-minInit (CompFactory *factory)
+minInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&minMetadata,
 					 "minimize", 0, 0,
@@ -1057,7 +1057,7 @@ minInit (CompFactory *factory)
 }
 
 static void
-minFini (CompFactory *factory)
+minFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&minMetadata);

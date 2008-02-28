@@ -792,9 +792,13 @@ static void
 cubePreparePaintScreen (CompScreen *s,
 			int	   msSinceLastPaint)
 {
-    int opt;
+    static int hsize = 0;
+    int	       opt;
 
     CUBE_SCREEN (s);
+
+    if (hsize != s->hsize)
+	cubeUpdateGeometry (s, s->hsize, cs->invert);
 
     if (cs->grabIndex)
     {
@@ -2376,7 +2380,7 @@ cubeSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-cubeInit (CompFactory *factory)
+cubeInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&cubeMetadata,
 					 "cube",
@@ -2399,7 +2403,7 @@ cubeInit (CompFactory *factory)
 }
 
 static void
-cubeFini (CompFactory *factory)
+cubeFini (CompPlugin *plugin)
 {
     freeCorePrivateIndex (cubeCorePrivateIndex);
     compFiniMetadata (&cubeMetadata);

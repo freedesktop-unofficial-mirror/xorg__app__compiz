@@ -2168,7 +2168,7 @@ switchSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-switchInit (CompFactory *factory)
+switchInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&switchMetadata,
 					 "switcher",
@@ -2191,7 +2191,7 @@ switchInit (CompFactory *factory)
 }
 
 static void
-switchFini (CompFactory *factory)
+switchFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&switchMetadata);

@@ -1755,10 +1755,6 @@ rotateInitDisplay (CompPlugin  *p,
 {
     RotateDisplay *rd;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION) ||
-	!checkPluginABI ("cube", CUBE_ABIVERSION))
-	return FALSE;
-
     if (!getPluginDisplayIndex (d, "cube", &cubeDisplayPrivateIndex))
 	return FALSE;
 
@@ -1966,7 +1962,7 @@ rotateSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-rotateInit (CompFactory *factory)
+rotateInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&rotateMetadata,
 					 "rotate",
@@ -1989,7 +1985,7 @@ rotateInit (CompFactory *factory)
 }
 
 static void
-rotateFini (CompFactory *factory)
+rotateFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&rotateMetadata);

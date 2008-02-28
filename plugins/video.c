@@ -1277,7 +1277,7 @@ videoSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-videoInit (CompFactory *factory)
+videoInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&videoMetadata,
 					 "video",
@@ -1299,7 +1299,7 @@ videoInit (CompFactory *factory)
 }
 
 static void
-videoFini (CompFactory *factory)
+videoFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&videoMetadata);

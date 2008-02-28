@@ -2863,7 +2863,7 @@ blurSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-blurInit (CompFactory *factory)
+blurInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&blurMetadata,
 					 "blur",
@@ -2886,7 +2886,7 @@ blurInit (CompFactory *factory)
 }
 
 static void
-blurFini (CompFactory *factory)
+blurFini (CompPlugin *plugin)
 {
     freeCorePrivateIndex (corePrivateIndex);
     compFiniMetadata (&blurMetadata);

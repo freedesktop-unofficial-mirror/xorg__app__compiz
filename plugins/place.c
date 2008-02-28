@@ -1712,7 +1712,7 @@ placeSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-placeInit (CompFactory *factory)
+placeInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&placeMetadata,
 					 "place", 0, 0,
@@ -1733,7 +1733,7 @@ placeInit (CompFactory *factory)
 }
 
 static void
-placeFini (CompFactory *factory)
+placeFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&placeMetadata);

@@ -996,7 +996,7 @@ svgSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-svgInit (CompFactory *factory)
+svgInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&svgMetadata,
 					 "svg",
@@ -1020,7 +1020,7 @@ svgInit (CompFactory *factory)
 }
 
 static void
-svgFini (CompFactory *factory)
+svgFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&svgMetadata);

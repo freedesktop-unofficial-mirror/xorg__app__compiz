@@ -1417,7 +1417,7 @@ resizeSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-resizeInit (CompFactory *factory)
+resizeInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&resizeMetadata,
 					 "resize",
@@ -1439,7 +1439,7 @@ resizeInit (CompFactory *factory)
 }
 
 static void
-resizeFini (CompFactory *factory)
+resizeFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&resizeMetadata);

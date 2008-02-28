@@ -31,7 +31,21 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
-#define COMPIZ_ANNOTATE_VERSION 20071116
+#define COMPIZ_ANNOTATE_VERSION 20080221
+
+#define COMPIZ_ANNO_DISPLAY_INTERFACE_NAME \
+    "org.compiz.annotateDisplay"
+#define COMPIZ_ANNO_DISPLAY_VERSION COMPIZ_ANNOTATE_VERSION
+
+const CompObjectInterface *
+getAnnoDisplayObjectInterface (void);
+
+#define COMPIZ_ANNO_SCREEN_INTERFACE_NAME \
+    "org.compiz.annotateScreen"
+#define COMPIZ_ANNO_SCREEN_VERSION COMPIZ_ANNOTATE_VERSION
+
+const CompObjectInterface *
+getAnnoScreenObjectInterface (void);
 
 static CompMetadata annoMetadata;
 
@@ -90,19 +104,6 @@ typedef struct _AnnoScreen {
 #define ANNO_SCREEN(s)			 \
     AnnoScreen *as = GET_ANNO_SCREEN (s)
 
-
-static CDoubleProp annotateDisplayDoubleProp[] = {
-    C_PROP (lineWidth, AnnoDisplay),
-    C_PROP (strokeWidth, AnnoDisplay)
-};
-
-static CInterface annoDisplayInterface[] = {
-    C_INTERFACE (annotate, Display, CompObjectVTable, _, _, _, _, _, X, _, _)
-};
-
-static CInterface annoScreenInterface[] = {
-    C_INTERFACE (annotate, Screen, CompObjectVTable, _, _, _, _, _, _, _, _)
-};
 
 static void
 annoCairoClear (CompScreen *s,
@@ -775,22 +776,57 @@ annoDisplayGetProp (CompObject   *object,
 		    unsigned int what,
 		    void	 *value)
 {
-    static const CMetadata template = {
-	.interface  = annoDisplayInterface,
-	.nInterface = N_ELEMENTS (annoDisplayInterface),
-	.init       = annoInitDisplay,
-	.fini       = annoFiniDisplay,
-	.version    = COMPIZ_ANNOTATE_VERSION
-    };
-
-    DISPLAY (object);
-
-    cGetInterfaceProp (&GET_ANNO_DISPLAY (d)->base, &template, what, value);
+    cGetInterfaceProp (&GET_ANNO_DISPLAY (GET_DISPLAY (object))->base,
+		       getAnnoDisplayObjectInterface (),
+		       what, value);
 }
 
 static const CompDisplayVTable annoDisplayObjectVTable = {
     .base.getProp = annoDisplayGetProp
 };
+
+static const CDoubleProp annotateDisplayDoubleProp[] = {
+    C_PROP (lineWidth,   AnnoDisplay),
+    C_PROP (strokeWidth, AnnoDisplay)
+};
+
+const CompObjectInterface *
+getAnnoDisplayObjectInterface (void)
+{
+    static CompObjectInterface *interface = NULL;
+
+    if (!interface)
+    {
+	static const CObjectInterface template = {
+	    .i.name	    = COMPIZ_ANNO_DISPLAY_INTERFACE_NAME,
+	    .i.version	    = COMPIZ_ANNO_DISPLAY_VERSION,
+	    .i.base.name    = COMPIZ_DISPLAY_TYPE_NAME,
+	    .i.base.version = COMPIZ_DISPLAY_VERSION,
+	    .i.vTable.impl  = &annoDisplayObjectVTable.base,
+	    .i.vTable.size  = sizeof (annoDisplayObjectVTable),
+
+	    .doubleProp  = annotateDisplayDoubleProp,
+	    .nDoubleProp = N_ELEMENTS (annotateDisplayDoubleProp),
+
+	    .init = annoInitDisplay,
+	    .fini = annoFiniDisplay
+	};
+
+	interface = cObjectInterfaceFromTemplate (&template,
+						  &annoDisplayPrivateIndex,
+						  sizeof (AnnoDisplay));
+
+	if (!compInitPluginMetadataFromInfo (&annoMetadata, "annotate",
+					     annoDisplayOptionInfo,
+					     ANNO_DISPLAY_OPTION_NUM,
+					     0, 0))
+	    return FALSE;
+
+	compAddMetadataFromFile (&annoMetadata, "annotate");
+    }
+
+    return interface;
+}
 
 static CompBool
 annoInitScreen (CompObject *object)
@@ -836,87 +872,50 @@ annoScreenGetProp (CompObject   *object,
 		    unsigned int what,
 		    void	 *value)
 {
-    static const CMetadata template = {
-	.interface  = annoScreenInterface,
-	.nInterface = N_ELEMENTS (annoScreenInterface),
-	.init       = annoInitScreen,
-	.fini       = annoFiniScreen,
-	.version    = COMPIZ_ANNOTATE_VERSION
-    };
-
-    SCREEN (object);
-
-    cGetInterfaceProp (&GET_ANNO_SCREEN (s)->base, &template, what, value);
+    cGetInterfaceProp (&GET_ANNO_SCREEN (GET_SCREEN (object))->base,
+		       getAnnoScreenObjectInterface (),
+		       what, value);
 }
 
 static const CompObjectVTable annoScreenObjectVTable = {
     .getProp = annoScreenGetProp
 };
 
-static CObjectPrivate annoObj[] = {
-    C_OBJECT_PRIVATE (DISPLAY_TYPE_NAME, anno, Display, AnnoDisplay, X, X),
-    C_OBJECT_PRIVATE (SCREEN_TYPE_NAME,  anno, Screen,  AnnoScreen,  X, X)
-};
-
-static CompBool
-annoInsert (CompObject *parent,
-	    CompBranch *branch)
+const CompObjectInterface *
+getAnnoScreenObjectInterface (void)
 {
-    if (!cObjectInitPrivates (branch, annoObj, N_ELEMENTS (annoObj)))
-	return FALSE;
+    static CompObjectInterface *interface = NULL;
 
-    return TRUE;
-}
-
-static void
-annoRemove (CompObject *parent,
-	    CompBranch *branch)
-{
-    cObjectFiniPrivates (branch, annoObj, N_ELEMENTS (annoObj));
-}
-
-static CompBool
-annoInit (CompFactory *factory)
-{
-    if (!compInitPluginMetadataFromInfo (&annoMetadata, "annotate",
-					 annoDisplayOptionInfo,
-					 ANNO_DISPLAY_OPTION_NUM,
-					 0, 0))
-	return FALSE;
-
-    if (!cObjectAllocPrivateIndices (factory, annoObj, N_ELEMENTS (annoObj)))
+    if (!interface)
     {
-	compFiniMetadata (&annoMetadata);
-	return FALSE;
+	static const CObjectInterface template = {
+	    .i.name	    = COMPIZ_ANNO_SCREEN_INTERFACE_NAME,
+	    .i.version	    = COMPIZ_ANNO_SCREEN_VERSION,
+	    .i.base.name    = COMPIZ_SCREEN_TYPE_NAME,
+	    .i.base.version = COMPIZ_SCREEN_VERSION,
+	    .i.vTable.impl  = &annoScreenObjectVTable,
+	    .i.vTable.size  = sizeof (annoScreenObjectVTable),
+
+	    .init = annoInitScreen,
+	    .fini = annoFiniScreen
+	};
+
+	interface = cObjectInterfaceFromTemplate (&template,
+						  &annoScreenPrivateIndex,
+						  sizeof (AnnoScreen));
     }
 
-    compAddMetadataFromFile (&annoMetadata, "annotate");
-
-    return TRUE;
+    return interface;
 }
 
-static void
-annoFini (CompFactory *factory)
+const GetInterfaceProc *
+getCompizObjectInterfaces20080220 (int *n)
 {
-    cObjectFreePrivateIndices (factory, annoObj, N_ELEMENTS (annoObj));
-    compFiniMetadata (&annoMetadata);
-}
+    static const GetInterfaceProc interfaces[] = {
+	getAnnoDisplayObjectInterface,
+	getAnnoScreenObjectInterface
+    };
 
-static CompPluginVTable annoVTable = {
-    "annotate",
-    0, /* GetMetadata */
-    annoInit,
-    annoFini,
-    0, /* InitObject */
-    0, /* FiniObject */
-    0, /* GetObjectOptions */
-    0, /* SetObjectOption */
-    annoInsert,
-    annoRemove
-};
-
-CompPluginVTable *
-getCompPluginInfo20070830 (void)
-{
-    return &annoVTable;
+    *n = N_ELEMENTS (interfaces);
+    return interfaces;
 }

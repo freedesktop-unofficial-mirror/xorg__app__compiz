@@ -33,30 +33,57 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
-#define COMPIZ_DBUS_VERSION 20071123
+#define COMPIZ_DBUS_INTERFACE_NAME "org.compiz.dbus"
+#define COMPIZ_DBUS_VERSION        20071123
 
-#define COMPIZ_DBUS_SERVICE_NAME   "org.freedesktop.compiz"
-#define COMPIZ_DBUS_INTERFACE_BASE "org.freedesktop.compiz."
-#define COMPIZ_DBUS_PATH_ROOT	   "/org/freedesktop/compiz"
+const CompObjectInterface *
+getDBusCoreObjectInterface (void);
+
+#define COMPIZ_DBUS_SERVICE_NAME "org.compiz"
+#define COMPIZ_DBUS_PATH_ROOT	 "/org/compiz"
 
 static int dbusCorePrivateIndex;
 
-typedef SignalProc DBusSignalProc;
+typedef void (*DBusRegisterObjectPathProc) (CompCore   *c,
+					    const char *path,
+					    const char *event);
 
-typedef void (*DBusObjectSignalProc) (CompObject *object,
+typedef void (*DBusUnregisterObjectPathProc) (CompCore   *c,
+					      const char *path,
+					      const char *event);
+
+typedef void (*DBusEmitSignalProc) (CompCore     *c,
+				    const char   *path,
+				    const char   *interface,
+				    const char   *name,
+				    const char   *signature,
+				    CompAnyValue *value,
+				    int	         nValue);
+
+typedef void (*DBusSignalProc) (CompCore     *c,
+				const char   *path,
+				const char   *interface,
+				const char   *name,
+				const char   *signature,
+				CompAnyValue *value,
+				int	     nValue);
+
+typedef void (*DBusObjectSignalProc) (CompCore   *c,
 				      const char *path,
-				      const char *name);
+				      const char *event);
 
 typedef struct _DBusCoreVTable {
     CompCoreVTable base;
 
+    DBusRegisterObjectPathProc   registerObjectPath;
+    DBusUnregisterObjectPathProc unregisterObjectPath;
+    DBusEmitSignalProc           emitSignal;
+
     DBusSignalProc	 signal;
-    SignalProc		 signalDelegate;
     DBusObjectSignalProc objectSignal;
-    DBusSignalProc       objectSignalDelegate;
-    DBusObjectSignalProc registerObjectPath;
-    DBusObjectSignalProc unregisterObjectPath;
-    DBusSignalProc       emitSignal;
+
+    SignalProc signalDelegate;
+    SignalProc objectSignalDelegate;
 } DBusCoreVTable;
 
 typedef struct _DBusCore {
@@ -71,18 +98,6 @@ typedef struct _DBusCore {
 #define DBUS_CORE(c)		     \
     DBusCore *dc = GET_DBUS_CORE (c)
 
-
-static CSignal dbusSignal = C_SIGNAL (signal, 0, DBusCoreVTable);
-static CSignal dbusObjectSignal = C_SIGNAL (objectSignal, 0, DBusCoreVTable);
-
-static CSignal *dbusCoreSignal[] = {
-    &dbusSignal,
-    &dbusObjectSignal
-};
-
-static CInterface dbusCoreInterface[] = {
-    C_INTERFACE (dbus, Core, DBusCoreVTable, _, _, X, _, _, _, _, _)
-};
 
 static char *
 dbusGetPath (const char *path)
@@ -102,21 +117,18 @@ dbusGetPath (const char *path)
 }
 
 static char *
-dbusGetObjectPath (CompObject *object)
+dbusGetObjectPath (CompBranch *branch,
+		   CompObject *object)
 {
     char *parentPath, *path;
     int  parentPathLen;
 
-    if (object->parent)
-	parentPath = dbusGetObjectPath (object->parent);
-    else
-	parentPath = strdup (COMPIZ_DBUS_PATH_ROOT);
+    if (object == &branch->u.base)
+	return strdup (COMPIZ_DBUS_PATH_ROOT);
 
+    parentPath = dbusGetObjectPath (branch, object->parent);
     if (!parentPath)
 	return NULL;
-
-    if (!object->name || strcmp (object->name, CORE_TYPE_NAME) == 0)
-	return parentPath;
 
     parentPathLen = strlen (parentPath);
 
@@ -131,19 +143,6 @@ dbusGetObjectPath (CompObject *object)
     strcpy (path + parentPathLen + 1, object->name);
 
     return path;
-}
-
-static char *
-dbusGetInterface (const char *name)
-{
-    char *interface;
-
-    interface = malloc (strlen (COMPIZ_DBUS_INTERFACE_BASE) +
-			strlen (name) + 1);
-    if (interface)
-	sprintf (interface, "%s%s", COMPIZ_DBUS_INTERFACE_BASE, name);
-
-    return interface;
 }
 
 static void
@@ -313,62 +312,54 @@ dbusCheckForObjectProp (CompObject *object,
 }
 
 static CompBool
-dbusObjectInterfaceToXml (CompObject	       *object,
-			  const char	       *name,
-			  size_t	       offset,
-			  const CompObjectType *type,
-			  void		       *closure)
+dbusObjectInterfaceToXml (CompObject	            *object,
+			  const CompObjectInterface *interface,
+			  void		            *closure)
 {
     xmlTextWriterPtr writer = (xmlTextWriterPtr) closure;
-    char	     *dbusInterface;
 
     /* avoid interfaces without public members */
     if ((*object->vTable->forEachMethod) (object,
-					  name,
+					  interface,
 					  dbusCheckForObjectMethod,
 					  NULL) &&
 	(*object->vTable->forEachSignal) (object,
-					  name,
+					  interface,
 					  dbusCheckForObjectSignal,
 					  NULL) &&
 	(*object->vTable->forEachProp) (object,
-					name,
+					interface,
 					dbusCheckForObjectProp,
 					NULL))
 	return TRUE;
 
-    dbusInterface = dbusGetInterface (name);
-    if (dbusInterface)
-    {
-	xmlTextWriterStartElement (writer, BAD_CAST "interface");
-	xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
-				     BAD_CAST dbusInterface);
+    xmlTextWriterStartElement (writer, BAD_CAST "interface");
+    xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
+				 BAD_CAST interface->name);
 
-	(*object->vTable->forEachMethod) (object,
-					  name,
-					  dbusObjectMethodToXml,
-					  closure);
+    (*object->vTable->forEachMethod) (object,
+				      interface,
+				      dbusObjectMethodToXml,
+				      closure);
 
-	(*object->vTable->forEachSignal) (object,
-					  name,
-					  dbusObjectSignalToXml,
-					  closure);
+    (*object->vTable->forEachSignal) (object,
+				      interface,
+				      dbusObjectSignalToXml,
+				      closure);
 
-	(*object->vTable->forEachProp) (object,
-					name,
-					dbusObjectPropToXml,
-					closure);
+    (*object->vTable->forEachProp) (object,
+				    interface,
+				    dbusObjectPropToXml,
+				    closure);
 
-	xmlTextWriterEndElement (writer);
-
-	free (dbusInterface);
-    }
+    xmlTextWriterEndElement (writer);
 
     return TRUE;
 }
 
 static DBusMessage *
-dbusObjectToXml (DBusConnection *connection,
+dbusObjectToXml (CompBranch     *branch,
+		 DBusConnection *connection,
 		 DBusMessage    *message,
 		 CompObject     *object)
 {
@@ -414,7 +405,7 @@ dbusObjectToXml (DBusConnection *connection,
 
     xmlTextWriterEndElement (writer);
 
-    path = dbusGetObjectPath (object);
+    path = dbusGetObjectPath (branch, object);
     if (path)
     {
 	char **childEntries;
@@ -570,6 +561,7 @@ dbusArgsError (CompArgs *args,
 
 static CompBool
 dbusInitArgs (DBusArgs	  *dArgs,
+	      CompBranch  *branch,
 	      CompObject  *object,
 	      DBusMessage *message)
 {
@@ -577,7 +569,7 @@ dbusInitArgs (DBusArgs	  *dArgs,
     dArgs->base.store = dbusArgsStore;
     dArgs->base.error = dbusArgsError;
 
-    dArgs->path = dbusGetObjectPath (object);
+    dArgs->path = dbusGetObjectPath (branch, object);
     if (!dArgs->path)
 	return FALSE;
 
@@ -608,7 +600,8 @@ dbusFiniArgs (DBusArgs *dArgs)
 }
 
 static DBusMessage *
-dbusInvokeMethod (DBusMessage *message,
+dbusInvokeMethod (CompBranch  *branch,
+		  DBusMessage *message,
 		  CompObject  *object,
 		  const char  *interface,
 		  const char  *name,
@@ -617,7 +610,7 @@ dbusInvokeMethod (DBusMessage *message,
     DBusMessage *reply = NULL;
     DBusArgs	args;
 
-    if (!dbusInitArgs (&args, object, message))
+    if (!dbusInitArgs (&args, branch, object, message))
 	return dbus_message_new_error (message,
 				       DBUS_ERROR_NO_MEMORY,
 				       "Failed to create return message");
@@ -641,40 +634,25 @@ dbusHandleMethodCall (CompBranch     *branch,
 		      DBusMessage    *message,
 		      CompObject     *object)
 {
-    static int baseLen = 0;
-    const char *interface, *member, *signature;
-
-    if (!baseLen)
-	baseLen = strlen (COMPIZ_DBUS_INTERFACE_BASE);
+    DBusMessage *reply;
+    const char  *interface, *member, *signature;
 
     interface = dbus_message_get_interface (message);
     member    = dbus_message_get_member (message);
     signature = dbus_message_get_signature (message);
 
-    if (!interface || strncmp (interface,
-			       COMPIZ_DBUS_INTERFACE_BASE,
-			       baseLen) == 0)
-    {
-	DBusMessage *reply;
-	const char  *methodInterface = NULL;
-
-	if (interface)
-	    methodInterface = interface + baseLen;
-
-	reply = dbusInvokeMethod (message,
-				  object,
-				  methodInterface,
-				  member,
-				  signature);
-	if (reply)
-	    return reply;
-    }
+    reply = dbusInvokeMethod (branch,
+			      message,
+			      object,
+			      interface,
+			      member,
+			      signature);
+    if (reply)
+	return reply;
 
     if (!interface || strcmp (interface, DBUS_INTERFACE_INTROSPECTABLE) == 0)
-    {
 	if (strcmp (member, "Introspect") == 0 && strcmp (signature, "") == 0)
-	    return dbusObjectToXml (connection, message, object);
-    }
+	    return dbusObjectToXml (branch, connection, message, object);
 
     return NULL;
 }
@@ -693,11 +671,17 @@ dbusHandleMessage (DBusConnection *connection,
     if (dbus_message_get_type (message) != DBUS_MESSAGE_TYPE_METHOD_CALL)
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-    path = dbus_message_get_path (message) + strlen (COMPIZ_DBUS_PATH_ROOT "/");
-
-    object = compLookupObject (&c->u.base.u.base, path);
-    if (!object)
-	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    path = dbus_message_get_path (message) + strlen (COMPIZ_DBUS_PATH_ROOT);
+    if (*path != '\0')
+    {
+	object = compLookupDescendant (&c->u.base.u.base, path + 1);
+	if (!object)
+	    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+    else
+    {
+	object = &c->u.base.u.base;
+    }
 
     reply = dbusHandleMethodCall (&c->u.base, connection, message, object);
     if (reply)
@@ -725,29 +709,13 @@ dbusRegisterObject (CompCore   *c,
 
     DBUS_CORE (c);
 
-    path = dbusGetObjectPath (object);
+    path = dbusGetObjectPath (&c->u.base, object);
     if (path)
     {
 	dbus_connection_register_object_path (dc->connection, path,
 					      &dbusObjectPathVTable,
 					      (void *) c);
 
-	free (path);
-    }
-}
-
-static void
-dbusUnregisterObject (CompCore   *c,
-		      CompObject *object)
-{
-    char *path;
-
-    DBUS_CORE (c);
-
-    path = dbusGetObjectPath (object);
-    if (path)
-    {
-	dbus_connection_unregister_object_path (dc->connection, path);
 	free (path);
     }
 }
@@ -767,109 +735,42 @@ dbusRegisterObjectTree (CompObject *object,
     return TRUE;
 }
 
-static CompBool
-dbusUnregisterObjectTree (CompObject *object,
-			  void	     *closure)
-{
-    CORE (closure);
-
-    (*object->vTable->forEachChildObject) (object,
-					   dbusUnregisterObjectTree,
-					   closure);
-
-    dbusUnregisterObject (c, object);
-
-    return TRUE;
-}
-
 static void
-dbusSignalImpl (CompObject   *object,
-		const char   *path,
-		const char   *interface,
-		const char   *name,
-		const char   *signature,
-		CompAnyValue *value,
-		int	     nValue)
-{
-    C_EMIT_SIGNAL (object, DBusSignalProc, &dbusSignal,
-		   path, interface, name, signature, value, nValue);
-}
-
-static void
-dbusSignalDelegate (CompObject   *object,
-		    const char   *path,
-		    const char   *interface,
-		    const char   *name,
-		    const char   *signature,
-		    CompAnyValue *value,
-		    int		 nValue)
-{
-    char *dbusPath, *dbusInterface;
-
-    dbusPath = dbusGetPath (compTranslateObjectPath (object->parent, object,
-						     path));
-    if (!dbusPath)
-	return;
-
-    dbusInterface = dbusGetInterface (interface);
-    if (!dbusInterface)
-    {
-	free (dbusPath);
-	return;
-    }
-
-    dbusSignalImpl (object, dbusPath, dbusInterface, name, signature,
-		    value, nValue);
-
-    free (dbusInterface);
-    free (dbusPath);
-}
-
-static void
-dbusObjectSignalImpl (CompObject *object,
-		      const char *path,
-		      const char *name)
-{
-    C_EMIT_SIGNAL (object, DBusObjectSignalProc, &dbusObjectSignal,
-		   path, name);
-}
-
-static void
-dbusObjectSignalDelegate (CompObject   *object,
-			  const char   *path,
-			  const char   *interface,
-			  const char   *name,
-			  const char   *signature,
-			  CompAnyValue *value,
-			  int	       nValue)
-{
-    dbusObjectSignalImpl (object, path, name);
-}
-
-static void
-dbusRegisterObjectPath (CompObject *object,
+dbusRegisterObjectPath (CompCore   *c,
 			const char *path,
 			const char *event)
 {
-    DBUS_CORE (GET_CORE (object));
+    void *data;
 
-    dbus_connection_register_object_path (dc->connection, path,
-					  &dbusObjectPathVTable,
-					  (void *) object);
+    DBUS_CORE (c);
+
+    if (!dbus_connection_get_object_path_data (dc->connection, path, &data))
+	data = NULL;
+
+    if (!data)
+	dbus_connection_register_object_path (dc->connection, path,
+					      &dbusObjectPathVTable,
+					      (void *) c);
 }
 
 static void
-dbusUnregisterObjectPath (CompObject *object,
+dbusUnregisterObjectPath (CompCore   *c,
 			  const char *path,
 			  const char *event)
 {
-    DBUS_CORE (GET_CORE (object));
+    void *data;
 
-    dbus_connection_unregister_object_path (dc->connection, path);
+    DBUS_CORE (c);
+
+    if (!dbus_connection_get_object_path_data (dc->connection, path, &data))
+	data = NULL;
+
+    if (data)
+	dbus_connection_unregister_object_path (dc->connection, path);
 }
 
 static void
-dbusEmitSignal (CompObject   *object,
+dbusEmitSignal (CompCore     *c,
 		const char   *path,
 		const char   *interface,
 		const char   *name,
@@ -879,7 +780,7 @@ dbusEmitSignal (CompObject   *object,
 {
     DBusMessage *signal;
 
-    DBUS_CORE (GET_CORE (object));
+    DBUS_CORE (c);
 
     signal = dbus_message_new_signal (path, interface, name);
     if (signal)
@@ -901,19 +802,31 @@ dbusEmitSignal (CompObject   *object,
 						&value[i]);
 		break;
 	    case COMP_TYPE_OBJECT: {
-		char *p;
+		int len;
 
-		p = malloc (strlen (path) + strlen (value[i].s) + 2);
-		if (p)
+		len = strlen (value[i].s);
+		if (len)
 		{
-		    sprintf (p, "%s/%s", path, value[i].s);
+		    char *p;
+
+		    p = malloc (strlen (path) + len + 2);
+		    if (p)
+		    {
+			sprintf (p, "%s/%s", path, value[i].s);
+			dbus_message_iter_append_basic (&iter,
+							DBUS_TYPE_OBJECT_PATH,
+							&p);
+
+			free (p);
+		    }
+		}
+		else
+		{
 		    dbus_message_iter_append_basic (&iter,
 						    DBUS_TYPE_OBJECT_PATH,
-						    &p);
-
-		    free (p);
+						    &path);
 		}
-	    } break;
+		} break;
 	    }
 	}
 
@@ -922,6 +835,65 @@ dbusEmitSignal (CompObject   *object,
 
 	dbus_message_unref (signal);
     }
+}
+
+static void
+dbusSignal (CompCore     *c,
+	    const char   *path,
+	    const char   *interface,
+	    const char   *name,
+	    const char   *signature,
+	    CompAnyValue *value,
+	    int	         nValue)
+{
+    C_EMIT_SIGNAL (&c->u.base.u.base, DBusSignalProc,
+		   offsetof (DBusCoreVTable, signal),
+		   path, interface, name, signature, value, nValue);
+}
+
+static void
+dbusObjectSignal (CompCore   *c,
+		  const char *path,
+		  const char *event)
+{
+    C_EMIT_SIGNAL (&c->u.base.u.base, DBusObjectSignalProc,
+		   offsetof (DBusCoreVTable, objectSignal),
+		   path, event);
+}
+
+static void
+dbusSignalDelegate (CompObject   *object,
+		    const char   *path,
+		    const char   *interface,
+		    const char   *name,
+		    const char   *signature,
+		    CompAnyValue *value,
+		    int		 nValue)
+{
+    char *dbusPath;
+
+    dbusPath = dbusGetPath (compTranslateObjectPath (object->parent, object,
+						     path));
+    if (dbusPath)
+    {
+	CORE (object);
+
+	dbusSignal (c, dbusPath, interface, name, signature, value, nValue);
+
+	free (dbusPath);
+    }
+}
+
+static void
+dbusObjectSignalDelegate (CompObject   *object,
+			  const char   *path,
+			  const char   *interface,
+			  const char   *name,
+			  const char   *signature,
+			  CompAnyValue *value,
+			  int	       nValue)
+{
+    dbusObjectSignal (GET_CORE (object), path, name);
 }
 
 static CompBool
@@ -1001,14 +973,14 @@ dbusInitCore (CompObject *object)
     if (!status)
 	return FALSE;
 
+    dbusRequestName (c, COMPIZ_DBUS_SERVICE_NAME);
+
+    dbusRegisterObjectTree (&c->u.base.u.base, (void *) c);
+
     dc->watchFdHandle = compAddWatchFd (fd,
 					POLLIN | POLLPRI | POLLHUP | POLLERR,
 					dbusProcessMessages,
 					c);
-
-    dbusRequestName (c, COMPIZ_DBUS_SERVICE_NAME);
-
-    dbusRegisterObjectTree (&c->u.base.u.base, (void *) c);
 
     return TRUE;
 }
@@ -1019,11 +991,59 @@ dbusFiniCore (CompObject *object)
     CORE (object);
     DBUS_CORE (c);
 
-    dbusUnregisterObjectTree (object, (void *) c);
+    compRemoveWatchFd (dc->watchFdHandle);
+
+    dbus_connection_unregister_object_path (dc->connection,
+					    COMPIZ_DBUS_PATH_ROOT);
 
     dbusReleaseName (c, COMPIZ_DBUS_SERVICE_NAME);
+}
 
-    compRemoveWatchFd (dc->watchFdHandle);
+static void
+dbusInsertCore (CompObject *object,
+		CompObject *parent)
+{
+    CORE (object);
+
+    compConnect (parent,
+		 getObjectType (),
+		 offsetof (CompObjectVTable, signal),
+		 &c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, signalDelegate),
+		 "o", "//*");
+
+    compConnect (&c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, signal),
+		 &c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, objectSignalDelegate),
+		 "os", "//*", getObjectType ()->name);
+
+    compConnect (&c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, objectSignal),
+		 &c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, registerObjectPath),
+		 "os", "//*", "inserted");
+
+    compConnect (&c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, objectSignal),
+		 &c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, unregisterObjectPath),
+		 "os", "//*", "removed");
+
+    compConnect (&c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, signal),
+		 &c->u.base.u.base,
+		 getDBusCoreObjectInterface (),
+		 offsetof (DBusCoreVTable, emitSignal),
+		 NULL);
 }
 
 static void
@@ -1031,112 +1051,70 @@ dbusGetProp (CompObject   *object,
 	     unsigned int what,
 	     void	  *value)
 {
-    static const CMetadata template = {
-	.interface  = dbusCoreInterface,
-	.nInterface = N_ELEMENTS (dbusCoreInterface),
-	.init       = dbusInitCore,
-	.fini       = dbusFiniCore,
-	.version    = COMPIZ_DBUS_VERSION
-    };
-
-    CORE (object);
-
-    cGetInterfaceProp (&GET_DBUS_CORE (c)->base, &template, what, value);
+    cGetInterfaceProp (&GET_DBUS_CORE (GET_CORE (object))->base,
+		       getDBusCoreObjectInterface (),
+		       what, value);
 }
 
 static DBusCoreVTable dbusCoreObjectVTable = {
     .base.base.base.getProp = dbusGetProp,
 
-    .signal		  = dbusSignalImpl,
-    .signalDelegate	  = dbusSignalDelegate,
-    .objectSignal	  = dbusObjectSignalImpl,
-    .objectSignalDelegate = dbusObjectSignalDelegate,
     .registerObjectPath   = dbusRegisterObjectPath,
     .unregisterObjectPath = dbusUnregisterObjectPath,
-    .emitSignal           = dbusEmitSignal
+    .emitSignal           = dbusEmitSignal,
+
+    .signal	  = dbusSignal,
+    .objectSignal = dbusObjectSignal,
+
+    .signalDelegate	  = dbusSignalDelegate,
+    .objectSignalDelegate = dbusObjectSignalDelegate
+
 };
 
-static CObjectPrivate dbusObj[] = {
-    C_OBJECT_PRIVATE (CORE_TYPE_NAME, dbus, Core, DBusCore, X, X)
+static const CSignal dbusCoreSignal[] = {
+    C_SIGNAL (signal,       0, DBusCoreVTable),
+    C_SIGNAL (objectSignal, 0, DBusCoreVTable)
 };
 
-static CompBool
-dbusInsert (CompObject *parent,
-	    CompBranch *branch)
+const CompObjectInterface *
+getDBusCoreObjectInterface (void)
 {
-    if (!cObjectInitPrivates (branch, dbusObj, N_ELEMENTS (dbusObj)))
-	return FALSE;
+    static CompObjectInterface *interface = NULL;
 
-    compConnect (parent,
-		 "signal", offsetof (CompSignalVTable, signal),
-		 &branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, signalDelegate),
-		 "o", "//*");
+    if (!interface)
+    {
+	static const CObjectInterface template = {
+	    .i.name	    = COMPIZ_DBUS_INTERFACE_NAME,
+	    .i.version	    = COMPIZ_DBUS_VERSION,
+	    .i.base.name    = COMPIZ_CORE_TYPE_NAME,
+	    .i.base.version = COMPIZ_CORE_VERSION,
+	    .i.vTable.impl  = &dbusCoreObjectVTable.base.base.base,
+	    .i.vTable.size  = sizeof (dbusCoreObjectVTable),
 
-    compConnect (&branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, signal),
-		 &branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, objectSignalDelegate),
-		 "os", "//*", "object");
+	    .signal  = dbusCoreSignal,
+	    .nSignal = N_ELEMENTS (dbusCoreSignal),
 
-    compConnect (&branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, objectSignal),
-		 &branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, registerObjectPath),
-		 "os", "//*", "inserted");
+	    .init = dbusInitCore,
+	    .fini = dbusFiniCore,
 
-    compConnect (&branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, objectSignal),
-		 &branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, unregisterObjectPath),
-		 "os", "//*", "removed");
+	    .insert = dbusInsertCore
+	};
 
-    compConnect (&branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, signal),
-		 &branch->u.base,
-		 "dbus", offsetof (DBusCoreVTable, emitSignal),
-		 NULL);
+	interface = cObjectInterfaceFromTemplate (&template,
+						  &dbusCorePrivateIndex,
+						  sizeof (DBusCore));
+    }
 
-    return TRUE;
+    return interface;
 }
 
-static void
-dbusRemove (CompObject *parent,
-	    CompBranch *branch)
+const GetInterfaceProc *
+getCompizObjectInterfaces20080220 (int *n)
 {
-    cObjectFiniPrivates (branch, dbusObj, N_ELEMENTS (dbusObj));
-}
+    static const GetInterfaceProc interfaces[] = {
+	getDBusCoreObjectInterface
+    };
 
-static CompBool
-dbusInit (CompFactory *factory)
-{
-    if (!cObjectAllocPrivateIndices (factory, dbusObj, N_ELEMENTS (dbusObj)))
-	return FALSE;
-
-    return TRUE;
-}
-
-static void
-dbusFini (CompFactory *factory)
-{
-    cObjectFreePrivateIndices (factory, dbusObj, N_ELEMENTS (dbusObj));
-}
-
-CompPluginVTable dbusVTable = {
-    "dbus",
-    0, /* GetMetadata */
-    dbusInit,
-    dbusFini,
-    0, /* InitObject */
-    0, /* FiniObject */
-    0, /* GetObjectOptions */
-    0, /* SetObjectOption */
-    dbusInsert,
-    dbusRemove
-};
-
-CompPluginVTable *
-getCompPluginInfo20070830 (void)
-{
-    return &dbusVTable;
+    *n = N_ELEMENTS (interfaces);
+    return interfaces;
 }

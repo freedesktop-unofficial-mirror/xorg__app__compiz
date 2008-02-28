@@ -1354,9 +1354,6 @@ decorInitCore (CompPlugin *p,
 {
     DecorCore *dc;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
-
     dc = malloc (sizeof (DecorCore));
     if (!dc)
 	return FALSE;
@@ -1635,7 +1632,7 @@ decorSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-decorInit (CompFactory *factory)
+decorInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&decorMetadata,
 					 "decoration",
@@ -1657,7 +1654,7 @@ decorInit (CompFactory *factory)
 }
 
 static void
-decorFini (CompFactory *factory)
+decorFini (CompPlugin *plugin)
 {
     freeCorePrivateIndex (corePrivateIndex);
     compFiniMetadata (&decorMetadata);

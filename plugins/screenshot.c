@@ -574,7 +574,7 @@ shotSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-shotInit (CompFactory *factory)
+shotInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&shotMetadata,
 					 "screenshot",
@@ -596,7 +596,7 @@ shotInit (CompFactory *factory)
 }
 
 static void
-shotFini (CompFactory *factory)
+shotFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&shotMetadata);

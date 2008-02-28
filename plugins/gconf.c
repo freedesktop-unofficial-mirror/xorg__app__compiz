@@ -29,39 +29,45 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
-#define COMPIZ_GCONF_VERSION 20071123
+#define COMPIZ_GCONF_INTERFACE_NAME "org.compiz.gconf"
+#define COMPIZ_GCONF_VERSION        20071123
+
+const CompObjectInterface *
+getGConfCoreObjectInterface (void);
 
 #define APP_NAME        "compiz"
 #define MAX_PATH_LENGTH 1024
 
 static int gconfCorePrivateIndex;
 
-typedef void (*GConfSignalProc) (CompObject   *object,
-				 const char   *interface,
-				 const char   *name,
-				 const char   *signature,
-				 CompAnyValue *value,
-				 int	      nValue,
-				 CompObject   *descendant);
+typedef void (*GConfLoadInterfaceProc) (CompCore   *c,
+					const char *path,
+					const char *name);
 
-typedef void (*GConfPropSignalProc) (CompObject	  *object,
+typedef void (*GConfPropSignalProc) (CompCore	  *c,
 				     const char	  *interface,
 				     const char	  *name,
 				     CompAnyValue *value,
 				     CompObject   *descendant);
 
+typedef void (*GConfInterfaceAddedProc) (CompCore   *c,
+					 const char *path,
+					 const char *name);
+
 typedef struct _GConfCoreVTable {
     CompCoreVTable base;
 
-    GConfSignalProc     signal;
-    SignalProc	        signalDelegate;
-    GConfSignalProc     loadInterface;
-    GConfPropSignalProc propSignal;
-    GConfSignalProc	propSignalDelegate;
-    GConfPropSignalProc storeBoolProp;
-    GConfPropSignalProc storeIntProp;
-    GConfPropSignalProc storeDoubleProp;
-    GConfPropSignalProc storeStringProp;
+    GConfLoadInterfaceProc loadInterface;
+    GConfPropSignalProc    storeBoolProp;
+    GConfPropSignalProc    storeIntProp;
+    GConfPropSignalProc    storeDoubleProp;
+    GConfPropSignalProc    storeStringProp;
+
+    GConfPropSignalProc     propSignal;
+    GConfInterfaceAddedProc interfaceAdded;
+
+    SignalProc propSignalDelegate;
+    SignalProc interfaceAddedDelegate;
 } GConfCoreVTable;
 
 typedef struct _GConfCore {
@@ -78,18 +84,6 @@ typedef struct _GConfCore {
     GConfCore *gc = GET_GCONF_CORE (c)
 
 
-static CSignal gconfSignal = C_SIGNAL (signal, 0, GConfCoreVTable);
-static CSignal gconfPropSignal = C_SIGNAL (propSignal, 0, GConfCoreVTable);
-
-static CSignal *gconfCoreSignal[] = {
-    &gconfSignal,
-    &gconfPropSignal
-};
-
-static CInterface gconfCoreInterface[] = {
-    C_INTERFACE (gconf, Core, GConfCoreVTable, _, _, X, _, _, _, _, _)
-};
-
 static gchar *
 gconfGetObjectPath (CompObject *object)
 {
@@ -100,7 +94,7 @@ gconfGetObjectPath (CompObject *object)
     else
 	parentPath = g_strdup ("/apps/" APP_NAME);
 
-    if (!object->name || strcmp (object->name, CORE_TYPE_NAME) == 0)
+    if (!object->name || strcmp (object->name, COMPIZ_CORE_TYPE_NAME) == 0)
 	return parentPath;
 
     path = g_strdup_printf ("%s/%s", parentPath, object->name);
@@ -118,13 +112,7 @@ gconfGetKey (CompObject  *object,
     gchar *key, *path;
 
     path = gconfGetObjectPath (object);
-
-    /* use interface as prefix when it's not part of type */
-    if (compObjectInterfaceIsPartOfType (object, interface))
-	key = g_strdup_printf ("%s/%s", path, name);
-    else
-	key = g_strdup_printf ("%s/%s_%s", path, interface, name);
-
+    key = g_strdup_printf ("%s/%s_%s", path, interface, name);
     g_free (path);
 
     return key;
@@ -136,33 +124,31 @@ gconfSetPropToValue (CompObject       *object,
 		     const char       *name,
 		     const GConfValue *gvalue)
 {
-    const CompPropertiesVTable *vTable = &object->vTable->properties;
-
     switch (gvalue->type) {
     case GCONF_VALUE_BOOL:
-	return (*vTable->setBool) (object,
-				   interface,
-				   name,
-				   gconf_value_get_bool (gvalue),
-				   NULL);
+	return (*object->vTable->setBool) (object,
+					   interface,
+					   name,
+					   gconf_value_get_bool (gvalue),
+					   NULL);
     case GCONF_VALUE_INT:
-	return (*vTable->setInt) (object,
-				  interface,
-				  name,
-				  gconf_value_get_int (gvalue),
-				  NULL);
+	return (*object->vTable->setInt) (object,
+					  interface,
+					  name,
+					  gconf_value_get_int (gvalue),
+					  NULL);
     case GCONF_VALUE_FLOAT:
-	return (*vTable->setDouble) (object,
-				     interface,
-				     name,
-				     gconf_value_get_float (gvalue),
-				     NULL);
+	return (*object->vTable->setDouble) (object,
+					     interface,
+					     name,
+					     gconf_value_get_float (gvalue),
+					     NULL);
     case GCONF_VALUE_STRING:
-	return (*vTable->setString) (object,
-				     interface,
-				     name,
-				     gconf_value_get_string (gvalue),
-				     NULL);
+	return (*object->vTable->setString) (object,
+					     interface,
+					     name,
+					     gconf_value_get_string (gvalue),
+					     NULL);
     case GCONF_VALUE_SCHEMA:
     case GCONF_VALUE_LIST:
     case GCONF_VALUE_PAIR:
@@ -225,18 +211,16 @@ typedef struct _ReloadInterfaceContext {
 } ReloadInterfaceContext;
 
 static CompBool
-gconfReloadInterface (CompObject	   *object,
-		      const char	   *name,
-		      size_t		   offset,
-		      const CompObjectType *type,
-		      void		   *closure)
+gconfReloadInterface (CompObject	        *object,
+		      const CompObjectInterface *interface,
+		      void		        *closure)
 {
     ReloadPropContext ctx;
 
     ctx.core      = GET_CORE (closure);
-    ctx.interface = name;
+    ctx.interface = interface->name;
 
-    (*object->vTable->forEachProp) (object, name,
+    (*object->vTable->forEachProp) (object, interface,
 				    gconfReloadProp,
 				    (void *) &ctx);
 
@@ -278,15 +262,14 @@ typedef struct _LoadPropContext {
 } LoadPropContext;
 
 static CompBool
-gconfLoadProp (CompObject	    *object,
-	       const char	    *name,
-	       size_t		    offset,
-	       const CompObjectType *type,
-	       void		    *closure)
+gconfLoadProp (CompObject	         *object,
+	       const CompObjectInterface *interface,
+	       void		         *closure)
 {
     LoadPropContext *pCtx = (LoadPropContext *) closure;
 
-    gconfSetPropToEntryValue (object, name, pCtx->name, pCtx->entry);
+    gconfSetPropToEntryValue (object, interface->name, pCtx->name,
+			      pCtx->entry);
 
     return TRUE;
 }
@@ -310,7 +293,7 @@ gconfKeyChanged (GConfClient *client,
 
     path = g_strjoinv ("/", &token[3]);
 
-    object = compLookupObject (&c->u.base.u.base, path);
+    object = compLookupDescendant (&c->u.base.u.base, path);
     if (object)
     {
 	LoadPropContext ctx;
@@ -329,6 +312,190 @@ gconfKeyChanged (GConfClient *client,
     token[nToken - 1] = prop;
 
     g_strfreev (token);
+}
+
+static void
+gconfGetProp (CompObject   *object,
+	      unsigned int what,
+	      void	   *value)
+{
+    cGetInterfaceProp (&GET_GCONF_CORE (GET_CORE (object))->base,
+		       getGConfCoreObjectInterface (),
+		       what, value);
+}
+
+static void
+gconfLoadInterface (CompCore   *c,
+		    const char *path,
+		    const char *name)
+{
+    CompObject *object;
+
+    object = compLookupDescendant (&c->u.base.u.base, path);
+    if (object)
+	compForInterface (object,
+			  name,
+			  gconfReloadInterface,
+			  (void *) c);
+}
+
+static void
+gconfStoreProp (CompCore   *c,
+		CompObject *descendant,
+		const char *interface,
+		const char *name,
+		GConfValue *gvalue)
+{
+    gchar *key;
+
+    GCONF_CORE (c);
+
+    key = gconfGetKey (descendant, interface, name);
+    if (key)
+    {
+	gconf_client_set (gc->client, key, gvalue, NULL);
+	g_free (key);
+    }
+}
+
+static void
+gconfStoreBoolProp (CompCore     *c,
+		    const char   *interface,
+		    const char   *name,
+		    CompAnyValue *value,
+		    CompObject   *descendant)
+{
+    GConfValue *gvalue;
+
+    gvalue = gconf_value_new (GCONF_VALUE_BOOL);
+    if (gvalue)
+    {
+	gconf_value_set_bool (gvalue, value->b);
+	gconfStoreProp (c, descendant, interface, name, gvalue);
+	gconf_value_free (gvalue);
+    }
+}
+
+static void
+gconfStoreIntProp (CompCore     *c,
+		   const char   *interface,
+		   const char   *name,
+		   CompAnyValue *value,
+		   CompObject   *descendant)
+{
+    GConfValue *gvalue;
+
+    gvalue = gconf_value_new (GCONF_VALUE_INT);
+    if (gvalue)
+    {
+	gconf_value_set_int (gvalue, value->i);
+	gconfStoreProp (c, descendant, interface, name, gvalue);
+	gconf_value_free (gvalue);
+    }
+}
+
+static void
+gconfStoreDoubleProp (CompCore     *c,
+		      const char   *interface,
+		      const char   *name,
+		      CompAnyValue *value,
+		      CompObject   *descendant)
+{
+    GConfValue *gvalue;
+
+    gvalue = gconf_value_new (GCONF_VALUE_FLOAT);
+    if (gvalue)
+    {
+	gconf_value_set_float (gvalue, value->d);
+	gconfStoreProp (c, descendant, interface, name, gvalue);
+	gconf_value_free (gvalue);
+    }
+}
+
+static void
+gconfStoreStringProp (CompCore     *c,
+		      const char   *interface,
+		      const char   *name,
+		      CompAnyValue *value,
+		      CompObject   *descendant)
+{
+    GConfValue *gvalue;
+
+    gvalue = gconf_value_new (GCONF_VALUE_STRING);
+    if (gvalue)
+    {
+	gconf_value_set_string (gvalue, value->s);
+	gconfStoreProp (c, descendant, interface, name, gvalue);
+	gconf_value_free (gvalue);
+    }
+}
+
+static void
+gconfPropSignal (CompCore     *c,
+		 const char   *interface,
+		 const char   *name,
+		 CompAnyValue *value,
+		 CompObject   *descendant)
+{
+    C_EMIT_SIGNAL (&c->u.base.u.base, GConfPropSignalProc,
+		   offsetof (GConfCoreVTable, propSignal),
+		   interface, name, value, descendant);
+}
+
+static void
+gconfInterfaceAdded (CompCore   *c,
+		     const char *path,
+		     const char *name)
+{
+    C_EMIT_SIGNAL (&c->u.base.u.base, GConfInterfaceAddedProc,
+		   offsetof (GConfCoreVTable, interfaceAdded),
+		   path, name);
+}
+
+static void
+gconfPropSignalDelegate (CompObject   *object,
+			 const char   *path,
+			 const char   *interface,
+			 const char   *name,
+			 const char   *signature,
+			 CompAnyValue *value,
+			 int	      nValue)
+{
+    const char *decendantPath;
+
+    decendantPath = compTranslateObjectPath (object->parent, object, path);
+    if (decendantPath)
+    {
+	CompObject *descendant;
+
+	CORE (object);
+
+	descendant = compLookupDescendant (object, decendantPath);
+	if (descendant)
+	    gconfPropSignal (c,
+			     value[0].s,
+			     value[1].s,
+			     &value[2],
+			     descendant);
+    }
+}
+
+static void
+gconfInterfaceAddedDelegate (CompObject   *object,
+			     const char   *path,
+			     const char   *interface,
+			     const char   *name,
+			     const char   *signature,
+			     CompAnyValue *value,
+			     int	  nValue)
+{
+    const char *decendantPath;
+
+    CORE (object);
+
+    decendantPath = compTranslateObjectPath (object->parent, object, path);
+    if (decendantPath)
+	gconfInterfaceAdded (c, decendantPath, value[0].s);
 }
 
 static CompBool
@@ -368,205 +535,8 @@ gconfFiniCore (CompObject *object)
 }
 
 static void
-gconfGetProp (CompObject   *object,
-	      unsigned int what,
-	      void	   *value)
-{
-    static const CMetadata template = {
-	.interface  = gconfCoreInterface,
-	.nInterface = N_ELEMENTS (gconfCoreInterface),
-	.init       = gconfInitCore,
-	.fini       = gconfFiniCore,
-	.version    = COMPIZ_GCONF_VERSION
-    };
-
-    CORE (object);
-
-    cGetInterfaceProp (&GET_GCONF_CORE (c)->base, &template, what, value);
-}
-
-static void
-gconfSignalImpl (CompObject   *object,
-		 const char   *interface,
-		 const char   *name,
-		 const char   *signature,
-		 CompAnyValue *value,
-		 int	      nValue,
-		 CompObject   *descendant)
-{
-    C_EMIT_SIGNAL (object, GConfSignalProc, &gconfSignal,
-		   interface, name, signature, value, nValue, descendant);
-}
-
-static void
-gconfSignalDelegate (CompObject   *object,
-		     const char   *path,
-		     const char   *interface,
-		     const char   *name,
-		     const char   *signature,
-		     CompAnyValue *value,
-		     int	  nValue)
-{
-    CompObject *descendant;
-
-    descendant = compLookupObject (object,
-				   compTranslateObjectPath (object->parent,
-							    object, path));
-    if (descendant)
-	gconfSignalImpl (object,
-			 interface, name, signature,
-			 value, nValue,
-			 descendant);
-}
-
-static void
-gconfLoadInterface (CompObject   *object,
-		    const char   *interface,
-		    const char   *name,
-		    const char   *signature,
-		    CompAnyValue *value,
-		    int		 nValue,
-		    CompObject   *descendant)
-{
-    gconfReloadInterface (descendant, value[0].s, 0, NULL, (void *) object);
-}
-
-static void
-gconfPropSignalImpl (CompObject   *object,
-		     const char   *interface,
-		     const char   *name,
-		     CompAnyValue *value,
-		     CompObject   *descendant)
-{
-    C_EMIT_SIGNAL (object, GConfPropSignalProc, &gconfPropSignal,
-		   interface, name, value, descendant);
-}
-
-static void
-gconfPropSignalDelegate (CompObject   *object,
-			 const char   *interface,
-			 const char   *name,
-			 const char   *signature,
-			 CompAnyValue *value,
-			 int	      nValue,
-			 CompObject   *descendant)
-{
-    gconfPropSignalImpl (object, value[0].s, value[1].s, &value[2],
-			 descendant);
-}
-
-static void
-gconfStoreProp (CompObject *object,
-		CompObject *descendant,
-		const char *interface,
-		const char *name,
-		GConfValue *gvalue)
-{
-    gchar *key;
-
-    GCONF_CORE (GET_CORE (object));
-
-    key = gconfGetKey (descendant, interface, name);
-    if (key)
-    {
-	gconf_client_set (gc->client, key, gvalue, NULL);
-	g_free (key);
-    }
-}
-
-static void
-gconfStoreBoolProp (CompObject   *object,
-		    const char   *interface,
-		    const char   *name,
-		    CompAnyValue *value,
-		    CompObject   *descendant)
-{
-    GConfValue *gvalue;
-
-    gvalue = gconf_value_new (GCONF_VALUE_BOOL);
-    if (gvalue)
-    {
-	gconf_value_set_bool (gvalue, value->b);
-	gconfStoreProp (object, descendant, interface, name, gvalue);
-	gconf_value_free (gvalue);
-    }
-}
-
-static void
-gconfStoreIntProp (CompObject   *object,
-		   const char   *interface,
-		   const char   *name,
-		   CompAnyValue *value,
-		   CompObject   *descendant)
-{
-    GConfValue *gvalue;
-
-    gvalue = gconf_value_new (GCONF_VALUE_INT);
-    if (gvalue)
-    {
-	gconf_value_set_int (gvalue, value->i);
-	gconfStoreProp (object, descendant, interface, name, gvalue);
-	gconf_value_free (gvalue);
-    }
-}
-
-static void
-gconfStoreDoubleProp (CompObject   *object,
-		      const char   *interface,
-		      const char   *name,
-		      CompAnyValue *value,
-		      CompObject   *descendant)
-{
-    GConfValue *gvalue;
-
-    gvalue = gconf_value_new (GCONF_VALUE_FLOAT);
-    if (gvalue)
-    {
-	gconf_value_set_float (gvalue, value->d);
-	gconfStoreProp (object, descendant, interface, name, gvalue);
-	gconf_value_free (gvalue);
-    }
-}
-
-static void
-gconfStoreStringProp (CompObject   *object,
-		      const char   *interface,
-		      const char   *name,
-		      CompAnyValue *value,
-		      CompObject   *descendant)
-{
-    GConfValue *gvalue;
-
-    gvalue = gconf_value_new (GCONF_VALUE_STRING);
-    if (gvalue)
-    {
-	gconf_value_set_string (gvalue, value->s);
-	gconfStoreProp (object, descendant, interface, name, gvalue);
-	gconf_value_free (gvalue);
-    }
-}
-
-static const GConfCoreVTable gconfCoreObjectVTable = {
-    .base.base.base.getProp = gconfGetProp,
-
-    .signal             = gconfSignalImpl,
-    .signalDelegate     = gconfSignalDelegate,
-    .loadInterface      = gconfLoadInterface,
-    .propSignal         = gconfPropSignalImpl,
-    .propSignalDelegate = gconfPropSignalDelegate,
-    .storeBoolProp      = gconfStoreBoolProp,
-    .storeIntProp       = gconfStoreIntProp,
-    .storeDoubleProp    = gconfStoreDoubleProp,
-    .storeStringProp    = gconfStoreStringProp
-};
-
-static CObjectPrivate gconfObj[] = {
-    C_OBJECT_PRIVATE (CORE_TYPE_NAME, gconf, Core, GConfCore, X, X)
-};
-
-static CompBool
-gconfInsert (CompObject *parent,
-	     CompBranch *branch)
+gconfInsertCore (CompObject *object,
+		 CompObject *parent)
 {
     static const struct {
 	const char *signal;
@@ -579,76 +549,107 @@ gconfInsert (CompObject *parent,
     };
     int i;
 
-    if (!cObjectInitPrivates (branch, gconfObj, N_ELEMENTS (gconfObj)))
-	return FALSE;
+    CORE (object);
 
     compConnect (parent,
-		 "signal", offsetof (CompSignalVTable, signal),
-		 &branch->u.base,
-		 "gconf", offsetof (GConfCoreVTable, signalDelegate),
-		 "o", "//*");
+		 getObjectType (),
+		 offsetof (CompObjectVTable, signal),
+		 &c->u.base.u.base,
+		 getGConfCoreObjectInterface (),
+		 offsetof (GConfCoreVTable, interfaceAddedDelegate),
+		 "osss", "//*", getObjectType ()->name, "interfaceAdded", "s");
 
-    compConnect (&branch->u.base,
-		 "gconf", offsetof (GConfCoreVTable, signal),
-		 &branch->u.base,
-		 "gconf", offsetof (GConfCoreVTable, propSignalDelegate),
-		 "s", "properties");
-
-    compConnect (&branch->u.base,
-		 "gconf", offsetof (GConfCoreVTable, signal),
-		 &branch->u.base,
-		 "gconf", offsetof (GConfCoreVTable, loadInterface),
-		 "ss", "object", "interfaceAdded");
+    compConnect (&c->u.base.u.base,
+		 getGConfCoreObjectInterface (),
+		 offsetof (GConfCoreVTable, interfaceAdded),
+		 &c->u.base.u.base,
+		 getGConfCoreObjectInterface (),
+		 offsetof (GConfCoreVTable, loadInterface),
+		 NULL);
 
     for (i = 0; i < N_ELEMENTS (properties); i++)
-	compConnect (&branch->u.base,
-		     "gconf", offsetof (GConfCoreVTable, propSignal),
-		     &branch->u.base,
-		     "gconf", properties[i].offset,
+    {
+	compConnect (parent,
+		     getObjectType (),
+		     offsetof (CompObjectVTable, signal),
+		     &c->u.base.u.base,
+		     getGConfCoreObjectInterface (),
+		     offsetof (GConfCoreVTable, propSignalDelegate),
+		     "oss", "//*", getObjectType ()->name,
+		     properties[i].signal);
+
+	compConnect (&c->u.base.u.base,
+		     getGConfCoreObjectInterface (),
+		     offsetof (GConfCoreVTable, propSignal),
+		     &c->u.base.u.base,
+		     getGConfCoreObjectInterface (),
+		     properties[i].offset,
 		     "s", properties[i].signal);
-
-    return TRUE;
+    }
 }
 
-static void
-gconfRemove (CompObject *parent,
-	     CompBranch *branch)
-{
-    cObjectFiniPrivates (branch, gconfObj, N_ELEMENTS (gconfObj));
-}
+static const GConfCoreVTable gconfCoreObjectVTable = {
+    .base.base.base.getProp = gconfGetProp,
 
-static CompBool
-gconfInit (CompFactory *factory)
-{
-    g_type_init ();
+    .loadInterface   = gconfLoadInterface,
+    .storeBoolProp   = gconfStoreBoolProp,
+    .storeIntProp    = gconfStoreIntProp,
+    .storeDoubleProp = gconfStoreDoubleProp,
+    .storeStringProp = gconfStoreStringProp,
 
-    if (!cObjectAllocPrivateIndices (factory, gconfObj, N_ELEMENTS (gconfObj)))
-	return FALSE;
+    .propSignal     = gconfPropSignal,
+    .interfaceAdded = gconfInterfaceAdded,
 
-    return TRUE;
-}
-
-static void
-gconfFini (CompFactory *factory)
-{
-    cObjectFreePrivateIndices (factory, gconfObj, N_ELEMENTS (gconfObj));
-}
-
-CompPluginVTable gconfVTable = {
-    "gconf",
-    0, /* GetMetadata */
-    gconfInit,
-    gconfFini,
-    0, /* InitObject */
-    0, /* FiniObject */
-    0, /* GetObjectOptions */
-    0, /* SetObjectOption */
-    gconfInsert,
-    gconfRemove
+    .propSignalDelegate     = gconfPropSignalDelegate,
+    .interfaceAddedDelegate = gconfInterfaceAddedDelegate
 };
 
-CompPluginVTable *
-getCompPluginInfo20070830 (void)
+static const CSignal gconfCoreSignal[] = {
+    C_SIGNAL (propSignal,     0, GConfCoreVTable),
+    C_SIGNAL (interfaceAdded, 0, GConfCoreVTable)
+};
+
+const CompObjectInterface *
+getGConfCoreObjectInterface (void)
 {
-    return &gconfVTable;
+    static CompObjectInterface *interface = NULL;
+
+    if (!interface)
+    {
+	static const CObjectInterface template = {
+	    .i.name	    = COMPIZ_GCONF_INTERFACE_NAME,
+	    .i.version	    = COMPIZ_GCONF_VERSION,
+	    .i.base.name    = COMPIZ_CORE_TYPE_NAME,
+	    .i.base.version = COMPIZ_CORE_VERSION,
+	    .i.vTable.impl  = &gconfCoreObjectVTable.base.base.base,
+	    .i.vTable.size  = sizeof (gconfCoreObjectVTable),
+
+	    .signal  = gconfCoreSignal,
+	    .nSignal = N_ELEMENTS (gconfCoreSignal),
+
+	    .init = gconfInitCore,
+	    .fini = gconfFiniCore,
+
+	    .insert = gconfInsertCore
+	};
+
+	g_type_init ();
+
+	interface = cObjectInterfaceFromTemplate (&template,
+						  &gconfCorePrivateIndex,
+						  sizeof (GConfCore));
+    }
+
+    return interface;
+}
+
+const GetInterfaceProc *
+getCompizObjectInterfaces20080220 (int *n)
+{
+    static const GetInterfaceProc interfaces[] = {
+	getGConfCoreObjectInterface
+    };
+
+    *n = N_ELEMENTS (interfaces);
+    return interfaces;
 }

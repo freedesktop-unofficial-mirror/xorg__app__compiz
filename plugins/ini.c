@@ -1103,7 +1103,7 @@ iniFiniObject (CompPlugin *p,
 }
 
 static CompBool
-iniInit (CompFactory *factory)
+iniInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&iniMetadata, "ini",
 					 0, 0, 0, 0))
@@ -1122,7 +1122,7 @@ iniInit (CompFactory *factory)
 }
 
 static void
-iniFini (CompFactory *factory)
+iniFini (CompPlugin *plugin)
 {
     freeCorePrivateIndex (corePrivateIndex);
 }

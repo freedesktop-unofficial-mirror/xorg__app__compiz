@@ -959,7 +959,7 @@ moveSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-moveInit (CompFactory *factory)
+moveInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&moveMetadata,
 					 "move",
@@ -981,7 +981,7 @@ moveInit (CompFactory *factory)
 }
 
 static void
-moveFini (CompFactory *factory)
+moveFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&moveMetadata);

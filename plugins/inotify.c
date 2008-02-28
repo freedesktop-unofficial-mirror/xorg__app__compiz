@@ -267,7 +267,7 @@ inotifyFiniObject (CompPlugin *p,
 }
 
 static CompBool
-inotifyInit (CompFactory *factory)
+inotifyInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&inotifyMetadata, "inotify",
 					 0, 0, 0, 0))
@@ -286,7 +286,7 @@ inotifyInit (CompFactory *factory)
 }
 
 static void
-inotifyFini (CompFactory *factory)
+inotifyFini (CompPlugin *plugin)
 {
     freeCorePrivateIndex (corePrivateIndex);
     compFiniMetadata (&inotifyMetadata);

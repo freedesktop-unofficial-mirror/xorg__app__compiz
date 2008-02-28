@@ -2225,7 +2225,7 @@ scaleSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-scaleInit (CompFactory *factory)
+scaleInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&scaleMetadata,
 					 "scale",
@@ -2248,7 +2248,7 @@ scaleInit (CompFactory *factory)
 }
 
 static void
-scaleFini (CompFactory *factory)
+scaleFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (scaleDisplayPrivateIndex);
     compFiniMetadata (&scaleMetadata);

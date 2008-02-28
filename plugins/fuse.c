@@ -35,7 +35,19 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 
-#define COMPIZ_FUSE_VERSION 20071116
+#define COMPIZ_FUSE_VERSION 20080221
+
+#define COMPIZ_FUSE_OBJECT_INTERFACE_NAME    "org.compiz.fuse.object"
+#define COMPIZ_FUSE_OBJECT_INTERFACE_VERSION COMPIZ_FUSE_VERSION
+
+const CompObjectInterface *
+getFuseObjectInterface (void);
+
+#define COMPIZ_FUSE_CORE_INTERFACE_NAME    "org.compiz.fuse.core"
+#define COMPIZ_FUSE_CORE_INTERFACE_VERSION COMPIZ_FUSE_VERSION
+
+const CompObjectInterface *
+getFuseCoreObjectInterface (void);
 
 static int fuseCorePrivateIndex;
 
@@ -108,19 +120,17 @@ fuseForPropString (CompObject	     *object,
     case COMP_TYPE_BOOLEAN: {
 	CompBool boolValue;
 
-	if (compInvokeMethod (object,
-			      "properties", "getBool", "ss", "b",
-			      prop->interface, prop->member,
-			      &boolValue, NULL))
+	if ((*object->vTable->getBool) (object,
+					prop->interface, prop->member,
+					&boolValue, NULL))
 	    (*proc) (boolValue ? "true" : "false", closure);
     } break;
     case COMP_TYPE_INT32: {
 	int32_t intValue;
 
-	if (compInvokeMethod (object,
-			      "properties", "getInt", "ss", "i",
-			      prop->interface, prop->member,
-			      &intValue, NULL))
+	if ((*object->vTable->getInt) (object,
+				       prop->interface, prop->member,
+				       &intValue, NULL))
 	{
 	    snprintf (tmp, 256, "%d", intValue);
 	    (*proc) (tmp, closure);
@@ -129,10 +139,9 @@ fuseForPropString (CompObject	     *object,
     case COMP_TYPE_DOUBLE: {
 	double doubleValue;
 
-	if (compInvokeMethod (object,
-			      "properties", "getDouble", "ss", "d",
-			      prop->interface, prop->member,
-			      &doubleValue, NULL))
+	if ((*object->vTable->getDouble) (object,
+					  prop->interface, prop->member,
+					  &doubleValue, NULL))
 	{
 	    snprintf (tmp, 256, "%f", doubleValue);
 	    (*proc) (tmp, closure);
@@ -141,10 +150,9 @@ fuseForPropString (CompObject	     *object,
     case COMP_TYPE_STRING: {
 	char *stringValue;
 
-	if (compInvokeMethod (object,
-			      "properties", "getString", "ss", "s",
-			      prop->interface, prop->member,
-			      &stringValue, NULL))
+	if ((*object->vTable->getString) (object,
+					  prop->interface, prop->member,
+					  &stringValue, NULL))
 	{
 	    (*proc) (stringValue, closure);
 
@@ -162,28 +170,24 @@ fuseStringToProp (CompObject *object,
 {
     switch (prop->type) {
     case COMP_TYPE_BOOLEAN:
-	compInvokeMethod (object,
-			  "properties", "setBool", "ssb", "",
-			  prop->interface, prop->member,
-			  *str == 't' ? TRUE : FALSE, NULL);
+	(*object->vTable->setBool) (object,
+				    prop->interface, prop->member,
+				    *str == 't' ? TRUE : FALSE, NULL);
 	break;
     case COMP_TYPE_INT32:
-	compInvokeMethod (object,
-			  "properties", "setInt", "ssi", "",
-			  prop->interface, prop->member,
-			  strtol (str, NULL, 0), NULL);
+	(*object->vTable->setInt) (object,
+				    prop->interface, prop->member,
+				    strtol (str, NULL, 0), NULL);
 	break;
     case COMP_TYPE_DOUBLE:
-	compInvokeMethod (object,
-			  "properties", "setDouble", "ssd", "",
-			  prop->interface, prop->member,
-			  strtod (str, NULL), NULL);
+	(*object->vTable->setDouble) (object,
+				      prop->interface, prop->member,
+				      strtod (str, NULL), NULL);
 	break;
     case COMP_TYPE_STRING:
-	compInvokeMethod (object,
-			  "properties", "setString", "sss", "",
-			  prop->interface, prop->member,
-			  str, NULL);
+	(*object->vTable->setString) (object,
+				      prop->interface, prop->member,
+				      str, NULL);
 	break;
     }
 }
@@ -266,7 +270,6 @@ fuseLookupInode (CompObject *root,
 typedef struct _ForEachPropContext {
     const char *interface;
     int	       length;
-    CompBool   isPartOfType;
 } ForEachPropContext;
 
 static CompBool
@@ -284,14 +287,13 @@ fuseForEachProp (CompObject *object,
     prop = fo->prop;
     while (prop)
     {
-	if (strcmp (prop->interface, pCtx->interface) == 0 &&
-	    strcmp (prop->member,    name)            == 0)
+	if (strcmp (prop->member, name) == 0)
 	    return TRUE;
 
 	prop = prop->next;
     }
 
-    size = sizeof (FuseProp) + pCtx->length * 2 + strlen (name) + 3;
+    size = sizeof (FuseProp) + pCtx->length + strlen (name) + 3;
 
     prop = malloc (size);
     if (!prop)
@@ -303,14 +305,10 @@ fuseForEachProp (CompObject *object,
     prop->type	    = type;
     prop->interface = (char *) (prop + 1);
     prop->name      = prop->interface + pCtx->length + 1;
-    prop->member    = prop->name + pCtx->length + 1;
+    prop->member    = prop->name;
 
     strcpy (prop->interface, pCtx->interface);
-    sprintf (prop->name, "%s_%s", pCtx->interface, name);
-    prop->member = prop->name + pCtx->length + 1;
-
-    if (pCtx->isPartOfType)
-	prop->name = prop->member;
+    strcpy (prop->name, name);
 
     prop->ino = currentIno++;
 
@@ -318,22 +316,18 @@ fuseForEachProp (CompObject *object,
 }
 
 static CompBool
-fuseForEachInterfaceProp (CompObject	       *object,
-			  const char	       *name,
-			  size_t	       offset,
-			  const CompObjectType *type,
-			  void		       *closure)
+fuseForEachInterfaceProp (CompObject		    *object,
+			  const CompObjectInterface *interface,
+			  void			    *closure)
 {
     ForEachPropContext ctx;
 
-    ctx.interface    = name;
-    ctx.length       = strlen (name);
-    ctx.isPartOfType = FALSE;
+    ctx.interface = interface->name;
+    ctx.length    = strlen (interface->name);
 
-    if (type && strcmp (type->name.name, name) == 0)
-	ctx.isPartOfType = TRUE;
-
-    (*object->vTable->forEachProp) (object, name, fuseForEachProp,
+    (*object->vTable->forEachProp) (object,
+				    interface,
+				    fuseForEachProp,
 				    (void *) &ctx);
 
     return TRUE;
@@ -898,19 +892,41 @@ fuseObjectGetProp (CompObject   *object,
 		   unsigned int what,
 		   void	        *value)
 {
-    static const CMetadata template = {
-	.init    = fuseInitObject,
-	.fini    = fuseFiniObject,
-	.version = COMPIZ_FUSE_VERSION
-    };
-
-    cGetInterfaceProp (&GET_FUSE_OBJECT (object)->base, &template, what,
-		       value);
+    cGetInterfaceProp (&GET_FUSE_OBJECT (GET_OBJECT (object))->base,
+		       getFuseObjectInterface (),
+		       what, value);
 }
 
 static const CompObjectVTable fuseObjectObjectVTable = {
     .getProp = fuseObjectGetProp
 };
+
+const CompObjectInterface *
+getFuseObjectInterface (void)
+{
+    static CompObjectInterface *interface = NULL;
+
+    if (!interface)
+    {
+	static const CObjectInterface template = {
+	    .i.name	    = COMPIZ_FUSE_OBJECT_INTERFACE_NAME,
+	    .i.version	    = COMPIZ_FUSE_VERSION,
+	    .i.base.name    = COMPIZ_OBJECT_TYPE_NAME,
+	    .i.base.version = COMPIZ_OBJECT_VERSION,
+	    .i.vTable.impl  = &fuseObjectObjectVTable,
+	    .i.vTable.size  = sizeof (fuseObjectObjectVTable),
+
+	    .init = fuseInitObject,
+	    .fini = fuseFiniObject
+	};
+
+	interface = cObjectInterfaceFromTemplate (&template,
+						  &fuseObjectPrivateIndex,
+						  sizeof (FuseObject));
+    }
+
+    return interface;
+}
 
 static Bool
 fuseProcessMessages (void *data)
@@ -1011,8 +1027,6 @@ fuseUnmount (CompCore *c)
 
 static CompBool
 setMountPoint (CompObject *object,
-	       const char *interface,
-	       const char *name,
 	       const char *value,
 	       char	  **error)
 {
@@ -1042,14 +1056,6 @@ setMountPoint (CompObject *object,
 
     return TRUE;
 }
-
-static CStringProp fuseCoreStringProp[] = {
-    C_PROP (mountPoint, FuseCore, .set = setMountPoint)
-};
-
-static CInterface fuseCoreInterface[] = {
-    C_INTERFACE (fuse, Core, CompObjectVTable, _, _, _, _, _, _, X, _)
-};
 
 static CompBool
 fuseInitCore (CompObject *object)
@@ -1099,75 +1105,58 @@ fuseCoreGetProp (CompObject   *object,
 		 unsigned int what,
 		 void	      *value)
 {
-    static const CMetadata template = {
-	.interface  = fuseCoreInterface,
-	.nInterface = N_ELEMENTS (fuseCoreInterface),
-	.init       = fuseInitCore,
-	.fini       = fuseFiniCore,
-	.version    = COMPIZ_FUSE_VERSION
-    };
-
-    CORE (object);
-
-    cGetInterfaceProp (&GET_FUSE_CORE (c)->base, &template, what, value);
+    cGetInterfaceProp (&GET_FUSE_CORE (GET_CORE (object))->base,
+		       getFuseCoreObjectInterface (),
+		       what, value);
 }
 
 static const CompCoreVTable fuseCoreObjectVTable = {
     .base.base.getProp = fuseCoreGetProp
 };
 
-static CObjectPrivate fuseObj[] = {
-    C_OBJECT_PRIVATE (OBJECT_TYPE_NAME, fuse, Object, FuseObject, X, X),
-    C_OBJECT_PRIVATE (CORE_TYPE_NAME,   fuse, Core,   FuseCore,   X, X)
+static const CStringProp fuseCoreStringProp[] = {
+    C_PROP (mountPoint, FuseCore, .defaultValue = "compiz",
+	    .set = setMountPoint)
 };
 
-static CompBool
-fuseInsert (CompObject *parent,
-	    CompBranch *branch)
+const CompObjectInterface *
+getFuseCoreObjectInterface (void)
 {
-    if (!cObjectInitPrivates (branch, fuseObj, N_ELEMENTS (fuseObj)))
-	return FALSE;
+    static CompObjectInterface *interface = NULL;
 
-    return TRUE;
+    if (!interface)
+    {
+	static const CObjectInterface template = {
+	    .i.name	    = COMPIZ_FUSE_CORE_INTERFACE_NAME,
+	    .i.version	    = COMPIZ_FUSE_VERSION,
+	    .i.base.name    = COMPIZ_CORE_TYPE_NAME,
+	    .i.base.version = COMPIZ_CORE_VERSION,
+	    .i.vTable.impl  = &fuseCoreObjectVTable.base.base,
+	    .i.vTable.size  = sizeof (fuseCoreObjectVTable),
+
+	    .stringProp  = fuseCoreStringProp,
+	    .nStringProp = N_ELEMENTS (fuseCoreStringProp),
+
+	    .init = fuseInitCore,
+	    .fini = fuseFiniCore
+	};
+
+	interface = cObjectInterfaceFromTemplate (&template,
+						  &fuseCorePrivateIndex,
+						  sizeof (FuseCore));
+    }
+
+    return interface;
 }
 
-static void
-fuseRemove (CompObject *parent,
-	    CompBranch *branch)
+const GetInterfaceProc *
+getCompizObjectInterfaces20080220 (int *n)
 {
-    cObjectFiniPrivates (branch, fuseObj, N_ELEMENTS (fuseObj));
-}
+    static const GetInterfaceProc interfaces[] = {
+	getFuseObjectInterface,
+	getFuseCoreObjectInterface
+    };
 
-static CompBool
-fuseInit (CompFactory *factory)
-{
-    if (!cObjectAllocPrivateIndices (factory, fuseObj, N_ELEMENTS (fuseObj)))
-	return FALSE;
-
-    return TRUE;
-}
-
-static void
-fuseFini (CompFactory *factory)
-{
-    cObjectFreePrivateIndices (factory, fuseObj, N_ELEMENTS (fuseObj));
-}
-
-CompPluginVTable fuseVTable = {
-    "fs",
-    0, /* GetMetadata */
-    fuseInit,
-    fuseFini,
-    0, /* InitObject */
-    0, /* FiniObject */
-    0, /* GetObjectOptions */
-    0, /* SetObjectOption */
-    fuseInsert,
-    fuseRemove
-};
-
-CompPluginVTable *
-getCompPluginInfo20070830 (void)
-{
-    return &fuseVTable;
+    *n = N_ELEMENTS (interfaces);
+    return interfaces;
 }

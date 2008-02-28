@@ -2910,7 +2910,7 @@ wobblySetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-wobblyInit (CompFactory *factory)
+wobblyInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&wobblyMetadata,
 					 "wobbly",
@@ -2933,7 +2933,7 @@ wobblyInit (CompFactory *factory)
 }
 
 static void
-wobblyFini (CompFactory *factory)
+wobblyFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&wobblyMetadata);

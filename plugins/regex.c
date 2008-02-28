@@ -509,7 +509,7 @@ regexFiniObject (CompPlugin *p,
 }
 
 static CompBool
-regexInit (CompFactory *factory)
+regexInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&regexMetadata, "regex",
 					 0, 0, 0, 0))
@@ -528,7 +528,7 @@ regexInit (CompFactory *factory)
 }
 
 static void
-regexFini (CompFactory *factory)
+regexFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&regexMetadata);

@@ -1771,7 +1771,7 @@ waterSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-waterInit (CompFactory *factory)
+waterInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&waterMetadata,
 					 "water",
@@ -1793,7 +1793,7 @@ waterInit (CompFactory *factory)
 }
 
 static void
-waterFini (CompFactory *factory)
+waterFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&waterMetadata);

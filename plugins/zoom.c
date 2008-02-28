@@ -1149,7 +1149,7 @@ zoomSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-zoomInit (CompFactory *factory)
+zoomInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&zoomMetadata,
 					 "zoom",
@@ -1172,7 +1172,7 @@ zoomInit (CompFactory *factory)
 }
 
 static void
-zoomFini (CompFactory *factory)
+zoomFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&zoomMetadata);

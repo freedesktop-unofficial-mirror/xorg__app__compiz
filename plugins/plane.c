@@ -710,7 +710,7 @@ planeSetObjectOption (CompPlugin      *plugin,
 }
 
 static CompBool
-planeInit (CompFactory *factory)
+planeInit (CompPlugin *plugin)
 {
     if (!compInitPluginMetadataFromInfo (&planeMetadata,
 					 "plane",
@@ -732,7 +732,7 @@ planeInit (CompFactory *factory)
 }
 
 static void
-planeFini (CompFactory *factory)
+planeFini (CompPlugin *plugin)
 {
     freeDisplayPrivateIndex (displayPrivateIndex);
     compFiniMetadata (&planeMetadata);
