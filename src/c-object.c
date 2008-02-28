@@ -784,7 +784,7 @@ cSetBoolProp (CompObject *object,
 	    if (strcmp (name, cInterface->boolProp[i].base.name) == 0)
 		return handleSetBoolProp (object,
 					  &cInterface->boolProp[i],
-					  interface, name,
+					  cInterface->i.name, name,
 					  value, error);
     }
 
@@ -947,7 +947,7 @@ cSetIntProp (CompObject *object,
 	    if (strcmp (name, cInterface->intProp[i].base.name) == 0)
 		return handleSetIntProp (object,
 					 &cInterface->intProp[i],
-					 interface, name,
+					 cInterface->i.name, name,
 					 value, error);
     }
 
@@ -1110,7 +1110,7 @@ cSetDoubleProp (CompObject *object,
 	    if (strcmp (name, cInterface->doubleProp[i].base.name) == 0)
 		return handleSetDoubleProp (object,
 					    &cInterface->doubleProp[i],
-					    interface, name,
+					    cInterface->i.name, name,
 					    value, error);
     }
 
@@ -1279,7 +1279,7 @@ cSetStringProp (CompObject *object,
 	    if (strcmp (name, cInterface->stringProp[i].base.name) == 0)
 		return handleSetStringProp (object,
 					    &cInterface->stringProp[i],
-					    interface, name,
+					    cInterface->i.name, name,
 					    value, error);
     }
 
