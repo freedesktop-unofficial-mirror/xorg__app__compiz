@@ -738,7 +738,7 @@ struct _CompCore {
 #define CORE(object) CompCore *c = GET_CORE (object)
 
 #define COMPIZ_CORE_VERSION   20080221
-#define COMPIZ_CORE_TYPE_NAME COMPIZ_NAME_PREFIX "core"
+#define COMPIZ_CORE_TYPE_NAME "org.compiz.core"
 
 #define CORE_ABIVERSION COMPIZ_CORE_VERSION
 
@@ -1186,7 +1186,7 @@ struct _CompDisplay {
 #define DISPLAY(object) CompDisplay *d = GET_DISPLAY (object)
 
 #define COMPIZ_DISPLAY_VERSION   20080221
-#define COMPIZ_DISPLAY_TYPE_NAME COMPIZ_NAME_PREFIX "display"
+#define COMPIZ_DISPLAY_TYPE_NAME "org.compiz.display"
 
 const CompObjectType *
 getDisplayObjectType (void);
@@ -2307,7 +2307,7 @@ struct _CompScreen {
 #define SCREEN(object) CompScreen *s = GET_SCREEN (object)
 
 #define COMPIZ_SCREEN_VERSION   20080221
-#define COMPIZ_SCREEN_TYPE_NAME COMPIZ_NAME_PREFIX "screen"
+#define COMPIZ_SCREEN_TYPE_NAME "org.compiz.screen"
 
 const CompObjectType *
 getScreenObjectType (void);
@@ -2750,7 +2750,7 @@ struct _CompWindow {
 #define WINDOW(object) CompWindow *w = GET_WINDOW (object)
 
 #define COMPIZ_WINDOW_VERSION   20080221
-#define COMPIZ_WINDOW_TYPE_NAME COMPIZ_NAME_PREFIX "window"
+#define COMPIZ_WINDOW_TYPE_NAME "org.compiz.window"
 
 const CompObjectType *
 getWindowObjectType (void);

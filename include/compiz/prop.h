@@ -39,7 +39,7 @@ typedef struct _CompProp {
 #define PROP(object) CompProp *p = GET_PROP (object)
 
 #define COMPIZ_PROP_VERSION   20080221
-#define COMPIZ_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "prop"
+#define COMPIZ_PROP_TYPE_NAME "org.compiz.prop"
 
 const CompObjectType *
 getPropObjectType (void);
@@ -59,7 +59,7 @@ typedef struct _CompBoolProp {
 #define BOOL_PROP(object) CompBoolProp *b = GET_BOOL_PROP (object)
 
 #define COMPIZ_BOOL_PROP_VERSION   COMPIZ_PROP_VERSION
-#define COMPIZ_BOOL_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "boolProp"
+#define COMPIZ_BOOL_PROP_TYPE_NAME "org.compiz.prop.bool"
 
 const CompObjectType *
 getBoolPropObjectType (void);
@@ -79,7 +79,7 @@ typedef struct _CompIntProp {
 #define INT_PROP(object) CompIntProp *i = GET_INT_PROP (object)
 
 #define COMPIZ_INT_PROP_VERSION   COMPIZ_PROP_VERSION
-#define COMPIZ_INT_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "intProp"
+#define COMPIZ_INT_PROP_TYPE_NAME "org.compiz.prop.int"
 
 const CompObjectType *
 getIntPropObjectType (void);
@@ -99,7 +99,7 @@ typedef struct _CompDoubleProp {
 #define DOUBLE_PROP(object) CompDoubleProp *d = GET_DOUBLE_PROP (object)
 
 #define COMPIZ_DOUBLE_PROP_VERSION   COMPIZ_PROP_VERSION
-#define COMPIZ_DOUBLE_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "doubleProp"
+#define COMPIZ_DOUBLE_PROP_TYPE_NAME "org.compiz.prop.double"
 
 const CompObjectType *
 getDoublePropObjectType (void);
@@ -119,7 +119,7 @@ typedef struct _CompStringProp {
 #define STRING_PROP(object) CompStringProp *s = GET_STRING_PROP (object)
 
 #define COMPIZ_STRING_PROP_VERSION   COMPIZ_PROP_VERSION
-#define COMPIZ_STRING_PROP_TYPE_NAME COMPIZ_NAME_PREFIX "stringProp"
+#define COMPIZ_STRING_PROP_TYPE_NAME "org.compiz.prop.string"
 
 const CompObjectType *
 getStringPropObjectType (void);

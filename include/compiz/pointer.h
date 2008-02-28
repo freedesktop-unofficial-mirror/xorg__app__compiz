@@ -41,7 +41,7 @@ typedef struct _CompPointer {
 #define POINTER(object) CompPointer *p = GET_POINTER (object)
 
 #define COMPIZ_POINTER_VERSION   20080221
-#define COMPIZ_POINTER_TYPE_NAME COMPIZ_NAME_PREFIX "pointer"
+#define COMPIZ_POINTER_TYPE_NAME "org.compiz.pointer"
 
 const CompObjectType *
 getPointerObjectType (void);

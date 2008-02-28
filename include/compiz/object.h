@@ -37,15 +37,27 @@
 COMPIZ_BEGIN_DECLS
 
 /*
-  object-type, object, interface and member names
+  object names
 
   - must only contain the ASCII characters "[A-Z][a-z][0-9]_"
   - may not be the empty string
-  - may not be exceed the maximum length of 127 characters
+  - may not be exceed the maximum length of 255 characters
 
-  object-type, interface and member names
+  member names
 
-  - must also not begin with a digit
+  - must only contain the ASCII characters "[A-Z][a-z][0-9]_"
+  - may not begin with a digit
+  - may not be the empty string
+  - may not be exceed the maximum length of 255 characters
+
+  interface names
+
+  - composed of 1 or more elements separated by a period ('.') character
+  - must not begin with a '.' (period) character
+  - may not be exceed the maximum length of 255 characters
+  - all elements must only contain the ASCII characters "[A-Z][a-z][0-9]_"
+  - all elements must not begin with a digit
+  - all elements must not be the empty string
 */
 
 typedef struct _CompObject	       CompObject;
@@ -552,7 +564,7 @@ struct _CompObject {
 #define OBJECT(object) CompObject *o = GET_OBJECT (object)
 
 #define COMPIZ_OBJECT_VERSION   20080221
-#define COMPIZ_OBJECT_TYPE_NAME COMPIZ_NAME_PREFIX "object"
+#define COMPIZ_OBJECT_TYPE_NAME "org.compiz.object"
 
 /* useful structures for object and interface implementations */
 

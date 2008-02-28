@@ -48,7 +48,7 @@ typedef struct _CompOutput {
 #define OUTPUT(object) CompOutput *o = GET_OUTPUT (object)
 
 #define COMPIZ_OUTPUT_VERSION   20080221
-#define COMPIZ_OUTPUT_TYPE_NAME COMPIZ_NAME_PREFIX "output"
+#define COMPIZ_OUTPUT_TYPE_NAME "org.compiz.output"
 
 const CompObjectType *
 getOutputObjectType (void);

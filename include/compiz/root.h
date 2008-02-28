@@ -68,7 +68,7 @@ struct _CompRoot {
 #define ROOT(object) CompRoot *r = GET_ROOT (object)
 
 #define COMPIZ_ROOT_VERSION   COMPIZ_PROP_VERSION
-#define COMPIZ_ROOT_TYPE_NAME COMPIZ_NAME_PREFIX "root"
+#define COMPIZ_ROOT_TYPE_NAME "org.compiz.root"
 
 const CompObjectType *
 getRootObjectType (void);

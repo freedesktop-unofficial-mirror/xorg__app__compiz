@@ -39,7 +39,7 @@ typedef struct _CompInput {
 #define INPUT(object) CompInput *i = GET_INPUT (object)
 
 #define COMPIZ_INPUT_VERSION   20080221
-#define COMPIZ_INPUT_TYPE_NAME COMPIZ_NAME_PREFIX "input"
+#define COMPIZ_INPUT_TYPE_NAME "org.compiz.input"
 
 const CompObjectType *
 getInputObjectType (void);

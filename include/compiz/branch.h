@@ -79,7 +79,7 @@ struct _CompBranch {
 #define BRANCH(object) CompBranch *b = GET_BRANCH (object)
 
 #define COMPIZ_BRANCH_VERSION   20080221
-#define COMPIZ_BRANCH_TYPE_NAME COMPIZ_NAME_PREFIX "branch"
+#define COMPIZ_BRANCH_TYPE_NAME "org.compiz.branch"
 
 const CompObjectType *
 getBranchObjectType (void);

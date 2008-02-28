@@ -47,7 +47,7 @@ typedef struct _CompBox {
 #define BOX(object) CompBox *b = GET_BOX (object)
 
 #define COMPIZ_BOX_VERSION   20080221
-#define COMPIZ_BOX_TYPE_NAME COMPIZ_NAME_PREFIX "box"
+#define COMPIZ_BOX_TYPE_NAME "org.compiz.box"
 
 const CompObjectType *
 getBoxObjectType (void);

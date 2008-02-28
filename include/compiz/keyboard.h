@@ -40,7 +40,7 @@ typedef struct _CompKeyboard {
 #define KEYBOARD(object) CompKeyboard *k = GET_KEYBOARD (object)
 
 #define COMPIZ_KEYBOARD_VERSION   20080221
-#define COMPIZ_KEYBOARD_TYPE_NAME COMPIZ_NAME_PREFIX "keyboard"
+#define COMPIZ_KEYBOARD_TYPE_NAME "org.compiz.keyboard"
 
 const CompObjectType *
 getKeyboardObjectType (void);
