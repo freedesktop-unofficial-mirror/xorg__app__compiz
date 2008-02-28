@@ -28,6 +28,7 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <dirent.h>
+#include <assert.h>
 
 #include <compiz/core.h>
 #include <compiz/error.h>
@@ -449,20 +450,17 @@ pushInterface (CompBranch		 *branch,
 	       const CompObjectInterface *interface,
 	       char			 **error)
 {
-    const CompObjectType       *type;
-    CompObject		       *node = NULL;
-    CompObjectInstantiatorNode *n;
-    int			       i;
+    const CompObjectType *type;
+    CompObject		 *node = NULL;
+    int			 i;
 
-    n = compObjectInstantiatorNode (&branch->factory, interface->base.name);
-    if (!n)
+    type = compLookupObjectType (&branch->factory, interface->base.name);
+    if (!type)
     {
 	esprintf (error, "Base type '%s' is not yet registered",
 		  interface->base.name);
 	return FALSE;
     }
-
-    type = n->base.interface;
 
     for (i = 0; i < branch->data.types.nChild; i++)
 	if (hasStringPropValue (branch->data.types.child[i].ref, type->name))
@@ -470,14 +468,9 @@ pushInterface (CompBranch		 *branch,
 
     if (i < branch->data.types.nChild)
     {
-	char path[257];
-
-	sprintf (path, "%s/%s", branch->data.types.name,
-		 branch->data.types.child[i].ref->name);
-
 	node = (*branch->u.vTable->newObject) (branch,
-					       path,
-					       COMPIZ_STRING_PROP_TYPE_NAME,
+					       branch->data.types.child[i].ref,
+					       getStringPropObjectType (),
 					       NULL,
 					       NULL);
 	if (node)
@@ -485,9 +478,8 @@ pushInterface (CompBranch		 *branch,
 	    char *error;
 
 	    if (!(*node->vTable->setString) (node,
-					     COMPIZ_STRING_PROP_TYPE_NAME,
-					     "value",
-					     interface->name,
+					     NULL,
+					     "value", interface->name,
 					     &error))
 	    {
 		(*branch->u.base.vTable->log) (&branch->u.base,
@@ -529,18 +521,15 @@ static void
 popInterface (CompBranch		*branch,
 	      const CompObjectInterface *interface)
 {
-    const CompObjectType       *type;
-    CompObjectInstantiatorNode *n;
+    const CompObjectType *type;
 
-    n = compObjectInstantiatorNode (&branch->factory, interface->base.name);
-    if (!n)
-	return;
+    type = compLookupObjectType (&branch->factory, interface->base.name);
 
-    type = n->base.interface;
+    assert (type);
 
     interface = compFactoryUninstallInterface (&branch->factory,
 					       &branch->u.base,
-					       n->base.interface);
+					       type);
     if (interface)
     {
 	CompObject *node;

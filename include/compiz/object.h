@@ -495,9 +495,17 @@ compObjectInitByTypeName (const CompObjectFactory *factory,
 			  CompObject		  *object,
 			  const char		  *name);
 
-CompObjectInstantiatorNode *
-compObjectInstantiatorNode (const CompObjectFactory *factory,
-			    const char		    *name);
+const CompObjectType *
+compLookupObjectType (const CompObjectFactory *factory,
+		      const char	      *name);
+
+const CompObjectInterface *
+compLookupObjectInterface (const CompObjectFactory *factory,
+			   const char		   *name);
+
+const CompObjectInstantiatorNode *
+compGetObjectInstantiatorNode (const CompObjectFactory *factory,
+			       const CompObjectType    *type);
 
 void
 compVTableInit (CompObjectVTable       *vTable,

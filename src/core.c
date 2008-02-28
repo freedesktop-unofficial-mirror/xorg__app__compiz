@@ -231,7 +231,7 @@ coreInitObject (const CompObjectInstantiator *instantiator,
 		CompObject		     *object,
 		const CompObjectFactory      *factory)
 {
-    static const char *containers[] = { "displays", "plugins" };
+    static const char *containers[] = { "displays" };
     int		      i;
 
     CORE (object);
@@ -245,10 +245,9 @@ coreInitObject (const CompObjectInstantiator *instantiator,
     {
 	CompObject *container;
 
-	container =
-	    (*c->u.base.u.vTable->createObject) (&c->u.base,
-						 COMPIZ_OBJECT_TYPE_NAME,
-						 NULL);
+	container = (*c->u.base.u.vTable->createObject) (&c->u.base,
+							 getObjectType (),
+							 NULL);
 	if (!container)
 	{
 	    cObjectFini (object);

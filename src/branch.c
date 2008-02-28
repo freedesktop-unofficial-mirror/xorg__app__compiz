@@ -79,17 +79,16 @@ branchInsertObject (CompObject *object,
 	    CompObject			 *type;
 
 	    type = (*b->u.vTable->newObject) (b,
-					      b->data.types.name,
-					      COMPIZ_STRING_PROP_TYPE_NAME,
+					      &b->data.types,
+					      getStringPropObjectType (),
 					      NULL,
 					      NULL);
 	    if (!type)
 		continue;
 
 	    (*type->vTable->setString) (type,
-					COMPIZ_STRING_PROP_TYPE_NAME,
-					"value",
-					node->base.interface->name,
+					NULL,
+					"value", node->base.interface->name,
 					NULL);
 
 	    for (instantiator = node->instantiator;
@@ -98,28 +97,21 @@ branchInsertObject (CompObject *object,
 	    {
 		if (instantiator->interface)
 		{
-		    CompObject *interface;
 		    const char *name = instantiator->interface->name;
-		    char       path[257];
-
-		    sprintf (path,
-			     "%s/%s",
-			     b->data.types.name,
-			     type->name);
+		    CompObject *interface;
 
 		    interface =
 			(*b->u.vTable->newObject) (b,
-						   path,
-						   COMPIZ_STRING_PROP_TYPE_NAME,
+						   type,
+						   getStringPropObjectType (),
 						   NULL,
 						   NULL);
 		    if (!interface)
 			continue;
 
 		    (*interface->vTable->setString) (interface,
-						     COMPIZ_STRING_PROP_TYPE_NAME,
-						     "value",
-						     name,
+						     NULL,
+						     "value", name,
 						     NULL);
 		}
 
@@ -131,9 +123,9 @@ branchInsertObject (CompObject *object,
 }
 
 static CompObject *
-noopCreateObject (CompBranch *branch,
-		  const char *type,
-		  char	     **error)
+noopCreateObject (CompBranch	       *branch,
+		  const CompObjectType *type,
+		  char		       **error)
 {
     CompObject *object;
 
@@ -146,17 +138,17 @@ noopCreateObject (CompBranch *branch,
 }
 
 static CompObject *
-createObject (CompBranch *branch,
-	      const char *type,
-	      char	 **error)
+createObject (CompBranch	   *branch,
+	      const CompObjectType *type,
+	      char		   **error)
 {
-    CompObjectInstantiatorNode *node;
-    CompObject		       *object;
+    const CompObjectInstantiatorNode *node;
+    CompObject			     *object;
 
-    node = compObjectInstantiatorNode (&branch->factory, type);
+    node = compGetObjectInstantiatorNode (&branch->factory, type);
     if (!node)
     {
-	esprintf (error, "'%s' is not a registered object type", type);
+	esprintf (error, "'%s' is not a registered object type", type->name);
 	return NULL;
     }
 
@@ -203,11 +195,11 @@ destroyObject (CompBranch *branch,
 }
 
 static CompObject *
-noopNewObject (CompBranch *branch,
-	       const char *parent,
-	       const char *type,
-	       const char *name,
-	       char	  **error)
+noopNewObject (CompBranch	    *branch,
+	       CompObject	    *parent,
+	       const CompObjectType *type,
+	       const char	    *name,
+	       char		    **error)
 {
     CompObject *object;
 
@@ -222,21 +214,14 @@ noopNewObject (CompBranch *branch,
 }
 
 static CompObject *
-newObject (CompBranch *branch,
-	   const char *parent,
-	   const char *type,
-	   const char *name,
-	   char	      **error)
+newObject (CompBranch		*branch,
+	   CompObject		*parent,
+	   const CompObjectType *type,
+	   const char		*name,
+	   char			**error)
 {
-    CompObject *object, *p;
+    CompObject *object;
     char       tmp[256];
-
-    p = compLookupDescendant (&branch->u.base, parent);
-    if (!p)
-    {
-	esprintf (error, "Parent object '%s' doesn't exist", parent);
-	return NULL;
-    }
 
     object = (*branch->u.vTable->createObject) (branch, type, error);
     if (!object)
@@ -248,11 +233,11 @@ newObject (CompBranch *branch,
 	name = tmp;
     }
 
-    if (!(*p->vTable->addChild) (p, object, name))
+    if (!(*parent->vTable->addChild) (parent, object, name))
     {
 	(*branch->u.vTable->destroyObject) (branch, object);
-	esprintf (error, "Parent '%s' cannot hold object of type '%s'", parent,
-		  type);
+	esprintf (error, "Parent '%s' cannot hold object of type '%s'",
+		  parent->name, type->name);
 	return NULL;
     }
 
@@ -285,11 +270,25 @@ addNewObject (CompBranch *branch,
 	      char	 **name,
 	      char	 **error)
 {
-    CompObject *object;
-    char       *objectName;
+    const CompObjectType *t;
+    CompObject		 *object, *p;
+    char		 *objectName;
 
-    object = (*branch->u.vTable->newObject) (branch, parent, type, NULL,
-					     error);
+    p = compLookupDescendant (&branch->u.base, parent);
+    if (!p)
+    {
+	esprintf (error, "Parent object '%s' doesn't exist", parent);
+	return FALSE;
+    }
+
+    t = compLookupObjectType (&branch->factory, type);
+    if (!t)
+    {
+	esprintf (error, "'%s' is not a registered object type", type);
+	return FALSE;
+    }
+
+    object = (*branch->u.vTable->newObject) (branch, p, t, NULL, error);
     if (!object)
 	return FALSE;
 
@@ -329,7 +328,8 @@ static const CMethod branchTypeMethod[] = {
 };
 
 static const CChildObject branchTypeChildObject[] = {
-    C_CHILD (types, CompBranchData, COMPIZ_OBJECT_TYPE_NAME)
+    C_CHILD (types,   CompBranchData, COMPIZ_OBJECT_TYPE_NAME),
+    C_CHILD (plugins, CompBranchData, COMPIZ_OBJECT_TYPE_NAME)
 };
 
 const CompObjectType *

@@ -133,11 +133,53 @@ compObjectInitByTypeName (const CompObjectFactory *factory,
     return compObjectInit (factory, object, instantiator);
 }
 
-CompObjectInstantiatorNode *
-compObjectInstantiatorNode (const CompObjectFactory *factory,
-			    const char		    *name)
+const CompObjectType *
+compLookupObjectType (const CompObjectFactory *factory,
+		      const char	      *name)
 {
-    return lookupObjectInstantiatorNode (factory, name);
+    CompObjectInstantiatorNode *node;
+
+    node = lookupObjectInstantiatorNode (factory, name);
+    if (!node)
+	return NULL;
+
+    return node->base.interface;
+}
+
+const CompObjectInterface *
+compLookupObjectInterface (const CompObjectFactory *factory,
+			   const char		   *name)
+{
+    for (; factory; factory = factory->master)
+    {
+	CompObjectInstantiatorNode *node;
+
+	for (node = factory->instantiators; node; node = node->next)
+	{
+	    const CompObjectInstantiator *instantiator;
+
+	    for (instantiator = node->instantiator;
+		 instantiator;
+		 instantiator = instantiator->base)
+	    {
+		if (instantiator->interface)
+		    if (strcmp (instantiator->interface->name, name) == 0)
+			return instantiator->interface;
+
+		if (instantiator == &node->base)
+		    break;
+	    }
+	}
+    }
+
+    return NULL;
+}
+
+const CompObjectInstantiatorNode *
+compGetObjectInstantiatorNode (const CompObjectFactory *factory,
+			       const CompObjectType    *type)
+{
+    return findObjectInstantiatorNode (factory, type);
 }
 
 void

@@ -32,18 +32,18 @@ COMPIZ_BEGIN_DECLS
 
 typedef struct _CompBranch CompBranch;
 
-typedef CompObject *(*CreateObjectProc) (CompBranch *branch,
-					 const char *type,
-					 char	    **error);
+typedef CompObject *(*CreateObjectProc) (CompBranch	      *branch,
+					 const CompObjectType *type,
+					 char		      **error);
 
 typedef void (*DestroyObjectProc) (CompBranch *branch,
 				   CompObject *object);
 
-typedef CompObject *(*NewObjectProc) (CompBranch *branch,
-				      const char *parent,
-				      const char *type,
-				      const char *name,
-				      char	 **error);
+typedef CompObject *(*NewObjectProc) (CompBranch	   *branch,
+				      CompObject	   *parent,
+				      const CompObjectType *type,
+				      const char	   *name,
+				      char		   **error);
 
 typedef CompBool (*AddNewObjectProc) (CompBranch *branch,
 				      const char *parent,
@@ -63,6 +63,7 @@ typedef struct _CompBranchVTable {
 typedef struct _CompBranchData {
     CompObjectData base;
     CompObject     types;
+    CompObject     plugins;
 } CompBranchData;
 
 struct _CompBranch {

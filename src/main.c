@@ -601,10 +601,9 @@ main (int argc, char **argv)
 
 	string =
 	    (*core.u.base.u.vTable->newObject) (&core.u.base,
-						"plugins",
-						COMPIZ_STRING_PROP_TYPE_NAME,
-						argv[i],
-						&error);
+						&core.u.base.data.plugins,
+						getStringPropObjectType (),
+						NULL, &error);
 	if (!string)
 	{
 	    fprintf (stderr, "%s\n", error);
@@ -613,7 +612,7 @@ main (int argc, char **argv)
 	}
 
 	(*string->vTable->setString) (string,
-				      COMPIZ_STRING_PROP_TYPE_NAME,
+				      getStringPropObjectType ()->name,
 				      "value",
 				      argv[i],
 				      NULL);
