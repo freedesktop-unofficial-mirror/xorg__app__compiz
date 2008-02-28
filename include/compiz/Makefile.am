@@ -7,7 +7,6 @@ compizsubinclude_HEADERS = \
 	c-object.h	   \
 	root.h		   \
 	branch.h	   \
-	container.h	   \
 	box.h		   \
 	prop.h		   \
 	input.h		   \
