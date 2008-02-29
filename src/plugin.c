@@ -482,24 +482,20 @@ pushInterface (CompBranch		 *branch,
 					     "value", interface->name,
 					     &error))
 	    {
-		(*branch->u.base.vTable->log) (&branch->u.base,
-					       getBranchObjectType ()->name,
-					       error);
+		compLog (&branch->u.base, getBranchObjectType (), ~0, error);
 		free (error);
 	    }
 	}
 	else
 	{
-	    (*branch->u.base.vTable->log) (&branch->u.base,
-					   getBranchObjectType ()->name,
-					   "Failed to create interface node");
+	    compLog (&branch->u.base, getBranchObjectType (), ~0,
+		     "Failed to create interface node");
 	}
     }
     else
     {
-	(*branch->u.base.vTable->log) (&branch->u.base,
-				       getBranchObjectType ()->name,
-				       "Failed to locate type node");
+	compLog (&branch->u.base, getBranchObjectType (), ~0,
+		 "Failed to locate type node");
     }
 
     if (!compFactoryInstallInterface (&branch->factory,

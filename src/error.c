@@ -75,20 +75,24 @@ vasprintf (char	      **strp,
 
 #include <compiz/error.h>
 
-int
+void
+vesprintf (char       **strp,
+	   const char *fmt,
+	   va_list    ap)
+{
+    if (strp)
+	if (vasprintf (strp, fmt, ap) < 0)
+	    *strp = NULL;
+}
+
+void
 esprintf (char	     **strp,
 	  const char *fmt,
 	  ...)
 {
     va_list ap;
-    int	    n;
-
-    if (!strp)
-	return 0;
 
     va_start (ap, fmt);
-    n = vasprintf (strp, fmt, ap);
+    vesprintf (strp, fmt, ap);
     va_end (ap);
-
-    return n;
 }

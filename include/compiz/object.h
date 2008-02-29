@@ -405,6 +405,7 @@ typedef void (*StringPropChangedProc) (CompObject *object,
 
 typedef void (*LogProc) (CompObject *object,
 			 const char *interface,
+			 const char *member,
 			 const char *message);
 
 struct _CompObjectVTable {
@@ -729,6 +730,13 @@ const char *
 compTranslateObjectPath (CompObject *ancestor,
 			 CompObject *descendant,
 			 const char *path);
+
+void
+compLog (CompObject		   *object,
+	 const CompObjectInterface *interface,
+	 size_t			   offset,
+	 const char		   *fmt,
+	 ...);
 
 COMPIZ_END_DECLS
 

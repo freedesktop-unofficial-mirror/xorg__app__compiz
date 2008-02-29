@@ -26,14 +26,21 @@
 #ifndef _COMPIZ_ERROR_H
 #define _COMPIZ_ERROR_H
 
+#include <stdarg.h>
+
 #include <compiz/types.h>
 
 COMPIZ_BEGIN_DECLS
 
 #define NO_MEMORY_ERROR_STRING "No memory"
 
-/* similar to asprintf except that 'strp' can be NULL */
-int
+/* similar to vasprintf except that 'strp' can be NULL */
+void
+vesprintf (char       **strp,
+	   const char *fmt,
+	   va_list    ap);
+
+void
 esprintf (char	     **strp,
 	  const char *fmt,
 	  ...);

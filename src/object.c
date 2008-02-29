@@ -2029,6 +2029,7 @@ noopStringPropChanged (CompObject *object,
 static void
 logImpl (CompObject *object,
 	 const char *interface,
+	 const char *member,
 	 const char *message)
 {
     const CObjectInterface *cInterface = (const CObjectInterface *)
@@ -2041,15 +2042,19 @@ logImpl (CompObject *object,
     C_EMIT_SIGNAL_INT (object, LogProc, 0, object->signalVec,
 		       cInterface->i.name, signal->name, signal->out,
 		       index,
-		       interface, message);
+		       interface, member, message);
 }
 
 static void
 noopLog (CompObject *object,
 	 const char *interface,
+	 const char *member,
 	 const char *message)
 {
-    FOR_BASE (object, (*object->vTable->log) (object, interface, message));
+    FOR_BASE (object, (*object->vTable->log) (object,
+					      interface,
+					      member,
+					      message));
 }
 
 static const CompObjectVTable objectVTable = {
@@ -2170,7 +2175,7 @@ static const CSignal objectTypeSignal[] = {
     C_SIGNAL (doubleChanged, "ssd", CompObjectVTable),
     C_SIGNAL (stringChanged, "sss", CompObjectVTable),
 
-    C_SIGNAL (log, "ss", CompObjectVTable)
+    C_SIGNAL (log, "sss", CompObjectVTable)
 };
 
 static const CObjectInterface objectType = {
@@ -2842,4 +2847,40 @@ compTranslateObjectPath (CompObject *ancestor,
 	return path + (n - 1);
 
     return path + n;
+}
+
+void
+compLog (CompObject		   *object,
+	 const CompObjectInterface *interface,
+	 size_t			   offset,
+	 const char		   *fmt,
+	 ...)
+{
+    char member[256];
+
+    sprintf (member, "%zu", offset);
+
+    if (fmt)
+    {
+	va_list ap;
+	char    *message;
+
+	va_start (ap, fmt);
+	vesprintf (&message, fmt, ap);
+	va_end (ap);
+
+	(*object->vTable->log) (object,
+				interface->name,
+				member,
+				message);
+
+	free (message);
+    }
+    else
+    {
+	(*object->vTable->log) (object,
+				interface->name,
+				member,
+				"Unknown error");
+    }
 }
