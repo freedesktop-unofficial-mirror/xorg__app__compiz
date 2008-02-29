@@ -2849,6 +2849,31 @@ compTranslateObjectPath (CompObject *ancestor,
     return path + n;
 }
 
+typedef struct _GetMethodNameContext {
+    size_t offset;
+    char   name[256];
+} GetMethodNameContext;
+
+static CompBool
+copyMethodName (CompObject	  *object,
+		const char	  *name,
+		const char	  *in,
+		const char	  *out,
+		size_t		  offset,
+		MethodMarshalProc marshal,
+		void		  *closure)
+{
+    GetMethodNameContext *pCtx = (GetMethodNameContext *) closure;
+
+    if (pCtx->offset == offset)
+    {
+	strcpy (pCtx->name, name);
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
 void
 compLog (CompObject		   *object,
 	 const CompObjectInterface *interface,
@@ -2856,9 +2881,19 @@ compLog (CompObject		   *object,
 	 const char		   *fmt,
 	 ...)
 {
-    char member[256];
+    GetMethodNameContext ctx;
 
-    sprintf (member, "%zu", offset);
+    ctx.offset = offset;
+
+    if ((*object->vTable->forEachMethod) (object,
+					  interface,
+					  copyMethodName,
+					  (void *) &ctx))
+	if ((*object->vTable->forEachMethod) (object,
+					      NULL,
+					      copyMethodName,
+					      (void *) &ctx))
+	    sprintf (ctx.name, "(%zu)", offset);
 
     if (fmt)
     {
@@ -2871,7 +2906,7 @@ compLog (CompObject		   *object,
 
 	(*object->vTable->log) (object,
 				interface->name,
-				member,
+				ctx.name,
 				message);
 
 	free (message);
@@ -2880,7 +2915,7 @@ compLog (CompObject		   *object,
     {
 	(*object->vTable->log) (object,
 				interface->name,
-				member,
+				ctx.name,
 				"Unknown error");
     }
 }
