@@ -17,6 +17,7 @@ compiz_SOURCES =    \
 	privates.c  \
 	object.c    \
 	c-object.c  \
+	p-object.c  \
 	root.c      \
 	branch.c    \
 	box.c	    \

@@ -5,6 +5,7 @@ compizsubinclude_HEADERS = \
 	error.h		   \
 	object.h	   \
 	c-object.h	   \
+	p-object.h	   \
 	root.h		   \
 	branch.h	   \
 	box.h		   \
