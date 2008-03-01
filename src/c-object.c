@@ -1843,15 +1843,15 @@ cUninstallObjectInterface (const CompObjectInterface *interface,
 }
 
 static CompBool
-cInitInterface (CompObject	        *object,
-		const CompObjectVTable  *vTable,
-		const CompObjectFactory *factory)
+cInitInterface (const CompObjectInstantiator *instantiator,
+		CompObject		     *object,
+		const CompObjectFactory	     *factory)
 {
     const CompObjectVTable *baseVTable;
     CompInterfaceData	   *data;
 
     baseVTable = object->vTable;
-    object->vTable = vTable;
+    object->vTable = instantiator->vTable;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_DATA, (void *) &data);
 

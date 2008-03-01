@@ -127,9 +127,9 @@ typedef CompBool (*InstallProc)   (const CompObjectInterface *interface,
 typedef void     (*UninstallProc) (const CompObjectInterface *interface,
 				   CompFactory	             *factory);
 
-typedef CompBool (*InitInterfaceProc) (CompObject	       *object,
-				       const CompObjectVTable  *vTable,
-				       const CompObjectFactory *factory);
+typedef CompBool (*InitInterfaceProc) (const CompObjectInstantiator *i,
+				       CompObject		    *object,
+				       const CompObjectFactory	    *factory);
 typedef void     (*FiniInterfaceProc) (CompObject *object);
 
 struct _CompObjectType {

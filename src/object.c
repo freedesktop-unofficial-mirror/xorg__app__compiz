@@ -339,8 +339,8 @@ initObjectInterface (CompObject *object,
     {
 	const CompObjectInterface *interface = pCtx->instantiator->interface;
 
-	if (!(*interface->interface.init) (object,
-					   pCtx->instantiator->vTable,
+	if (!(*interface->interface.init) (pCtx->instantiator,
+					   object,
 					   pCtx->factory))
 	{
 	    esprintf (pCtx->error,
