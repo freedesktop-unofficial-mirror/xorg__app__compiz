@@ -892,7 +892,7 @@ fuseObjectGetProp (CompObject   *object,
 		   unsigned int what,
 		   void	        *value)
 {
-    cGetInterfaceProp (&GET_FUSE_OBJECT (GET_OBJECT (object))->base,
+    cGetInterfaceProp (&GET_FUSE_OBJECT (object)->base,
 		       getFuseObjectInterface (),
 		       what, value);
 }
