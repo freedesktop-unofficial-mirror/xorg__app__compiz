@@ -108,12 +108,12 @@ setPrivates (GetPrivatesProc get,
 {
     PrivatesList *list = (PrivatesList *) data;
 
-    list->n--;
-
     (*set) (closure, list->handle[list->n].newPrivates);
 
     if (list->handle[list->n].oldPrivates)
 	free (list->handle[list->n].oldPrivates);
+
+    list->n++;
 
     return TRUE;
 }
@@ -237,6 +237,8 @@ allocatePrivateIndex (int		  *len,
 		     *totalSize - *len * sizeof (CompPrivate),
 		     newSizes);
 
+    list.n = 0;
+
     (*forEachPrivates) (setPrivates, (void *) &list, closure);
 
     finiPrivatesList (&list);
@@ -280,6 +282,8 @@ freePrivateIndex (int		      *len,
 		copyAllPrivates (&list, *len, newLen,
 				 *totalSize - newLen * sizeof (CompPrivate),
 				 *sizes);
+
+		list.n = 0;
 
 		(*forEachPrivates) (setPrivates, (void *) &list, closure);
 
