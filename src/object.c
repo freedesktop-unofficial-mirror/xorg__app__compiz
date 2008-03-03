@@ -1142,7 +1142,7 @@ forEachChildObject (CompObject		    *object,
 		    ChildObjectCallBackProc proc,
 		    void		    *closure)
 {
-    int	i;
+    int i;
 
     for (i = 0; i < object->nChild; i++)
 	if (!(*proc) (object->child[i].ref, closure))
@@ -1153,8 +1153,8 @@ forEachChildObject (CompObject		    *object,
 
 static CompBool
 noopForEachChildObject (CompObject		*object,
-			ChildObjectCallBackProc proc,
-			void		        *closure)
+			ChildObjectCallBackProc	proc,
+			void			*closure)
 {
     CompBool status;
 
@@ -1170,7 +1170,7 @@ static CompObject *
 lookupChildObject (CompObject *object,
 		   const char *name)
 {
-    int	i;
+    int i;
 
     for (i = 0; i < object->nChild; i++)
 	if (strcmp (object->child[i].name, name) == 0)
@@ -2241,7 +2241,7 @@ CompObject *
 compLookupDescendant (CompObject *object,
 		      const char *path)
 {
-    char name[128];
+    char name[256];
     int  i, j = 0;
 
     do {
