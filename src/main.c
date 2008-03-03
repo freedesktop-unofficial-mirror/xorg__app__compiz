@@ -455,6 +455,7 @@ main (int argc, char **argv)
     const CompObjectType *staticTypes[] = {
 	getObjectType (),
 	getDelegateObjectType (),
+	getDelegateVoidObjectType (),
 	getBranchObjectType (),
 	getBoxObjectType (),
 	getRootObjectType (),

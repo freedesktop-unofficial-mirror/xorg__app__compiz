@@ -26,6 +26,25 @@
 #include <compiz/delegate.h>
 #include <compiz/c-object.h>
 
+static CompObjectType *
+delegateObjectTypeFromTemplate (const CObjectInterface *template)
+{
+    CObjectInterface delegateTemplate = *template;
+
+    if (!delegateTemplate.i.base.name)
+    {
+	delegateTemplate.i.base.name    = COMPIZ_DELEGATE_TYPE_NAME;
+	delegateTemplate.i.base.version = COMPIZ_DELEGATE_VERSION;
+    }
+
+    if (!delegateTemplate.i.version)
+	delegateTemplate.i.version = COMPIZ_DELEGATE_VERSION;
+
+    return cObjectTypeFromTemplate (&delegateTemplate);
+}
+
+/* delegate */
+
 static void
 delegateGetProp (CompObject   *object,
 		 unsigned int what,
@@ -36,8 +55,21 @@ delegateGetProp (CompObject   *object,
 		    what, value);
 }
 
-static const CompObjectVTable delegateObjectVTable = {
-    .getProp = delegateGetProp
+static void
+delegateProcessSignal (CompObject   *object,
+		       const char   *path,
+		       const char   *interface,
+		       const char   *name,
+		       const char   *signature,
+		       CompAnyValue *value,
+		       int	    nValue)
+{
+}
+
+static const CompDelegateVTable delegateObjectVTable = {
+    .base.getProp = delegateGetProp,
+
+    .processSignal = delegateProcessSignal
 };
 
 static const CChildObject delegateTypeChildObject[] = {
@@ -56,7 +88,8 @@ getDelegateObjectType (void)
 	    .i.version	     = COMPIZ_DELEGATE_VERSION,
 	    .i.base.name     = COMPIZ_OBJECT_TYPE_NAME,
 	    .i.base.version  = COMPIZ_OBJECT_VERSION,
-	    .i.vTable.impl   = &delegateObjectVTable,
+	    .i.vTable.impl   = &delegateObjectVTable.base,
+	    .i.vTable.size   = sizeof (delegateObjectVTable),
 	    .i.instance.size = sizeof (CompDelegate),
 
 	    .child  = delegateTypeChildObject,
@@ -64,6 +97,58 @@ getDelegateObjectType (void)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
+/* void */
+
+static void
+delegateVoidGetProp (CompObject   *object,
+		     unsigned int what,
+		     void	  *value)
+{
+    cGetObjectProp (&GET_DELEGATE_VOID (object)->data,
+		    getDelegateVoidObjectType (),
+		    what, value);
+}
+
+static void
+signalVoid (CompDelegateVoid *dv)
+{
+    C_EMIT_SIGNAL (&dv->u.base.u.base, SignalVoidProc,
+		   offsetof (CompDelegateVoidVTable, signalVoid));
+}
+
+static const CompDelegateVoidVTable delegateVoidObjectVTable = {
+    .base.base.getProp = delegateVoidGetProp,
+
+    .signalVoid = signalVoid
+};
+
+static const CSignal delegateVoidTypeSignal[] = {
+    C_SIGNAL (signalVoid, "", CompDelegateVoidVTable)
+};
+
+const CompObjectType *
+getDelegateVoidObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_DELEGATE_VOID_TYPE_NAME,
+	    .i.vTable.impl   = &delegateVoidObjectVTable.base.base,
+	    .i.vTable.size   = sizeof (delegateVoidObjectVTable),
+	    .i.instance.size = sizeof (CompDelegateVoid),
+
+	    .signal  = delegateVoidTypeSignal,
+	    .nSignal = N_ELEMENTS (delegateVoidTypeSignal)
+	};
+
+	type = delegateObjectTypeFromTemplate (&template);
     }
 
     return type;

@@ -30,24 +30,62 @@
 
 COMPIZ_BEGIN_DECLS
 
+typedef struct _CompDelegateVTable {
+    CompObjectVTable base;
+
+    SignalProc processSignal;
+} CompDelegateVTable;
+
 typedef struct _CompDelegateData {
     CompObjectData base;
     CompObject     matches;
 } CompDelegateData;
 
 typedef struct _CompDelegate {
-    CompObject       base;
+    union {
+	CompObject	         base;
+	const CompDelegateVTable *vTable;
+    } u;
+
     CompDelegateData data;
 } CompDelegate;
 
 #define GET_DELEGATE(object) ((CompDelegate *) (object))
-#define DELEGATE(object) CompDelegate *b = GET_DELEGATE (object)
+#define DELEGATE(object) CompDelegate *d = GET_DELEGATE (object)
 
 #define COMPIZ_DELEGATE_VERSION   20080302
 #define COMPIZ_DELEGATE_TYPE_NAME "org.compiz.delegate"
 
 const CompObjectType *
 getDelegateObjectType (void);
+
+
+typedef struct _CompDelegateVoid CompDelegateVoid;
+
+typedef void (*SignalVoidProc) (CompDelegateVoid *dv);
+
+typedef struct _CompDelegateVoidVTable {
+    CompDelegateVTable base;
+
+    SignalVoidProc signalVoid;
+} CompDelegateVoidVTable;
+
+struct _CompDelegateVoid {
+    union {
+	CompDelegate		     base;
+	const CompDelegateVoidVTable *vTable;
+    } u;
+
+    CompObjectData data;
+};
+
+#define COMPIZ_DELEGATE_VOID_TYPE_NAME "org.compiz.delegate.void"
+
+#define GET_DELEGATE_VOID(object) ((CompDelegateVoid *) (object))
+#define DELEGATE_VOID(object) CompDelegateVoid *dv = GET_DELEGATE_VOID (object)
+
+const CompObjectType *
+getDelegateVoidObjectType (void);
 
 COMPIZ_END_DECLS
 
