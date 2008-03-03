@@ -35,6 +35,7 @@
 #include <sys/wait.h>
 
 #include <compiz/core.h>
+#include <compiz/delegate.h>
 #include <compiz/root.h>
 #include <compiz/prop.h>
 #include <compiz/box.h>
