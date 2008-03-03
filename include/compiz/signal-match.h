@@ -50,10 +50,6 @@ typedef struct _CompSignalMatchVTable {
 
 typedef struct _CompSignalMatchData {
     CompObjectData base;
-    char           *path;
-    char           *interface;
-    char           *name;
-    char           *signature;
     CompObject     args;
 } CompSignalMatchData;
 
@@ -74,6 +70,31 @@ struct _CompSignalMatch {
 
 const CompObjectType *
 getSignalMatchObjectType (void);
+
+
+typedef struct _CompSimpleSignalMatchData {
+    CompObjectData base;
+    char           *path;
+    char           *interface;
+    char           *name;
+    char           *signature;
+} CompSimpleSignalMatchData;
+
+typedef struct _CompSimpleSignalMatch {
+    CompSignalMatch base;
+
+    CompSimpleSignalMatchData data;
+} CompSimpleSignalMatch;
+
+#define GET_SIMPLE_SIGNAL_MATCH(object) ((CompSimpleSignalMatch *) (object))
+#define SIMPLE_SIGNAL_MATCH(object)				  \
+    CompSimpleSignalMatch *ssm = GET_SIMPLE_SIGNAL_MATCH (object)
+
+#define COMPIZ_SIMPLE_SIGNAL_MATCH_VERSION   20080303
+#define COMPIZ_SIMPLE_SIGNAL_MATCH_TYPE_NAME "org.compiz.signalMatch.simple"
+
+const CompObjectType *
+getSimpleSignalMatchObjectType (void);
 
 COMPIZ_END_DECLS
 
