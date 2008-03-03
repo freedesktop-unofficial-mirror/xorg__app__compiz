@@ -307,8 +307,8 @@ cForEachChildObject (CompObject		     *object,
 {
     CompBool               status;
     const CObjectInterface *cInterface;
-    char                   *data;
-    int		           i;
+    char		   *data;
+    int			   i;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);
@@ -333,8 +333,8 @@ cLookupChildObject (CompObject *object,
 {
     CompObject	           *child;
     const CObjectInterface *cInterface;
-    char                   *data;
-    int		           i;
+    char		   *data;
+    int			   i;
 
     (*object->vTable->getProp) (object, COMP_PROP_C_INTERFACE, (void *)
 				&cInterface);

@@ -6,6 +6,7 @@ compizsubinclude_HEADERS = \
 	object.h	   \
 	c-object.h	   \
 	p-object.h	   \
+	delegate.h	   \
 	root.h		   \
 	branch.h	   \
 	box.h		   \

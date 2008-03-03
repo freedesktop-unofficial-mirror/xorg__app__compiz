@@ -401,7 +401,8 @@ finiObjectTree (CompObject *o,
     ctx.plugin = p;
     ctx.object = NULL;
 
-    (*o->vTable->forEachChildObject) (o, finiObjectTree,
+    (*o->vTable->forEachChildObject) (o,
+				      finiObjectTree,
 				      (void *) &ctx);
 
     if (p->vTable->initObject && p->vTable->finiObject)
