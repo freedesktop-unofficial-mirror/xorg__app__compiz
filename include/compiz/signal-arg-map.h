@@ -23,57 +23,48 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifndef _COMPIZ_SIGNAL_MATCH_H
-#define _COMPIZ_SIGNAL_MATCH_H
+#ifndef _COMPIZ_SIGNAL_ARG_MAP_H
+#define _COMPIZ_SIGNAL_ARG_MAP_H
 
 #include <compiz/object.h>
 
 COMPIZ_BEGIN_DECLS
 
-typedef struct _CompSignalMatch CompSignalMatch;
+typedef struct _CompSignalArgMap CompSignalArgMap;
 
-typedef CompBool (*MatchProc) (CompSignalMatch *sm,
-			       const char	*path,
-			       const char	*interface,
-			       const char	*name,
-			       const char	*signature,
-			       CompAnyValue	*value,
-			       int	        nValue,
-			       const char      *args,
-			       CompAnyValue    *argValue);
+typedef CompBool (*MapProc) (CompSignalArgMap *sa,
+			     const char       *path,
+			     const char       *interface,
+			     const char	      *name,
+			     const char	      *signature,
+			     CompAnyValue     *value,
+			     int	      nValue,
+			     CompAnyValue     *arg);
 
-typedef struct _CompSignalMatchVTable {
+typedef struct _CompSignalArgMapVTable {
     CompObjectVTable base;
 
-    MatchProc match;
-} CompSignalMatchVTable;
+    MapProc map;
+} CompSignalArgMapVTable;
 
-typedef struct _CompSignalMatchData {
-    CompObjectData base;
-    char           *path;
-    char           *interface;
-    char           *name;
-    char           *signature;
-    CompObject     args;
-} CompSignalMatchData;
-
-struct _CompSignalMatch {
+struct _CompSignalArgMap {
     union {
-	CompObject	         base;
-	const CompSignalMatchVTable *vTable;
+	CompObject		     base;
+	const CompSignalArgMapVTable *vTable;
     } u;
 
-    CompSignalMatchData data;
+    CompObjectData data;
 };
 
-#define GET_SIGNAL_MATCH(object) ((CompSignalMatch *) (object))
-#define SIGNAL_MATCH(object) CompSignalMatch *sm = GET_SIGNAL_MATCH (object)
+#define GET_SIGNAL_ARG_MAP(object) ((CompSignalArgMap *) (object))
+#define SIGNAL_ARG_MAP(object)			       \
+    CompSignalArgMap *sa = GET_SIGNAL_ARG_MAP (object)
 
-#define COMPIZ_SIGNAL_MATCH_VERSION   20080303
-#define COMPIZ_SIGNAL_MATCH_TYPE_NAME "org.compiz.signalMatch"
+#define COMPIZ_SIGNAL_ARG_MAP_VERSION   20080303
+#define COMPIZ_SIGNAL_ARG_MAP_TYPE_NAME "org.compiz.signalArgMap"
 
 const CompObjectType *
-getSignalMatchObjectType (void);
+getSignalArgMapObjectType (void);
 
 COMPIZ_END_DECLS
 

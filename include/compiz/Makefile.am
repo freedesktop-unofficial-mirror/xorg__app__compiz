@@ -6,6 +6,7 @@ compizsubinclude_HEADERS = \
 	object.h	   \
 	c-object.h	   \
 	p-object.h	   \
+	signal-arg-map.h   \
 	signal-match.h	   \
 	delegate.h	   \
 	root.h		   \
