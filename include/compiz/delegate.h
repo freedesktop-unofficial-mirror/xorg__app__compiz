@@ -30,10 +30,20 @@
 
 COMPIZ_BEGIN_DECLS
 
+typedef struct _CompDelegate CompDelegate;
+
+typedef void (*DelegateSignalProc) (CompDelegate *d,
+				    const char   *path,
+				    const char   *interface,
+				    const char   *name,
+				    const char   *signature,
+				    CompAnyValue *value,
+				    int	         nValue);
+
 typedef struct _CompDelegateVTable {
     CompObjectVTable base;
 
-    SignalProc processSignal;
+    DelegateSignalProc processSignal;
 } CompDelegateVTable;
 
 typedef struct _CompDelegateData {
@@ -41,14 +51,14 @@ typedef struct _CompDelegateData {
     CompObject     matches;
 } CompDelegateData;
 
-typedef struct _CompDelegate {
+struct _CompDelegate {
     union {
 	CompObject	         base;
 	const CompDelegateVTable *vTable;
     } u;
 
     CompDelegateData data;
-} CompDelegate;
+};
 
 #define GET_DELEGATE(object) ((CompDelegate *) (object))
 #define DELEGATE(object) CompDelegate *d = GET_DELEGATE (object)

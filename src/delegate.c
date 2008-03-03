@@ -24,6 +24,7 @@
  */
 
 #include <compiz/delegate.h>
+#include <compiz/signal-match.h>
 #include <compiz/c-object.h>
 
 static CompObjectType *
@@ -56,7 +57,7 @@ delegateGetProp (CompObject   *object,
 }
 
 static void
-delegateProcessSignal (CompObject   *object,
+delegateProcessSignal (CompDelegate *d,
 		       const char   *path,
 		       const char   *interface,
 		       const char   *name,
@@ -66,10 +67,32 @@ delegateProcessSignal (CompObject   *object,
 {
 }
 
+static void
+noopDelegateProcessSignal (CompDelegate *d,
+			   const char   *path,
+			   const char   *interface,
+			   const char   *name,
+			   const char   *signature,
+			   CompAnyValue *value,
+			   int	        nValue)
+{
+    FOR_BASE (&d->u.base, (*d->u.vTable->processSignal) (d,
+							 path,
+							 interface,
+							 name,
+							 signature,
+							 value,
+							 nValue));
+}
+
 static const CompDelegateVTable delegateObjectVTable = {
     .base.getProp = delegateGetProp,
 
     .processSignal = delegateProcessSignal
+};
+
+static const CompDelegateVTable noopDelegateObjectVTable = {
+    .processSignal = noopDelegateProcessSignal
 };
 
 static const CChildObject delegateTypeChildObject[] = {
@@ -115,16 +138,63 @@ delegateVoidGetProp (CompObject   *object,
 }
 
 static void
+delegateVoidProcessSignal (CompDelegate *d,
+			   const char   *path,
+			   const char   *interface,
+			   const char   *name,
+			   const char   *signature,
+			   CompAnyValue *value,
+			   int		nValue)
+{
+    int i;
+
+    DELEGATE_VOID (d);
+
+    for (i = 0; i < d->data.matches.nChild; i++)
+    {
+	CompSignalMatch *sm;
+
+	sm = COMP_TYPE_CAST (d->data.matches.child[i].ref,
+			     getSignalMatchObjectType (),
+			     CompSignalMatch);
+	if (sm)
+	{
+	    if ((*sm->u.vTable->match) (sm,
+					path,
+					interface,
+					name,
+					signature,
+					value,
+					nValue,
+					"",
+					NULL))
+		(dv->u.vTable->signalVoid) (dv);
+	}
+    }
+}
+
+static void
 signalVoid (CompDelegateVoid *dv)
 {
     C_EMIT_SIGNAL (&dv->u.base.u.base, SignalVoidProc,
 		   offsetof (CompDelegateVoidVTable, signalVoid));
 }
 
+static void
+noopSignalVoid (CompDelegateVoid *dv)
+{
+    FOR_BASE (&dv->u.base.u.base, (*dv->u.vTable->signalVoid) (dv));
+}
+
 static const CompDelegateVoidVTable delegateVoidObjectVTable = {
-    .base.base.getProp = delegateVoidGetProp,
+    .base.base.getProp  = delegateVoidGetProp,
+    .base.processSignal = delegateVoidProcessSignal,
 
     .signalVoid = signalVoid
+};
+
+static const CompDelegateVoidVTable noopDelegateVoidObjectVTable = {
+    .signalVoid = noopSignalVoid
 };
 
 static const CSignal delegateVoidTypeSignal[] = {
@@ -141,6 +211,7 @@ getDelegateVoidObjectType (void)
 	static const CObjectInterface template = {
 	    .i.name	     = COMPIZ_DELEGATE_VOID_TYPE_NAME,
 	    .i.vTable.impl   = &delegateVoidObjectVTable.base.base,
+	    .i.vTable.noop   = &noopDelegateVoidObjectVTable.base.base,
 	    .i.vTable.size   = sizeof (delegateVoidObjectVTable),
 	    .i.instance.size = sizeof (CompDelegateVoid),
 

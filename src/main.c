@@ -454,20 +454,21 @@ main (int argc, char **argv)
 
     const CompObjectType *staticTypes[] = {
 	getObjectType (),
-	getDelegateObjectType (),
-	getDelegateVoidObjectType (),
-	getBranchObjectType (),
-	getBoxObjectType (),
-	getRootObjectType (),
-	getCoreObjectType (),
-	getDisplayObjectType (),
-	getScreenObjectType (),
-	getWindowObjectType (),
 	getPropObjectType (),
 	getBoolPropObjectType (),
 	getIntPropObjectType (),
 	getDoublePropObjectType (),
-	getStringPropObjectType ()
+	getStringPropObjectType (),
+	getSignalMatchObjectType (),
+	getDelegateObjectType (),
+	getDelegateVoidObjectType (),
+	getRootObjectType (),
+	getBranchObjectType (),
+	getBoxObjectType (),
+	getCoreObjectType (),
+	getDisplayObjectType (),
+	getScreenObjectType (),
+	getWindowObjectType ()
     };
 
     MainContext context = {
