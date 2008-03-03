@@ -738,6 +738,13 @@ compLog (CompObject		   *object,
 	 const char		   *fmt,
 	 ...);
 
+CompObject *
+compObjectTypeCast (CompObject		 *object,
+		    const CompObjectType *type);
+
+#define COMP_TYPE_CAST(object, objecttype, datatype)	   \
+    ((datatype *) compObjectTypeCast (object, objecttype))
+
 COMPIZ_END_DECLS
 
 #endif

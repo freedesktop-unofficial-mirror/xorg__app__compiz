@@ -2919,3 +2919,23 @@ compLog (CompObject		   *object,
 				"Unknown error");
     }
 }
+
+static CompBool
+isNotOfType (CompObject		       *object,
+	     const CompObjectInterface *interface,
+	     void		       *closure)
+{
+    return (interface != (const CompObjectInterface *) closure);
+}
+
+CompObject *
+compObjectTypeCast (CompObject		 *object,
+		    const CompObjectType *type)
+{
+    if ((*object->vTable->forEachInterface) (object,
+					     isNotOfType,
+					     (void *) type))
+	return NULL;
+
+    return object;
+}
