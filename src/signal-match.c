@@ -124,6 +124,10 @@ static const CStringProp signalMatchTypeStringProp[] = {
     C_PROP (signature, CompSignalMatchData)
 };
 
+static const CChildObject signalMatchTypeChildObject[] = {
+    C_CHILD (args, CompSignalMatchData, COMPIZ_OBJECT_TYPE_NAME)
+};
+
 const CompObjectType *
 getSignalMatchObjectType (void)
 {
@@ -141,8 +145,11 @@ getSignalMatchObjectType (void)
 	    .i.vTable.size   = sizeof (signalMatchObjectVTable),
 	    .i.instance.size = sizeof (CompSignalMatch),
 
-	    .stringProp = signalMatchTypeStringProp,
-	    .nStringProp = N_ELEMENTS (signalMatchTypeStringProp)
+	    .stringProp  = signalMatchTypeStringProp,
+	    .nStringProp = N_ELEMENTS (signalMatchTypeStringProp),
+
+	    .child  = signalMatchTypeChildObject,
+	    .nChild = N_ELEMENTS (signalMatchTypeChildObject)
 	};
 
 	type = cObjectTypeFromTemplate (&template);

@@ -54,6 +54,7 @@ typedef struct _CompSignalMatchData {
     char           *interface;
     char           *name;
     char           *signature;
+    CompObject     args;
 } CompSignalMatchData;
 
 struct _CompSignalMatch {
