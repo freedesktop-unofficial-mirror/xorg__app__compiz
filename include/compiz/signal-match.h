@@ -48,13 +48,21 @@ typedef struct _CompSignalMatchVTable {
     MatchProc match;
 } CompSignalMatchVTable;
 
+typedef struct _CompSignalMatchData {
+    CompObjectData base;
+    char           *path;
+    char           *interface;
+    char           *name;
+    char           *signature;
+} CompSignalMatchData;
+
 struct _CompSignalMatch {
     union {
 	CompObject	         base;
 	const CompSignalMatchVTable *vTable;
     } u;
 
-    CompObjectData data;
+    CompSignalMatchData data;
 };
 
 #define GET_SIGNAL_MATCH(object) ((CompSignalMatch *) (object))

@@ -23,6 +23,8 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <string.h>
+
 #include <compiz/signal-match.h>
 #include <compiz/c-object.h>
 
@@ -31,7 +33,7 @@ signalMatchGetProp (CompObject   *object,
 		    unsigned int what,
 		    void	 *value)
 {
-    cGetObjectProp (&GET_SIGNAL_MATCH (object)->data,
+    cGetObjectProp (&GET_SIGNAL_MATCH (object)->data.base,
 		    getSignalMatchObjectType (),
 		    what, value);
 }
@@ -47,6 +49,35 @@ match (CompSignalMatch *sm,
        const char      *args,
        CompAnyValue    *argValue)
 {
+    if (strcmp (path,	   sm->data.path)      == 0 &&
+	strcmp (interface, sm->data.interface) == 0 &&
+	strcmp (name,	   sm->data.name)      == 0 &&
+	strcmp (signature, sm->data.signature) == 0)
+    {
+	int i;
+
+	for (i = 0; args[i] != COMP_TYPE_INVALID; i++)
+	{
+	    switch (args[i]) {
+	    case COMP_TYPE_BOOLEAN:
+		argValue[i].b = FALSE;
+		break;
+	    case COMP_TYPE_INT32:
+		argValue[i].i = 0;
+		break;
+	    case COMP_TYPE_DOUBLE:
+		argValue[i].d = 0.0;
+		break;
+	    case COMP_TYPE_STRING:
+	    case COMP_TYPE_OBJECT:
+		argValue[i].s = NULL;
+		break;
+	    }
+	}
+
+	return TRUE;
+    }
+
     return FALSE;
 }
 
@@ -86,6 +117,13 @@ static const CompSignalMatchVTable noopSignalMatchObjectVTable = {
     .match = noopMatch
 };
 
+static const CStringProp signalMatchTypeStringProp[] = {
+    C_PROP (path,      CompSignalMatchData),
+    C_PROP (interface, CompSignalMatchData),
+    C_PROP (name,      CompSignalMatchData),
+    C_PROP (signature, CompSignalMatchData)
+};
+
 const CompObjectType *
 getSignalMatchObjectType (void)
 {
@@ -101,7 +139,10 @@ getSignalMatchObjectType (void)
 	    .i.vTable.impl   = &signalMatchObjectVTable.base,
 	    .i.vTable.noop   = &noopSignalMatchObjectVTable.base,
 	    .i.vTable.size   = sizeof (signalMatchObjectVTable),
-	    .i.instance.size = sizeof (CompSignalMatch)
+	    .i.instance.size = sizeof (CompSignalMatch),
+
+	    .stringProp = signalMatchTypeStringProp,
+	    .nStringProp = N_ELEMENTS (signalMatchTypeStringProp)
 	};
 
 	type = cObjectTypeFromTemplate (&template);
