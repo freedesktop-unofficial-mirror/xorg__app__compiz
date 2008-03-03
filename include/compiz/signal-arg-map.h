@@ -30,6 +30,13 @@
 
 COMPIZ_BEGIN_DECLS
 
+#define SIGNAL_MAP_SOURCE_CONSTANT   0
+#define SIGNAL_MAP_SOURCE_PATH       1
+#define SIGNAL_MAP_SOURCE_INTERFACE  2
+#define SIGNAL_MAP_SOURCE_NAME       3
+#define SIGNAL_MAP_SOURCE_SIGNATURE  4
+#define SIGNAL_MAP_SOURCE_VALUE_BASE 5
+
 typedef struct _CompSignalArgMap CompSignalArgMap;
 
 typedef CompBool (*MapProc) (CompSignalArgMap *sa,
@@ -47,13 +54,18 @@ typedef struct _CompSignalArgMapVTable {
     MapProc map;
 } CompSignalArgMapVTable;
 
+typedef struct _CompSignalArgMapData {
+    CompObjectData base;
+    int32_t	   source;
+} CompSignalArgMapData;
+
 struct _CompSignalArgMap {
     union {
 	CompObject		     base;
 	const CompSignalArgMapVTable *vTable;
     } u;
 
-    CompObjectData data;
+    CompSignalArgMapData data;
 };
 
 #define GET_SIGNAL_ARG_MAP(object) ((CompSignalArgMap *) (object))
@@ -65,6 +77,92 @@ struct _CompSignalArgMap {
 
 const CompObjectType *
 getSignalArgMapObjectType (void);
+
+
+typedef struct _CompBoolSignalArgMapData {
+    CompObjectData base;
+    CompBool	   constant;
+} CompBoolSignalArgMapData;
+
+typedef struct _CompBoolSignalArgMap {
+    CompSignalArgMap base;
+
+    CompBoolSignalArgMapData data;
+} CompBoolSignalArgMap;
+
+#define GET_BOOL_SIGNAL_ARG_MAP(object) ((CompBoolSignalArgMap *) (object))
+#define BOOL_SIGNAL_ARG_MAP(object)			        \
+    CompBoolSignalArgMap *ba = GET_BOOL_SIGNAL_ARG_MAP (object)
+
+#define COMPIZ_BOOL_SIGNAL_ARG_MAP_TYPE_NAME "org.compiz.signalArgMap.bool"
+
+const CompObjectType *
+getBoolSignalArgMapObjectType (void);
+
+
+typedef struct _CompIntSignalArgMapData {
+    CompObjectData base;
+    int32_t	   constant;
+} CompIntSignalArgMapData;
+
+typedef struct _CompIntSignalArgMap {
+    CompSignalArgMap base;
+
+    CompIntSignalArgMapData data;
+} CompIntSignalArgMap;
+
+#define GET_INT_SIGNAL_ARG_MAP(object) ((CompIntSignalArgMap *) (object))
+#define INT_SIGNAL_ARG_MAP(object)			      \
+    CompIntSignalArgMap *ia = GET_INT_SIGNAL_ARG_MAP (object)
+
+#define COMPIZ_INT_SIGNAL_ARG_MAP_TYPE_NAME "org.compiz.signalArgMap.int"
+
+const CompObjectType *
+getIntSignalArgMapObjectType (void);
+
+
+typedef struct _CompDoubleSignalArgMapData {
+    CompObjectData base;
+    double	   constant;
+} CompDoubleSignalArgMapData;
+
+typedef struct _CompDoubleSignalArgMap {
+    CompSignalArgMap base;
+
+    CompDoubleSignalArgMapData data;
+} CompDoubleSignalArgMap;
+
+#define GET_DOUBLE_SIGNAL_ARG_MAP(object) \
+    ((CompDoubleSignalArgMap *) (object))
+#define DOUBLE_SIGNAL_ARG_MAP(object)				    \
+    CompDoubleSignalArgMap *da = GET_DOUBLE_SIGNAL_ARG_MAP (object)
+
+#define COMPIZ_DOUBLE_SIGNAL_ARG_MAP_TYPE_NAME "org.compiz.signalArgMap.double"
+
+const CompObjectType *
+getDoubleSignalArgMapObjectType (void);
+
+
+typedef struct _CompStringSignalArgMapData {
+    CompObjectData base;
+    char	   *constant;
+} CompStringSignalArgMapData;
+
+typedef struct _CompStringSignalArgMap {
+    CompSignalArgMap base;
+
+    CompStringSignalArgMapData data;
+} CompStringSignalArgMap;
+
+#define GET_STRING_SIGNAL_ARG_MAP(object) \
+    ((CompStringSignalArgMap *) (object))
+#define STRING_SIGNAL_ARG_MAP(object)				    \
+    CompStringSignalArgMap *da = GET_STRING_SIGNAL_ARG_MAP (object)
+
+#define COMPIZ_STRING_SIGNAL_ARG_MAP_TYPE_NAME "org.compiz.signalArgMap.string"
+
+const CompObjectType *
+getStringSignalArgMapObjectType (void);
 
 COMPIZ_END_DECLS
 

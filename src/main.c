@@ -35,6 +35,8 @@
 #include <sys/wait.h>
 
 #include <compiz/core.h>
+#include <compiz/signal-arg-map.h>
+#include <compiz/signal-match.h>
 #include <compiz/delegate.h>
 #include <compiz/root.h>
 #include <compiz/prop.h>
@@ -459,6 +461,11 @@ main (int argc, char **argv)
 	getIntPropObjectType (),
 	getDoublePropObjectType (),
 	getStringPropObjectType (),
+	getSignalArgMapObjectType (),
+	getBoolSignalArgMapObjectType (),
+	getIntSignalArgMapObjectType (),
+	getDoubleSignalArgMapObjectType (),
+	getStringSignalArgMapObjectType (),
 	getSignalMatchObjectType (),
 	getDelegateObjectType (),
 	getDelegateVoidObjectType (),

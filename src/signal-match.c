@@ -54,112 +54,59 @@ match (CompSignalMatch *sm,
 
     for (i = 0; args[i] != COMP_TYPE_INVALID; i++)
     {
-	switch (args[i]) {
-	case COMP_TYPE_BOOLEAN:
-	    argValue[i].b = FALSE;
+	if (i < sm->data.args.nChild)
+	{
+	    CompSignalArgMap *sa = NULL;
 
-	    if (i < sm->data.args.nChild)
-	    {
-		CompSignalArgMap *ba;
-
-		ba = COMP_TYPE_CAST (sm->data.args.child[i].ref,
-				     getSignalArgMapObjectType (),
-				     CompSignalArgMap);
-		if (ba)
-		    (*ba->u.vTable->map) (ba,
-					  path,
-					  interface,
-					  name,
-					  signature,
-					  value,
-					  nValue,
-					  &argValue[i]);
-	    }
-	    break;
-	case COMP_TYPE_INT32:
-	    argValue[i].i = 0;
-
-	    if (i < sm->data.args.nChild)
-	    {
-		CompSignalArgMap *ia;
-
-		ia = COMP_TYPE_CAST (sm->data.args.child[i].ref,
-				     getSignalArgMapObjectType (),
-				     CompSignalArgMap);
-		if (ia)
-		    (*ia->u.vTable->map) (ia,
-					  path,
-					  interface,
-					  name,
-					  signature,
-					  value,
-					  nValue,
-					  &argValue[i]);
-	    }
-	    break;
-	case COMP_TYPE_DOUBLE:
-	    argValue[i].d = 0.0;
-
-	    if (i < sm->data.args.nChild)
-	    {
-		CompSignalArgMap *da;
-
-		da = COMP_TYPE_CAST (sm->data.args.child[i].ref,
-				     getSignalArgMapObjectType (),
-				     CompSignalArgMap);
-		if (da)
-		    (*da->u.vTable->map) (da,
-					  path,
-					  interface,
-					  name,
-					  signature,
-					  value,
-					  nValue,
-					  &argValue[i]);
-	    }
-	    break;
-	case COMP_TYPE_STRING:
-	    argValue[i].s = NULL;
-
-	    if (i < sm->data.args.nChild)
-	    {
-		CompSignalArgMap *sa;
-
+	    switch (args[i]) {
+	    case COMP_TYPE_BOOLEAN:
 		sa = COMP_TYPE_CAST (sm->data.args.child[i].ref,
-				     getSignalArgMapObjectType (),
+				     getBoolSignalArgMapObjectType (),
 				     CompSignalArgMap);
-		if (sa)
-		    (*sa->u.vTable->map) (sa,
-					  path,
-					  interface,
-					  name,
-					  signature,
-					  value,
-					  nValue,
-					  &argValue[i]);
+		break;
+	    case COMP_TYPE_INT32:
+		sa = COMP_TYPE_CAST (sm->data.args.child[i].ref,
+				     getIntSignalArgMapObjectType (),
+				     CompSignalArgMap);
+		break;
+	    case COMP_TYPE_DOUBLE:
+		sa = COMP_TYPE_CAST (sm->data.args.child[i].ref,
+				     getDoubleSignalArgMapObjectType (),
+				     CompSignalArgMap);
+		break;
+	    case COMP_TYPE_STRING:
+	    case COMP_TYPE_OBJECT:
+		sa = COMP_TYPE_CAST (sm->data.args.child[i].ref,
+				     getStringSignalArgMapObjectType (),
+				     CompSignalArgMap);
+		break;
 	    }
-	    break;
-	case COMP_TYPE_OBJECT:
-	    argValue[i].s = NULL;
 
-	    if (i < sm->data.args.nChild)
+	    if (sa)
 	    {
-		CompSignalArgMap *oa;
-
-		oa = COMP_TYPE_CAST (sm->data.args.child[i].ref,
-				     getSignalArgMapObjectType (),
-				     CompSignalArgMap);
-		if (oa)
-		    (*oa->u.vTable->map) (oa,
-					  path,
-					  interface,
-					  name,
-					  signature,
-					  value,
-					  nValue,
-					  &argValue[i]);
+		if (!(*sa->u.vTable->map) (sa,
+					   path,
+					   interface,
+					   name,
+					   signature,
+					   value,
+					   nValue,
+					   &argValue[i]))
+		    memset (&argValue[i], 0, sizeof (CompAnyValue));
 	    }
-	    break;
+	    else
+	    {
+		compLog (&sm->u.base,
+			 getSignalMatchObjectType (),
+			 offsetof (CompSignalMatchVTable, match),
+			 "Signal argument mapping object for '%c' argument "
+			 "has bad type", args[i]);
+		memset (&argValue[i], 0, sizeof (CompAnyValue));
+	    }
+	}
+	else
+	{
+	    memset (&argValue[i], 0, sizeof (CompAnyValue));
 	}
     }
 
