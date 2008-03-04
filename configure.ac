@@ -117,7 +117,7 @@ AC_SUBST(default_plugins)
 imagedir=$datadir/compiz-0
 AC_SUBST(imagedir)
 
-metadatadir=$datadir/compiz-0
+metadatadir=$datadir/compiz-0/metadata
 AC_SUBST(metadatadir)
 
 COMPIZ_REQUIRES="x11-xcb    \

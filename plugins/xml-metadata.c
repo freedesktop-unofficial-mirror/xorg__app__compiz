@@ -49,7 +49,7 @@ const CompObjectInterface *
 getXmlmBranchObjectInterface (void);
 
 #define XML_DATADIR      METADATADIR
-#define HOME_XML_DATADIR ".compiz-0/data"
+#define HOME_XML_DATADIR ".compiz-0/metadata"
 #define XML_EXTENSION    ".xml"
 #define XML_ROOT         "/compiz"
 
