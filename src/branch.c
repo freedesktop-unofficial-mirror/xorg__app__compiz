@@ -244,6 +244,224 @@ newObject (CompBranch		*branch,
     return object;
 }
 
+typedef struct _MemberContext {
+    const CompObjectInterface *interface;
+    const char		      *name;
+    int			      offset;
+    char		      *signature;
+} MemberContext;
+
+static CompBool
+getInterface (CompObject		*object,
+	      const CompObjectInterface *interface,
+	      void			*closure)
+{
+    MemberContext *pCtx = (MemberContext *) closure;
+
+    pCtx->interface = interface;
+
+    return FALSE;
+}
+
+static CompBool
+checkSignal (CompObject	*object,
+	     const char *name,
+	     const char	*in,
+	     size_t	offset,
+	     void	*closure)
+{
+    MemberContext *pCtx = (MemberContext *) closure;
+
+    if (strcmp (name, pCtx->name))
+	return TRUE;
+
+    if (!pCtx->interface)
+	(*object->vTable->forEachInterface) (object, getInterface, closure);
+
+    pCtx->signature = strdup (in);
+    pCtx->offset    = offset;
+
+    return FALSE;
+}
+
+static CompBool
+checkMethod (CompObject	       *object,
+	     const char	       *name,
+	     const char	       *in,
+	     const char	       *out,
+	     size_t	       offset,
+	     MethodMarshalProc marshal,
+	     void	       *closure)
+{
+    MemberContext *pCtx = (MemberContext *) closure;
+
+    if (strcmp (name, pCtx->name))
+	return TRUE;
+
+    if (!pCtx->interface)
+	(*object->vTable->forEachInterface) (object, getInterface, closure);
+
+    pCtx->signature = strdup (in);
+    pCtx->offset    = offset;
+
+    return FALSE;
+}
+
+static CompBool
+noopConnectDescendants (CompBranch *b,
+			CompObject *source,
+			const char *signalInterfaceName,
+			const char *signalName,
+			CompObject *target,
+			const char *methodInterfaceName,
+			const char *methodName,
+			int	   *index,
+			char       **error)
+{
+    CompBool status;
+
+    FOR_BASE (&b->u.base,
+	      status = (*b->u.vTable->connectDescendants) (b,
+							   source,
+							   signalInterfaceName,
+							   signalName,
+							   target,
+							   methodInterfaceName,
+							   methodName,
+							   index,
+							   error));
+
+    return status;
+}
+
+static CompBool
+connectDescendants (CompBranch *b,
+		    CompObject *source,
+		    const char *signalInterfaceName,
+		    const char *signalName,
+		    CompObject *target,
+		    const char *methodInterfaceName,
+		    const char *methodName,
+		    int	       *index,
+		    char       **error)
+{
+    CompObject	  *ancestor;
+    MemberContext signal, method;
+    int		  i;
+
+    signal.interface = NULL;
+    signal.name      = signalName;
+
+    if (signalInterfaceName)
+    {
+	signal.interface = compLookupObjectInterface (&b->factory,
+						      signalInterfaceName);
+	if (!signal.interface)
+	{
+	    esprintf (error, "'%s' is not a registered object type",
+		      signalInterfaceName);
+	    return FALSE;
+	}
+    }
+
+    if ((*source->vTable->forEachSignal) (source,
+					  signal.interface,
+					  checkSignal,
+					  (void *) &signal))
+    {
+	esprintf (error, "Signal '%s' doesn't exist", signalName);
+	return FALSE;
+    }
+
+    if (!signal.signature)
+    {
+	esprintf (error, NO_MEMORY_ERROR_STRING);
+	return FALSE;
+    }
+
+    method.interface = NULL;
+    method.name      = methodName;
+
+    if (methodInterfaceName)
+    {
+	method.interface = compLookupObjectInterface (&b->factory,
+						      methodInterfaceName);
+	if (!method.interface)
+	{
+	    esprintf (error, "'%s' is not a registered object type",
+		      methodInterfaceName);
+	    free (signal.signature);
+	    return FALSE;
+	}
+    }
+
+    if ((*target->vTable->forEachMethod) (target,
+					  method.interface,
+					  checkMethod,
+					  (void *) &method))
+    {
+	esprintf (error, "Method '%s' doesn't exist", methodName);
+	free (signal.signature);
+	return FALSE;
+    }
+
+    if (!method.signature)
+    {
+	esprintf (error, NO_MEMORY_ERROR_STRING);
+	free (signal.signature);
+	return FALSE;
+    }
+
+    if (strcmp (signal.signature, method.signature))
+    {
+	esprintf (error, "Method signature '%s' doesn't match signal "
+		  "signature '%s'", method.signature, signal.signature);
+	free (method.signature);
+	free (signal.signature);
+	return FALSE;
+    }
+
+    for (ancestor = target; ancestor; ancestor = ancestor->parent)
+	if (ancestor == source)
+	    break;
+
+    if (ancestor == source)
+    {
+	i = (*source->vTable->connect) (source,
+					signal.interface,
+					signal.offset,
+					target,
+					method.interface,
+					method.offset,
+					NULL,
+					(va_list) 0);
+    }
+    else
+    {
+	i = (*b->u.base.vTable->connectAsync) (&b->u.base,
+					       source,
+					       signal.interface,
+					       signal.offset,
+					       target,
+					       method.interface,
+					       method.offset);
+    }
+
+    free (method.signature);
+    free (signal.signature);
+
+    if (i < 0)
+    {
+	esprintf (error, NO_MEMORY_ERROR_STRING);
+	return FALSE;
+    }
+
+    if (index)
+	*index = i;
+
+    return TRUE;
+}
+
 static CompBool
 noopAddNewObject (CompBranch *branch,
 		  const char *parent,
@@ -306,25 +524,102 @@ addNewObject (CompBranch *branch,
     return TRUE;
 }
 
+static CompBool
+noopConnectObjects (CompBranch *b,
+		    const char *source,
+		    const char *signalInterface,
+		    const char *signal,
+		    const char *target,
+		    const char *methodInterface,
+		    const char *method,
+		    int	       *index,
+		    char       **error)
+{
+    CompBool status;
+
+    FOR_BASE (&b->u.base,
+	      status = (*b->u.vTable->connectObjects) (b,
+						       source,
+						       signalInterface,
+						       signal,
+						       target,
+						       methodInterface,
+						       method,
+						       index,
+						       error));
+
+    return status;
+}
+
+static CompBool
+connectObjects (CompBranch *b,
+		const char *source,
+		const char *signal,
+		const char *signalInterface,
+		const char *target,
+		const char *method,
+		const char *methodInterface,
+		int	   *index,
+		char       **error)
+{
+    CompObject *s, *t;
+
+    s = compLookupDescendant (&b->u.base, source);
+    if (!s)
+    {
+	esprintf (error, "Source object '%s' doesn't exist", source);
+	return FALSE;
+    }
+
+    t = compLookupDescendant (&b->u.base, target);
+    if (!t)
+    {
+	esprintf (error, "Target object '%s' doesn't exist", target);
+	return FALSE;
+    }
+
+    if (signalInterface == '\0')
+	signalInterface = NULL;
+
+    if (methodInterface == '\0')
+	methodInterface = NULL;
+
+    return (*b->u.vTable->connectDescendants) (b,
+					       s,
+					       signalInterface,
+					       signal,
+					       t,
+					       methodInterface,
+					       method,
+					       index,
+					       error);
+}
+
 static CompBranchVTable branchObjectVTable = {
     .base.getProp      = branchGetProp,
     .base.insertObject = branchInsertObject,
 
-    .createObject  = createObject,
-    .destroyObject = destroyObject,
-    .newObject     = newObject,
-    .addNewObject  = addNewObject
+    .createObject	= createObject,
+    .destroyObject	= destroyObject,
+    .newObject		= newObject,
+    .addNewObject	= addNewObject,
+    .connectDescendants = connectDescendants,
+    .connectObjects	= connectObjects
 };
 
 static const CompBranchVTable noopBranchObjectVTable = {
-    .createObject  = noopCreateObject,
-    .destroyObject = noopDestroyObject,
-    .newObject     = noopNewObject,
-    .addNewObject  = noopAddNewObject
+    .createObject	= noopCreateObject,
+    .destroyObject	= noopDestroyObject,
+    .newObject		= noopNewObject,
+    .addNewObject	= noopAddNewObject,
+    .connectDescendants = noopConnectDescendants,
+    .connectObjects	= noopConnectObjects
 };
 
 static const CMethod branchTypeMethod[] = {
-    C_METHOD (addNewObject, "os", "o", CompBranchVTable, marshal__SS_S_E)
+    C_METHOD (addNewObject,   "os", "o", CompBranchVTable, marshal__SS_S_E),
+    C_METHOD (connectObjects, "ossoss", "i", CompBranchVTable,
+	      marshal__SSSSSS_I_E)
 };
 
 static const CChildObject branchTypeChildObject[] = {

@@ -45,19 +45,41 @@ typedef CompObject *(*NewObjectProc) (CompBranch	   *branch,
 				      const char	   *name,
 				      char		   **error);
 
+typedef CompBool (*ConnectDescendantsProc) (CompBranch *branch,
+					    CompObject *source,
+					    const char *signalInterfaceName,
+					    const char *signalName,
+					    CompObject *target,
+					    const char *methodInterfaceName,
+					    const char *methodName,
+					    int	       *index,
+					    char       **error);
+
 typedef CompBool (*AddNewObjectProc) (CompBranch *branch,
 				      const char *parent,
 				      const char *type,
 				      char	 **name,
 				      char	 **error);
 
+typedef CompBool (*ConnectObjectsProc) (CompBranch *branch,
+					const char *source,
+					const char *signalInterface,
+					const char *signal,
+					const char *target,
+					const char *methodInterface,
+					const char *method,
+					int	    *index,
+					char	    **error);
+
 typedef struct _CompBranchVTable {
     CompObjectVTable base;
 
-    CreateObjectProc  createObject;
-    DestroyObjectProc destroyObject;
-    NewObjectProc     newObject;
-    AddNewObjectProc  addNewObject;
+    CreateObjectProc	   createObject;
+    DestroyObjectProc	   destroyObject;
+    NewObjectProc	   newObject;
+    ConnectDescendantsProc connectDescendants;
+    AddNewObjectProc	   addNewObject;
+    ConnectObjectsProc	   connectObjects;
 } CompBranchVTable;
 
 typedef struct _CompBranchData {
