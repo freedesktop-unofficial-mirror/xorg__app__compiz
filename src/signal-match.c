@@ -201,31 +201,45 @@ simpleMatch (CompSignalMatch *sm,
 	     const char      *args,
 	     CompAnyValue    *argValue)
 {
+    CompBool status;
+
     SIMPLE_SIGNAL_MATCH (sm);
 
-    if (strcmp (path,	   ssm->data.path)      ||
-	strcmp (interface, ssm->data.interface) ||
+    if (strcmp (ssm->data.path, "//*") != 0)
+    {
+	int i;
+
+	for (i = 0; path[i]; i++)
+	    if (ssm->data.path[i] != path[i])
+		break;
+
+	if (path[i])
+	{
+	    if (ssm->data.path[i] != '*')
+		return FALSE;
+	}
+	else if (ssm->data.path[i] != '\0')
+	{
+	    return FALSE;
+	}
+    }
+
+    if (strcmp (interface, ssm->data.interface) ||
 	strcmp (name,	   ssm->data.name)      ||
 	strcmp (signature, ssm->data.signature))
-    {
 	return FALSE;
-    }
-    else
-    {
-	CompBool status;
 
-	FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
-								path,
-								interface,
-								name,
-								signature,
-								value,
-								nValue,
-								args,
-								argValue));
+    FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
+							    path,
+							    interface,
+							    name,
+							    signature,
+							    value,
+							    nValue,
+							    args,
+							    argValue));
 
-	return status;
-    }
+    return status;
 }
 
 static const CompSignalMatchVTable simpleSignalMatchObjectVTable = {
