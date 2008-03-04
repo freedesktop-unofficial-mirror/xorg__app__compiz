@@ -65,5 +65,66 @@
       <_long>Default window icon image</_long>
       <default>icon</default>
     </property>
+    <node type="org.compiz.delegate.void">
+      <interface name="org.compiz.object">
+	<node name="matches">
+	  <interface name="org.compiz.object">
+	    <node type="org.compiz.signalMatch.simple">
+	      <interface name="org.compiz.signalMatch.simple">
+		<property name="path" type="s">
+		  <default>outputs/*</default>
+		</property>
+		<property name="interface" type="s">
+		  <default>org.compiz.object</default>
+		</property>
+		<property name="name" type="s">
+		  <default>removed</default>
+		</property>
+		<property name="signature" type="s">
+		  <default></default>
+		</property>
+	      </interface>
+	    </node>
+	    <node type="org.compiz.signalMatch.simple">
+	      <interface name="org.compiz.signalMatch.simple">
+		<property name="path" type="s">
+		  <default>outputs/*</default>
+		</property>
+		<property name="interface" type="s">
+		  <default>org.compiz.object</default>
+		</property>
+		<property name="name" type="s">
+		  <default>intChanged</default>
+		</property>
+		<property name="signature" type="s">
+		  <default>ssi</default>
+		</property>
+	      </interface>
+	    </node>
+	  </interface>
+	</node>
+      </interface>
+      <connect signal="signalVoid" method="updateOutputDevices"/>
+    </node>
+    <node name="outputs">
+      <interface name="org.compiz.object">
+	<node type="org.compiz.box">
+	  <interface name="org.compiz.box">
+	    <property name="x1" type="i">
+	      <default>0</default>
+	    </property>
+	    <property name="y1" type="i">
+	      <default>0</default>
+	    </property>
+	    <property name="x2" type="i">
+	      <default>1024</default>
+	    </property>
+	    <property name="y2" type="i">
+	      <default>768</default>
+	    </property>
+	  </interface>
+	</node>
+      </interface>
+    </node>
   </interface>
 </compiz>
