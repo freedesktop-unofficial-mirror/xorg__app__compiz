@@ -57,6 +57,26 @@ delegateGetProp (CompObject   *object,
 }
 
 static void
+delegateInsert (CompObject *object,
+		CompObject *parent)
+{
+    if (!compConnect (parent,
+		      getObjectType (),
+		      offsetof (CompObjectVTable, signal),
+		      object,
+		      getDelegateObjectType (),
+		      offsetof (CompDelegateVTable, processSignal),
+		      NULL))
+    {
+	compLog (object,
+		 getDelegateObjectType (),
+		 offsetof (CompObjectVTable, insertObject),
+		 "Failed to connect '%s' delegate to parent",
+		 object->name);
+    }
+}
+
+static void
 delegateProcessSignal (CompDelegate *d,
 		       const char   *path,
 		       const char   *interface,
@@ -112,11 +132,14 @@ getDelegateObjectType (void)
 	    .i.base.name     = COMPIZ_OBJECT_TYPE_NAME,
 	    .i.base.version  = COMPIZ_OBJECT_VERSION,
 	    .i.vTable.impl   = &delegateObjectVTable.base,
+	    .i.vTable.noop   = &noopDelegateObjectVTable.base,
 	    .i.vTable.size   = sizeof (delegateObjectVTable),
 	    .i.instance.size = sizeof (CompDelegate),
 
 	    .child  = delegateTypeChildObject,
-	    .nChild = N_ELEMENTS (delegateTypeChildObject)
+	    .nChild = N_ELEMENTS (delegateTypeChildObject),
+
+	    .insert = delegateInsert
 	};
 
 	type = cObjectTypeFromTemplate (&template);
