@@ -57,6 +57,13 @@ getXmlmBranchObjectInterface (void);
 static int xmlmObjectPrivateIndex;
 static int xmlmBranchPrivateIndex;
 
+typedef struct _XmlmInterface XmlmInterface;
+
+typedef void (*XmlmApplyInterfaceMetadataProc) (CompBranch	    *branch,
+						CompObject	    *object,
+						const XmlmInterface *interface,
+						const char	    *name);
+
 typedef CompBool (*XmlmLoadMetadataFileProc) (CompBranch *branch,
 					      const char *filename,
 					      char	 **error);
@@ -69,10 +76,9 @@ typedef CompBool (*XmlmLoadInterfaceFromDefaultFileProc) (CompBranch *branch,
 							  const char *name,
 							  char	     **error);
 
-typedef CompBool (*XmlmApplyInterfaceDefaultsProc) (CompBranch *branch,
-						    const char *path,
-						    const char *name,
-						    char       **error);
+typedef void (*XmlmEnsureInterfaceMetadataProc) (CompBranch *branch,
+						 const char *path,
+						 const char *name);
 
 typedef void (*XmlmInterfaceAddedProc) (CompBranch *branch,
 					const char *path,
@@ -81,26 +87,37 @@ typedef void (*XmlmInterfaceAddedProc) (CompBranch *branch,
 typedef struct _XmlmBranchVTable {
     CompBranchVTable base;
 
+    XmlmApplyInterfaceMetadataProc	 applyInterfaceMetadata;
     XmlmLoadMetadataFileProc		 loadMetadataFile;
     XmlmUnloadMetadataFileProc		 unloadMetadataFile;
     XmlmLoadInterfaceFromDefaultFileProc loadInterfaceFromDefaultFile;
-    XmlmApplyInterfaceDefaultsProc	 applyInterfaceDefaults;
+    XmlmEnsureInterfaceMetadataProc	 ensureInterfaceMetadata;
 
     XmlmInterfaceAddedProc interfaceAdded;
 
     SignalProc interfaceAddedDelegate;
 } XmlmBranchVTable;
 
-typedef struct _XmlmInterface {
+struct _XmlmInterface {
     xmlXPathObject *props;
     xmlXPathObject *nodes;
-} XmlmInterface;
+};
+
+typedef struct _XmlmNode {
+    xmlXPathObject *interfaces;
+    xmlXPathObject *connections;
+} XmlmNode;
+
+typedef struct _XmlmDoc {
+    xmlDocPtr doc;
+    XmlmNode  node;
+} XmlmDoc;
 
 typedef struct _XmlmBranch {
     CompInterfaceData base;
 
-    xmlDocPtr *doc;
-    int	      nDoc;
+    XmlmDoc *doc;
+    int	    nDoc;
 } XmlmBranch;
 
 #define GET_XMLM_BRANCH(b)						 \
@@ -150,6 +167,24 @@ xmlmForEachObject (CompObject *object,
 						  closure);
 }
 
+static const char *
+xmlmNodeProp (xmlNodePtr node,
+	      const char *name)
+{
+    xmlAttrPtr attr;
+
+    attr = xmlHasProp (node, BAD_CAST name);
+    if (!attr)
+	return NULL;
+
+    if (attr->_private)
+	return (const char *) attr->_private;
+
+    attr->_private = xmlGetProp (node, BAD_CAST name);
+
+    return (const char *) attr->_private;
+}
+
 static void
 xmlmFreeInterfaceNode (CompBranch *b,
 		       xmlNodePtr node)
@@ -158,6 +193,9 @@ xmlmFreeInterfaceNode (CompBranch *b,
 
     if (!interface)
 	return;
+
+    if (interface->props)
+	xmlXPathFreeObject (interface->props);
 
     if (interface->nodes)
     {
@@ -171,39 +209,44 @@ xmlmFreeInterfaceNode (CompBranch *b,
 
 	    for (i = 0; i < nodeNr; i++)
 	    {
-		xmlXPathObject *ifaces = (xmlXPathObject *)
-		    nodeTab[i]->_private;
+		XmlmNode *node = (XmlmNode *) nodeTab[i]->_private;
 
-		if (!ifaces)
+		if (!node)
 		    continue;
 
 		if (b)
 		    (*b->u.base.vTable->forEachChildObject) (&b->u.base,
 							     xmlmForEachObject,
-							     (void *) ifaces);
+							     (void *) node);
 
-		if (ifaces->nodesetval)
+		if (node->connections)
+		    xmlXPathFreeObject (node->connections);
+
+		if (node->interfaces)
 		{
-		    int j;
-
-		    for (j = 0; j < ifaces->nodesetval->nodeNr; j++)
+		    if (node->interfaces->nodesetval)
 		    {
-			xmlNodePtr interfaceNode =
-			    ifaces->nodesetval->nodeTab[j];
+			xmlXPathObjectPtr interfaces = node->interfaces;
+			int		  j;
 
-			xmlmFreeInterfaceNode (b, interfaceNode);
+			for (j = 0; j < interfaces->nodesetval->nodeNr; j++)
+			{
+			    xmlNodePtr interfaceNode =
+				interfaces->nodesetval->nodeTab[j];
+
+			    xmlmFreeInterfaceNode (b, interfaceNode);
+			}
 		    }
+
+		    xmlXPathFreeObject (node->interfaces);
 		}
 
-		xmlXPathFreeObject (ifaces);
+		free (node);
 	    }
 	}
 
 	xmlXPathFreeObject (interface->nodes);
     }
-
-    if (interface->props)
-	xmlXPathFreeObject (interface->props);
 
     free (interface);
 
@@ -217,11 +260,11 @@ xmlmBuildInterfaceNode (xmlNodePtr	   node,
 			int		   index)
 {
     XmlmInterface *interface;
-    char	  expr[2048], propExpr[2048], nodesExpr[2048];
+    char	  baseExpr[2048], xpathExpr[2048];
 
     node->_private = NULL;
 
-    if (!xmlGetProp (node, BAD_CAST "name"))
+    if (!xmlmNodeProp (node, "name"))
 	return;
 
     interface = malloc (sizeof (XmlmInterface));
@@ -233,55 +276,70 @@ xmlmBuildInterfaceNode (xmlNodePtr	   node,
 
     node->_private = interface;
 
-    if (snprintf (expr, sizeof (expr),
-		  "%s[%d]", path, index + 1) >= sizeof (expr))
+    if (snprintf (baseExpr, sizeof (baseExpr),
+		  "%s[%d]", path, index + 1) >= sizeof (baseExpr))
 	return;
 
-    if (snprintf (propExpr, sizeof (propExpr),
+    if (snprintf (xpathExpr, sizeof (xpathExpr),
 		  "%s"
 		  "/property[@name and @type and "
 		  "(@type='b' or @type='i' or @type='d' or @type='s')]"
-		  "/default[1]/text()", expr) >= sizeof (propExpr))
+		  "/default[1]/text()", baseExpr) >= sizeof (xpathExpr))
 	return;
 
-    interface->props = xmlXPathEvalExpression (BAD_CAST propExpr, ctx);
+    interface->props = xmlXPathEvalExpression (BAD_CAST xpathExpr, ctx);
 
-    if (snprintf (nodesExpr, sizeof (nodesExpr),
+    if (snprintf (xpathExpr, sizeof (xpathExpr),
 		  "%s"
-		  "/node", expr) >= sizeof (nodesExpr))
+		  "/node", baseExpr) >= sizeof (xpathExpr))
 	return;
 
-    interface->nodes = xmlXPathEvalExpression (BAD_CAST nodesExpr, ctx);
+    interface->nodes = xmlXPathEvalExpression (BAD_CAST xpathExpr, ctx);
 
     if (interface->nodes && interface->nodes->nodesetval)
     {
-	xmlXPathObjectPtr ifaces;
-	char	          interfacesExpr[2048];
-	int		  i;
+	XmlmNode *node;
+	char	 nodeExpr[2048];
+	int	 i;
 
 	for (i = 0; i < interface->nodes->nodesetval->nodeNr; i++)
 	{
-	    interface->nodes->nodesetval->nodeTab[i]->_private = NULL;
-
-	    if (snprintf (interfacesExpr, sizeof (interfacesExpr),
-			  "%s"
-			  "[%d]/interface[@name]",
-			  nodesExpr, i + 1) >= sizeof (interfacesExpr))
+	    node = malloc (sizeof (XmlmNode));
+	    if (!node)
 		continue;
 
-	    ifaces = xmlXPathEvalExpression (BAD_CAST interfacesExpr, ctx);
-	    if (ifaces && ifaces->nodesetval)
-	    {
-		int j;
+	    node->interfaces  = NULL;
+	    node->connections = NULL;
 
-		for (j = 0; j < ifaces->nodesetval->nodeNr; j++)
-		    xmlmBuildInterfaceNode (ifaces->nodesetval->nodeTab[j],
+	    interface->nodes->nodesetval->nodeTab[i]->_private = node;
+
+	    if (snprintf (nodeExpr, sizeof (nodeExpr),
+			  "%s"
+			  "[%d]/interface[@name]",
+			  xpathExpr, i + 1) >= sizeof (nodeExpr))
+		continue;
+
+	    node->interfaces = xmlXPathEvalExpression (BAD_CAST nodeExpr, ctx);
+	    if (node->interfaces && node->interfaces->nodesetval)
+	    {
+		xmlXPathObjectPtr interfaces = node->interfaces;
+		int		  j;
+
+		for (j = 0; j < interfaces->nodesetval->nodeNr; j++)
+		    xmlmBuildInterfaceNode (interfaces->nodesetval->nodeTab[j],
 					    ctx,
-					    interfacesExpr,
+					    nodeExpr,
 					    j);
 	    }
 
-	    interface->nodes->nodesetval->nodeTab[i]->_private = ifaces;
+	    if (snprintf (nodeExpr, sizeof (nodeExpr),
+			  "%s"
+			  "[%d]/connect[@signal and @method]",
+			  xpathExpr, i + 1) >= sizeof (nodeExpr))
+		continue;
+
+	    node->connections = xmlXPathEvalExpression (BAD_CAST nodeExpr,
+							ctx);
 	}
     }
 }
@@ -310,22 +368,216 @@ xmlmFiniBranch (CompObject *object)
 
 	for (i = 0; i < xb->nDoc; i++)
 	{
-	    xmlXPathObject *ifaces = (xmlXPathObject *) xb->doc[i]->_private;
+	    XmlmNode *node = (XmlmNode *) &xb->doc[i].node;
 
-	    if (ifaces)
+	    if (node->connections)
+		xmlXPathFreeObject (node->connections);
+
+	    if (node->interfaces)
 	    {
-		int j;
+		xmlXPathObjectPtr interfaces = node->interfaces;
+		int		  j;
 
-		for (j = 0; j < ifaces->nodesetval->nodeNr; j++)
-		    xmlmFreeInterfaceNode (0, ifaces->nodesetval->nodeTab[j]);
+		for (j = 0; j < interfaces->nodesetval->nodeNr; j++)
+		    xmlmFreeInterfaceNode (0,
+					   interfaces->nodesetval->nodeTab[j]);
 
-		xmlXPathFreeObject (ifaces);
+		xmlXPathFreeObject (interfaces);
 	    }
 
-	    xmlFreeDoc (xb->doc[i]);
+	    xmlFreeDoc (xb->doc[i].doc);
 	}
 
 	free (xb->doc);
+    }
+}
+
+static XmlmInterface *
+xmlmGetMetadataInterfaceFromNode (XmlmNode   *node,
+				  const char *name)
+{
+    xmlNodePtr *nodeTab;
+    int	       nodeNr, i;
+
+    if (!node->interfaces->nodesetval)
+	return NULL;
+
+    nodeTab = node->interfaces->nodesetval->nodeTab;
+    nodeNr  = node->interfaces->nodesetval->nodeNr;
+
+    for (i = 0; i < nodeNr; i++)
+	if (!strcmp (xmlmNodeProp (nodeTab[i], "name"), name))
+	    return (XmlmInterface *) nodeTab[i]->_private;
+
+    return NULL;
+}
+
+static void
+xmlmApplyInterfaceMetadata (CompBranch		*b,
+			    CompObject		*object,
+			    const XmlmInterface *interface,
+			    const char		*name)
+{
+    xmlNodePtr *nodeTab;
+    int	       nodeNr, i;
+
+    if (interface->nodes && interface->nodes->nodesetval)
+    {
+	CompObject *node;
+
+	nodeTab = interface->nodes->nodesetval->nodeTab;
+	nodeNr  = interface->nodes->nodesetval->nodeNr;
+
+	for (i = 0; i < nodeNr; i++)
+	{
+	    const char *nodeName;
+
+	    nodeName = xmlmNodeProp (nodeTab[i], "name");
+	    if (nodeName)
+	    {
+		node = compLookupDescendantVa (object, nodeName, NULL);
+	    }
+	    else
+	    {
+		char childName[256];
+
+		sprintf (childName, "%p", nodeTab[i]);
+
+		node = compLookupDescendantVa (object, childName, NULL);
+		if (!node)
+		{
+		    const char *nodeType;
+
+		    nodeType = xmlmNodeProp (nodeTab[i], "type");
+		    if (nodeType)
+		    {
+			const CompObjectType *type;
+
+			type = compLookupObjectType (&b->factory, nodeType);
+			if (type)
+			    node = (*b->u.vTable->newObject) (b,
+							      object,
+							      type,
+							      childName,
+							      NULL);
+			else
+			    compLog (&b->u.base,
+				     getXmlmBranchObjectInterface (),
+				     offsetof (XmlmBranchVTable,
+					       applyInterfaceMetadata),
+				     "'%s' is not a registered object type",
+				     nodeType);
+		    }
+		    else
+		    {
+			node = (*b->u.vTable->newObject) (b,
+							  object,
+							  getObjectType (),
+							  childName,
+							  NULL);
+		    }
+		}
+	    }
+
+	    if (node && nodeTab[i]->_private)
+	    {
+		XmlmNode   *n = (XmlmNode *) nodeTab[i]->_private;
+		xmlNodePtr *tab;
+		int	   nr, j;
+
+		node->privates[xmlmObjectPrivateIndex].ptr = n;
+
+		if (n->interfaces && n->interfaces->nodesetval)
+		{
+		    tab = n->interfaces->nodesetval->nodeTab;
+		    nr  = n->interfaces->nodesetval->nodeNr;
+
+		    for (j = 0; j < nr; j++)
+			xmlmApplyInterfaceMetadata (b,
+						    node,
+						    (const XmlmInterface *)
+						    tab[j]->_private,
+						    xmlmNodeProp (tab[j],
+								  name));
+		}
+
+		if (n->connections && n->connections->nodesetval)
+		{
+		    tab = n->connections->nodesetval->nodeTab;
+		    nr  = n->connections->nodesetval->nodeNr;
+
+		    for (j = 0; j < nr; j++)
+		    {
+			const char *signal, *method, *iface;
+			char       *e;
+
+			signal = xmlmNodeProp (tab[j], "signal");
+			method = xmlmNodeProp (tab[j], "method");
+			iface  = xmlmNodeProp (tab[j], "interface");
+
+			if (!(b->u.vTable->connectDescendants) (b,
+								node,
+								iface,
+								signal,
+								object,
+								name,
+								method,
+								NULL,
+								&e))
+			{
+			    if (e)
+			    {
+				compLog (&b->u.base,
+					 getXmlmBranchObjectInterface (),
+					 offsetof (XmlmBranchVTable,
+						   applyInterfaceMetadata),
+					 e);
+				free (e);
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+    if (interface->props && interface->props->nodesetval)
+    {
+	nodeTab = interface->props->nodesetval->nodeTab;
+	nodeNr  = interface->props->nodesetval->nodeNr;
+
+	for (i = 0; i < nodeNr; i++)
+	{
+	    const char *value = (const char *) nodeTab[i]->content;
+	    const char *prop, *type;
+
+	    prop = xmlmNodeProp (nodeTab[i]->parent->parent, "name");
+	    type = xmlmNodeProp (nodeTab[i]->parent->parent, "type");
+
+	    switch (*type) {
+	    case 'b':
+		(*object->vTable->setBool) (object, name, prop,
+					    *value == 't' ? TRUE : FALSE,
+					    NULL);
+		break;
+	    case 'i':
+		(*object->vTable->setInt) (object, name, prop,
+					   strtol (value, NULL, 0),
+					   NULL);
+		break;
+	    case 'd':
+		(*object->vTable->setDouble) (object, name, prop,
+					      strtod (value, NULL),
+					      NULL);
+		break;
+	    case 's':
+		(*object->vTable->setString) (object, name, prop,
+					      value,
+					      NULL);
+	    default:
+		break;
+	    }
+	}
     }
 }
 
@@ -334,46 +586,46 @@ xmlmLoadMetadataFile (CompBranch *b,
 		      const char *filename,
 		      char	 **error)
 {
-    xmlDocPtr	       *doc;
+    XmlmDoc	       *doc;
     xmlXPathContextPtr ctx;
 
     XMLM_BRANCH (b);
 
-    doc = realloc (xb->doc, sizeof (xmlDocPtr) * (xb->nDoc + 1));
+    doc = realloc (xb->doc, sizeof (XmlmDoc) * (xb->nDoc + 1));
     if (!doc)
     {
 	esprintf (error, NO_MEMORY_ERROR_STRING);
 	return FALSE;
     }
 
-    doc[xb->nDoc] = xmlReadFile (filename, NULL, 0);
-    if (!doc[xb->nDoc])
+    doc[xb->nDoc].doc = xmlReadFile (filename, NULL, 0);
+    if (!doc[xb->nDoc].doc)
     {
 	esprintf (error, "Failed to read XML data from '%s'", filename);
 	return FALSE;
     }
 
-    doc[xb->nDoc]->_private = NULL;
-
-    ctx = xmlXPathNewContext (doc[xb->nDoc]);
+    ctx = xmlXPathNewContext (doc[xb->nDoc].doc);
     if (ctx)
     {
-	xmlXPathObjectPtr ifaces;
+	xmlXPathObjectPtr interfaces;
 
-	ifaces = xmlXPathEvalExpression (BAD_CAST XML_ROOT "/interface[@name]",
-					 ctx);
-	if (ifaces && ifaces->nodesetval)
+	interfaces =
+	    xmlXPathEvalExpression (BAD_CAST XML_ROOT "/interface[@name]",
+				    ctx);
+	if (interfaces && interfaces->nodesetval)
 	{
 	    int i;
 
-	    for (i = 0; i < ifaces->nodesetval->nodeNr; i++)
-		xmlmBuildInterfaceNode (ifaces->nodesetval->nodeTab[i],
+	    for (i = 0; i < interfaces->nodesetval->nodeNr; i++)
+		xmlmBuildInterfaceNode (interfaces->nodesetval->nodeTab[i],
 					ctx,
 					XML_ROOT "/interface[@name]",
 					i);
 	}
 
-	doc[xb->nDoc]->_private = ifaces;
+	doc[xb->nDoc].node.interfaces  = interfaces;
+	doc[xb->nDoc].node.connections = NULL;
 
 	xmlXPathFreeContext (ctx);
     }
@@ -389,14 +641,13 @@ xmlmUnloadMetadataFile (CompBranch *b,
 			const char *filename,
 			char       **error)
 {
-    xmlDocPtr      *doc;
-    xmlXPathObject *ifaces;
-    int		   i;
+    XmlmDoc *doc;
+    int	    i;
 
     XMLM_BRANCH (b);
 
     for (i = 0; i < xb->nDoc; i++)
-	if (strcmp (xb->doc[i]->name, filename) == 0)
+	if (strcmp (xb->doc[i].doc->name, filename) == 0)
 	    break;
 
     if (i == xb->nDoc)
@@ -405,26 +656,28 @@ xmlmUnloadMetadataFile (CompBranch *b,
 	return FALSE;
     }
 
-    ifaces = (xmlXPathObject *) xb->doc[i]->_private;
-    if (ifaces)
+    if (xb->doc[i].node.connections)
+	xmlXPathFreeObject (xb->doc[i].node.connections);
+
+    if (xb->doc[i].node.interfaces)
     {
-	int j;
+	xmlXPathObjectPtr interfaces = xb->doc[i].node.interfaces;
+	int		  j;
 
-	for (j = 0; j < ifaces->nodesetval->nodeNr; j++)
-	    xmlmFreeInterfaceNode (b, ifaces->nodesetval->nodeTab[i]);
+	for (j = 0; j < interfaces->nodesetval->nodeNr; j++)
+	    xmlmFreeInterfaceNode (b, interfaces->nodesetval->nodeTab[i]);
 
-	xmlXPathFreeObject (ifaces);
+	xmlXPathFreeObject (interfaces);
     }
 
-    xmlFreeDoc (xb->doc[i]);
+    xmlFreeDoc (xb->doc[i].doc);
 
     xb->nDoc--;
 
     if (i < xb->nDoc)
-	memmove (xb->doc, &xb->doc[i + 1],
-		 sizeof (xmlDocPtr) * (xb->nDoc - i));
+	memmove (xb->doc, &xb->doc[i + 1], sizeof (XmlmDoc) * (xb->nDoc - i));
 
-    doc = realloc (xb->doc, sizeof (xmlDocPtr) * xb->nDoc);
+    doc = realloc (xb->doc, sizeof (XmlmDoc) * xb->nDoc);
     if (doc || !xb->nDoc)
 	xb->doc = doc;
 
@@ -486,218 +739,37 @@ xmlmLoadInterfaceFromDefaultFile (CompBranch *b,
     return FALSE;
 }
 
-static XmlmInterface *
-xmlmGetMetadataInterfaceFromNodeSet (xmlXPathObject *interfaces,
-				     const char     *name)
+static void
+xmlmEnsureInterfaceMetadata (CompBranch *b,
+			     const char *path,
+			     const char *name)
 {
-    xmlNodePtr *nodeTab;
-    int	       nodeNr, i;
-
-    if (!interfaces->nodesetval)
-	return NULL;
-
-    nodeTab = interfaces->nodesetval->nodeTab;
-    nodeNr  = interfaces->nodesetval->nodeNr;
-
-    for (i = 0; i < nodeNr; i++)
-	if (!strcmp ((char *) xmlGetProp (nodeTab[i], BAD_CAST "name"), name))
-	    return (XmlmInterface *) nodeTab[i]->_private;
-
-    return NULL;
-}
-
-static XmlmInterface *
-xmlmGetMetadataInterface (CompBranch *b,
-			  CompObject *object,
-			  const char *name)
-{
-    XmlmInterface  *interface;
-    xmlXPathObject *ifaces;
-    int		   i;
+    CompObject *object;
+    int	       i;
 
     XMLM_BRANCH (b);
 
-    ifaces = (xmlXPathObject *) object->privates[xmlmObjectPrivateIndex].ptr;
-    if (ifaces)
-    {
-	interface = xmlmGetMetadataInterfaceFromNodeSet (ifaces, name);
-	if (interface)
-	    return interface;
-    }
+    object = compLookupDescendant (&b->u.base, path);
+    if (!object)
+	return;
+
+    /* already set? */
+    if (object->privates[xmlmObjectPrivateIndex].ptr)
+	return;
 
     for (i = 0; i < xb->nDoc; i++)
     {
-	ifaces = (xmlXPathObject *) xb->doc[i]->_private;
-	if (ifaces)
-	{
-	    interface = xmlmGetMetadataInterfaceFromNodeSet (ifaces, name);
-	    if (interface)
-		return interface;
-	}
-    }
+	const XmlmInterface *interface;
 
-    return NULL;
+	interface = xmlmGetMetadataInterfaceFromNode (&xb->doc[i].node, name);
+	if (interface)
+	    xmlmApplyInterfaceMetadata (b,
+					object,
+					interface,
+					name);
+    }
 }
 
-static void
-xmlmSetupNode (CompBranch *b,
-	       CompObject *parent,
-	       CompObject *node)
-{
-    CompDelegate *d;
-
-    d = COMP_TYPE_CAST (node, getDelegateObjectType (), CompDelegate);
-    if (d)
-	if (compConnect (parent,
-			 getObjectType (),
-			 offsetof (CompObjectVTable, signal),
-			 &d->u.base,
-			 getDelegateObjectType (),
-			 offsetof (CompDelegateVTable, processSignal),
-			 NULL) < 0)
-	    compLog (&b->u.base,
-		     getXmlmBranchObjectInterface (),
-		     offsetof (XmlmBranchVTable,
-			       applyInterfaceDefaults),
-		     "Failed to connect '%s' signal to '%s' delegate",
-		     parent->name, node->name);
-}
-
-static CompBool
-xmlmApplyInterfaceDefaults (CompBranch *b,
-			    const char *path,
-			    const char *name,
-			    char       **error)
-{
-    CompObject    *object;
-    XmlmInterface *interface;
-    xmlNodePtr    *nodeTab;
-    int	          nodeNr, i;
-
-    object = compLookupDescendant (&b->u.base, path);
-    if (!object)
-	return TRUE;
-
-    interface = xmlmGetMetadataInterface (b, object, name);
-    if (!interface)
-	return TRUE;
-
-    if (interface->props && interface->props->nodesetval)
-    {
-	nodeTab = interface->props->nodesetval->nodeTab;
-	nodeNr  = interface->props->nodesetval->nodeNr;
-
-	for (i = 0; i < nodeNr; i++)
-	{
-	    const char *value = (const char *) nodeTab[i]->content;
-	    xmlChar    *prop, *type;
-
-	    prop = xmlGetProp (nodeTab[i]->parent->parent, BAD_CAST "name");
-	    type = xmlGetProp (nodeTab[i]->parent->parent, BAD_CAST "type");
-
-	    switch (*type) {
-	    case 'b':
-		(*object->vTable->setBool) (object, name,
-					    (const char *) prop,
-					    *value == 't' ? TRUE : FALSE,
-					    NULL);
-		break;
-	    case 'i':
-		(*object->vTable->setInt) (object, name,
-					   (const char *) prop,
-					   strtol (value, NULL, 0),
-					   NULL);
-		break;
-	    case 'd':
-		(*object->vTable->setDouble) (object, name,
-					      (const char *) prop,
-					      strtod (value, NULL),
-					      NULL);
-		break;
-	    case 's':
-		(*object->vTable->setString) (object, name,
-					      (const char *) prop,
-					      value,
-					      NULL);
-	    default:
-		break;
-	    }
-	}
-    }
-
-    if (interface->nodes && interface->nodes->nodesetval)
-    {
-	CompObject *node;
-
-	nodeTab = interface->nodes->nodesetval->nodeTab;
-	nodeNr  = interface->nodes->nodesetval->nodeNr;
-
-	for (i = 0; i < nodeNr; i++)
-	{
-	    const char *nodeName;
-
-	    nodeName = (const char *) xmlGetProp (nodeTab[i], BAD_CAST "name");
-	    if (nodeName)
-	    {
-		node = compLookupDescendantVa (object, nodeName, NULL);
-	    }
-	    else
-	    {
-		char childName[256];
-
-		sprintf (childName, "%p", nodeTab[i]);
-
-		node = compLookupDescendantVa (object, childName, NULL);
-		if (!node)
-		{
-		    const char *nodeType;
-
-		    nodeType = (const char *) xmlGetProp (nodeTab[i],
-							  BAD_CAST "type");
-		    if (nodeType)
-		    {
-			const CompObjectType *type;
-
-			type = compLookupObjectType (&b->factory, nodeType);
-			if (type)
-			{
-			    node = (*b->u.vTable->newObject) (b,
-							      object,
-							      type,
-							      childName,
-							      NULL);
-			    if (node)
-				xmlmSetupNode (b, object, node);
-			}
-			else
-			{
-			    compLog (&b->u.base,
-				     getXmlmBranchObjectInterface (),
-				     offsetof (XmlmBranchVTable,
-					       applyInterfaceDefaults),
-				     "'%s' is not a registered object type",
-				     nodeType);
-			}
-		    }
-		    else
-		    {
-			node = (*b->u.vTable->newObject) (b,
-							  object,
-							  getObjectType (),
-							  childName,
-							  NULL);
-		    }
-		}
-	    }
-
-	    if (node)
-		node->privates[xmlmObjectPrivateIndex].ptr =
-		    nodeTab[i]->_private;
-	}
-    }
-
-    return TRUE;
-}
 static void
 xmlmInterfaceAdded (CompBranch *b,
 		    const char *path,
@@ -742,15 +814,13 @@ xmlmInsertBranch (CompObject *object,
 		 offsetof (XmlmBranchVTable, interfaceAddedDelegate),
 		 "osss", "//*", getObjectType ()->name, "interfaceAdded", "s");
 
-    (*parent->vTable->connectAsync) (parent,
-				     &b->u.base,
-				     getXmlmBranchObjectInterface (),
-				     offsetof (XmlmBranchVTable,
-					       interfaceAdded),
-				     &b->u.base,
-				     getXmlmBranchObjectInterface (),
-				     offsetof (XmlmBranchVTable,
-					       applyInterfaceDefaults));
+    compConnect (&b->u.base,
+		 getXmlmBranchObjectInterface (),
+		 offsetof (XmlmBranchVTable, interfaceAdded),
+		 &b->u.base,
+		 getXmlmBranchObjectInterface (),
+		 offsetof (XmlmBranchVTable, ensureInterfaceMetadata),
+		 NULL);
 
     for (i = 0; i < b->data.types.nChild; i++)
     {
@@ -783,10 +853,11 @@ xmlmGetProp (CompObject   *object,
 static const XmlmBranchVTable xmlmBranchObjectVTable = {
     .base.base.getProp = xmlmGetProp,
 
+    .applyInterfaceMetadata       = xmlmApplyInterfaceMetadata,
     .loadMetadataFile		  = xmlmLoadMetadataFile,
     .unloadMetadataFile		  = xmlmUnloadMetadataFile,
     .loadInterfaceFromDefaultFile = xmlmLoadInterfaceFromDefaultFile,
-    .applyInterfaceDefaults       = xmlmApplyInterfaceDefaults,
+    .ensureInterfaceMetadata      = xmlmEnsureInterfaceMetadata,
 
     .interfaceAdded = xmlmInterfaceAdded,
 
@@ -798,8 +869,8 @@ static const CMethod xmlMetadataBranchMethod[] = {
     C_METHOD (unloadMetadataFile, "s", "", XmlmBranchVTable, marshal__S__E),
     C_METHOD (loadInterfaceFromDefaultFile, "s", "", XmlmBranchVTable,
 	      marshal__S__E),
-    C_METHOD (applyInterfaceDefaults, "os", "", XmlmBranchVTable,
-	      marshal__SS__E)
+    C_METHOD (ensureInterfaceMetadata, "os", "", XmlmBranchVTable,
+	      marshal__SS__)
 };
 
 static const CSignal xmlMetadataBranchSignal[] = {
