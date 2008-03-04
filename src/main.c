@@ -467,6 +467,7 @@ main (int argc, char **argv)
 	getDoubleSignalArgMapObjectType (),
 	getStringSignalArgMapObjectType (),
 	getSignalMatchObjectType (),
+	getSimpleSignalMatchObjectType (),
 	getDelegateObjectType (),
 	getDelegateVoidObjectType (),
 	getRootObjectType (),
