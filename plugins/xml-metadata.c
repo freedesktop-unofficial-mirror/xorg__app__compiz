@@ -31,6 +31,7 @@
 
 #include <compiz/branch.h>
 #include <compiz/plugin.h>
+#include <compiz/delegate.h>
 #include <compiz/error.h>
 #include <compiz/c-object.h>
 #include <compiz/p-object.h>
@@ -538,6 +539,24 @@ xmlmGetMetadataInterface (CompBranch *b,
     return NULL;
 }
 
+static void
+xmlmSetupNode (CompBranch *b,
+	       CompObject *parent,
+	       CompObject *node)
+{
+    CompDelegate *d;
+
+    d = COMP_TYPE_CAST (node, getDelegateObjectType (), CompDelegate);
+    if (d)
+	compConnect (parent,
+		     getObjectType (),
+		     offsetof (CompObjectVTable, signal),
+		     &d->u.base,
+		     getDelegateObjectType (),
+		     offsetof (CompDelegateVTable, processSignal),
+		     NULL);
+}
+
 static CompBool
 xmlmApplyInterfaceDefaults (CompBranch *b,
 			    const char *path,
@@ -635,18 +654,24 @@ xmlmApplyInterfaceDefaults (CompBranch *b,
 
 			type = compLookupObjectType (&b->factory, nodeType);
 			if (type)
+			{
 			    node = (*b->u.vTable->newObject) (b,
 							      object,
 							      type,
 							      childName,
 							      NULL);
+			    if (node)
+				xmlmSetupNode (b, object, node);
+			}
 			else
+			{
 			    compLog (&b->u.base,
 				     getXmlmBranchObjectInterface (),
 				     offsetof (XmlmBranchVTable,
 					       applyInterfaceDefaults),
 				     "'%s' is not a registered object type",
 				     nodeType);
+			}
 		    }
 		    else
 		    {
