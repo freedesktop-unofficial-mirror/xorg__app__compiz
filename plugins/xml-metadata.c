@@ -438,24 +438,20 @@ xmlmLoadInterfaceFromDefaultFile (CompBranch *b,
     CompBool    status;
     const char	*home;
     char	*path;
-    const char	*file = name;
     struct stat buf;
-
-    if (strchr (file, '.'))
-	file = strrchr (file, '.') + 1;
 
     home = getenv ("HOME");
     if (home)
     {
 	path = malloc (strlen (home) + strlen (HOME_XML_DATADIR) +
-		       strlen (file) + strlen (XML_EXTENSION) + 3);
+		       strlen (name) + strlen (XML_EXTENSION) + 3);
 	if (!path)
 	{
 	    esprintf (error, NO_MEMORY_ERROR_STRING);
 	    return FALSE;
 	}
 
-	sprintf (path, "%s/%s/%s%s", home, HOME_XML_DATADIR, file,
+	sprintf (path, "%s/%s/%s%s", home, HOME_XML_DATADIR, name,
 		 XML_EXTENSION);
 
 	if (stat (path, &buf) == 0)
@@ -468,7 +464,7 @@ xmlmLoadInterfaceFromDefaultFile (CompBranch *b,
 	free (path);
     }
 
-    path = malloc (strlen (XML_DATADIR) + strlen (file) +
+    path = malloc (strlen (XML_DATADIR) + strlen (name) +
 		   strlen (XML_EXTENSION) + 2);
     if (!path)
     {
@@ -476,7 +472,7 @@ xmlmLoadInterfaceFromDefaultFile (CompBranch *b,
 	return FALSE;
     }
 
-    sprintf (path, "%s/%s%s", XML_DATADIR, file, XML_EXTENSION);
+    sprintf (path, "%s/%s%s", XML_DATADIR, name, XML_EXTENSION);
 
     if (stat (path, &buf) == 0)
     {
