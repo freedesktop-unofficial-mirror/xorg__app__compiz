@@ -203,10 +203,10 @@ simpleMatch (CompSignalMatch *sm,
 {
     SIMPLE_SIGNAL_MATCH (sm);
 
-    if (strcmp (path,	   ssm->data.path)      == 0 ||
-	strcmp (interface, ssm->data.interface) == 0 ||
-	strcmp (name,	   ssm->data.name)      == 0 ||
-	strcmp (signature, ssm->data.signature) == 0)
+    if (strcmp (path,	   ssm->data.path)      ||
+	strcmp (interface, ssm->data.interface) ||
+	strcmp (name,	   ssm->data.name)      ||
+	strcmp (signature, ssm->data.signature))
     {
 	return FALSE;
     }
