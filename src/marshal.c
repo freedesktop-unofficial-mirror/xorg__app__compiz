@@ -94,6 +94,22 @@ marshal__S__ (CompObject *object,
 }
 
 void
+marshal__SS__ (CompObject *object,
+	       void       (*method) (CompObject *,
+				     const char *,
+				     const char *),
+	       CompArgs   *args)
+{
+    const char *in0;
+    const char *in1;
+
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
+
+    (*method) (object, in0, in1);
+}
+
+void
 marshal__S__E (CompObject *object,
 	       CompBool   (*method) (CompObject *,
 				     const char *,
@@ -419,4 +435,3 @@ marshal__SSSSSS_I_E (CompObject *object,
 	(*args->store) (args, COMP_TYPE_INT32, &out0);
     }
 }
-

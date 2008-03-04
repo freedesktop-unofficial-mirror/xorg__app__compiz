@@ -61,6 +61,13 @@ marshal__S__ (CompObject *object,
 	      CompArgs   *args);
 
 void
+marshal__SS__ (CompObject *object,
+	       void       (*method) (CompObject *,
+				     const char *,
+				     const char *),
+	       CompArgs   *args);
+
+void
 marshal__S__E (CompObject *object,
 	       CompBool   (*method) (CompObject *,
 				     const char *,
