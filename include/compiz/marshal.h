@@ -163,6 +163,19 @@ marshal__S_S_E (CompObject *object,
 				      char       **),
 		CompArgs   *args);
 
+void
+marshal__SSSSSS_I_E (CompObject *object,
+		     CompBool   (*method) (CompObject *,
+					   char       *,
+					   char       *,
+					   char       *,
+					   char       *,
+					   char       *,
+					   char       *,
+					   int32_t    *,
+					   char       **),
+		     CompArgs   *args);
+
 COMPIZ_END_DECLS
 
 #endif

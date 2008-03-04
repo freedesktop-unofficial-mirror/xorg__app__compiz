@@ -380,3 +380,43 @@ marshal__S_S_E (CompObject *object,
 	(*args->store) (args, COMP_TYPE_STRING, &out0);
     }
 }
+
+void
+marshal__SSSSSS_I_E (CompObject *object,
+		     CompBool   (*method) (CompObject *,
+					   char       *,
+					   char       *,
+					   char       *,
+					   char       *,
+					   char       *,
+					   char       *,
+					   int32_t    *,
+					   char       **),
+		     CompArgs   *args)
+{
+    char    *in0;
+    char    *in1;
+    char    *in2;
+    char    *in3;
+    char    *in4;
+    char    *in5;
+    int32_t out0;
+    char    *error;
+
+    (*args->load) (args, COMP_TYPE_STRING, &in0);
+    (*args->load) (args, COMP_TYPE_STRING, &in1);
+    (*args->load) (args, COMP_TYPE_STRING, &in2);
+    (*args->load) (args, COMP_TYPE_STRING, &in3);
+    (*args->load) (args, COMP_TYPE_STRING, &in4);
+    (*args->load) (args, COMP_TYPE_STRING, &in5);
+
+    if (!(*method) (object, in0, in1, in2, in3, in4, in5, &out0, &error))
+    {
+	(*args->error) (args, error);
+    }
+    else
+    {
+	(*args->store) (args, COMP_TYPE_INT32, &out0);
+    }
+}
+
