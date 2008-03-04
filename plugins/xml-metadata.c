@@ -548,13 +548,19 @@ xmlmSetupNode (CompBranch *b,
 
     d = COMP_TYPE_CAST (node, getDelegateObjectType (), CompDelegate);
     if (d)
-	compConnect (parent,
-		     getObjectType (),
-		     offsetof (CompObjectVTable, signal),
-		     &d->u.base,
-		     getDelegateObjectType (),
-		     offsetof (CompDelegateVTable, processSignal),
-		     NULL);
+	if (compConnect (parent,
+			 getObjectType (),
+			 offsetof (CompObjectVTable, signal),
+			 &d->u.base,
+			 getDelegateObjectType (),
+			 offsetof (CompDelegateVTable, processSignal),
+			 NULL) < 0)
+	    compLog (&b->u.base,
+		     getXmlmBranchObjectInterface (),
+		     offsetof (XmlmBranchVTable,
+			       applyInterfaceDefaults),
+		     "Failed to connect '%s' signal to '%s' delegate",
+		     parent->name, node->name);
 }
 
 static CompBool
