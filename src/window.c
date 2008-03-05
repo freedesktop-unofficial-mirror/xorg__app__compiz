@@ -1729,7 +1729,7 @@ windowInitObject (CompObject *object)
 {
     WINDOW (object);
 
-    w->base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
+    w->u.base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
 
     return TRUE;
 }
@@ -1744,8 +1744,79 @@ windowGetProp (CompObject   *object,
 		    what, value);
 }
 
-static const CompObjectVTable windowObjectVTable = {
-    .getProp = windowGetProp
+static void
+buttonPress (CompWindow *w,
+	     int32_t    button,
+	     int32_t    modifiers,
+	     int32_t    x,
+	     int32_t    y,
+	     int32_t    time)
+{
+    C_EMIT_SIGNAL (&w->u.base, ButtonEventProc,
+		   offsetof (CompWindowVTable, buttonPress),
+		   button, modifiers, x, y, time);
+}
+
+static void
+noopButtonPress (CompWindow *w,
+		 int32_t    button,
+		 int32_t    modifiers,
+		 int32_t    x,
+		 int32_t    y,
+		 int32_t    time)
+{
+    FOR_BASE (&w->u.base, (*w->u.vTable->buttonPress) (w,
+						       button,
+						       modifiers,
+						       x,
+						       y,
+						       time));
+}
+
+static void
+buttonRelease (CompWindow *w,
+	       int32_t    button,
+	       int32_t    modifiers,
+	       int32_t    x,
+	       int32_t    y,
+	       int32_t    time)
+{
+    C_EMIT_SIGNAL (&w->u.base, ButtonEventProc,
+		   offsetof (CompWindowVTable, buttonRelease),
+		   button, modifiers, x, y, time);
+}
+
+static void
+noopButtonRelease (CompWindow *w,
+		   int32_t    button,
+		   int32_t    modifiers,
+		   int32_t    x,
+		   int32_t    y,
+		   int32_t    time)
+{
+    FOR_BASE (&w->u.base, (*w->u.vTable->buttonRelease) (w,
+							 button,
+							 modifiers,
+							 x,
+							 y,
+							 time));
+}
+
+static const CompWindowVTable windowObjectVTable = {
+    .base.getProp = windowGetProp,
+
+    .buttonPress   = buttonPress,
+    .buttonRelease = buttonRelease
+};
+
+static const CompWindowVTable noopWindowObjectVTable = {
+    .buttonPress   = noopButtonPress,
+    .buttonRelease = noopButtonRelease
+};
+
+static const CSignal windowTypeSignal[] = {
+    C_SIGNAL (buttonPress,   "iiiii", CompWindowVTable),
+    C_SIGNAL (buttonRelease, "iiiii", CompWindowVTable)
 };
 
 const CompObjectType *
@@ -1760,7 +1831,12 @@ getWindowObjectType (void)
 	    .i.version	    = COMPIZ_WINDOW_VERSION,
 	    .i.base.name    = COMPIZ_OBJECT_TYPE_NAME,
 	    .i.base.version = COMPIZ_OBJECT_VERSION,
-	    .i.vTable.impl  = &windowObjectVTable,
+	    .i.vTable.impl  = &windowObjectVTable.base,
+	    .i.vTable.noop  = &noopWindowObjectVTable.base,
+	    .i.vTable.size  = sizeof (windowObjectVTable),
+
+	    .signal  = windowTypeSignal,
+	    .nSignal = N_ELEMENTS (windowTypeSignal),
 
 	    .init = windowInitObject
 	};
@@ -1916,7 +1992,8 @@ addWindow (CompScreen *screen,
 	return;
     }
 
-    if (!compObjectInitByType (&b->factory, &w->base, getWindowObjectType ()))
+    if (!compObjectInitByType (&b->factory, &w->u.base,
+			       getWindowObjectType ()))
     {
 	free (w);
 	return;
@@ -2145,13 +2222,13 @@ addWindow (CompScreen *screen,
     }
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&w->base));
+    assert (objectInitPlugins (&w->u.base));
 
     snprintf (windowName, sizeof (windowName), "%lu", w->id);
 
     if ((*screen->data.windows.vTable->addChild)
-	(&screen->data.windows, &w->base, windowName))
-	(*core.objectAdd) (&screen->data.windows, &w->base, windowName);
+	(&screen->data.windows, &w->u.base, windowName))
+	(*core.objectAdd) (&screen->data.windows, &w->u.base, windowName);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
@@ -2218,14 +2295,14 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (s);
     }
 
-    (*core.objectRemove) (&s->data.windows, &w->base);
-    (*s->data.windows.vTable->removeChild) (&s->data.windows, w->base.name);
+    (*core.objectRemove) (&s->data.windows, &w->u.base);
+    (*s->data.windows.vTable->removeChild) (&s->data.windows, w->u.base.name);
 
-    objectFiniPlugins (&w->base);
+    objectFiniPlugins (&w->u.base);
 
     releaseWindow (w);
 
-    (*w->base.vTable->finalize) (&w->base);
+    (*w->u.base.vTable->finalize) (&w->u.base);
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (s->display->display, w->syncAlarm);

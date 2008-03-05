@@ -2614,8 +2614,25 @@ typedef struct _CompStruts {
     XRectangle bottom;
 } CompStruts;
 
+typedef void (*ButtonEventProc) (CompWindow *w,
+				 int32_t    button,
+				 int32_t    modifiers,
+				 int32_t    x,
+				 int32_t    y,
+				 int32_t    time);
+
+typedef struct _CompWindowVTable {
+    CompObjectVTable base;
+
+    ButtonEventProc buttonPress;
+    ButtonEventProc buttonRelease;
+} CompWindowVTable;
+
 struct _CompWindow {
-    CompObject base;
+    union {
+	CompObject	      base;
+	const CompWindowVTable *vTable;
+    } u;
 
     CompObjectData data;
 
