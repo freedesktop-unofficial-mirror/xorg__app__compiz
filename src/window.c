@@ -1802,21 +1802,73 @@ noopButtonRelease (CompWindow *w,
 							 time));
 }
 
+static void
+keyPress (CompWindow *w,
+	  int32_t    keycode,
+	  int32_t    modifiers,
+	  int32_t    time)
+{
+    C_EMIT_SIGNAL (&w->u.base, KeyEventProc,
+		   offsetof (CompWindowVTable, keyPress),
+		   keycode, modifiers, time);
+}
+
+static void
+noopKeyPress (CompWindow *w,
+	      int32_t    keycode,
+	      int32_t    modifiers,
+	      int32_t    time)
+{
+    FOR_BASE (&w->u.base, (*w->u.vTable->keyPress) (w,
+						    keycode,
+						    modifiers,
+						    time));
+}
+
+static void
+keyRelease (CompWindow *w,
+	    int32_t    keycode,
+	    int32_t    modifiers,
+	    int32_t    time)
+{
+    C_EMIT_SIGNAL (&w->u.base, KeyEventProc,
+		   offsetof (CompWindowVTable, keyRelease),
+		   keycode, modifiers, time);
+}
+
+static void
+noopKeyRelease (CompWindow *w,
+		int32_t    keycode,
+		int32_t    modifiers,
+		int32_t    time)
+{
+    FOR_BASE (&w->u.base, (*w->u.vTable->keyRelease) (w,
+						      keycode,
+						      modifiers,
+						      time));
+}
+
 static const CompWindowVTable windowObjectVTable = {
     .base.getProp = windowGetProp,
 
     .buttonPress   = buttonPress,
-    .buttonRelease = buttonRelease
+    .buttonRelease = buttonRelease,
+    .keyPress      = keyPress,
+    .keyRelease    = keyRelease
 };
 
 static const CompWindowVTable noopWindowObjectVTable = {
     .buttonPress   = noopButtonPress,
-    .buttonRelease = noopButtonRelease
+    .buttonRelease = noopButtonRelease,
+    .keyPress      = noopKeyPress,
+    .keyRelease    = noopKeyRelease
 };
 
 static const CSignal windowTypeSignal[] = {
     C_SIGNAL (buttonPress,   "iiiii", CompWindowVTable),
-    C_SIGNAL (buttonRelease, "iiiii", CompWindowVTable)
+    C_SIGNAL (buttonRelease, "iiiii", CompWindowVTable),
+    C_SIGNAL (keyPress,      "iii",   CompWindowVTable),
+    C_SIGNAL (keyRelease,    "iii",   CompWindowVTable)
 };
 
 const CompObjectType *
