@@ -1860,27 +1860,45 @@ noopKeyRelease (CompWindow *w,
 						      last));
 }
 
+static void
+bell (CompWindow *w,
+      int32_t    time)
+{
+    C_EMIT_SIGNAL (&w->u.base, BellProc, offsetof (CompWindowVTable, bell),
+		   time);
+}
+
+static void
+noopBell (CompWindow *w,
+	  int32_t    time)
+{
+    FOR_BASE (&w->u.base, (*w->u.vTable->bell) (w, time));
+}
+
 static const CompWindowVTable windowObjectVTable = {
     .base.getProp = windowGetProp,
 
     .buttonPress   = buttonPress,
     .buttonRelease = buttonRelease,
     .keyPress      = keyPress,
-    .keyRelease    = keyRelease
+    .keyRelease    = keyRelease,
+    .bell	   = bell
 };
 
 static const CompWindowVTable noopWindowObjectVTable = {
     .buttonPress   = noopButtonPress,
     .buttonRelease = noopButtonRelease,
     .keyPress      = noopKeyPress,
-    .keyRelease    = noopKeyRelease
+    .keyRelease    = noopKeyRelease,
+    .bell	   = noopBell
 };
 
 static const CSignal windowTypeSignal[] = {
     C_SIGNAL (buttonPress,   "iiiii", CompWindowVTable),
     C_SIGNAL (buttonRelease, "iiiii", CompWindowVTable),
     C_SIGNAL (keyPress,      "siiib", CompWindowVTable),
-    C_SIGNAL (keyRelease,    "siiib", CompWindowVTable)
+    C_SIGNAL (keyRelease,    "siiib", CompWindowVTable),
+    C_SIGNAL (bell,	     "i",     CompWindowVTable)
 };
 
 const CompObjectType *

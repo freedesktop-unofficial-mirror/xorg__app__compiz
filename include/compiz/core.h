@@ -2628,6 +2628,9 @@ typedef void (*KeyEventProc) (CompWindow *w,
 			      int32_t    time,
 			      CompBool   last);
 
+typedef void (*BellProc) (CompWindow *w,
+			  int32_t    time);
+
 typedef struct _CompWindowVTable {
     CompObjectVTable base;
 
@@ -2635,6 +2638,7 @@ typedef struct _CompWindowVTable {
     ButtonEventProc buttonRelease;
     KeyEventProc    keyPress;
     KeyEventProc    keyRelease;
+    BellProc	    bell;
 } CompWindowVTable;
 
 struct _CompWindow {

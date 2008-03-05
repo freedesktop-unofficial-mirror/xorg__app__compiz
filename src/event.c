@@ -1232,6 +1232,10 @@ handleActionEvent (CompDisplay *d,
 		o[2].name    = "time";
 		o[2].value.i = xkbEvent->time;
 
+		w = findWindowAtDisplay (d, d->activeWindow);
+		if (w)
+		    (*w->u.vTable->bell) (w, xkbEvent->time);
+
 		for (p = getPlugins (); p; p = p->next)
 		{
 		    if (!p->vTable->getObjectOptions)
