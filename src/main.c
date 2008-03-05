@@ -41,6 +41,8 @@
 #include <compiz/root.h>
 #include <compiz/prop.h>
 #include <compiz/box.h>
+#include <compiz/timer.h>
+#include <compiz/file-descriptor.h>
 
 typedef struct _MainContext {
     CompFactory factory;
@@ -471,6 +473,8 @@ main (int argc, char **argv)
 	getDelegateObjectType (),
 	getDelegateVoidObjectType (),
 	getRootObjectType (),
+	getTimerObjectType (),
+	getFileDescriptorObjectType (),
 	getBranchObjectType (),
 	getBoxObjectType (),
 	getCoreObjectType (),

@@ -9,6 +9,8 @@ compizsubinclude_HEADERS = \
 	signal-arg-map.h   \
 	signal-match.h	   \
 	delegate.h	   \
+	timer.h		   \
+	file-descriptor.h  \
 	root.h		   \
 	branch.h	   \
 	box.h		   \
