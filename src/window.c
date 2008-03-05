@@ -1804,48 +1804,60 @@ noopButtonRelease (CompWindow *w,
 
 static void
 keyPress (CompWindow *w,
+	  const char *key,
 	  int32_t    keycode,
 	  int32_t    modifiers,
-	  int32_t    time)
+	  int32_t    time,
+	  CompBool   last)
 {
     C_EMIT_SIGNAL (&w->u.base, KeyEventProc,
 		   offsetof (CompWindowVTable, keyPress),
-		   keycode, modifiers, time);
+		   key, keycode, modifiers, time, last);
 }
 
 static void
 noopKeyPress (CompWindow *w,
+	      const char *key,
 	      int32_t    keycode,
 	      int32_t    modifiers,
-	      int32_t    time)
+	      int32_t    time,
+	      CompBool   last)
 {
     FOR_BASE (&w->u.base, (*w->u.vTable->keyPress) (w,
+						    key,
 						    keycode,
 						    modifiers,
-						    time));
+						    time,
+						    last));
 }
 
 static void
 keyRelease (CompWindow *w,
+	    const char *key,
 	    int32_t    keycode,
 	    int32_t    modifiers,
-	    int32_t    time)
+	    int32_t    time,
+	    CompBool   last)
 {
     C_EMIT_SIGNAL (&w->u.base, KeyEventProc,
 		   offsetof (CompWindowVTable, keyRelease),
-		   keycode, modifiers, time);
+		   key, keycode, modifiers, time, last);
 }
 
 static void
 noopKeyRelease (CompWindow *w,
+		const char *key,
 		int32_t    keycode,
 		int32_t    modifiers,
-		int32_t    time)
+		int32_t    time,
+		CompBool   last)
 {
     FOR_BASE (&w->u.base, (*w->u.vTable->keyRelease) (w,
+						      key,
 						      keycode,
 						      modifiers,
-						      time));
+						      time,
+						      last));
 }
 
 static const CompWindowVTable windowObjectVTable = {
@@ -1867,8 +1879,8 @@ static const CompWindowVTable noopWindowObjectVTable = {
 static const CSignal windowTypeSignal[] = {
     C_SIGNAL (buttonPress,   "iiiii", CompWindowVTable),
     C_SIGNAL (buttonRelease, "iiiii", CompWindowVTable),
-    C_SIGNAL (keyPress,      "iii",   CompWindowVTable),
-    C_SIGNAL (keyRelease,    "iii",   CompWindowVTable)
+    C_SIGNAL (keyPress,      "siiib", CompWindowVTable),
+    C_SIGNAL (keyRelease,    "siiib", CompWindowVTable)
 };
 
 const CompObjectType *

@@ -2622,9 +2622,11 @@ typedef void (*ButtonEventProc) (CompWindow *w,
 				 int32_t    time);
 
 typedef void (*KeyEventProc) (CompWindow *w,
+			      const char *key,
 			      int32_t    keycode,
 			      int32_t    modifiers,
-			      int32_t    time);
+			      int32_t    time,
+			      CompBool   last);
 
 typedef struct _CompWindowVTable {
     CompObjectVTable base;
