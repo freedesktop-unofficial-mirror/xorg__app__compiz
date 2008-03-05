@@ -849,7 +849,7 @@ handleActionEvent (CompDisplay *d,
 
 	d->lastKeyEventTime = event->xkey.time;
 
-	w = findWindowAtDisplay (d, event->xkey.window);
+	w = findWindowAtDisplay (d, d->activeWindow);
 	if (w)
 	    emitKeyEventSignals (d,
 				 w,
@@ -886,7 +886,7 @@ handleActionEvent (CompDisplay *d,
 
 	d->lastKeyEventTime = event->xkey.time;
 
-	w = findWindowAtDisplay (d, event->xkey.window);
+	w = findWindowAtDisplay (d, d->activeWindow);
 	if (w)
 	    emitKeyEventSignals (d,
 				 w,
