@@ -1739,7 +1739,7 @@ windowGetProp (CompObject   *object,
 	       unsigned int what,
 	       void	    *value)
 {
-    cGetObjectProp (&GET_WINDOW (object)->data,
+    cGetObjectProp (&GET_WINDOW (object)->data.base,
 		    getWindowObjectType (),
 		    what, value);
 }
@@ -1901,6 +1901,10 @@ static const CSignal windowTypeSignal[] = {
     C_SIGNAL (bell,	     "i",     CompWindowVTable)
 };
 
+static const CBoolProp windowTypeBoolProp[] = {
+    C_PROP (focusStealingPrevention, CompWindowData, .defaultValue = TRUE)
+};
+
 const CompObjectType *
 getWindowObjectType (void)
 {
@@ -1919,6 +1923,9 @@ getWindowObjectType (void)
 
 	    .signal  = windowTypeSignal,
 	    .nSignal = N_ELEMENTS (windowTypeSignal),
+
+	    .boolProp  = windowTypeBoolProp,
+	    .nBoolProp = N_ELEMENTS (windowTypeBoolProp),
 
 	    .init = windowInitObject
 	};

@@ -2640,13 +2640,18 @@ typedef struct _CompWindowVTable {
     BellProc	    bell;
 } CompWindowVTable;
 
+typedef struct _CompWindowata {
+    CompObjectData base;
+    CompBool       focusStealingPrevention;
+} CompWindowData;
+
 struct _CompWindow {
     union {
 	CompObject	      base;
 	const CompWindowVTable *vTable;
     } u;
 
-    CompObjectData data;
+    CompWindowData data;
 
     CompScreen *screen;
     CompWindow *next;
