@@ -30,12 +30,6 @@
 #include <compiz/root.h>
 #include <compiz/core.h>
 
-struct _CompSignal {
-    struct _CompSignal *next;
-
-    CompSerializedMethodCallHeader *header;
-};
-
 static CompBool
 rootInitObject (const CompObjectInstantiator *instantiator,
 		CompObject		     *object,
@@ -385,57 +379,4 @@ const CompObjectType *
 getRootObjectType (void)
 {
     return &rootObjectType;
-}
-
-void
-compEmitSignedSignal (CompObject *object,
-		      const char *interface,
-		      const char *name,
-		      const char *signature,
-		      ...)
-{
-    CompObject *node;
-    CompSignal *signal;
-    int	       size;
-    va_list    args;
-
-    for (node = object; node->parent; node = node->parent);
-
-    va_start (args, signature);
-
-    size = compSerializeMethodCall (node,
-				    object,
-				    interface,
-				    name,
-				    signature,
-				    args,
-				    NULL,
-				    0);
-
-    signal = malloc (sizeof (CompSignal) + size);
-    if (signal)
-    {
-	ROOT (node);
-
-	signal->next   = NULL;
-	signal->header = (CompSerializedMethodCallHeader *) (signal + 1);
-
-	compSerializeMethodCall (node,
-				 object,
-				 interface,
-				 name,
-				 signature,
-				 args,
-				 signal->header,
-				 size);
-
-	if (r->signal.tail)
-	    r->signal.tail->next = signal;
-	else
-	    r->signal.head = signal;
-
-	r->signal.tail = signal;
-    }
-
-    va_end (args);
 }

@@ -335,6 +335,12 @@ typedef void (*SignalProc) (CompObject   *object,
 			    CompAnyValue *value,
 			    int	         nValue);
 
+typedef void (*EmitProc) (CompObject *object,
+			  const char *interface,
+			  const char *name,
+			  const char *signature,
+			  va_list    args);
+
 typedef CompBool (*GetBoolPropProc) (CompObject *object,
 				     const char *interface,
 				     const char *name,
@@ -445,6 +451,7 @@ struct _CompObjectVTable {
     ConnectProc      connect;
     ConnectAsyncProc connectAsync;
     DisconnectProc   disconnect;
+    EmitProc         emit;
 
     GetBoolPropProc getBool;
     SetBoolPropProc setBool;
@@ -744,6 +751,13 @@ compObjectTypeCast (CompObject		 *object,
 
 #define COMP_TYPE_CAST(object, objecttype, datatype)	   \
     ((datatype *) compObjectTypeCast (object, objecttype))
+
+void
+compEmitSignedSignal (CompObject *object,
+		      const char *interface,
+		      const char *name,
+		      const char *signature,
+		      ...);
 
 COMPIZ_END_DECLS
 

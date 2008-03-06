@@ -26,7 +26,6 @@
 #ifndef _COMPIZ_C_OBJECT_H
 #define _COMPIZ_C_OBJECT_H
 
-#include <compiz/root.h>
 #include <compiz/branch.h>
 
 COMPIZ_BEGIN_DECLS

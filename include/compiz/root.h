@@ -30,8 +30,13 @@
 
 COMPIZ_BEGIN_DECLS
 
-typedef struct _CompSignal CompSignal;
-typedef struct _CompRoot   CompRoot;
+typedef struct _CompRoot CompRoot;
+
+typedef struct _CompSignal {
+    struct _CompSignal *next;
+
+    CompSerializedMethodCallHeader *header;
+} CompSignal;
 
 typedef void (*ProcessSignalsProc) (CompRoot *r);
 
@@ -72,13 +77,6 @@ struct _CompRoot {
 
 const CompObjectType *
 getRootObjectType (void);
-
-void
-compEmitSignedSignal (CompObject *object,
-		      const char *interface,
-		      const char *name,
-		      const char *signature,
-		      ...);
 
 COMPIZ_END_DECLS
 

@@ -29,6 +29,7 @@
 #include <assert.h>
 
 #include <compiz/object.h>
+#include <compiz/root.h>
 #include <compiz/c-object.h>
 #include <compiz/marshal.h>
 #include <compiz/error.h>
@@ -1652,6 +1653,72 @@ noopSignal (CompObject   *object,
 						 nValue));
 }
 
+static void
+emit (CompObject *object,
+      const char *interface,
+      const char *name,
+      const char *signature,
+      va_list    args)
+{
+    CompObject *node;
+    CompSignal *signal;
+    int	       size;
+
+    for (node = object; node->parent; node = node->parent);
+
+    size = compSerializeMethodCall (node,
+				    object,
+				    interface,
+				    name,
+				    signature,
+				    args,
+				    NULL,
+				    0);
+
+    signal = malloc (sizeof (CompSignal) + size);
+    if (signal)
+    {
+	ROOT (node);
+
+	signal->next   = NULL;
+	signal->header = (CompSerializedMethodCallHeader *) (signal + 1);
+
+	compSerializeMethodCall (node,
+				 object,
+				 interface,
+				 name,
+				 signature,
+				 args,
+				 signal->header,
+				 size);
+
+	if (r->signal.tail)
+	    r->signal.tail->next = signal;
+	else
+	    r->signal.head = signal;
+
+	r->signal.tail = signal;
+    }
+    else
+    {
+	fprintf (stderr, "emit: " NO_MEMORY_ERROR_STRING);
+    }
+}
+
+static void
+noopEmit (CompObject *object,
+	  const char *interface,
+	  const char *name,
+	  const char *signature,
+	  va_list    args)
+{
+    FOR_BASE (object, (*object->vTable->emit) (object,
+					       interface,
+					       name,
+					       signature,
+					       args));
+}
+
 static CompBool
 getBoolProp (CompObject *object,
 	     const char *interface,
@@ -2085,6 +2152,7 @@ static const CompObjectVTable objectVTable = {
     .connectAsync = connectAsync,
     .disconnect   = disconnect,
     .signal       = signal,
+    .emit         = emit,
 
     .getBool     = getBoolProp,
     .setBool     = setBoolProp,
@@ -2130,6 +2198,7 @@ static const CompObjectVTable noopObjectVTable = {
     .connectAsync = noopConnectAsync,
     .disconnect   = noopDisconnect,
     .signal       = noopSignal,
+    .emit	  = noopEmit,
 
     .getBool     = noopGetBoolProp,
     .setBool     = noopSetBoolProp,
@@ -2938,4 +3007,18 @@ compObjectTypeCast (CompObject		 *object,
 	return NULL;
 
     return object;
+}
+
+void
+compEmitSignedSignal (CompObject *object,
+		      const char *interface,
+		      const char *name,
+		      const char *signature,
+		      ...)
+{
+    va_list args;
+
+    va_start (args, signature);
+    (*object->vTable->emit) (object, interface, name, signature, args);
+    va_end (args);
 }
