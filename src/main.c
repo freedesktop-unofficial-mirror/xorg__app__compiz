@@ -470,6 +470,7 @@ main (int argc, char **argv)
 	getStringSignalArgMapObjectType (),
 	getSignalMatchObjectType (),
 	getSimpleSignalMatchObjectType (),
+	getStructureNotifySignalMatchObjectType (),
 	getDelegateObjectType (),
 	getDelegateVoidObjectType (),
 	getRootObjectType (),

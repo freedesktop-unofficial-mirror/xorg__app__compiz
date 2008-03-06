@@ -180,6 +180,26 @@ getSignalMatchObjectType (void)
     return type;
 }
 
+static CompObjectType *
+signalMatchObjectTypeFromTemplate (const CObjectInterface *template)
+{
+    CObjectInterface signalMatchTemplate = *template;
+
+    if (!signalMatchTemplate.i.base.name)
+    {
+	signalMatchTemplate.i.base.name    = COMPIZ_SIGNAL_MATCH_TYPE_NAME;
+	signalMatchTemplate.i.base.version = COMPIZ_SIGNAL_MATCH_VERSION;
+    }
+
+    if (!signalMatchTemplate.i.vTable.size)
+	signalMatchTemplate.i.vTable.size = sizeof (signalMatchObjectVTable);
+
+    if (!signalMatchTemplate.i.version)
+	signalMatchTemplate.i.version = COMPIZ_SIGNAL_MATCH_VERSION;
+
+    return cObjectTypeFromTemplate (&signalMatchTemplate);
+}
+
 static void
 simpleSignalMatchGetProp (CompObject   *object,
 			  unsigned int what,
@@ -264,18 +284,100 @@ getSimpleSignalMatchObjectType (void)
     {
 	static const CObjectInterface template = {
 	    .i.name	     = COMPIZ_SIMPLE_SIGNAL_MATCH_TYPE_NAME,
-	    .i.version	     = COMPIZ_SIMPLE_SIGNAL_MATCH_VERSION,
-	    .i.base.name     = COMPIZ_SIGNAL_MATCH_TYPE_NAME,
-	    .i.base.version  = COMPIZ_SIGNAL_MATCH_VERSION,
 	    .i.vTable.impl   = &simpleSignalMatchObjectVTable.base,
-	    .i.vTable.size   = sizeof (simpleSignalMatchObjectVTable),
 	    .i.instance.size = sizeof (CompSimpleSignalMatch),
 
 	    .stringProp  = simpleSignalMatchTypeStringProp,
 	    .nStringProp = N_ELEMENTS (simpleSignalMatchTypeStringProp)
 	};
 
-	type = cObjectTypeFromTemplate (&template);
+	type = signalMatchObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
+static void
+snSignalMatchGetProp (CompObject   *object,
+		      unsigned int what,
+		      void	   *value)
+{
+    cGetObjectProp (&GET_STRUCTURE_NOTIFY_SIGNAL_MATCH (object)->data.base,
+		    getStructureNotifySignalMatchObjectType (),
+		    what, value);
+}
+
+static CompBool
+snMatch (CompSignalMatch *sm,
+	 const char      *path,
+	 const char      *interface,
+	 const char      *name,
+	 const char      *signature,
+	 CompAnyValue    *value,
+	 int		 nValue,
+	 const char      *args,
+	 CompAnyValue    *argValue)
+{
+    CompBool status;
+    int      i;
+
+    STRUCTURE_NOTIFY_SIGNAL_MATCH (sm);
+
+    for (i = 0; snsm->data.object[i]; i++)
+	if (snsm->data.object[i] != path[i])
+	    return FALSE;
+
+    if (strcmp (interface, getObjectType ()->name))
+	return FALSE;
+
+    if (strcmp (name, "interfaceAdded")   &&
+	strcmp (name, "interfaceRemoved") &&
+	strcmp (name, "boolChanged")      &&
+	strcmp (name, "intChanged")       &&
+	strcmp (name, "doubleChanged")    &&
+	strcmp (name, "stringChanged"))
+	return FALSE;
+
+    FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
+							    path,
+							    interface,
+							    name,
+							    signature,
+							    value,
+							    nValue,
+							    args,
+							    argValue));
+
+    return status;
+}
+
+static const CompSignalMatchVTable snSignalMatchObjectVTable = {
+    .base.getProp = snSignalMatchGetProp,
+
+    .match = snMatch
+};
+
+static const CStringProp snSignalMatchTypeStringProp[] = {
+    C_PROP (object, CompStructureNotifySignalMatchData)
+};
+
+const CompObjectType *
+getStructureNotifySignalMatchObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_STRUCTURE_NOTIFY_SIGNAL_MATCH_TYPE_NAME,
+	    .i.vTable.impl   = &snSignalMatchObjectVTable.base,
+	    .i.instance.size = sizeof (CompStructureNotifySignalMatch),
+
+	    .stringProp  = snSignalMatchTypeStringProp,
+	    .nStringProp = N_ELEMENTS (snSignalMatchTypeStringProp)
+	};
+
+	type = signalMatchObjectTypeFromTemplate (&template);
     }
 
     return type;

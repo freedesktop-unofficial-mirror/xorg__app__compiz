@@ -90,11 +90,34 @@ typedef struct _CompSimpleSignalMatch {
 #define SIMPLE_SIGNAL_MATCH(object)				  \
     CompSimpleSignalMatch *ssm = GET_SIMPLE_SIGNAL_MATCH (object)
 
-#define COMPIZ_SIMPLE_SIGNAL_MATCH_VERSION   20080303
 #define COMPIZ_SIMPLE_SIGNAL_MATCH_TYPE_NAME "org.compiz.signalMatch.simple"
 
 const CompObjectType *
 getSimpleSignalMatchObjectType (void);
+
+
+typedef struct _CompStructureNotifySignalMatchData {
+    CompObjectData base;
+    char           *object;
+} CompStructureNotifySignalMatchData;
+
+typedef struct _CompStructureNotifySignalMatch {
+    CompSignalMatch base;
+
+    CompStructureNotifySignalMatchData data;
+} CompStructureNotifySignalMatch;
+
+#define GET_STRUCTURE_NOTIFY_SIGNAL_MATCH(object) \
+    ((CompStructureNotifySignalMatch *) (object))
+#define STRUCTURE_NOTIFY_SIGNAL_MATCH(object)      \
+    CompStructureNotifySignalMatch *snsm =	   \
+	GET_STRUCTURE_NOTIFY_SIGNAL_MATCH (object)
+
+#define COMPIZ_STRUCTURE_NOTIFY_SIGNAL_MATCH_TYPE_NAME \
+    "org.compiz.signalMatch.structureNotify"
+
+const CompObjectType *
+getStructureNotifySignalMatchObjectType (void);
 
 COMPIZ_END_DECLS
 
