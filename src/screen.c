@@ -503,72 +503,6 @@ noopUpdatePassiveGrabs (CompScreen *s)
     FOR_BASE (&s->u.base, (*s->u.vTable->updatePassiveGrabs) (s));
 }
 
-CompOption *
-getScreenOptions (CompPlugin *plugin,
-		  CompScreen *screen,
-		  int	     *count)
-{
-    *count = N_ELEMENTS (screen->opt);
-    return screen->opt;
-}
-
-Bool
-setScreenOption (CompPlugin	       *plugin,
-		 CompScreen	       *screen,
-		 const char	       *name,
-		 const CompOptionValue *value)
-{
-    CompOption *o;
-    int	       index;
-
-    o = compFindOption (screen->opt, N_ELEMENTS (screen->opt), name, &index);
-    if (!o)
-	return FALSE;
-
-    switch (index) {
-    case COMP_SCREEN_OPTION_OPACITY_MATCHES:
-	if (compSetOptionList (o, value))
-	{
-	    CompWindow *w;
-	    int	       i;
-
-	    for (i = 0; i < o->value.list.nValue; i++)
-		matchUpdate (screen->display, &o->value.list.value[i].match);
-
-	    for (w = screen->windows; w; w = w->next)
-		updateWindowOpacity (w);
-
-	    return TRUE;
-	}
-	break;
-    case COMP_SCREEN_OPTION_OPACITY_VALUES:
-	if (compSetOptionList (o, value))
-	{
-	    CompWindow *w;
-
-	    for (w = screen->windows; w; w = w->next)
-		updateWindowOpacity (w);
-
-	    return TRUE;
-	}
-	break;
-    default:
-	if (compSetScreenOption (screen, o, value))
-	    return TRUE;
-	break;
-    }
-
-    return FALSE;
-}
-
-const CompMetadataOptionInfo coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM] = {
-    { "overlapping_outputs", "int",
-      RESTOSTRING (0, OUTPUT_OVERLAP_MODE_LAST), 0, 0 },
-    { "focus_prevention_match", "match", 0, 0, 0 },
-    { "opacity_matches", "list", "<type>match</type>", 0, 0 },
-    { "opacity_values", "list", "<type>int</type>", 0, 0 }
-};
-
 static void
 updateStartupFeedback (CompScreen *s)
 {
@@ -1760,13 +1694,6 @@ addScreenOld (CompDisplay *display,
 
     s->display = display;
 
-    if (!compInitScreenOptionsFromMetadata (s,
-					    &coreMetadata,
-					    coreScreenOptionInfo,
-					    s->opt,
-					    COMP_SCREEN_OPTION_NUM))
-	return FALSE;
-
     s->damage = XCreateRegion ();
     if (!s->damage)
 	return FALSE;
@@ -2383,8 +2310,6 @@ removeScreenOld (CompScreen *s)
 
     if (s->damage)
 	XDestroyRegion (s->damage);
-
-    compFiniScreenOptions (s, s->opt, COMP_SCREEN_OPTION_NUM);
 
     (*s->u.base.vTable->finalize) (&s->u.base);
 
@@ -3904,7 +3829,7 @@ outputDeviceForGeometry (CompScreen *s,
 	unsigned int currentSize, bestOutputSize;
 	int          strategy;
 	
-	strategy = s->opt[COMP_SCREEN_OPTION_OVERLAPPING_OUTPUTS].value.i;
+	strategy = s->data.overlappingOutputs;
 	if (strategy == OUTPUT_OVERLAP_MODE_PREFER_SMALLER)
 	    bestOutputSize = UINT_MAX;
 	else

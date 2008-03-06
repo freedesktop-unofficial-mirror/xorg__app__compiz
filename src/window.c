@@ -1020,26 +1020,7 @@ setWindowProp32 (CompDisplay    *display,
 void
 updateWindowOpacity (CompWindow *w)
 {
-    CompScreen *s = w->screen;
-    int	       opacity = w->opacity;
-
-    if (!w->opacityPropSet && !(w->type & CompWindowTypeDesktopMask))
-    {
-	CompOption *matches = &s->opt[COMP_SCREEN_OPTION_OPACITY_MATCHES];
-	CompOption *values = &s->opt[COMP_SCREEN_OPTION_OPACITY_VALUES];
-	int	   i, min;
-
-	min = MIN (matches->value.list.nValue, values->value.list.nValue);
-
-	for (i = 0; i < min; i++)
-	{
-	    if (matchEval (&matches->value.list.value[i].match, w))
-	    {
-		opacity = (values->value.list.value[i].i * OPAQUE) / 100;
-		break;
-	    }
-	}
-    }
+    int	opacity = w->opacity;
 
     opacity = (opacity * w->opacityFactor) / 0xff;
     if (opacity != w->paint.opacity)
@@ -4808,7 +4789,6 @@ isWindowFocusAllowed (CompWindow *w,
     CompScreen  *s = w->screen;
     CompWindow  *active;
     Time	wUserTime, aUserTime;
-    CompMatch   *match;
     int         vx, vy;
 
     if (w->id == d->activeWindow)
@@ -4846,10 +4826,8 @@ isWindowFocusAllowed (CompWindow *w,
     if (!active || !getWindowUserTime (active, &aUserTime))
 	return TRUE;
 
-    match = &s->opt[COMP_SCREEN_OPTION_FOCUS_PREVENTION_MATCH].value.match;
-
     /* focus prevention */
-    if (matchEval (match, w))
+    if (w->data.focusStealingPrevention)
     {
 	if (XSERVER_TIME_IS_BEFORE (wUserTime, aUserTime))
 	    return FALSE;

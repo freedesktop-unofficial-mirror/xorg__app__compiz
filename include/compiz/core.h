@@ -1786,12 +1786,6 @@ disableTexture (CompScreen  *screen,
 
 /* screen.c */
 
-#define COMP_SCREEN_OPTION_OVERLAPPING_OUTPUTS	  0
-#define COMP_SCREEN_OPTION_FOCUS_PREVENTION_MATCH 1
-#define COMP_SCREEN_OPTION_OPACITY_MATCHES	  2
-#define COMP_SCREEN_OPTION_OPACITY_VALUES	  3
-#define COMP_SCREEN_OPTION_NUM		          4
-
 #ifndef GLX_EXT_texture_from_pixmap
 #define GLX_BIND_TO_TEXTURE_RGB_EXT        0x20D0
 #define GLX_BIND_TO_TEXTURE_RGBA_EXT       0x20D1
@@ -2092,6 +2086,7 @@ typedef struct _CompScreenData {
     uint32_t opacityStep;
     uint32_t refreshRate;
     uint32_t vSize;
+    uint32_t overlappingOutputs;
 
     char *defaultIconImage;
 
@@ -2265,8 +2260,6 @@ struct _CompScreen {
 
     GLXContext ctx;
 
-    CompOption opt[COMP_SCREEN_OPTION_NUM];
-
     PreparePaintScreenProc	    preparePaintScreen;
     DonePaintScreenProc		    donePaintScreen;
     PaintScreenProc		    paintScreen;
@@ -2319,17 +2312,6 @@ allocateScreenPrivateIndex (void);
 
 void
 freeScreenPrivateIndex (int index);
-
-CompOption *
-getScreenOptions (CompPlugin *plugin,
-		  CompScreen *screen,
-		  int	     *count);
-
-Bool
-setScreenOption (CompPlugin	       *plugin,
-		 CompScreen	       *screen,
-		 const char	       *name,
-		 const CompOptionValue *value);
 
 void
 configureScreen (CompScreen	 *s,
@@ -3511,8 +3493,6 @@ typedef struct _CompMetadataObjectInfo {
 
 extern const CompMetadataOptionInfo
 coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM];
-extern const CompMetadataOptionInfo
-coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM];
 
 Bool
 compInitPluginMetadataFromInfo (CompMetadata		     *metadata,
