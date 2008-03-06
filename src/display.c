@@ -1454,7 +1454,7 @@ updateModifierMappings (CompDisplay *d)
 		(modMask[CompModScrollLock] & ~CompNoMask);
 
 	    for (s = d->screens; s; s = s->next)
-		updatePassiveGrabs (s);
+		(*s->u.vTable->updatePassiveGrabs) (s);
 	}
     }
 

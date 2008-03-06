@@ -2070,9 +2070,12 @@ typedef struct _CompActiveWindowHistory {
 
 typedef void (*UpdateOutputDevicesProc) (CompScreen *s);
 
+typedef void (*UpdatePassiveGrabsProc) (CompScreen *s);
+
 typedef struct _CompScreenVTable {
     CompObjectVTable        base;
     UpdateOutputDevicesProc updateOutputDevices;
+    UpdatePassiveGrabsProc  updatePassiveGrabs;
 } CompScreenVTable;
 
 typedef struct _CompScreenData {
@@ -2094,6 +2097,7 @@ typedef struct _CompScreenData {
 
     CompObject windows;
     CompObject outputs;
+    CompObject keyGrabs;
 } CompScreenData;
 
 struct _CompScreen {
@@ -2188,10 +2192,8 @@ struct _CompScreen {
     CompWindow **clientList;
     int	       nClientList;
 
-    CompButtonGrab *buttonGrab;
-    int		   nButtonGrab;
-    CompKeyGrab    *keyGrab;
-    int		   nKeyGrab;
+    CompKeyGrab *keyGrab;
+    int		nKeyGrab;
 
     CompGrab *grabs;
     int	     grabSize;
@@ -2420,9 +2422,6 @@ addScreenAction (CompScreen	  *s,
 void
 removeScreenAction (CompScreen	     *s,
 		    const CompAction *action);
-
-void
-updatePassiveGrabs (CompScreen *s);
 
 void
 updateWorkareaForScreen (CompScreen *s);
