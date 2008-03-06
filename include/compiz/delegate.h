@@ -48,7 +48,10 @@ typedef struct _CompDelegateVTable {
 
 typedef struct _CompDelegateData {
     CompObjectData base;
-    CompObject     matches;
+
+    CompBool compress;
+
+    CompObject matches;
 } CompDelegateData;
 
 struct _CompDelegate {
@@ -58,6 +61,8 @@ struct _CompDelegate {
     } u;
 
     CompDelegateData data;
+
+    int pending;
 };
 
 #define GET_DELEGATE(object) ((CompDelegate *) (object))

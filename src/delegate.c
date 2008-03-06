@@ -23,37 +23,22 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <string.h>
+
 #include <compiz/delegate.h>
 #include <compiz/signal-match.h>
 #include <compiz/c-object.h>
 
-static CompObjectType *
-delegateObjectTypeFromTemplate (const CObjectInterface *template)
-{
-    CObjectInterface delegateTemplate = *template;
-
-    if (!delegateTemplate.i.base.name)
-    {
-	delegateTemplate.i.base.name    = COMPIZ_DELEGATE_TYPE_NAME;
-	delegateTemplate.i.base.version = COMPIZ_DELEGATE_VERSION;
-    }
-
-    if (!delegateTemplate.i.version)
-	delegateTemplate.i.version = COMPIZ_DELEGATE_VERSION;
-
-    return cObjectTypeFromTemplate (&delegateTemplate);
-}
-
 /* delegate */
 
-static void
-delegateGetProp (CompObject   *object,
-		 unsigned int what,
-		 void	      *value)
+static CompBool
+delegateInit (CompObject *object)
 {
-    cGetObjectProp (&GET_DELEGATE (object)->data.base,
-		    getDelegateObjectType (),
-		    what, value);
+    DELEGATE (object);
+
+    d->pending = 0;
+
+    return TRUE;
 }
 
 static void
@@ -77,24 +62,57 @@ delegateInsert (CompObject *object,
 }
 
 static void
-delegateProcessSignal (CompDelegate *d,
-		       const char   *path,
-		       const char   *interface,
-		       const char   *name,
-		       const char   *signature,
-		       CompAnyValue *value,
-		       int	    nValue)
+delegateGetProp (CompObject   *object,
+		 unsigned int what,
+		 void	      *value)
 {
+    cGetObjectProp (&GET_DELEGATE (object)->data.base,
+		    getDelegateObjectType (),
+		    what, value);
 }
 
 static void
-noopDelegateProcessSignal (CompDelegate *d,
-			   const char   *path,
-			   const char   *interface,
-			   const char   *name,
-			   const char   *signature,
-			   CompAnyValue *value,
-			   int	        nValue)
+delegateEmit (CompObject *object,
+	      const char *interface,
+	      const char *name,
+	      const char *signature,
+	      va_list	 args)
+{
+    DELEGATE (object);
+
+    printf ("emit: %d %s %s\n", d->pending, interface, name);
+
+    d->pending++;
+
+    FOR_BASE (object, (*object->vTable->emit) (object,
+					       interface,
+					       name,
+					       signature,
+					       args));
+}
+
+static void
+processSignal (CompDelegate *d,
+	       const char   *path,
+	       const char   *interface,
+	       const char   *name,
+	       const char   *signature,
+	       CompAnyValue *value,
+	       int	    nValue)
+{
+    if (strcmp (path, d->u.base.name) == 0)
+	if (strcmp (interface, getObjectType ()->name))
+	    d->pending--;
+}
+
+static void
+noopProcessSignal (CompDelegate *d,
+		   const char   *path,
+		   const char   *interface,
+		   const char   *name,
+		   const char   *signature,
+		   CompAnyValue *value,
+		   int	        nValue)
 {
     FOR_BASE (&d->u.base, (*d->u.vTable->processSignal) (d,
 							 path,
@@ -107,12 +125,17 @@ noopDelegateProcessSignal (CompDelegate *d,
 
 static const CompDelegateVTable delegateObjectVTable = {
     .base.getProp = delegateGetProp,
+    .base.emit    = delegateEmit,
 
-    .processSignal = delegateProcessSignal
+    .processSignal = processSignal
 };
 
 static const CompDelegateVTable noopDelegateObjectVTable = {
-    .processSignal = noopDelegateProcessSignal
+    .processSignal = noopProcessSignal
+};
+
+static const CBoolProp delegateTypeBoolProp[] = {
+    C_PROP (compress, CompDelegateData)
 };
 
 static const CChildObject delegateTypeChildObject[] = {
@@ -136,9 +159,13 @@ getDelegateObjectType (void)
 	    .i.vTable.size   = sizeof (delegateObjectVTable),
 	    .i.instance.size = sizeof (CompDelegate),
 
+	    .boolProp  = delegateTypeBoolProp,
+	    .nBoolProp = N_ELEMENTS (delegateTypeBoolProp),
+
 	    .child  = delegateTypeChildObject,
 	    .nChild = N_ELEMENTS (delegateTypeChildObject),
 
+	    .init   = delegateInit,
 	    .insert = delegateInsert
 	};
 
@@ -147,6 +174,24 @@ getDelegateObjectType (void)
 
     return type;
 }
+
+static CompObjectType *
+delegateObjectTypeFromTemplate (const CObjectInterface *template)
+{
+    CObjectInterface delegateTemplate = *template;
+
+    if (!delegateTemplate.i.base.name)
+    {
+	delegateTemplate.i.base.name    = COMPIZ_DELEGATE_TYPE_NAME;
+	delegateTemplate.i.base.version = COMPIZ_DELEGATE_VERSION;
+    }
+
+    if (!delegateTemplate.i.version)
+	delegateTemplate.i.version = COMPIZ_DELEGATE_VERSION;
+
+    return cObjectTypeFromTemplate (&delegateTemplate);
+}
+
 
 /* void */
 
@@ -177,6 +222,9 @@ delegateVoidProcessSignal (CompDelegate *d,
     {
 	CompSignalMatch *sm;
 
+	if (d->data.compress && d->pending)
+	    break;
+
 	sm = COMP_TYPE_CAST (d->data.matches.child[i].ref,
 			     getSignalMatchObjectType (),
 			     CompSignalMatch);
@@ -194,6 +242,14 @@ delegateVoidProcessSignal (CompDelegate *d,
 		(dv->u.vTable->signalVoid) (dv);
 	}
     }
+
+    FOR_BASE (&d->u.base, (*d->u.vTable->processSignal) (d,
+							 path,
+							 interface,
+							 name,
+							 signature,
+							 value,
+							 nValue));
 }
 
 static void
