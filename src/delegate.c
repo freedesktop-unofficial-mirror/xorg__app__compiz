@@ -29,8 +29,6 @@
 #include <compiz/signal-match.h>
 #include <compiz/c-object.h>
 
-/* delegate */
-
 static CompBool
 delegateInit (CompObject *object)
 {
@@ -79,8 +77,6 @@ delegateEmit (CompObject *object,
 	      va_list	 args)
 {
     DELEGATE (object);
-
-    printf ("emit: %d %s %s\n", d->pending, interface, name);
 
     d->pending++;
 
@@ -192,8 +188,6 @@ delegateObjectTypeFromTemplate (const CObjectInterface *template)
     return cObjectTypeFromTemplate (&delegateTemplate);
 }
 
-
-/* void */
 
 static void
 delegateVoidGetProp (CompObject   *object,
