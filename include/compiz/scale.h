@@ -196,8 +196,8 @@ typedef struct _ScaleWindow {
 #define SCALE_SCREEN(s)							   \
     ScaleScreen *ss = GET_SCALE_SCREEN (s, GET_SCALE_DISPLAY (s->display))
 
-#define GET_SCALE_WINDOW(w, ss)					       \
-    ((ScaleWindow *) (w)->data.privates[(ss)->windowPrivateIndex].ptr)
+#define GET_SCALE_WINDOW(w, ss)						    \
+    ((ScaleWindow *) (w)->data.base.privates[(ss)->windowPrivateIndex].ptr)
 
 #define SCALE_WINDOW(w)					       \
     ScaleWindow *sw = GET_SCALE_WINDOW  (w,		       \

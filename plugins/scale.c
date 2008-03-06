@@ -2151,7 +2151,7 @@ scaleInitWindow (CompPlugin *p,
     sw->delta = 1.0f;
     sw->lastThumbOpacity = 0.0f;
 
-    w->data.privates[ss->windowPrivateIndex].ptr = sw;
+    w->data.base.privates[ss->windowPrivateIndex].ptr = sw;
 
     return TRUE;
 }

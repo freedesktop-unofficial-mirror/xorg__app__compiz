@@ -93,8 +93,8 @@ typedef struct _MinWindow {
 #define MIN_SCREEN(s)						     \
     MinScreen *ms = GET_MIN_SCREEN (s, GET_MIN_DISPLAY (s->display))
 
-#define GET_MIN_WINDOW(w, ms)					     \
-    ((MinWindow *) (w)->data.privates[(ms)->windowPrivateIndex].ptr)
+#define GET_MIN_WINDOW(w, ms)						  \
+    ((MinWindow *) (w)->data.base.privates[(ms)->windowPrivateIndex].ptr)
 
 #define MIN_WINDOW(w)					   \
     MinWindow *mw = GET_MIN_WINDOW  (w,			   \
@@ -956,7 +956,7 @@ minInitWindow (CompPlugin *p,
 	    mw->region = NULL;
     }
 
-    w->data.privates[ms->windowPrivateIndex].ptr = mw;
+    w->data.base.privates[ms->windowPrivateIndex].ptr = mw;
 
     return TRUE;
 }

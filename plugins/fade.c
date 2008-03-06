@@ -89,8 +89,8 @@ typedef struct _FadeWindow {
 #define FADE_SCREEN(s)							\
     FadeScreen *fs = GET_FADE_SCREEN (s, GET_FADE_DISPLAY (s->display))
 
-#define GET_FADE_WINDOW(w, fs)					      \
-    ((FadeWindow *) (w)->data.privates[(fs)->windowPrivateIndex].ptr)
+#define GET_FADE_WINDOW(w, fs)						   \
+    ((FadeWindow *) (w)->data.base.privates[(fs)->windowPrivateIndex].ptr)
 
 #define FADE_WINDOW(w)					     \
     FadeWindow *fw = GET_FADE_WINDOW  (w,		     \
@@ -784,7 +784,7 @@ fadeInitWindow (CompPlugin *p,
     fw->shaded     = w->shaded;
     fw->fadeOut    = FALSE;
 
-    w->data.privates[fs->windowPrivateIndex].ptr = fw;
+    w->data.base.privates[fs->windowPrivateIndex].ptr = fw;
 
     if (w->attrib.map_state == IsViewable)
     {
