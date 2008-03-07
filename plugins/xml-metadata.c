@@ -31,7 +31,6 @@
 
 #include <compiz/branch.h>
 #include <compiz/plugin.h>
-#include <compiz/delegate.h>
 #include <compiz/error.h>
 #include <compiz/c-object.h>
 #include <compiz/p-object.h>
@@ -436,6 +435,12 @@ xmlmApplyInterfaceMetadata (CompBranch		*b,
 	    if (nodeName)
 	    {
 		node = compLookupDescendantVa (object, nodeName, NULL);
+		if (!node)
+		    compLog (&b->u.base,
+			     getXmlmBranchObjectInterface (),
+			     offsetof (XmlmBranchVTable,
+				       applyInterfaceMetadata),
+			     "'%s' node could not be located", nodeName);
 	    }
 	    else
 	    {
@@ -446,21 +451,14 @@ xmlmApplyInterfaceMetadata (CompBranch		*b,
 		node = compLookupDescendantVa (object, childName, NULL);
 		if (!node)
 		{
-		    const char *nodeType;
+		    const CompObjectType *type;
+		    const char		 *nodeType;
 
 		    nodeType = xmlmNodeProp (nodeTab[i], "type");
 		    if (nodeType)
 		    {
-			const CompObjectType *type;
-
 			type = compLookupObjectType (&b->factory, nodeType);
-			if (type)
-			    node = (*b->u.vTable->newObject) (b,
-							      object,
-							      type,
-							      childName,
-							      NULL);
-			else
+			if (!type)
 			    compLog (&b->u.base,
 				     getXmlmBranchObjectInterface (),
 				     offsetof (XmlmBranchVTable,
@@ -470,11 +468,27 @@ xmlmApplyInterfaceMetadata (CompBranch		*b,
 		    }
 		    else
 		    {
+			type = getObjectType ();
+		    }
+
+		    if (type)
+		    {
+			char *error;
+
 			node = (*b->u.vTable->newObject) (b,
 							  object,
-							  getObjectType (),
+							  type,
 							  childName,
-							  NULL);
+							  &error);
+			if (!node && error)
+			{
+			    compLog (&b->u.base,
+				     getXmlmBranchObjectInterface (),
+				     offsetof (XmlmBranchVTable,
+					       applyInterfaceMetadata),
+				     error);
+			    free (error);
+			}
 		    }
 		}
 	    }
@@ -509,7 +523,7 @@ xmlmApplyInterfaceMetadata (CompBranch		*b,
 		    for (j = 0; j < nr; j++)
 		    {
 			const char *signal, *method, *iface;
-			char       *e;
+			char       *error;
 
 			signal = xmlmNodeProp (tab[j], "signal");
 			method = xmlmNodeProp (tab[j], "method");
@@ -523,16 +537,16 @@ xmlmApplyInterfaceMetadata (CompBranch		*b,
 								name,
 								method,
 								NULL,
-								&e))
+								&error))
 			{
-			    if (e)
+			    if (error)
 			    {
 				compLog (&b->u.base,
 					 getXmlmBranchObjectInterface (),
 					 offsetof (XmlmBranchVTable,
 						   applyInterfaceMetadata),
-					 e);
-				free (e);
+					 error);
+				free (error);
 			    }
 			}
 		    }
@@ -550,32 +564,44 @@ xmlmApplyInterfaceMetadata (CompBranch		*b,
 	{
 	    const char *value = (const char *) nodeTab[i]->content;
 	    const char *prop, *type;
+	    char       *error;
+	    CompBool   status = TRUE;
 
 	    prop = xmlmNodeProp (nodeTab[i]->parent->parent, "name");
 	    type = xmlmNodeProp (nodeTab[i]->parent->parent, "type");
 
 	    switch (*type) {
 	    case 'b':
-		(*object->vTable->setBool) (object, name, prop,
-					    *value == 't' ? TRUE : FALSE,
-					    NULL);
+		status = (*object->vTable->setBool) (object, name, prop,
+						     *value == 't' ?
+						     TRUE : FALSE,
+						     &error);
 		break;
 	    case 'i':
-		(*object->vTable->setInt) (object, name, prop,
-					   strtol (value, NULL, 0),
-					   NULL);
+		status = (*object->vTable->setInt) (object, name, prop,
+						    strtol (value, NULL, 0),
+						    &error);
 		break;
 	    case 'd':
-		(*object->vTable->setDouble) (object, name, prop,
-					      strtod (value, NULL),
-					      NULL);
+		status = (*object->vTable->setDouble) (object, name, prop,
+						       strtod (value, NULL),
+						       &error);
 		break;
 	    case 's':
-		(*object->vTable->setString) (object, name, prop,
-					      value,
-					      NULL);
+		status = (*object->vTable->setString) (object, name, prop,
+						       value,
+						       &error);
 	    default:
 		break;
+	    }
+
+	    if (!status && error)
+	    {
+		compLog (&b->u.base,
+			 getXmlmBranchObjectInterface (),
+			 offsetof (XmlmBranchVTable, applyInterfaceMetadata),
+			 error);
+		free (error);
 	    }
 	}
     }
