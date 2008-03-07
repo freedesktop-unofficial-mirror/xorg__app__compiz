@@ -472,7 +472,7 @@ main (int argc, char **argv)
 	getSimpleSignalMatchObjectType (),
 	getStructureNotifySignalMatchObjectType (),
 	getDelegateObjectType (),
-	getDelegateVoidObjectType (),
+	getVoidDelegateObjectType (),
 	getRootObjectType (),
 	getTimerObjectType (),
 	getFileDescriptorObjectType (),

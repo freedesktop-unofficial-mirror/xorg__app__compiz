@@ -190,17 +190,17 @@ delegateObjectTypeFromTemplate (const CObjectInterface *template)
 
 
 static void
-delegateVoidGetProp (CompObject   *object,
+voidDelegateGetProp (CompObject   *object,
 		     unsigned int what,
 		     void	  *value)
 {
-    cGetObjectProp (&GET_DELEGATE_VOID (object)->data,
-		    getDelegateVoidObjectType (),
+    cGetObjectProp (&GET_VOID_DELEGATE (object)->data,
+		    getVoidDelegateObjectType (),
 		    what, value);
 }
 
 static void
-delegateVoidProcessSignal (CompDelegate *d,
+voidDelegateProcessSignal (CompDelegate *d,
 			   const char   *path,
 			   const char   *interface,
 			   const char   *name,
@@ -210,7 +210,7 @@ delegateVoidProcessSignal (CompDelegate *d,
 {
     int i;
 
-    DELEGATE_VOID (d);
+    VOID_DELEGATE (d);
 
     for (i = 0; i < d->data.matches.nChild; i++)
     {
@@ -233,7 +233,7 @@ delegateVoidProcessSignal (CompDelegate *d,
 					nValue,
 					"",
 					NULL))
-		(dv->u.vTable->signalVoid) (dv);
+		(vd->u.vTable->notify) (vd);
 	}
     }
 
@@ -247,49 +247,49 @@ delegateVoidProcessSignal (CompDelegate *d,
 }
 
 static void
-signalVoid (CompDelegateVoid *dv)
+notify (CompVoidDelegate *vd)
 {
-    C_EMIT_SIGNAL (&dv->u.base.u.base, SignalVoidProc,
-		   offsetof (CompDelegateVoidVTable, signalVoid));
+    C_EMIT_SIGNAL (&vd->u.base.u.base, VoidNotifyProc,
+		   offsetof (CompVoidDelegateVTable, notify));
 }
 
 static void
-noopSignalVoid (CompDelegateVoid *dv)
+noopNotify (CompVoidDelegate *vd)
 {
-    FOR_BASE (&dv->u.base.u.base, (*dv->u.vTable->signalVoid) (dv));
+    FOR_BASE (&vd->u.base.u.base, (*vd->u.vTable->notify) (vd));
 }
 
-static const CompDelegateVoidVTable delegateVoidObjectVTable = {
-    .base.base.getProp  = delegateVoidGetProp,
-    .base.processSignal = delegateVoidProcessSignal,
+static const CompVoidDelegateVTable voidDelegateObjectVTable = {
+    .base.base.getProp  = voidDelegateGetProp,
+    .base.processSignal = voidDelegateProcessSignal,
 
-    .signalVoid = signalVoid
+    .notify = notify
 };
 
-static const CompDelegateVoidVTable noopDelegateVoidObjectVTable = {
-    .signalVoid = noopSignalVoid
+static const CompVoidDelegateVTable noopVoidDelegateObjectVTable = {
+    .notify = noopNotify
 };
 
-static const CSignal delegateVoidTypeSignal[] = {
-    C_SIGNAL (signalVoid, "", CompDelegateVoidVTable)
+static const CSignal voidDelegateTypeSignal[] = {
+    C_SIGNAL (notify, "", CompVoidDelegateVTable)
 };
 
 const CompObjectType *
-getDelegateVoidObjectType (void)
+getVoidDelegateObjectType (void)
 {
     static CompObjectType *type = NULL;
 
     if (!type)
     {
 	static const CObjectInterface template = {
-	    .i.name	     = COMPIZ_DELEGATE_VOID_TYPE_NAME,
-	    .i.vTable.impl   = &delegateVoidObjectVTable.base.base,
-	    .i.vTable.noop   = &noopDelegateVoidObjectVTable.base.base,
-	    .i.vTable.size   = sizeof (delegateVoidObjectVTable),
-	    .i.instance.size = sizeof (CompDelegateVoid),
+	    .i.name	     = COMPIZ_VOID_DELEGATE_TYPE_NAME,
+	    .i.vTable.impl   = &voidDelegateObjectVTable.base.base,
+	    .i.vTable.noop   = &noopVoidDelegateObjectVTable.base.base,
+	    .i.vTable.size   = sizeof (voidDelegateObjectVTable),
+	    .i.instance.size = sizeof (CompVoidDelegate),
 
-	    .signal  = delegateVoidTypeSignal,
-	    .nSignal = N_ELEMENTS (delegateVoidTypeSignal)
+	    .signal  = voidDelegateTypeSignal,
+	    .nSignal = N_ELEMENTS (voidDelegateTypeSignal)
 	};
 
 	type = delegateObjectTypeFromTemplate (&template);

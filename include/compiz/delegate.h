@@ -75,32 +75,32 @@ const CompObjectType *
 getDelegateObjectType (void);
 
 
-typedef struct _CompDelegateVoid CompDelegateVoid;
+typedef struct _CompVoidDelegate CompVoidDelegate;
 
-typedef void (*SignalVoidProc) (CompDelegateVoid *dv);
+typedef void (*VoidNotifyProc) (CompVoidDelegate *vd);
 
-typedef struct _CompDelegateVoidVTable {
+typedef struct _CompVoidDelegateVTable {
     CompDelegateVTable base;
 
-    SignalVoidProc signalVoid;
-} CompDelegateVoidVTable;
+    VoidNotifyProc notify;
+} CompVoidDelegateVTable;
 
-struct _CompDelegateVoid {
+struct _CompVoidDelegate {
     union {
 	CompDelegate		     base;
-	const CompDelegateVoidVTable *vTable;
+	const CompVoidDelegateVTable *vTable;
     } u;
 
     CompObjectData data;
 };
 
-#define COMPIZ_DELEGATE_VOID_TYPE_NAME "org.compiz.delegate.void"
+#define COMPIZ_VOID_DELEGATE_TYPE_NAME "org.compiz.delegate.void"
 
-#define GET_DELEGATE_VOID(object) ((CompDelegateVoid *) (object))
-#define DELEGATE_VOID(object) CompDelegateVoid *dv = GET_DELEGATE_VOID (object)
+#define GET_VOID_DELEGATE(object) ((CompVoidDelegate *) (object))
+#define VOID_DELEGATE(object) CompVoidDelegate *vd = GET_VOID_DELEGATE (object)
 
 const CompObjectType *
-getDelegateVoidObjectType (void);
+getVoidDelegateObjectType (void);
 
 COMPIZ_END_DECLS
 
