@@ -30,6 +30,18 @@
 
 COMPIZ_BEGIN_DECLS
 
+#define KEYBOARD_MODIFIER_SHIFT	      0
+#define KEYBOARD_MODIFIER_CAPS_LOCK   1
+#define KEYBOARD_MODIFIER_CONTROL     2
+#define KEYBOARD_MODIFIER_ALT	      3
+#define KEYBOARD_MODIFIER_META	      4
+#define KEYBOARD_MODIFIER_SUPER	      5
+#define KEYBOARD_MODIFIER_HYPER	      6
+#define KEYBOARD_MODIFIER_MODE_SWITCH 7
+#define KEYBOARD_MODIFIER_NUM_LOCK    8
+#define KEYBOARD_MODIFIER_SCROLL_LOCK 9
+#define KEYBOARD_MODIFIER_NUM	      10
+
 typedef struct _CompKeyboard {
     CompInput      base;
     CompObjectData data;
@@ -44,6 +56,29 @@ typedef struct _CompKeyboard {
 
 const CompObjectType *
 getKeyboardObjectType (void);
+
+
+typedef struct _CompKeyEventDescriptionData {
+    CompObjectData base;
+    char	   *key;
+    int32_t        modifiers;
+} CompKeyEventDescriptionData;
+
+typedef struct _CompKeyEventDescription {
+    CompObject			base;
+    CompKeyEventDescriptionData data;
+} CompKeyEventDescription;
+
+#define GET_KEY_EVENT_DESCRIPTION(object)  \
+    ((CompKeyEventDescription *) (object))
+#define KEY_EVENT_DESCRIPTION(object)				      \
+    CompKeyEventDescription *ked = GET_KEY_EVENT_DESCRIPTION (object)
+
+#define COMPIZ_KEY_EVENT_DESCRIPTION_VERSION   20080307
+#define COMPIZ_KEY_EVENT_DESCRIPTION_TYPE_NAME "org.compiz.keyEventDescription"
+
+const CompObjectType *
+getKeyEventDescriptionObjectType (void);
 
 COMPIZ_END_DECLS
 
