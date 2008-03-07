@@ -900,18 +900,16 @@ handleSetIntProp (CompObject	 *object,
 	{
 	    if (value > prop->max)
 	    {
-		if (error)
-		    *error = strdup ("Value is greater than maximium "
-				     "allowed value");
-
+		esprintf (error, "Value '%d' is greater than maximium allowed "
+			  "value '%d' for '%s' property of interface '%s'",
+			  value, prop->max, name, interface);
 		return FALSE;
 	    }
 	    else if (value < prop->min)
 	    {
-		if (error)
-		    *error = strdup ("Value is less than minimuim "
-				     "allowed value");
-
+		esprintf (error, "Value '%d' is less than minimum allowed "
+			  "value '%d' for '%s' property of interface '%s'",
+			  value, prop->min, name, interface);
 		return FALSE;
 	    }
 	}
@@ -1063,18 +1061,16 @@ handleSetDoubleProp (CompObject	       *object,
 	{
 	    if (value > prop->max)
 	    {
-		if (error)
-		    *error = strdup ("Value is greater than maximium "
-				     "allowed value");
-
+		esprintf (error, "Value '%f' is greater than maximium allowed "
+			  "value '%f' for '%s' property of interface '%s'",
+			  value, prop->max, name, interface);
 		return FALSE;
 	    }
 	    else if (value < prop->min)
 	    {
-		if (error)
-		    *error = strdup ("Value is less than minimuim "
-				     "allowed value");
-
+		esprintf (error, "Value '%f' is less than minimum allowed "
+			  "value '%f' for '%s' property of interface '%s'",
+			  value, prop->min, name, interface);
 		return FALSE;
 	    }
 	}
