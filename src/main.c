@@ -489,6 +489,7 @@ main (int argc, char **argv)
 	getKeyPressSignalMatchObjectType (),
 	getKeyReleaseSignalMatchObjectType (),
 	getPointerObjectType (),
+	getWidgetObjectType (),
 	getCoreObjectType (),
 	getDisplayObjectType (),
 	getScreenObjectType (),

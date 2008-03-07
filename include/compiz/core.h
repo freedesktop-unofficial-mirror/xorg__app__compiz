@@ -52,6 +52,7 @@
 #include <compiz/plugin.h>
 #include <compiz/branch.h>
 #include <compiz/root.h>
+#include <compiz/widget.h>
 
 COMPIZ_BEGIN_DECLS
 
@@ -2598,35 +2599,33 @@ typedef struct _CompStruts {
 typedef void (*CloseWindowProc) (CompWindow *w,
 				 int32_t    eventTime);
 
-typedef void (*ButtonEventProc) (CompWindow *w,
-				 int32_t    button,
-				 int32_t    modifiers,
-				 int32_t    x,
-				 int32_t    y,
-				 int32_t    time);
+typedef void (*XButtonEventProc) (CompWindow *w,
+				  int32_t    button,
+				  int32_t    state,
+				  int32_t    x,
+				  int32_t    y,
+				  int32_t    time);
 
-typedef void (*KeyEventProc) (CompWindow *w,
-			      const char *key,
-			      int32_t    keycode,
-			      int32_t    modifiers,
-			      int32_t    time,
-			      CompBool   last);
+typedef void (*XKeyEventProc) (CompWindow *w,
+			       int32_t    keycode,
+			       int32_t    state,
+			       int32_t    time);
 
-typedef void (*BellProc) (CompWindow *w,
-			  int32_t    time);
+typedef void (*XBellProc) (CompWindow *w,
+			   int32_t    time);
 
 typedef struct _CompWindowVTable {
-    CompObjectVTable base;
+    CompWidgetVTable base;
 
     /* public methods */
     CloseWindowProc close;
 
     /* public signals */
-    ButtonEventProc buttonPress;
-    ButtonEventProc buttonRelease;
-    KeyEventProc    keyPress;
-    KeyEventProc    keyRelease;
-    BellProc	    bell;
+    XButtonEventProc xButtonPress;
+    XButtonEventProc xButtonRelease;
+    XKeyEventProc    xKeyPress;
+    XKeyEventProc    xKeyRelease;
+    XBellProc	     xBell;
 } CompWindowVTable;
 
 typedef struct _CompWindowata {
@@ -2636,7 +2635,7 @@ typedef struct _CompWindowata {
 
 struct _CompWindow {
     union {
-	CompObject	      base;
+	CompWidget	       base;
 	const CompWindowVTable *vTable;
     } u;
 

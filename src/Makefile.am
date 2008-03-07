@@ -31,6 +31,7 @@ compiz_SOURCES =	  \
 	input.c		  \
 	pointer.c	  \
 	keyboard.c	  \
+	widget.c	  \
 	core.c		  \
 	texture.c	  \
 	display.c	  \

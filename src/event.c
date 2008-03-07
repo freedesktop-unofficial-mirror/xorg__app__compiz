@@ -688,52 +688,6 @@ triggerEdgeLeaveBindings (CompDisplay	  *d,
     return FALSE;
 }
 
-static void
-emitKeyEventSignals (CompDisplay  *d,
-		     CompWindow   *w,
-		     KeyEventProc event,
-		     KeyCode      keycode,
-		     int	  state,
-		     Time	  time)
-{
-    KeySym keysym = XKeycodeToKeysym (d->display, keycode, 0);
-    int	   i;
-    int    virtualModifiers = state & (ShiftMask | LockMask | ControlMask);
-
-    for (i = 0; i < CompModNum; i++)
-	if (d->modMask[i] & state)
-	    virtualModifiers |= (1 << (i + 3));
-
-    if (keysym != NoSymbol)
-    {
-	KeySym next;
-	int    i;
-
-	for (i = 0; keysym != NoSymbol; i++)
-	{
-	    next = XKeycodeToKeysym (d->display, keycode, i + 1);
-
-	    (*event) (w,
-		      XKeysymToString (keysym),
-		      keycode,
-		      virtualModifiers,
-		      time,
-		      next == NoSymbol);
-
-	    keysym = next;
-	}
-    }
-    else
-    {
-	(*event) (w,
-		  "",
-		  keycode,
-		  virtualModifiers,
-		  time,
-		  TRUE);
-    }
-}
-
 static Bool
 handleActionEvent (CompDisplay *d,
 		   XEvent      *event)
@@ -784,12 +738,12 @@ handleActionEvent (CompDisplay *d,
 
 	w = findWindowAtDisplay (d, event->xbutton.window);
 	if (w)
-	    (*w->u.vTable->buttonPress) (w,
-					 event->xbutton.button,
-					 event->xbutton.state,
-					 event->xbutton.x_root,
-					 event->xbutton.y_root,
-					 event->xbutton.time);
+	    (*w->u.vTable->xButtonPress) (w,
+					  event->xbutton.button,
+					  event->xbutton.state,
+					  event->xbutton.x_root,
+					  event->xbutton.y_root,
+					  event->xbutton.time);
 
 	for (p = getPlugins (); p; p = p->next)
 	{
@@ -821,12 +775,12 @@ handleActionEvent (CompDisplay *d,
 
 	w = findWindowAtDisplay (d, event->xbutton.window);
 	if (w)
-	    (*w->u.vTable->buttonRelease) (w,
-					   event->xbutton.button,
-					   event->xbutton.state,
-					   event->xbutton.x_root,
-					   event->xbutton.y_root,
-					   event->xbutton.time);
+	    (*w->u.vTable->xButtonRelease) (w,
+					    event->xbutton.button,
+					    event->xbutton.state,
+					    event->xbutton.x_root,
+					    event->xbutton.y_root,
+					    event->xbutton.time);
 
 	for (p = getPlugins (); p; p = p->next)
 	{
@@ -858,12 +812,10 @@ handleActionEvent (CompDisplay *d,
 
 	w = findWindowAtDisplay (d, d->activeWindow);
 	if (w)
-	    emitKeyEventSignals (d,
-				 w,
-				 w->u.vTable->keyPress,
-				 event->xkey.keycode,
-				 event->xkey.state,
-				 event->xkey.time);
+	    (*w->u.vTable->xKeyPress) (w,
+				       event->xkey.keycode,
+				       event->xkey.state,
+				       event->xkey.time);
 
 	for (p = getPlugins (); p; p = p->next)
 	{
@@ -895,12 +847,10 @@ handleActionEvent (CompDisplay *d,
 
 	w = findWindowAtDisplay (d, d->activeWindow);
 	if (w)
-	    emitKeyEventSignals (d,
-				 w,
-				 w->u.vTable->keyRelease,
-				 event->xkey.keycode,
-				 event->xkey.state,
-				 event->xkey.time);
+	    (*w->u.vTable->xKeyRelease) (w,
+					 event->xkey.keycode,
+					 event->xkey.state,
+					 event->xkey.time);
 
 	for (p = getPlugins (); p; p = p->next)
 	{
@@ -1189,19 +1139,16 @@ handleActionEvent (CompDisplay *d,
 
 			if (w)
 			{
-			    KeyEventProc keyEvent;
-
 			    if (stateEvent->event_type == KeyPress)
-				keyEvent = w->u.vTable->keyPress;
+				(*w->u.vTable->xKeyPress) (w,
+							   kb.xkey.keycode,
+							   kb.xkey.state,
+							   xkbEvent->time);
 			    else
-				keyEvent = w->u.vTable->keyRelease;
-
-			    emitKeyEventSignals (d,
-						 w,
-						 keyEvent,
-						 kb.xkey.keycode,
-						 kb.xkey.state,
-						 xkbEvent->time);
+				(*w->u.vTable->xKeyRelease) (w,
+							     kb.xkey.keycode,
+							     kb.xkey.state,
+							     xkbEvent->time);
 			}
 
 			for (p = getPlugins (); p; p = p->next)
@@ -1241,7 +1188,7 @@ handleActionEvent (CompDisplay *d,
 
 		w = findWindowAtDisplay (d, d->activeWindow);
 		if (w)
-		    (*w->u.vTable->bell) (w, xkbEvent->time);
+		    (*w->u.vTable->xBell) (w, xkbEvent->time);
 
 		for (p = getPlugins (); p; p = p->next)
 		{

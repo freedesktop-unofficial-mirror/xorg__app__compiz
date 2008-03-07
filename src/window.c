@@ -1711,7 +1711,7 @@ windowInitObject (CompObject *object)
 {
     WINDOW (object);
 
-    w->u.base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
+    w->u.base.u.base.id = COMP_OBJECT_TYPE_WINDOW; /* XXX: remove id asap */
 
     return TRUE;
 }
@@ -1778,161 +1778,203 @@ static void
 noopClose (CompWindow *w,
 	   int32_t    eventTime)
 {
-    FOR_BASE (&w->u.base, (*w->u.vTable->close) (w, eventTime));
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->close) (w, eventTime));
 }
 
-static void
-buttonPress (CompWindow *w,
-	     int32_t    button,
-	     int32_t    modifiers,
-	     int32_t    x,
-	     int32_t    y,
-	     int32_t    time)
+static int32_t
+windowVirtualModifiers (CompWindow *w,
+			int	   state)
 {
-    C_EMIT_SIGNAL (&w->u.base, ButtonEventProc,
-		   offsetof (CompWindowVTable, buttonPress),
-		   button, modifiers, x, y, time);
+    CompDisplay *d = w->screen->display;
+    int		i, virtualModifiers =
+	state & (ShiftMask | LockMask | ControlMask);
+
+    for (i = 0; i < CompModNum; i++)
+	if (d->modMask[i] & state)
+	    virtualModifiers |= (1 << (i + 3));
+
+    return virtualModifiers;
 }
 
 static void
-noopButtonPress (CompWindow *w,
-		 int32_t    button,
-		 int32_t    modifiers,
-		 int32_t    x,
-		 int32_t    y,
-		 int32_t    time)
+xButtonPress (CompWindow *w,
+	      int32_t    button,
+	      int32_t    state,
+	      int32_t    x,
+	      int32_t    y,
+	      int32_t    time)
 {
-    FOR_BASE (&w->u.base, (*w->u.vTable->buttonPress) (w,
-						       button,
-						       modifiers,
-						       x,
-						       y,
-						       time));
+    C_EMIT_SIGNAL (&w->u.base.u.base, XButtonEventProc,
+		   offsetof (CompWindowVTable, xButtonPress),
+		   button, state, x, y, time);
+
+    (*w->u.base.u.vTable->buttonPress) (&w->u.base,
+					button,
+					windowVirtualModifiers (w, state),
+					x,
+					y);
 }
 
 static void
-buttonRelease (CompWindow *w,
-	       int32_t    button,
-	       int32_t    modifiers,
-	       int32_t    x,
-	       int32_t    y,
+noopXButtonPress (CompWindow *w,
+		  int32_t    button,
+		  int32_t    state,
+		  int32_t    x,
+		  int32_t    y,
+		  int32_t    time)
+{
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->xButtonPress) (w,
+							       button,
+							       state,
+							       x,
+							       y,
+							       time));
+}
+
+static void
+xButtonRelease (CompWindow *w,
+		int32_t    button,
+		int32_t    state,
+		int32_t    x,
+		int32_t    y,
+		int32_t    time)
+{
+    C_EMIT_SIGNAL (&w->u.base.u.base, XButtonEventProc,
+		   offsetof (CompWindowVTable, xButtonRelease),
+		   button, state, x, y, time);
+
+    (*w->u.base.u.vTable->buttonRelease) (&w->u.base,
+					  button,
+					  windowVirtualModifiers (w, state),
+					  x,
+					  y);
+}
+
+static void
+noopXButtonRelease (CompWindow *w,
+		    int32_t    button,
+		    int32_t    state,
+		    int32_t    x,
+		    int32_t    y,
+		    int32_t    time)
+{
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->xButtonRelease) (w,
+								 button,
+								 state,
+								 x,
+								 y,
+								 time));
+}
+
+static void
+xKeyPress (CompWindow *w,
+	   int32_t    keycode,
+	   int32_t    state,
+	   int32_t    time)
+{
+    int32_t virtualModifiers = windowVirtualModifiers (w, state);
+    KeySym  keysym;
+    int     i;
+
+    C_EMIT_SIGNAL (&w->u.base.u.base, XKeyEventProc,
+		   offsetof (CompWindowVTable, xKeyPress),
+		   keycode, state, time);
+
+    keysym = XKeycodeToKeysym (w->screen->display->display, keycode, 0);
+    for (i = 1; keysym != NoSymbol; i++)
+    {
+	(*w->u.base.u.vTable->keyPress) (&w->u.base,
+					 XKeysymToString (keysym),
+					 virtualModifiers);
+	keysym = XKeycodeToKeysym (w->screen->display->display, keycode, i);
+    }
+}
+
+static void
+noopXKeyPress (CompWindow *w,
+	       int32_t    keycode,
+	       int32_t    state,
 	       int32_t    time)
 {
-    C_EMIT_SIGNAL (&w->u.base, ButtonEventProc,
-		   offsetof (CompWindowVTable, buttonRelease),
-		   button, modifiers, x, y, time);
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->xKeyPress) (w,
+							    keycode,
+							    state,
+							    time));
 }
 
 static void
-noopButtonRelease (CompWindow *w,
-		   int32_t    button,
-		   int32_t    modifiers,
-		   int32_t    x,
-		   int32_t    y,
-		   int32_t    time)
+xKeyRelease (CompWindow *w,
+	     int32_t    keycode,
+	     int32_t    state,
+	     int32_t    time)
 {
-    FOR_BASE (&w->u.base, (*w->u.vTable->buttonRelease) (w,
-							 button,
-							 modifiers,
-							 x,
-							 y,
-							 time));
+    int32_t virtualModifiers = windowVirtualModifiers (w, state);
+    KeySym  keysym;
+    int     i;
+
+    C_EMIT_SIGNAL (&w->u.base.u.base, XKeyEventProc,
+		   offsetof (CompWindowVTable, xKeyRelease),
+		   keycode, state, time);
+
+    keysym = XKeycodeToKeysym (w->screen->display->display, keycode, 0);
+    for (i = 1; keysym != NoSymbol; i++)
+    {
+	(*w->u.base.u.vTable->keyRelease) (&w->u.base,
+					   XKeysymToString (keysym),
+					   virtualModifiers);
+	keysym = XKeycodeToKeysym (w->screen->display->display, keycode, i);
+    }
 }
 
 static void
-keyPress (CompWindow *w,
-	  const char *key,
-	  int32_t    keycode,
-	  int32_t    modifiers,
-	  int32_t    time,
-	  CompBool   last)
+noopXKeyRelease (CompWindow *w,
+		 int32_t    keycode,
+		 int32_t    state,
+		 int32_t    time)
 {
-    C_EMIT_SIGNAL (&w->u.base, KeyEventProc,
-		   offsetof (CompWindowVTable, keyPress),
-		   key, keycode, modifiers, time, last);
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->xKeyRelease) (w,
+							      keycode,
+							      state,
+							      time));
 }
 
 static void
-noopKeyPress (CompWindow *w,
-	      const char *key,
-	      int32_t    keycode,
-	      int32_t    modifiers,
-	      int32_t    time,
-	      CompBool   last)
+xBell (CompWindow *w,
+       int32_t    time)
 {
-    FOR_BASE (&w->u.base, (*w->u.vTable->keyPress) (w,
-						    key,
-						    keycode,
-						    modifiers,
-						    time,
-						    last));
-}
-
-static void
-keyRelease (CompWindow *w,
-	    const char *key,
-	    int32_t    keycode,
-	    int32_t    modifiers,
-	    int32_t    time,
-	    CompBool   last)
-{
-    C_EMIT_SIGNAL (&w->u.base, KeyEventProc,
-		   offsetof (CompWindowVTable, keyRelease),
-		   key, keycode, modifiers, time, last);
-}
-
-static void
-noopKeyRelease (CompWindow *w,
-		const char *key,
-		int32_t    keycode,
-		int32_t    modifiers,
-		int32_t    time,
-		CompBool   last)
-{
-    FOR_BASE (&w->u.base, (*w->u.vTable->keyRelease) (w,
-						      key,
-						      keycode,
-						      modifiers,
-						      time,
-						      last));
-}
-
-static void
-bell (CompWindow *w,
-      int32_t    time)
-{
-    C_EMIT_SIGNAL (&w->u.base, BellProc, offsetof (CompWindowVTable, bell),
+    C_EMIT_SIGNAL (&w->u.base.u.base, XBellProc,
+		   offsetof (CompWindowVTable, xBell),
 		   time);
 }
 
 static void
-noopBell (CompWindow *w,
-	  int32_t    time)
+noopXBell (CompWindow *w,
+	   int32_t    time)
 {
-    FOR_BASE (&w->u.base, (*w->u.vTable->bell) (w, time));
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->xBell) (w, time));
 }
 
 static const CompWindowVTable windowObjectVTable = {
-    .base.getProp = windowGetProp,
+    .base.base.getProp = windowGetProp,
 
     /* public methods */
     .close = close,
 
     /* public signals */
-    .buttonPress   = buttonPress,
-    .buttonRelease = buttonRelease,
-    .keyPress      = keyPress,
-    .keyRelease    = keyRelease,
-    .bell	   = bell
+    .xButtonPress   = xButtonPress,
+    .xButtonRelease = xButtonRelease,
+    .xKeyPress      = xKeyPress,
+    .xKeyRelease    = xKeyRelease,
+    .xBell	    = xBell
 };
 
 static const CompWindowVTable noopWindowObjectVTable = {
-    .close	   = noopClose,
-    .buttonPress   = noopButtonPress,
-    .buttonRelease = noopButtonRelease,
-    .keyPress      = noopKeyPress,
-    .keyRelease    = noopKeyRelease,
-    .bell	   = noopBell
+    .close	    = noopClose,
+    .xButtonPress   = noopXButtonPress,
+    .xButtonRelease = noopXButtonRelease,
+    .xKeyPress      = noopXKeyPress,
+    .xKeyRelease    = noopXKeyRelease,
+    .xBell	    = noopXBell
 };
 
 static const CMethod windowTypeMethod[] = {
@@ -1940,11 +1982,11 @@ static const CMethod windowTypeMethod[] = {
 };
 
 static const CSignal windowTypeSignal[] = {
-    C_SIGNAL (buttonPress,   "iiiii", CompWindowVTable),
-    C_SIGNAL (buttonRelease, "iiiii", CompWindowVTable),
-    C_SIGNAL (keyPress,      "siiib", CompWindowVTable),
-    C_SIGNAL (keyRelease,    "siiib", CompWindowVTable),
-    C_SIGNAL (bell,	     "i",     CompWindowVTable)
+    C_SIGNAL (xButtonPress,   "iiiii", CompWindowVTable),
+    C_SIGNAL (xButtonRelease, "iiiii", CompWindowVTable),
+    C_SIGNAL (xKeyPress,      "iii",   CompWindowVTable),
+    C_SIGNAL (xKeyRelease,    "iii",   CompWindowVTable),
+    C_SIGNAL (xBell,	      "i",     CompWindowVTable)
 };
 
 static const CBoolProp windowTypeBoolProp[] = {
@@ -1961,10 +2003,10 @@ getWindowObjectType (void)
 	static const CObjectInterface template = {
 	    .i.name	    = COMPIZ_WINDOW_TYPE_NAME,
 	    .i.version	    = COMPIZ_WINDOW_VERSION,
-	    .i.base.name    = COMPIZ_OBJECT_TYPE_NAME,
-	    .i.base.version = COMPIZ_OBJECT_VERSION,
-	    .i.vTable.impl  = &windowObjectVTable.base,
-	    .i.vTable.noop  = &noopWindowObjectVTable.base,
+	    .i.base.name    = COMPIZ_WIDGET_TYPE_NAME,
+	    .i.base.version = COMPIZ_WIDGET_VERSION,
+	    .i.vTable.impl  = &windowObjectVTable.base.base,
+	    .i.vTable.noop  = &noopWindowObjectVTable.base.base,
 	    .i.vTable.size  = sizeof (windowObjectVTable),
 
 	    .method  = windowTypeMethod,
@@ -2130,7 +2172,7 @@ addWindow (CompScreen *screen,
 	return;
     }
 
-    if (!compObjectInitByType (&b->factory, &w->u.base,
+    if (!compObjectInitByType (&b->factory, &w->u.base.u.base,
 			       getWindowObjectType ()))
     {
 	free (w);
@@ -2360,13 +2402,14 @@ addWindow (CompScreen *screen,
     }
 
     /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&w->u.base));
+    assert (objectInitPlugins (&w->u.base.u.base));
 
     snprintf (windowName, sizeof (windowName), "%lu", w->id);
 
     if ((*screen->data.windows.vTable->addChild)
-	(&screen->data.windows, &w->u.base, windowName))
-	(*core.objectAdd) (&screen->data.windows, &w->u.base, windowName);
+	(&screen->data.windows, &w->u.base.u.base, windowName))
+	(*core.objectAdd) (&screen->data.windows, &w->u.base.u.base,
+			   windowName);
 
     recalcWindowActions (w);
     updateWindowOpacity (w);
@@ -2433,14 +2476,15 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (s);
     }
 
-    (*core.objectRemove) (&s->data.windows, &w->u.base);
-    (*s->data.windows.vTable->removeChild) (&s->data.windows, w->u.base.name);
+    (*core.objectRemove) (&s->data.windows, &w->u.base.u.base);
+    (*s->data.windows.vTable->removeChild) (&s->data.windows,
+					    w->u.base.u.base.name);
 
-    objectFiniPlugins (&w->u.base);
+    objectFiniPlugins (&w->u.base.u.base);
 
     releaseWindow (w);
 
-    (*w->u.base.vTable->finalize) (&w->u.base);
+    (*w->u.base.u.base.vTable->finalize) (&w->u.base.u.base);
 
     if (w->syncAlarm)
 	XSyncDestroyAlarm (s->display->display, w->syncAlarm);

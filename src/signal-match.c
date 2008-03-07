@@ -27,6 +27,7 @@
 
 #include <compiz/signal-match.h>
 #include <compiz/signal-arg-map.h>
+#include <compiz/widget.h>
 #include <compiz/c-object.h>
 
 static void
@@ -405,25 +406,20 @@ keyEventMatch (CompSignalMatch *sm,
 	       CompAnyValue    *argValue)
 {
     CompBool status;
-    char     *key;
-    int32_t  modifiers;
 
     KEY_EVENT_SIGNAL_MATCH (sm);
     KEY_EVENT_DESCRIPTION (&kesm->data.key);
 
-    if (strcmp (interface, "org.compiz.window"))
+    if (strcmp (interface, getWidgetObjectType ()->name))
 	return FALSE;
 
-    if (strcmp (signature, "siiib"))
+    if (strcmp (signature, "si"))
 	return FALSE;
 
-    key	      = value[0].s;
-    modifiers = value[2].i;
-
-    if (strcmp (key, kesm->data.key.data.key))
+    if (strcmp (value[0].s, kesm->data.key.data.key))
 	return FALSE;
 
-    if ((modifiers & ked->data.modifiers) != ked->data.modifiers)
+    if ((value[1].i & ked->data.modifiers) != ked->data.modifiers)
 	return FALSE;
 
     FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,

@@ -19,6 +19,7 @@ compizsubinclude_HEADERS = \
 	output.h	   \
 	pointer.h	   \
 	keyboard.h	   \
+	widget.h	   \
 	plugin.h	   \
 	core.h		   \
 	cube.h		   \

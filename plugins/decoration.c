@@ -1547,8 +1547,8 @@ decorInitWindow (CompPlugin *p,
     if (!w->attrib.override_redirect)
 	decorWindowUpdateDecoration (w);
 
-    if (w->u.base.parent)
-	decorWindowAdd (w->screen, w, w->u.base.name);
+    if (w->u.base.u.base.parent)
+	decorWindowAdd (w->screen, w, w->u.base.u.base.name);
 
     return TRUE;
 }
@@ -1562,7 +1562,7 @@ decorFiniWindow (CompPlugin *p,
     if (dw->resizeUpdateHandle)
 	compRemoveTimeout (dw->resizeUpdateHandle);
 
-    if (w->u.base.parent)
+    if (w->u.base.u.base.parent)
 	decorWindowRemove (w->screen, w);
 
     if (dw->wd)

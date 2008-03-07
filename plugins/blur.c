@@ -2777,8 +2777,8 @@ blurInitWindow (CompPlugin *p,
 
     w->data.base.privates[bs->windowPrivateIndex].ptr = bw;
 
-    if (w->u.base.parent)
-	blurWindowAdd (w->screen, w, w->u.base.name);
+    if (w->u.base.u.base.parent)
+	blurWindowAdd (w->screen, w, w->u.base.u.base.name);
 
     return TRUE;
 }
