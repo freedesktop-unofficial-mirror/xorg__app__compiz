@@ -43,6 +43,9 @@
 #include <compiz/box.h>
 #include <compiz/timer.h>
 #include <compiz/file-descriptor.h>
+#include <compiz/input.h>
+#include <compiz/keyboard.h>
+#include <compiz/pointer.h>
 
 typedef struct _MainContext {
     CompFactory factory;
@@ -479,6 +482,13 @@ main (int argc, char **argv)
 	getFileDescriptorObjectType (),
 	getBranchObjectType (),
 	getBoxObjectType (),
+	getInputObjectType (),
+	getKeyboardObjectType (),
+	getKeyEventDescriptionObjectType (),
+	getKeyEventSignalMatchObjectType (),
+	getKeyPressSignalMatchObjectType (),
+	getKeyReleaseSignalMatchObjectType (),
+	getPointerObjectType (),
 	getCoreObjectType (),
 	getDisplayObjectType (),
 	getScreenObjectType (),
