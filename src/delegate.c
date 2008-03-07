@@ -188,7 +188,6 @@ delegateObjectTypeFromTemplate (const CObjectInterface *template)
     return cObjectTypeFromTemplate (&delegateTemplate);
 }
 
-
 static void
 voidDelegateGetProp (CompObject   *object,
 		     unsigned int what,
@@ -233,7 +232,7 @@ voidDelegateProcessSignal (CompDelegate *d,
 					nValue,
 					"",
 					NULL))
-		(vd->u.vTable->notify) (vd);
+		(*vd->u.vTable->notify) (vd);
 	}
     }
 
@@ -247,14 +246,14 @@ voidDelegateProcessSignal (CompDelegate *d,
 }
 
 static void
-notify (CompVoidDelegate *vd)
+voidNotify (CompVoidDelegate *vd)
 {
     C_EMIT_SIGNAL (&vd->u.base.u.base, VoidNotifyProc,
 		   offsetof (CompVoidDelegateVTable, notify));
 }
 
 static void
-noopNotify (CompVoidDelegate *vd)
+noopVoidNotify (CompVoidDelegate *vd)
 {
     FOR_BASE (&vd->u.base.u.base, (*vd->u.vTable->notify) (vd));
 }
@@ -263,11 +262,11 @@ static const CompVoidDelegateVTable voidDelegateObjectVTable = {
     .base.base.getProp  = voidDelegateGetProp,
     .base.processSignal = voidDelegateProcessSignal,
 
-    .notify = notify
+    .notify = voidNotify
 };
 
 static const CompVoidDelegateVTable noopVoidDelegateObjectVTable = {
-    .notify = noopNotify
+    .notify = noopVoidNotify
 };
 
 static const CSignal voidDelegateTypeSignal[] = {
@@ -290,6 +289,120 @@ getVoidDelegateObjectType (void)
 
 	    .signal  = voidDelegateTypeSignal,
 	    .nSignal = N_ELEMENTS (voidDelegateTypeSignal)
+	};
+
+	type = delegateObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
+static void
+iDelegateGetProp (CompObject   *object,
+		  unsigned int what,
+		  void	       *value)
+{
+    cGetObjectProp (&GET_I_DELEGATE (object)->data,
+		    getIDelegateObjectType (),
+		    what, value);
+}
+
+static void
+iDelegateProcessSignal (CompDelegate *d,
+			const char   *path,
+			const char   *interface,
+			const char   *name,
+			const char   *signature,
+			CompAnyValue *value,
+			int	     nValue)
+{
+    int i;
+
+    I_DELEGATE (d);
+
+    for (i = 0; i < d->data.matches.nChild; i++)
+    {
+	CompSignalMatch *sm;
+
+	if (d->data.compress && d->pending)
+	    break;
+
+	sm = COMP_TYPE_CAST (d->data.matches.child[i].ref,
+			     getSignalMatchObjectType (),
+			     CompSignalMatch);
+	if (sm)
+	{
+	    CompAnyValue args;
+
+	    if ((*sm->u.vTable->match) (sm,
+					path,
+					interface,
+					name,
+					signature,
+					value,
+					nValue,
+					"i",
+					&args))
+		(*id->u.vTable->notify) (id, args.i);
+	}
+    }
+
+    FOR_BASE (&d->u.base, (*d->u.vTable->processSignal) (d,
+							 path,
+							 interface,
+							 name,
+							 signature,
+							 value,
+							 nValue));
+}
+
+static void
+iNotify (CompIDelegate *id,
+	 int32_t       value0)
+{
+    C_EMIT_SIGNAL (&id->u.base.u.base, INotifyProc,
+		   offsetof (CompIDelegateVTable, notify),
+		   value0);
+}
+
+static void
+noopINotify (CompIDelegate *id,
+	     int32_t       value0)
+{
+    FOR_BASE (&id->u.base.u.base, (*id->u.vTable->notify) (id, value0));
+}
+
+static const CompIDelegateVTable iDelegateObjectVTable = {
+    .base.base.getProp  = iDelegateGetProp,
+    .base.processSignal = iDelegateProcessSignal,
+
+    .notify = iNotify
+};
+
+static const CompIDelegateVTable noopIDelegateObjectVTable = {
+    .notify = noopINotify
+};
+
+static const CSignal iDelegateTypeSignal[] = {
+    C_SIGNAL (notify, "i", CompIDelegateVTable)
+};
+
+const CompObjectType *
+getIDelegateObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_I_DELEGATE_TYPE_NAME,
+	    .i.vTable.impl   = &iDelegateObjectVTable.base.base,
+	    .i.vTable.noop   = &noopIDelegateObjectVTable.base.base,
+	    .i.vTable.size   = sizeof (iDelegateObjectVTable),
+	    .i.instance.size = sizeof (CompIDelegate),
+
+	    .signal  = iDelegateTypeSignal,
+	    .nSignal = N_ELEMENTS (iDelegateTypeSignal)
 	};
 
 	type = delegateObjectTypeFromTemplate (&template);

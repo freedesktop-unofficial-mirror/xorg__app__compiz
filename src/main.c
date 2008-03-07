@@ -473,6 +473,7 @@ main (int argc, char **argv)
 	getStructureNotifySignalMatchObjectType (),
 	getDelegateObjectType (),
 	getVoidDelegateObjectType (),
+	getIDelegateObjectType (),
 	getRootObjectType (),
 	getTimerObjectType (),
 	getFileDescriptorObjectType (),

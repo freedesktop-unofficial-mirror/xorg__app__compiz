@@ -102,6 +102,35 @@ struct _CompVoidDelegate {
 const CompObjectType *
 getVoidDelegateObjectType (void);
 
+
+typedef struct _CompIDelegate CompIDelegate;
+
+typedef void (*INotifyProc) (CompIDelegate *id,
+			     int32_t	   value0);
+
+typedef struct _CompIDelegateVTable {
+    CompDelegateVTable base;
+
+    INotifyProc notify;
+} CompIDelegateVTable;
+
+struct _CompIDelegate {
+    union {
+	CompDelegate		  base;
+	const CompIDelegateVTable *vTable;
+    } u;
+
+    CompObjectData data;
+};
+
+#define COMPIZ_I_DELEGATE_TYPE_NAME "org.compiz.delegate.i"
+
+#define GET_I_DELEGATE(object) ((CompIDelegate *) (object))
+#define I_DELEGATE(object) CompIDelegate *id = GET_I_DELEGATE (object)
+
+const CompObjectType *
+getIDelegateObjectType (void);
+
 COMPIZ_END_DECLS
 
 #endif
