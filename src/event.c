@@ -697,6 +697,12 @@ emitKeyEventSignals (CompDisplay  *d,
 		     Time	  time)
 {
     KeySym keysym = XKeycodeToKeysym (d->display, keycode, 0);
+    int	   i;
+    int    virtualModifiers = state & (ShiftMask | LockMask | ControlMask);
+
+    for (i = 0; i < CompModNum; i++)
+	if (d->modMask[i] & state)
+	    virtualModifiers |= (1 << (i + 3));
 
     if (keysym != NoSymbol)
     {
@@ -710,7 +716,7 @@ emitKeyEventSignals (CompDisplay  *d,
 	    (*event) (w,
 		      XKeysymToString (keysym),
 		      keycode,
-		      state,
+		      virtualModifiers,
 		      time,
 		      next == NoSymbol);
 
@@ -722,11 +728,12 @@ emitKeyEventSignals (CompDisplay  *d,
 	(*event) (w,
 		  "",
 		  keycode,
-		  state,
+		  virtualModifiers,
 		  time,
 		  TRUE);
     }
 }
+
 static Bool
 handleActionEvent (CompDisplay *d,
 		   XEvent      *event)
@@ -1850,7 +1857,7 @@ handleEvent (CompDisplay *d,
 	{
 	    w = findWindowAtDisplay (d, event->xclient.window);
 	    if (w)
-		closeWindow (w, event->xclient.data.l[0]);
+		(*w->u.vTable->close) (w, event->xclient.data.l[0]);
 	}
 	else if (event->xclient.message_type == d->desktopGeometryAtom)
 	{

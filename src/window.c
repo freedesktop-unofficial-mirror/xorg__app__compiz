@@ -39,6 +39,7 @@
 #include <compiz/core.h>
 #include <compiz/c-object.h>
 #include <compiz/error.h>
+#include <compiz/marshal.h>
 
 #define MwmHintsFunctions   (1L << 0)
 #define MwmHintsDecorations (1L << 1)
@@ -1726,6 +1727,61 @@ windowGetProp (CompObject   *object,
 }
 
 static void
+close (CompWindow *w,
+       int32_t	  eventTime)
+{
+    CompDisplay *display = w->screen->display;
+
+    if (eventTime == 0)
+	eventTime = getCurrentTimeFromDisplay (display);
+
+    if (w->alive)
+    {
+	if (w->protocols & CompWindowProtocolDeleteMask)
+	{
+	    XEvent ev;
+
+	    ev.type		    = ClientMessage;
+	    ev.xclient.window	    = w->id;
+	    ev.xclient.message_type = display->wmProtocolsAtom;
+	    ev.xclient.format	    = 32;
+	    ev.xclient.data.l[0]    = display->wmDeleteWindowAtom;
+	    ev.xclient.data.l[1]    = eventTime;
+	    ev.xclient.data.l[2]    = 0;
+	    ev.xclient.data.l[3]    = 0;
+	    ev.xclient.data.l[4]    = 0;
+
+	    XSendEvent (display->display, w->id, FALSE, NoEventMask, &ev);
+	}
+	else
+	{
+	    XKillClient (display->display, w->id);
+	}
+
+	w->closeRequests++;
+    }
+    else
+    {
+	toolkitAction (w->screen,
+		       w->screen->display->toolkitActionForceQuitDialogAtom,
+		       eventTime,
+		       w->id,
+		       TRUE,
+		       0,
+		       0);
+    }
+
+    w->lastCloseRequestTime = eventTime;
+}
+
+static void
+noopClose (CompWindow *w,
+	   int32_t    eventTime)
+{
+    FOR_BASE (&w->u.base, (*w->u.vTable->close) (w, eventTime));
+}
+
+static void
 buttonPress (CompWindow *w,
 	     int32_t    button,
 	     int32_t    modifiers,
@@ -1859,6 +1915,10 @@ noopBell (CompWindow *w,
 static const CompWindowVTable windowObjectVTable = {
     .base.getProp = windowGetProp,
 
+    /* public methods */
+    .close = close,
+
+    /* public signals */
     .buttonPress   = buttonPress,
     .buttonRelease = buttonRelease,
     .keyPress      = keyPress,
@@ -1867,11 +1927,16 @@ static const CompWindowVTable windowObjectVTable = {
 };
 
 static const CompWindowVTable noopWindowObjectVTable = {
+    .close	   = noopClose,
     .buttonPress   = noopButtonPress,
     .buttonRelease = noopButtonRelease,
     .keyPress      = noopKeyPress,
     .keyRelease    = noopKeyRelease,
     .bell	   = noopBell
+};
+
+static const CMethod windowTypeMethod[] = {
+    C_METHOD (close, "i", "", CompWindowVTable, marshal__I__)
 };
 
 static const CSignal windowTypeSignal[] = {
@@ -1901,6 +1966,9 @@ getWindowObjectType (void)
 	    .i.vTable.impl  = &windowObjectVTable.base,
 	    .i.vTable.noop  = &noopWindowObjectVTable.base,
 	    .i.vTable.size  = sizeof (windowObjectVTable),
+
+	    .method  = windowTypeMethod,
+	    .nMethod = N_ELEMENTS (windowTypeMethod),
 
 	    .signal  = windowTypeSignal,
 	    .nSignal = N_ELEMENTS (windowTypeSignal),
@@ -4333,54 +4401,6 @@ activateWindow (CompWindow *w)
     ensureWindowVisibility (w);
     updateWindowAttributes (w, CompStackingUpdateModeAboveFullscreen);
     moveInputFocusToWindow (w);
-}
-
-void
-closeWindow (CompWindow *w,
-	     Time	serverTime)
-{
-    CompDisplay *display = w->screen->display;
-
-    if (serverTime == 0)
-	serverTime = getCurrentTimeFromDisplay (display);
-
-    if (w->alive)
-    {
-	if (w->protocols & CompWindowProtocolDeleteMask)
-	{
-	    XEvent ev;
-
-	    ev.type		    = ClientMessage;
-	    ev.xclient.window	    = w->id;
-	    ev.xclient.message_type = display->wmProtocolsAtom;
-	    ev.xclient.format	    = 32;
-	    ev.xclient.data.l[0]    = display->wmDeleteWindowAtom;
-	    ev.xclient.data.l[1]    = serverTime;
-	    ev.xclient.data.l[2]    = 0;
-	    ev.xclient.data.l[3]    = 0;
-	    ev.xclient.data.l[4]    = 0;
-
-	    XSendEvent (display->display, w->id, FALSE, NoEventMask, &ev);
-	}
-	else
-	{
-	    XKillClient (display->display, w->id);
-	}
-
-	w->closeRequests++;
-    }
-    else
-    {
-	toolkitAction (w->screen,
-		       w->screen->display->toolkitActionForceQuitDialogAtom,
-		       serverTime,
-		       w->id,
-		       TRUE,
-		       0,
-		       0);
-    }
-
-    w->lastCloseRequestTime = serverTime;
 }
 
 #define PVertResizeInc (1 << 0)

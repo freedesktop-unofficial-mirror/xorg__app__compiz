@@ -2595,6 +2595,9 @@ typedef struct _CompStruts {
     XRectangle bottom;
 } CompStruts;
 
+typedef void (*CloseWindowProc) (CompWindow *w,
+				 int32_t    eventTime);
+
 typedef void (*ButtonEventProc) (CompWindow *w,
 				 int32_t    button,
 				 int32_t    modifiers,
@@ -2615,6 +2618,10 @@ typedef void (*BellProc) (CompWindow *w,
 typedef struct _CompWindowVTable {
     CompObjectVTable base;
 
+    /* public methods */
+    CloseWindowProc close;
+
+    /* public signals */
     ButtonEventProc buttonPress;
     ButtonEventProc buttonRelease;
     KeyEventProc    keyPress;
@@ -3063,10 +3070,6 @@ updateWindowAttributes (CompWindow             *w,
 
 void
 activateWindow (CompWindow *w);
-
-void
-closeWindow (CompWindow *w,
-	     Time	serverTime);
 
 Bool
 constrainNewWindowSize (CompWindow *w,

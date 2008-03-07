@@ -485,27 +485,6 @@ removeScreen (CompDisplay *display,
 }
 
 static Bool
-closeWin (CompDisplay     *d,
-	  CompAction      *action,
-	  CompActionState state,
-	  CompOption      *option,
-	  int		  nOption)
-{
-    CompWindow   *w;
-    Window       xid;
-    unsigned int time;
-
-    xid  = getIntOptionNamed (option, nOption, "window", 0);
-    time = getIntOptionNamed (option, nOption, "time", CurrentTime);
-
-    w = findTopLevelWindowAtDisplay (d, xid);
-    if (w)
-	closeWindow (w, time);
-
-    return TRUE;
-}
-
-static Bool
 mainMenu (CompDisplay     *d,
 	  CompAction      *action,
 	  CompActionState state,
@@ -1010,8 +989,8 @@ shade (CompDisplay     *d,
 }
 
 const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
-    { "close_window_key", "key", 0, closeWin, 0 },
-    { "close_window_button", "button", 0, closeWin, 0 },
+    { "close_window_key", "key", 0, 0, 0 },
+    { "close_window_button", "button", 0, 0, 0 },
     { "main_menu_key", "key", 0, mainMenu, 0 },
     { "run_key", "key", 0, runDialog, 0 },
     { "command0", "string", 0, 0, 0 },
