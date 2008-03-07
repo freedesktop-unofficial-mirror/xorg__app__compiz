@@ -1,6 +1,13 @@
 <compiz>
   <interface name="org.compiz.screen">
-    <method name="updateOutputDevices"/>
+    <method name="updateOutputDevices">
+      <_short>Update output devices</_short>
+      <_long>Update internal output structure to reflect the contents of the output node</_long>
+    </method>
+    <method name="updatePassiveGrabs">
+      <_short>Update passive server grabs</_short>
+      <_long>Update passive server grabs to reflect the contents of the keyGrabs node</_long>
+    </method>
     <property name="detectOutputs" type="b">
       <_short>Detect Outputs</_short>
       <_long>Automatic detection of output devices</_long>
@@ -67,45 +74,42 @@
       <default>icon</default>
     </property>
     <node type="org.compiz.delegate.void">
-      <interface name="org.compiz.object">
+      <interface name="org.compiz.delegate">
+	<property name="compress" type="b">
+	  <default>true</default>
+	</property>
 	<node name="matches">
 	  <interface name="org.compiz.object">
-	    <node type="org.compiz.signalMatch.simple">
-	      <interface name="org.compiz.signalMatch.simple">
-		<property name="path" type="s">
-		  <default>outputs/*</default>
-		</property>
-		<property name="interface" type="s">
-		  <default>org.compiz.object</default>
-		</property>
-		<property name="name" type="s">
-		  <default>removed</default>
-		</property>
-		<property name="signature" type="s">
-		  <default></default>
-		</property>
-	      </interface>
-	    </node>
-	    <node type="org.compiz.signalMatch.simple">
-	      <interface name="org.compiz.signalMatch.simple">
-		<property name="path" type="s">
-		  <default>outputs/*</default>
-		</property>
-		<property name="interface" type="s">
-		  <default>org.compiz.object</default>
-		</property>
-		<property name="name" type="s">
-		  <default>intChanged</default>
-		</property>
-		<property name="signature" type="s">
-		  <default>ssi</default>
+	    <node type="org.compiz.signalMatch.structureNotify">
+	      <interface name="org.compiz.signalMatch.structureNotify">
+		<property name="object" type="s">
+		  <default>outputs</default>
 		</property>
 	      </interface>
 	    </node>
 	  </interface>
 	</node>
       </interface>
-      <connect signal="signalVoid" method="updateOutputDevices"/>
+      <connect signal="notify" method="updateOutputDevices"/>
+    </node>
+    <node type="org.compiz.delegate.void">
+      <interface name="org.compiz.delegate">
+	<property name="compress" type="b">
+	  <default>true</default>
+	</property>
+	<node name="matches">
+	  <interface name="org.compiz.object">
+	    <node type="org.compiz.signalMatch.structureNotify">
+	      <interface name="org.compiz.signalMatch.structureNotify">
+		<property name="object" type="s">
+		  <default>keyGrabs</default>
+		</property>
+	      </interface>
+	    </node>
+	  </interface>
+	</node>
+      </interface>
+      <connect signal="notify" method="updatePassiveGrabs"/>
     </node>
     <node name="outputs">
       <interface name="org.compiz.object">
