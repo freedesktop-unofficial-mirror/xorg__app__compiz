@@ -17,6 +17,9 @@
  * 02111-1307, USA.
  */
 
+#include <compiz/object.h>
+#include <compiz/c-object.h>
+
 #include <kglobal.h>
 #include <kstandarddirs.h>
 #include <kapplication.h>
@@ -24,7 +27,6 @@
 #include <qfile.h>
 
 #include <compiz/core.h>
-#include <compiz/c-object.h>
 
 #define COMPIZ_KCONFIG_INTERFACE_NAME "org.compiz.kconfig"
 #define COMPIZ_KCONFIG_VERSION        20071123
