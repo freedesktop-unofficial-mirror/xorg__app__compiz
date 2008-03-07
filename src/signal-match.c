@@ -28,6 +28,8 @@
 #include <compiz/signal-match.h>
 #include <compiz/signal-arg-map.h>
 #include <compiz/widget.h>
+#include <compiz/keyboard.h>
+#include <compiz/pointer.h>
 #include <compiz/c-object.h>
 
 static void
@@ -603,6 +605,231 @@ getKeyReleaseSignalMatchObjectType (void)
 	};
 
 	type = keyEventSignalMatchObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
+static void
+buttonEventSignalMatchGetProp (CompObject   *object,
+			       unsigned int what,
+			       void	 *value)
+{
+    cGetObjectProp (&GET_BUTTON_EVENT_SIGNAL_MATCH (object)->data.base,
+		    getButtonEventSignalMatchObjectType (),
+		    what, value);
+}
+
+static CompBool
+buttonEventMatch (CompSignalMatch *sm,
+		  const char      *path,
+		  const char      *interface,
+		  const char      *name,
+		  const char      *signature,
+		  CompAnyValue    *value,
+		  int	          nValue,
+		  const char      *args,
+		  CompAnyValue    *argValue)
+{
+    CompBool status;
+
+    BUTTON_EVENT_SIGNAL_MATCH (sm);
+
+    if (strcmp (interface, getWidgetObjectType ()->name))
+	return FALSE;
+
+    if (strcmp (signature, "iiii"))
+	return FALSE;
+
+    if (value[0].i != besm->data.button)
+	return FALSE;
+
+    if ((value[1].i & besm->data.modifiers) != besm->data.modifiers)
+	return FALSE;
+
+    FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
+							    path,
+							    interface,
+							    name,
+							    signature,
+							    value,
+							    nValue,
+							    args,
+							    argValue));
+
+    return status;
+}
+
+static const CompSignalMatchVTable buttonEventSignalMatchObjectVTable = {
+    .base.getProp = buttonEventSignalMatchGetProp,
+
+    .match = buttonEventMatch
+};
+
+static const CIntProp buttonEventSignalMatchTypeIntProp[] = {
+    C_INT_PROP (button,    CompButtonEventSignalMatchData, 0,
+		POINTER_BUTTON_MAX),
+    C_INT_PROP (modifiers, CompButtonEventSignalMatchData,
+		0, (1 << KEYBOARD_MODIFIER_NUM) - 1)
+};
+
+const CompObjectType *
+getButtonEventSignalMatchObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_BUTTON_EVENT_SIGNAL_MATCH_TYPE_NAME,
+	    .i.vTable.impl   = &buttonEventSignalMatchObjectVTable.base,
+	    .i.instance.size = sizeof (CompButtonEventSignalMatch),
+
+	    .intProp  = buttonEventSignalMatchTypeIntProp,
+	    .nIntProp = N_ELEMENTS (buttonEventSignalMatchTypeIntProp)
+	};
+
+	type = signalMatchObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
+static CompObjectType *
+buttonEventSignalMatchObjectTypeFromTemplate (const CObjectInterface *template)
+{
+    CObjectInterface buttonEventSignalMatchTemplate = *template;
+
+    if (!buttonEventSignalMatchTemplate.i.base.name)
+	buttonEventSignalMatchTemplate.i.base.name =
+	    COMPIZ_BUTTON_EVENT_SIGNAL_MATCH_TYPE_NAME;
+
+    return signalMatchObjectTypeFromTemplate (&buttonEventSignalMatchTemplate);
+}
+
+static void
+buttonPressSignalMatchGetProp (CompObject   *object,
+			       unsigned int what,
+			       void	    *value)
+{
+    cGetObjectProp (&GET_BUTTON_PRESS_SIGNAL_MATCH (object)->data,
+		    getButtonPressSignalMatchObjectType (),
+		    what, value);
+}
+
+static CompBool
+buttonPressMatch (CompSignalMatch *sm,
+		  const char      *path,
+		  const char      *interface,
+		  const char      *name,
+		  const char      *signature,
+		  CompAnyValue    *value,
+		  int	          nValue,
+		  const char      *args,
+		  CompAnyValue    *argValue)
+{
+    CompBool status;
+
+    if (strcmp (name, "buttonPress"))
+	return FALSE;
+
+    FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
+							    path,
+							    interface,
+							    name,
+							    signature,
+							    value,
+							    nValue,
+							    args,
+							    argValue));
+
+    return status;
+}
+
+static const CompSignalMatchVTable buttonPressSignalMatchObjectVTable = {
+    .base.getProp = buttonPressSignalMatchGetProp,
+
+    .match = buttonPressMatch
+};
+
+const CompObjectType *
+getButtonPressSignalMatchObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_BUTTON_PRESS_SIGNAL_MATCH_TYPE_NAME,
+	    .i.vTable.impl   = &buttonPressSignalMatchObjectVTable.base,
+	    .i.instance.size = sizeof (CompButtonPressSignalMatch)
+	};
+
+	type = buttonEventSignalMatchObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
+static void
+buttonReleaseSignalMatchGetProp (CompObject   *object,
+				 unsigned int what,
+				 void	      *value)
+{
+    cGetObjectProp (&GET_BUTTON_RELEASE_SIGNAL_MATCH (object)->data,
+		    getButtonReleaseSignalMatchObjectType (),
+		    what, value);
+}
+
+static CompBool
+buttonReleaseMatch (CompSignalMatch *sm,
+		    const char      *path,
+		    const char      *interface,
+		    const char      *name,
+		    const char      *signature,
+		    CompAnyValue    *value,
+		    int	            nValue,
+		    const char      *args,
+		    CompAnyValue    *argValue)
+{
+    CompBool status;
+
+    if (strcmp (name, "buttonRelease"))
+	return FALSE;
+
+    FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
+							    path,
+							    interface,
+							    name,
+							    signature,
+							    value,
+							    nValue,
+							    args,
+							    argValue));
+
+    return status;
+}
+
+static const CompSignalMatchVTable buttonReleaseSignalMatchObjectVTable = {
+    .base.getProp = buttonReleaseSignalMatchGetProp,
+
+    .match = buttonReleaseMatch
+};
+
+const CompObjectType *
+getButtonReleaseSignalMatchObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_BUTTON_RELEASE_SIGNAL_MATCH_TYPE_NAME,
+	    .i.vTable.impl   = &buttonReleaseSignalMatchObjectVTable.base,
+	    .i.instance.size = sizeof (CompButtonReleaseSignalMatch)
+	};
+
+	type = buttonEventSignalMatchObjectTypeFromTemplate (&template);
     }
 
     return type;

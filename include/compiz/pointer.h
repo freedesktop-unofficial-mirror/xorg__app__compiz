@@ -30,6 +30,8 @@
 
 COMPIZ_BEGIN_DECLS
 
+#define POINTER_BUTTON_MAX 64
+
 typedef struct _CompPointer {
     CompInput      base;
     CompObjectData data;

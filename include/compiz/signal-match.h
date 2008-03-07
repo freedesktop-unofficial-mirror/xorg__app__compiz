@@ -144,7 +144,7 @@ typedef struct _CompKeyEventSignalMatch {
 
 #define GET_KEY_EVENT_SIGNAL_MATCH(object) \
     ((CompKeyEventSignalMatch *) (object))
-#define KEY_EVENT_SIGNAL_MATCH(object) \
+#define KEY_EVENT_SIGNAL_MATCH(object)					\
     CompKeyEventSignalMatch *kesm = GET_KEY_EVENT_SIGNAL_MATCH (object)
 
 #define COMPIZ_KEY_EVENT_SIGNAL_MATCH_TYPE_NAME \
@@ -165,7 +165,7 @@ typedef struct _CompKeyPressSignalMatch {
 
 #define GET_KEY_PRESS_SIGNAL_MATCH(object) \
     ((CompKeyPressSignalMatch *) (object))
-#define KEY_PRESS_SIGNAL_MATCH(object) \
+#define KEY_PRESS_SIGNAL_MATCH(object)					\
     CompKeyPressSignalMatch *kpsm = GET_KEY_PRESS_SIGNAL_MATCH (object)
 
 #define COMPIZ_KEY_PRESS_SIGNAL_MATCH_TYPE_NAME \
@@ -186,7 +186,7 @@ typedef struct _CompKeyReleaseSignalMatch {
 
 #define GET_KEY_RELEASE_SIGNAL_MATCH(object) \
     ((CompKeyReleaseSignalMatch *) (object))
-#define KEY_RELEASE_SIGNAL_MATCH(object) \
+#define KEY_RELEASE_SIGNAL_MATCH(object)				    \
     CompKeyReleaseSignalMatch *krsm = GET_KEY_RELEASE_SIGNAL_MATCH (object)
 
 #define COMPIZ_KEY_RELEASE_SIGNAL_MATCH_TYPE_NAME \
@@ -194,6 +194,77 @@ typedef struct _CompKeyReleaseSignalMatch {
 
 const CompObjectType *
 getKeyReleaseSignalMatchObjectType (void);
+
+
+typedef struct _CompButtonEventSignalMatchData {
+    CompObjectData base;
+
+    int32_t button;
+    int32_t modifiers;
+} CompButtonEventSignalMatchData;
+
+typedef struct _CompButtonEventSignalMatch {
+    union {
+	CompSignalMatch		    base;
+	const CompSignalMatchVTable *vTable;
+    } u;
+
+    CompButtonEventSignalMatchData data;
+} CompButtonEventSignalMatch;
+
+#define GET_BUTTON_EVENT_SIGNAL_MATCH(object) \
+    ((CompButtonEventSignalMatch *) (object))
+#define BUTTON_EVENT_SIGNAL_MATCH(object)				      \
+    CompButtonEventSignalMatch *besm = GET_BUTTON_EVENT_SIGNAL_MATCH (object)
+
+#define COMPIZ_BUTTON_EVENT_SIGNAL_MATCH_TYPE_NAME \
+    "org.compiz.signalMatch.buttonEvent"
+
+const CompObjectType *
+getButtonEventSignalMatchObjectType (void);
+
+
+typedef struct _CompButtonPressSignalMatch {
+    union {
+	CompButtonEventSignalMatch  base;
+	const CompSignalMatchVTable *vTable;
+    } u;
+
+    CompObjectData data;
+} CompButtonPressSignalMatch;
+
+#define GET_BUTTON_PRESS_SIGNAL_MATCH(object) \
+    ((CompButtonPressSignalMatch *) (object))
+#define BUTTON_PRESS_SIGNAL_MATCH(object)				      \
+    CompButtonPressSignalMatch *bpsm = GET_BUTTON_PRESS_SIGNAL_MATCH (object)
+
+#define COMPIZ_BUTTON_PRESS_SIGNAL_MATCH_TYPE_NAME \
+    "org.compiz.signalMatch.buttonPress"
+
+const CompObjectType *
+getButtonPressSignalMatchObjectType (void);
+
+
+typedef struct _CompButtonReleaseSignalMatch {
+    union {
+	CompButtonEventSignalMatch  base;
+	const CompSignalMatchVTable *vTable;
+    } u;
+
+    CompObjectData data;
+} CompButtonReleaseSignalMatch;
+
+#define GET_BUTTON_RELEASE_SIGNAL_MATCH(object) \
+    ((CompButtonReleaseSignalMatch *) (object))
+#define BUTTON_RELEASE_SIGNAL_MATCH(object)	 \
+    CompButtonReleaseSignalMatch *brsm =	 \
+	GET_BUTTON_RELEASE_SIGNAL_MATCH (object)
+
+#define COMPIZ_BUTTON_RELEASE_SIGNAL_MATCH_TYPE_NAME \
+    "org.compiz.signalMatch.buttonRelease"
+
+const CompObjectType *
+getButtonReleaseSignalMatchObjectType (void);
 
 COMPIZ_END_DECLS
 
