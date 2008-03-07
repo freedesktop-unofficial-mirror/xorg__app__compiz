@@ -382,3 +382,232 @@ getStructureNotifySignalMatchObjectType (void)
 
     return type;
 }
+
+static void
+keyEventSignalMatchGetProp (CompObject   *object,
+			    unsigned int what,
+			    void	 *value)
+{
+    cGetObjectProp (&GET_KEY_EVENT_SIGNAL_MATCH (object)->data.base,
+		    getKeyEventSignalMatchObjectType (),
+		    what, value);
+}
+
+static CompBool
+keyEventMatch (CompSignalMatch *sm,
+	       const char      *path,
+	       const char      *interface,
+	       const char      *name,
+	       const char      *signature,
+	       CompAnyValue    *value,
+	       int	       nValue,
+	       const char      *args,
+	       CompAnyValue    *argValue)
+{
+    CompBool status;
+    char     *key;
+    int32_t  modifiers;
+
+    KEY_EVENT_SIGNAL_MATCH (sm);
+    KEY_EVENT_DESCRIPTION (&kesm->data.key);
+
+    if (strcmp (interface, "org.compiz.window"))
+	return FALSE;
+
+    if (strcmp (signature, "siiib"))
+	return FALSE;
+
+    key	      = value[0].s;
+    modifiers = value[2].i;
+
+    if (strcmp (key, kesm->data.key.data.key))
+	return FALSE;
+
+    if ((modifiers & ked->data.modifiers) != ked->data.modifiers)
+	return FALSE;
+
+    FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
+							    path,
+							    interface,
+							    name,
+							    signature,
+							    value,
+							    nValue,
+							    args,
+							    argValue));
+
+    return status;
+}
+
+static const CompSignalMatchVTable keyEventSignalMatchObjectVTable = {
+    .base.getProp = keyEventSignalMatchGetProp,
+
+    .match = keyEventMatch
+};
+
+static const CChildObject keyEventSignalMatchTypeChildObject[] = {
+    C_CHILD (key, CompKeyEventSignalMatchData,
+	     COMPIZ_KEY_EVENT_DESCRIPTION_TYPE_NAME)
+};
+
+const CompObjectType *
+getKeyEventSignalMatchObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_KEY_EVENT_SIGNAL_MATCH_TYPE_NAME,
+	    .i.vTable.impl   = &keyEventSignalMatchObjectVTable.base,
+	    .i.instance.size = sizeof (CompKeyEventSignalMatch),
+
+	    .child  = keyEventSignalMatchTypeChildObject,
+	    .nChild = N_ELEMENTS (keyEventSignalMatchTypeChildObject)
+	};
+
+	type = signalMatchObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
+static CompObjectType *
+keyEventSignalMatchObjectTypeFromTemplate (const CObjectInterface *template)
+{
+    CObjectInterface keyEventSignalMatchTemplate = *template;
+
+    if (!keyEventSignalMatchTemplate.i.base.name)
+	keyEventSignalMatchTemplate.i.base.name =
+	    COMPIZ_KEY_EVENT_SIGNAL_MATCH_TYPE_NAME;
+
+    return signalMatchObjectTypeFromTemplate (&keyEventSignalMatchTemplate);
+}
+
+static void
+keyPressSignalMatchGetProp (CompObject   *object,
+			    unsigned int what,
+			    void	 *value)
+{
+    cGetObjectProp (&GET_KEY_PRESS_SIGNAL_MATCH (object)->data,
+		    getKeyPressSignalMatchObjectType (),
+		    what, value);
+}
+
+static CompBool
+keyPressMatch (CompSignalMatch *sm,
+	       const char      *path,
+	       const char      *interface,
+	       const char      *name,
+	       const char      *signature,
+	       CompAnyValue    *value,
+	       int	       nValue,
+	       const char      *args,
+	       CompAnyValue    *argValue)
+{
+    CompBool status;
+
+    if (strcmp (name, "keyPress"))
+	return FALSE;
+
+    FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
+							    path,
+							    interface,
+							    name,
+							    signature,
+							    value,
+							    nValue,
+							    args,
+							    argValue));
+
+    return status;
+}
+
+static const CompSignalMatchVTable keyPressSignalMatchObjectVTable = {
+    .base.getProp = keyPressSignalMatchGetProp,
+
+    .match = keyPressMatch
+};
+
+const CompObjectType *
+getKeyPressSignalMatchObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_KEY_PRESS_SIGNAL_MATCH_TYPE_NAME,
+	    .i.vTable.impl   = &keyPressSignalMatchObjectVTable.base,
+	    .i.instance.size = sizeof (CompKeyPressSignalMatch)
+	};
+
+	type = keyEventSignalMatchObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}
+
+static void
+keyReleaseSignalMatchGetProp (CompObject   *object,
+			      unsigned int what,
+			      void	   *value)
+{
+    cGetObjectProp (&GET_KEY_RELEASE_SIGNAL_MATCH (object)->data,
+		    getKeyReleaseSignalMatchObjectType (),
+		    what, value);
+}
+
+static CompBool
+keyReleaseMatch (CompSignalMatch *sm,
+		 const char      *path,
+		 const char      *interface,
+		 const char      *name,
+		 const char      *signature,
+		 CompAnyValue    *value,
+		 int	         nValue,
+		 const char      *args,
+		 CompAnyValue    *argValue)
+{
+    CompBool status;
+
+    if (strcmp (name, "keyRelease"))
+	return FALSE;
+
+    FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
+							    path,
+							    interface,
+							    name,
+							    signature,
+							    value,
+							    nValue,
+							    args,
+							    argValue));
+
+    return status;
+}
+
+static const CompSignalMatchVTable keyReleaseSignalMatchObjectVTable = {
+    .base.getProp = keyReleaseSignalMatchGetProp,
+
+    .match = keyReleaseMatch
+};
+
+const CompObjectType *
+getKeyReleaseSignalMatchObjectType (void)
+{
+    static CompObjectType *type = NULL;
+
+    if (!type)
+    {
+	static const CObjectInterface template = {
+	    .i.name	     = COMPIZ_KEY_RELEASE_SIGNAL_MATCH_TYPE_NAME,
+	    .i.vTable.impl   = &keyReleaseSignalMatchObjectVTable.base,
+	    .i.instance.size = sizeof (CompKeyReleaseSignalMatch)
+	};
+
+	type = keyEventSignalMatchObjectTypeFromTemplate (&template);
+    }
+
+    return type;
+}

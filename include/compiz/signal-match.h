@@ -27,6 +27,7 @@
 #define _COMPIZ_SIGNAL_MATCH_H
 
 #include <compiz/object.h>
+#include <compiz/keyboard.h>
 
 COMPIZ_BEGIN_DECLS
 
@@ -81,7 +82,10 @@ typedef struct _CompSimpleSignalMatchData {
 } CompSimpleSignalMatchData;
 
 typedef struct _CompSimpleSignalMatch {
-    CompSignalMatch base;
+    union {
+	CompSignalMatch		    base;
+	const CompSignalMatchVTable *vTable;
+    } u;
 
     CompSimpleSignalMatchData data;
 } CompSimpleSignalMatch;
@@ -102,7 +106,10 @@ typedef struct _CompStructureNotifySignalMatchData {
 } CompStructureNotifySignalMatchData;
 
 typedef struct _CompStructureNotifySignalMatch {
-    CompSignalMatch base;
+    union {
+	CompSignalMatch		    base;
+	const CompSignalMatchVTable *vTable;
+    } u;
 
     CompStructureNotifySignalMatchData data;
 } CompStructureNotifySignalMatch;
@@ -118,6 +125,75 @@ typedef struct _CompStructureNotifySignalMatch {
 
 const CompObjectType *
 getStructureNotifySignalMatchObjectType (void);
+
+
+typedef struct _CompKeyEventSignalMatchData {
+    CompObjectData base;
+
+    CompKeyEventDescription key;
+} CompKeyEventSignalMatchData;
+
+typedef struct _CompKeyEventSignalMatch {
+    union {
+	CompSignalMatch		    base;
+	const CompSignalMatchVTable *vTable;
+    } u;
+
+    CompKeyEventSignalMatchData data;
+} CompKeyEventSignalMatch;
+
+#define GET_KEY_EVENT_SIGNAL_MATCH(object) \
+    ((CompKeyEventSignalMatch *) (object))
+#define KEY_EVENT_SIGNAL_MATCH(object) \
+    CompKeyEventSignalMatch *kesm = GET_KEY_EVENT_SIGNAL_MATCH (object)
+
+#define COMPIZ_KEY_EVENT_SIGNAL_MATCH_TYPE_NAME \
+    "org.compiz.signalMatch.keyEvent"
+
+const CompObjectType *
+getKeyEventSignalMatchObjectType (void);
+
+
+typedef struct _CompKeyPressSignalMatch {
+    union {
+	CompKeyEventSignalMatch	    base;
+	const CompSignalMatchVTable *vTable;
+    } u;
+
+    CompObjectData data;
+} CompKeyPressSignalMatch;
+
+#define GET_KEY_PRESS_SIGNAL_MATCH(object) \
+    ((CompKeyPressSignalMatch *) (object))
+#define KEY_PRESS_SIGNAL_MATCH(object) \
+    CompKeyPressSignalMatch *kpsm = GET_KEY_PRESS_SIGNAL_MATCH (object)
+
+#define COMPIZ_KEY_PRESS_SIGNAL_MATCH_TYPE_NAME \
+    "org.compiz.signalMatch.keyPress"
+
+const CompObjectType *
+getKeyPressSignalMatchObjectType (void);
+
+
+typedef struct _CompKeyReleaseSignalMatch {
+    union {
+	CompKeyEventSignalMatch	    base;
+	const CompSignalMatchVTable *vTable;
+    } u;
+
+    CompObjectData data;
+} CompKeyReleaseSignalMatch;
+
+#define GET_KEY_RELEASE_SIGNAL_MATCH(object) \
+    ((CompKeyReleaseSignalMatch *) (object))
+#define KEY_RELEASE_SIGNAL_MATCH(object) \
+    CompKeyReleaseSignalMatch *krsm = GET_KEY_RELEASE_SIGNAL_MATCH (object)
+
+#define COMPIZ_KEY_RELEASE_SIGNAL_MATCH_TYPE_NAME \
+    "org.compiz.signalMatch.keyRelease"
+
+const CompObjectType *
+getKeyReleaseSignalMatchObjectType (void);
 
 COMPIZ_END_DECLS
 
