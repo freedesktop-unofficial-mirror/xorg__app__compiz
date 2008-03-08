@@ -46,6 +46,7 @@
 #include <X11/cursorfont.h>
 
 #include <compiz/core.h>
+#include <compiz/keyboard.h>
 #include <compiz/c-object.h>
 #include <compiz/marshal.h>
 #include <compiz/error.h>
@@ -467,32 +468,43 @@ updatePassiveGrabs (CompScreen *s)
 
     for (i = 0; i < s->data.keyGrabs.nChild; i++)
     {
-	CompObject *o = s->data.keyGrabs.child[i].ref;
-	char	   *value;
+	CompKeyEventDescription *ked;
 
-	if ((*o->vTable->getString) (o, 0, "value", &value, 0))
+	ked = COMP_TYPE_CAST (s->data.keyGrabs.child[i].ref,
+			      getKeyEventDescriptionObjectType (),
+			      CompKeyEventDescription);
+	if (ked)
 	{
-	    CompKeyBinding key;
+	    int          j;
+	    unsigned int mask =
+		ked->data.modifiers & (ShiftMask | LockMask | ControlMask);
 
-	    if (stringToKeyBinding (s->display, value, &key))
+	    for (j = 0; j < CompModNum; j++)
+		if (ked->data.modifiers & (1 << (j + 3)))
+		    mask |= s->display->modMask[j];
+
+	    if (mask)
 	    {
-		unsigned int mask;
-		int          j;
+		KeySym keysym;
 
-		mask = virtualToRealModMask (s->display, key.modifiers);
-		if (!(mask & CompNoMask))
+		keysym = XStringToKeysym (ked->data.key);
+		if (keysym != NoSymbol)
 		{
-		    for (j = 0; j < s->nKeyGrab; j++)
-			if (key.keycode == s->keyGrab[j].keycode &&
-			    mask        == s->keyGrab[j].modifiers)
-			    break;
+		    KeyCode keycode;
 
-		    if (j == s->nKeyGrab)
-			grabKeys (s, key.keycode, mask);
+		    keycode = XKeysymToKeycode (s->display->display, keysym);
+		    if (keycode)
+		    {
+			for (j = 0; j < s->nKeyGrab; j++)
+			    if (keycode == s->keyGrab[j].keycode &&
+				mask    == s->keyGrab[j].modifiers)
+				break;
+
+			if (j == s->nKeyGrab)
+			    grabKeys (s, keycode, mask);
+		    }
 		}
 	    }
-
-	    free (value);
 	}
     }
 }
