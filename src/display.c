@@ -484,6 +484,7 @@ removeScreen (CompDisplay *display,
     return TRUE;
 }
 
+
 static Bool
 mainMenu (CompDisplay     *d,
 	  CompAction      *action,
@@ -806,7 +807,7 @@ runCommandDispatch (CompDisplay     *d,
 	}
 
 	if (index > 0)
-	    runCommand (s, d->opt[index].value.s);
+	    (*s->u.vTable->runCommand) (s, d->opt[index].value.s);
     }
 
     return TRUE;
@@ -826,7 +827,7 @@ runCommandScreenshot (CompDisplay     *d,
 
     s = findScreenAtDisplay (d, xid);
     if (s)
-	runCommand (s, d->opt[COMP_DISPLAY_OPTION_SCREENSHOT].value.s);
+	(*s->u.vTable->runCommand) (s, d->opt[COMP_DISPLAY_OPTION_SCREENSHOT].value.s);
 
     return TRUE;
 }
@@ -845,7 +846,7 @@ runCommandWindowScreenshot (CompDisplay     *d,
 
     s = findScreenAtDisplay (d, xid);
     if (s)
-	runCommand (s, d->opt[COMP_DISPLAY_OPTION_WINDOW_SCREENSHOT].value.s);
+	(*s->u.vTable->runCommand) (s, d->opt[COMP_DISPLAY_OPTION_WINDOW_SCREENSHOT].value.s);
 
     return TRUE;
 }
@@ -864,7 +865,7 @@ runCommandTerminal (CompDisplay     *d,
 
     s = findScreenAtDisplay (d, xid);
     if (s)
-	runCommand (s, d->opt[COMP_DISPLAY_OPTION_TERMINAL].value.s);
+	(*s->u.vTable->runCommand) (s, d->opt[COMP_DISPLAY_OPTION_TERMINAL].value.s);
 
     return TRUE;
 }

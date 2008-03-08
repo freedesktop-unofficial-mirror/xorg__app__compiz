@@ -1,12 +1,13 @@
 xmldir       = $(metadatadir)
-xml_in_files =				\
-	org.compiz.object.xml.in	\
-	org.compiz.metadata.xml.xml.in	\
-	org.compiz.core.xml.in		\
-	org.compiz.display.xml.in	\
-	org.compiz.screen.xml.in	\
-	org.compiz.window.xml.in	\
-	org.compiz.box.xml.in		\
+xml_in_files =					\
+	org.compiz.object.xml.in		\
+	org.compiz.keyEventDescription.xml.in	\
+	org.compiz.metadata.xml.xml.in		\
+	org.compiz.core.xml.in			\
+	org.compiz.display.xml.in		\
+	org.compiz.screen.xml.in		\
+	org.compiz.window.xml.in		\
+	org.compiz.box.xml.in			\
 	annotate.xml.in   \
 	blur.xml.in	  \
 	clone.xml.in	  \

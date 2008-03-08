@@ -516,6 +516,33 @@ noopUpdatePassiveGrabs (CompScreen *s)
 }
 
 static void
+runCommand (CompScreen *s,
+	    const char *command)
+{
+    if (*command == '\0')
+	return;
+
+    if (fork () == 0)
+    {
+	char displayString[256];
+
+	snprintf (displayString, sizeof (displayString), "%s:%d.%d",
+		  s->display->hostName, s->display->displayNum, s->screenNum);
+
+	setsid ();
+	setenv ("DISPLAY", displayString, 1);
+	exit (execl ("/bin/sh", "/bin/sh", "-c", command, NULL));
+    }
+}
+
+static void
+noopRunCommand (CompScreen *s,
+		const char *command)
+{
+    FOR_BASE (&s->u.base, (*s->u.vTable->runCommand) (s, command));
+}
+
+static void
 updateStartupFeedback (CompScreen *s)
 {
     if (s->startupSequences)
@@ -1570,17 +1597,20 @@ screenInitObject (const CompObjectInstantiator *instantiator,
 static const CompScreenVTable screenObjectVTable = {
     .base.getProp        = screenGetProp,
     .updateOutputDevices = updateOutputDevices,
-    .updatePassiveGrabs  = updatePassiveGrabs
+    .updatePassiveGrabs  = updatePassiveGrabs,
+    .runCommand          = runCommand
 };
 
 static const CompScreenVTable noopScreenObjectVTable = {
     .updateOutputDevices = noopUpdateOutputDevices,
-    .updatePassiveGrabs  = noopUpdatePassiveGrabs
+    .updatePassiveGrabs  = noopUpdatePassiveGrabs,
+    .runCommand          = noopRunCommand
 };
 
 static const CMethod screenTypeMethod[] = {
-    C_METHOD (updateOutputDevices, "", "", CompScreenVTable, marshal____),
-    C_METHOD (updatePassiveGrabs,  "", "", CompScreenVTable, marshal____)
+    C_METHOD (updateOutputDevices, "",  "", CompScreenVTable, marshal____),
+    C_METHOD (updatePassiveGrabs,  "",  "", CompScreenVTable, marshal____),
+    C_METHOD (runCommand,          "s", "", CompScreenVTable, marshal__S__)
 };
 
 static const CBoolProp screenTypeBoolProp[] = {
@@ -3157,26 +3187,6 @@ toolkitAction (CompScreen *s,
     XUngrabKeyboard (s->display->display, CurrentTime);
 
     XSendEvent (s->display->display, s->root, FALSE, StructureNotifyMask, &ev);
-}
-
-void
-runCommand (CompScreen *s,
-	    const char *command)
-{
-    if (*command == '\0')
-	return;
-
-    if (fork () == 0)
-    {
-	char displayString[256];
-
-	snprintf (displayString, sizeof (displayString), "%s:%d.%d",
-		  s->display->hostName, s->display->displayNum, s->screenNum);
-
-	setsid ();
-	setenv ("DISPLAY", displayString, 1);
-	exit (execl ("/bin/sh", "/bin/sh", "-c", command, NULL));
-    }
 }
 
 void

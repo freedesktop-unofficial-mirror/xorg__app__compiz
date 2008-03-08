@@ -2067,10 +2067,14 @@ typedef void (*UpdateOutputDevicesProc) (CompScreen *s);
 
 typedef void (*UpdatePassiveGrabsProc) (CompScreen *s);
 
+typedef void (*RunCommandProc) (CompScreen *s,
+				const char *command);
+
 typedef struct _CompScreenVTable {
     CompObjectVTable        base;
     UpdateOutputDevicesProc updateOutputDevices;
     UpdatePassiveGrabsProc  updatePassiveGrabs;
+    RunCommandProc	    runCommand;
 } CompScreenVTable;
 
 typedef struct _CompScreenData {
@@ -2424,10 +2428,6 @@ toolkitAction (CompScreen *s,
 	       long	  data0,
 	       long	  data1,
 	       long	  data2);
-
-void
-runCommand (CompScreen *s,
-	    const char *command);
 
 void
 moveScreenViewport (CompScreen *s,

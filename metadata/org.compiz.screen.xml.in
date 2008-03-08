@@ -8,6 +8,10 @@
       <_short>Update passive server grabs</_short>
       <_long>Update passive server grabs to reflect the contents of the keyGrabs node</_long>
     </method>
+    <method name="runCommand">
+      <_short>Run Command</_short>
+      <_long>Run command by executing '/bin/sh -c' with the 'command' argument. The DISPLAY environment variable will be set with the current screen is default for any X11 clients</_long>
+    </method>
     <property name="detectOutputs" type="b">
       <_short>Detect Outputs</_short>
       <_long>Automatic detection of output devices</_long>
