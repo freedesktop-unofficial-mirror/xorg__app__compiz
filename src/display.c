@@ -728,100 +728,6 @@ decreaseOpacity (CompDisplay     *d,
 }
 
 static Bool
-runCommandDispatch (CompDisplay     *d,
-		    CompAction      *action,
-		    CompActionState state,
-		    CompOption      *option,
-		    int		    nOption)
-{
-    CompScreen *s;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "root", 0);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s)
-    {
-	int index = -1;
-	int i = COMP_DISPLAY_OPTION_RUN_COMMAND0_KEY;
-
-	while (i <= COMP_DISPLAY_OPTION_RUN_COMMAND11_KEY)
-	{
-	    if (action == &d->opt[i].value.action)
-	    {
-		index = i - COMP_DISPLAY_OPTION_RUN_COMMAND0_KEY +
-		    COMP_DISPLAY_OPTION_COMMAND0;
-		break;
-	    }
-
-	    i++;
-	}
-
-	if (index > 0)
-	    (*s->u.vTable->runCommand) (s, d->opt[index].value.s);
-    }
-
-    return TRUE;
-}
-
-static Bool
-runCommandScreenshot (CompDisplay     *d,
-		      CompAction      *action,
-		      CompActionState state,
-		      CompOption      *option,
-		      int	      nOption)
-{
-    CompScreen *s;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "root", 0);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s)
-	(*s->u.vTable->runCommand) (s, d->opt[COMP_DISPLAY_OPTION_SCREENSHOT].value.s);
-
-    return TRUE;
-}
-
-static Bool
-runCommandWindowScreenshot (CompDisplay     *d,
-			    CompAction      *action,
-			    CompActionState state,
-			    CompOption      *option,
-			    int	            nOption)
-{
-    CompScreen *s;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "root", 0);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s)
-	(*s->u.vTable->runCommand) (s, d->opt[COMP_DISPLAY_OPTION_WINDOW_SCREENSHOT].value.s);
-
-    return TRUE;
-}
-
-static Bool
-runCommandTerminal (CompDisplay     *d,
-		    CompAction      *action,
-		    CompActionState state,
-		    CompOption      *option,
-		    int	            nOption)
-{
-    CompScreen *s;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "root", 0);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s)
-	(*s->u.vTable->runCommand) (s, d->opt[COMP_DISPLAY_OPTION_TERMINAL].value.s);
-
-    return TRUE;
-}
-
-static Bool
 windowMenu (CompDisplay     *d,
 	    CompAction      *action,
 	    CompActionState state,
@@ -957,18 +863,18 @@ const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "command9", "string", 0, 0, 0 },
     { "command10", "string", 0, 0, 0 },
     { "command11", "string", 0, 0, 0 },
-    { "run_command0_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command1_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command2_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command3_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command4_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command5_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command6_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command7_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command8_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command9_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command10_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command11_key", "key", 0, runCommandDispatch, 0 },
+    { "run_command0_key", "key", 0, 0, 0 },
+    { "run_command1_key", "key", 0, 0, 0 },
+    { "run_command2_key", "key", 0, 0, 0 },
+    { "run_command3_key", "key", 0, 0, 0 },
+    { "run_command4_key", "key", 0, 0, 0 },
+    { "run_command5_key", "key", 0, 0, 0 },
+    { "run_command6_key", "key", 0, 0, 0 },
+    { "run_command7_key", "key", 0, 0, 0 },
+    { "run_command8_key", "key", 0, 0, 0 },
+    { "run_command9_key", "key", 0, 0, 0 },
+    { "run_command10_key", "key", 0, 0, 0 },
+    { "run_command11_key", "key", 0, 0, 0 },
     { "slow_animations_key", "key", 0, toggleSlowAnimations, 0 },
     { "raise_window_key", "key", 0, raiseInitiate, 0 },
     { "raise_window_button", "button", 0, raiseInitiate, 0 },
@@ -983,10 +889,9 @@ const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "opacity_increase_button", "button", 0, increaseOpacity, 0 },
     { "opacity_decrease_button", "button", 0, decreaseOpacity, 0 },
     { "command_screenshot", "string", 0, 0, 0 },
-    { "run_command_screenshot_key", "key", 0, runCommandScreenshot, 0 },
+    { "run_command_screenshot_key", "key", 0, 0, 0 },
     { "command_window_screenshot", "string", 0, 0, 0 },
-    { "run_command_window_screenshot_key", "key", 0,
-      runCommandWindowScreenshot, 0 },
+    { "run_command_window_screenshot_key", "key", 0, 0, 0 },
     { "window_menu_button", "button", 0, windowMenu, 0 },
     { "window_menu_key", "key", 0, windowMenu, 0 },
     { "show_desktop_key", "key", 0, showDesktop, 0 },
@@ -999,7 +904,7 @@ const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
       toggleMaximizedVertically, 0 },
     { "toggle_window_shaded_key", "key", 0, shade, 0 },
     { "command_terminal", "string", 0, 0, 0 },
-    { "run_command_terminal_key", "key", 0, runCommandTerminal, 0 }
+    { "run_command_terminal_key", "key", 0, 0, 0 }
 };
 
 CompOption *
