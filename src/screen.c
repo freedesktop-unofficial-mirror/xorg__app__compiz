@@ -1852,6 +1852,8 @@ static const CompScreenVTable screenObjectVTable = {
     .runCommand            = runCommand,
     .mainMenu              = mainMenu,
     .runDialog             = runDialog,
+    .showDesktop           = showDesktop,
+    .hideDesktop           = hideDesktop,
     .updatePassiveGrabs    = updatePassiveGrabs
 };
 
@@ -1864,6 +1866,8 @@ static const CompScreenVTable noopScreenObjectVTable = {
     .runCommand            = noopRunCommand,
     .mainMenu              = noopMainMenu,
     .runDialog             = noopRunDialog,
+    .showDesktop           = noopShowDesktop,
+    .hideDesktop           = noopHideDesktop,
     .updatePassiveGrabs    = noopUpdatePassiveGrabs,
 };
 
