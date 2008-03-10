@@ -35,115 +35,6 @@
 
 CompPlugin *plugins = 0;
 
-static CompBool
-coreInit (CompPlugin *plugin)
-{
-    return TRUE;
-}
-
-static void
-coreFini (CompPlugin *plugin)
-{
-}
-
-static CompMetadata *
-coreGetMetadata (CompPlugin *plugin)
-{
-    return &coreMetadata;
-}
-
-static CompOption *
-coreGetObjectOptions (CompPlugin *plugin,
-		      CompObject *object,
-		      int	 *count)
-{
-    static GetPluginObjectOptionsProc dispTab[] = {
-	(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-	(GetPluginObjectOptionsProc) 0, /* GetDisplayOptions */
-	(GetPluginObjectOptionsProc) 0  /* GetScreenOptions */
-    };
-
-    RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-		     (void *) (*count = 0), (plugin, object, count));
-}
-
-static Bool
-coreSetObjectOption (CompPlugin      *plugin,
-		     CompObject      *object,
-		     const char      *name,
-		     CompOptionValue *value)
-{
-    static SetPluginObjectOptionProc dispTab[] = {
-	(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-	(SetPluginObjectOptionProc) 0, /* SetDisplayOption */
-	(SetPluginObjectOptionProc) 0  /* SetScreenOption */
-    };
-
-    RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-		     (plugin, object, name, value));
-}
-
-static CompPluginVTable coreVTable = {
-    "core",
-    coreGetMetadata,
-    coreInit,
-    coreFini,
-    0, /* InitObject */
-    0, /* FiniObject */
-    coreGetObjectOptions,
-    coreSetObjectOption
-};
-
-static Bool
-cloaderLoadPlugin (CompPlugin *p,
-		   const char *path,
-		   const char *name)
-{
-    if (path)
-	return FALSE;
-
-    if (strcmp (name, coreVTable.name))
-	return FALSE;
-
-    memset (p, 0, sizeof (*p));
-
-    p->vTable	      = &coreVTable;
-    p->devPrivate.ptr = NULL;
-    p->devType	      = "cloader";
-
-    return TRUE;
-}
-
-static void
-cloaderUnloadPlugin (CompPlugin *p)
-{
-}
-
-static char **
-cloaderListPlugins (const char *path,
-		    int	       *n)
-{
-    char **list;
-
-    if (path)
-	return 0;
-
-    list = malloc (sizeof (char *));
-    if (!list)
-	return 0;
-
-    *list = strdup (coreVTable.name);
-    if (!*list)
-    {
-	free (list);
-	return 0;
-    }
-
-    *n = 1;
-
-    return list;
-}
-
 typedef const GetTypeProc      *(*GetCompizObjectTypesProc)      (int *n);
 typedef const GetInterfaceProc *(*GetCompizObjectInterfacesProc) (int *n);
 
@@ -234,7 +125,7 @@ dlloaderLoadPlugin (CompPlugin *p,
     {
 	free (file);
 
-	return cloaderLoadPlugin (p, path, name);
+	return FALSE;
     }
 
     free (file);
@@ -250,8 +141,6 @@ dlloaderUnloadPlugin (CompPlugin *p)
 {
     if (strcmp (p->devType, "dlloader") == 0)
 	dlclose (p->devPrivate.ptr);
-    else
-	cloaderUnloadPlugin (p);
 }
 
 static int
@@ -274,24 +163,20 @@ dlloaderListPlugins (const char *path,
 		     int	*n)
 {
     struct dirent **nameList;
-    char	  **list, **cList;
+    char	  **list;
     char	  *name;
     int		  length, nFile, i, j = 0;
-
-    cList = cloaderListPlugins (path, n);
-    if (cList)
-	j = *n;
 
     if (!path)
 	path = ".";
 
     nFile = scandir (path, &nameList, dlloaderFilter, alphasort);
     if (!nFile)
-	return cList;
+	return NULL;
 
-    list = realloc (cList, (j + nFile) * sizeof (char *));
+    list = malloc (nFile * sizeof (char *));
     if (!list)
-	return cList;
+	return NULL;
 
     for (i = 0; i < nFile; i++)
     {
