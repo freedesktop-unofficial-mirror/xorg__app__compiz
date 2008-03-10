@@ -131,6 +131,65 @@ struct _CompIDelegate {
 const CompObjectType *
 getIDelegateObjectType (void);
 
+
+typedef struct _CompSDelegate CompSDelegate;
+
+typedef void (*SNotifyProc) (CompSDelegate *sd,
+			     const char	   *value0);
+
+typedef struct _CompSDelegateVTable {
+    CompDelegateVTable base;
+
+    SNotifyProc notify;
+} CompSDelegateVTable;
+
+struct _CompSDelegate {
+    union {
+	CompDelegate		  base;
+	const CompSDelegateVTable *vTable;
+    } u;
+
+    CompObjectData data;
+};
+
+#define COMPIZ_S_DELEGATE_TYPE_NAME "org.compiz.delegate.s"
+
+#define GET_S_DELEGATE(object) ((CompSDelegate *) (object))
+#define S_DELEGATE(object) CompSDelegate *sd = GET_S_DELEGATE (object)
+
+const CompObjectType *
+getSDelegateObjectType (void);
+
+
+typedef struct _CompSiDelegate CompSiDelegate;
+
+typedef void (*SiNotifyProc) (CompSiDelegate *sid,
+			      const char     *value0,
+			      int32_t	     value1);
+
+typedef struct _CompSiDelegateVTable {
+    CompDelegateVTable base;
+
+    SiNotifyProc notify;
+} CompSiDelegateVTable;
+
+struct _CompSiDelegate {
+    union {
+	CompDelegate		   base;
+	const CompSiDelegateVTable *vTable;
+    } u;
+
+    CompObjectData data;
+};
+
+#define COMPIZ_SI_DELEGATE_TYPE_NAME "org.compiz.delegate.si"
+
+#define GET_SI_DELEGATE(object) ((CompSiDelegate *) (object))
+#define SI_DELEGATE(object) CompSiDelegate *sid = GET_SI_DELEGATE (object)
+
+const CompObjectType *
+getSiDelegateObjectType (void);
+
 COMPIZ_END_DECLS
 
 #endif
