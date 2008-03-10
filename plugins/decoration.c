@@ -1158,7 +1158,7 @@ decorSetDisplayOption (CompPlugin      *plugin,
 		DECOR_SCREEN (s);
 
 		if (!ds->dmWin)
-		    runCommand (s, o->value.s);
+		    (*s->u.vTable->runCommand) (s, o->value.s);
 	    }
 
 	    return TRUE;

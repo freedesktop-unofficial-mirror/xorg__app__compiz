@@ -259,7 +259,7 @@ shotPaintScreen (CompScreen   *s,
 			    {
 				sprintf (command, "%s %s/%s", app, dir, name);
 
-				runCommand (s, command);
+				(*s->u.vTable->runCommand) (s, command);
 
 				free (command);
 			    }
