@@ -58,11 +58,6 @@ static int xmlmBranchPrivateIndex;
 
 typedef struct _XmlmInterface XmlmInterface;
 
-typedef void (*XmlmApplyInterfaceMetadataProc) (CompBranch	    *branch,
-						CompObject	    *object,
-						const XmlmInterface *interface,
-						const char	    *name);
-
 typedef CompBool (*XmlmLoadMetadataFileProc) (CompBranch *branch,
 					      const char *filename,
 					      char	 **error);
@@ -75,9 +70,9 @@ typedef CompBool (*XmlmLoadInterfaceFromDefaultFileProc) (CompBranch *branch,
 							  const char *name,
 							  char	     **error);
 
-typedef void (*XmlmEnsureInterfaceMetadataProc) (CompBranch *branch,
-						 const char *path,
-						 const char *name);
+typedef void (*XmlmApplyInterfaceMetadataProc) (CompBranch *branch,
+						const char *path,
+						const char *name);
 
 typedef void (*XmlmInterfaceAddedProc) (CompBranch *branch,
 					const char *path,
@@ -86,11 +81,10 @@ typedef void (*XmlmInterfaceAddedProc) (CompBranch *branch,
 typedef struct _XmlmBranchVTable {
     CompBranchVTable base;
 
-    XmlmApplyInterfaceMetadataProc	 applyInterfaceMetadata;
     XmlmLoadMetadataFileProc		 loadMetadataFile;
     XmlmUnloadMetadataFileProc		 unloadMetadataFile;
     XmlmLoadInterfaceFromDefaultFileProc loadInterfaceFromDefaultFile;
-    XmlmEnsureInterfaceMetadataProc	 ensureInterfaceMetadata;
+    XmlmApplyInterfaceMetadataProc	 applyInterfaceMetadata;
 
     XmlmInterfaceAddedProc interfaceAdded;
 
@@ -412,10 +406,10 @@ xmlmGetMetadataInterfaceFromNode (XmlmNode   *node,
 }
 
 static void
-xmlmApplyInterfaceMetadata (CompBranch		*b,
-			    CompObject		*object,
-			    const XmlmInterface *interface,
-			    const char		*name)
+xmlmApplyMetadata (CompBranch	       *b,
+		   CompObject	       *object,
+		   const XmlmInterface *interface,
+		   const char	       *name)
 {
     xmlNodePtr *nodeTab;
     int	       nodeNr, i;
@@ -497,7 +491,7 @@ xmlmApplyInterfaceMetadata (CompBranch		*b,
 	    {
 		XmlmNode   *n = (XmlmNode *) nodeTab[i]->_private;
 		xmlNodePtr *tab;
-		int	   nr, j;
+		int	   nr, j, k;
 
 		node->privates[xmlmObjectPrivateIndex].ptr = n;
 
@@ -506,13 +500,28 @@ xmlmApplyInterfaceMetadata (CompBranch		*b,
 		    tab = n->interfaces->nodesetval->nodeTab;
 		    nr  = n->interfaces->nodesetval->nodeNr;
 
+		    XMLM_BRANCH (b);
+
 		    for (j = 0; j < nr; j++)
-			xmlmApplyInterfaceMetadata (b,
-						    node,
-						    (const XmlmInterface *)
-						    tab[j]->_private,
-						    xmlmNodeProp (tab[j],
-								  name));
+		    {
+			const char *iName = xmlmNodeProp (tab[j], "name");
+
+			for (k = 0; k < xb->nDoc; k++)
+			{
+			    const XmlmInterface *iface;
+
+			    iface = xmlmGetMetadataInterfaceFromNode (
+				&xb->doc[k].node, iName);
+			    if (iface)
+				xmlmApplyMetadata (b, node, iface, iName);
+			}
+
+			xmlmApplyMetadata (b,
+					   node,
+					   (const XmlmInterface *)
+					   tab[j]->_private,
+					   iName);
+		    }
 		}
 
 		if (n->connections && n->connections->nodesetval)
@@ -766,12 +775,14 @@ xmlmLoadInterfaceFromDefaultFile (CompBranch *b,
 }
 
 static void
-xmlmEnsureInterfaceMetadata (CompBranch *b,
-			     const char *path,
-			     const char *name)
+xmlmApplyInterfaceMetadata (CompBranch *b,
+			    const char *path,
+			    const char *name)
 {
-    CompObject *object;
-    int	       i;
+    const XmlmInterface *interface;
+    CompObject		*object;
+    XmlmNode		*node;
+    int			i;
 
     XMLM_BRANCH (b);
 
@@ -779,20 +790,19 @@ xmlmEnsureInterfaceMetadata (CompBranch *b,
     if (!object)
 	return;
 
-    /* already set? */
-    if (object->privates[xmlmObjectPrivateIndex].ptr)
-	return;
+    node = (XmlmNode *) object->privates[xmlmObjectPrivateIndex].ptr;
+    if (node)
+    {
+	interface = xmlmGetMetadataInterfaceFromNode (node, name);
+	if (interface)
+	    return; /* already applied */
+    }
 
     for (i = 0; i < xb->nDoc; i++)
     {
-	const XmlmInterface *interface;
-
 	interface = xmlmGetMetadataInterfaceFromNode (&xb->doc[i].node, name);
 	if (interface)
-	    xmlmApplyInterfaceMetadata (b,
-					object,
-					interface,
-					name);
+	    xmlmApplyMetadata (b, object, interface, name);
     }
 }
 
@@ -845,7 +855,7 @@ xmlmInsertBranch (CompObject *object,
 		 offsetof (XmlmBranchVTable, interfaceAdded),
 		 &b->u.base,
 		 getXmlmBranchObjectInterface (),
-		 offsetof (XmlmBranchVTable, ensureInterfaceMetadata),
+		 offsetof (XmlmBranchVTable, applyInterfaceMetadata),
 		 NULL);
 
     for (i = 0; i < b->data.types.nChild; i++)
@@ -879,11 +889,10 @@ xmlmGetProp (CompObject   *object,
 static const XmlmBranchVTable xmlmBranchObjectVTable = {
     .base.base.getProp = xmlmGetProp,
 
-    .applyInterfaceMetadata       = xmlmApplyInterfaceMetadata,
     .loadMetadataFile		  = xmlmLoadMetadataFile,
     .unloadMetadataFile		  = xmlmUnloadMetadataFile,
     .loadInterfaceFromDefaultFile = xmlmLoadInterfaceFromDefaultFile,
-    .ensureInterfaceMetadata      = xmlmEnsureInterfaceMetadata,
+    .applyInterfaceMetadata       = xmlmApplyInterfaceMetadata,
 
     .interfaceAdded = xmlmInterfaceAdded,
 
@@ -895,7 +904,7 @@ static const CMethod xmlMetadataBranchMethod[] = {
     C_METHOD (unloadMetadataFile, "s", "", XmlmBranchVTable, marshal__S__E),
     C_METHOD (loadInterfaceFromDefaultFile, "s", "", XmlmBranchVTable,
 	      marshal__S__E),
-    C_METHOD (ensureInterfaceMetadata, "os", "", XmlmBranchVTable,
+    C_METHOD (applyInterfaceMetadata, "os", "", XmlmBranchVTable,
 	      marshal__SS__)
 };
 
