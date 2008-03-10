@@ -799,12 +799,11 @@ compiz_write (fuse_req_t	    req,
 	    return;
 	}
 
-	data[off + size] = '\0';
-
 	file->data = data;
 	file->size = off + size;
     }
 
+    file->data[off + size] = '\0';
     memcpy (file->data + off, buf, size);
 
     fuse_reply_write (req, size);
