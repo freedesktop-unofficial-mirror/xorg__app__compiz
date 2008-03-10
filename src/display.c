@@ -480,51 +480,6 @@ removeScreen (CompDisplay *display,
     return TRUE;
 }
 
-
-static Bool
-mainMenu (CompDisplay     *d,
-	  CompAction      *action,
-	  CompActionState state,
-	  CompOption      *option,
-	  int		  nOption)
-{
-    CompScreen   *s;
-    Window       xid;
-    unsigned int time;
-
-    xid  = getIntOptionNamed (option, nOption, "root", 0);
-    time = getIntOptionNamed (option, nOption, "time", CurrentTime);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s && !s->maxGrab)
-	toolkitAction (s, s->display->toolkitActionMainMenuAtom, time, s->root,
-		       0, 0, 0);
-
-    return TRUE;
-}
-
-static Bool
-runDialog (CompDisplay     *d,
-	   CompAction      *action,
-	   CompActionState state,
-	   CompOption      *option,
-	   int		   nOption)
-{
-    CompScreen   *s;
-    Window       xid;
-    unsigned int time;
-
-    xid  = getIntOptionNamed (option, nOption, "root", 0);
-    time = getIntOptionNamed (option, nOption, "time", CurrentTime);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s && !s->maxGrab)
-	toolkitAction (s, s->display->toolkitActionRunDialogAtom, time, s->root,
-		       0, 0, 0);
-
-    return TRUE;
-}
-
 static Bool
 unmaximize (CompDisplay     *d,
 	    CompAction      *action,
@@ -988,8 +943,8 @@ shade (CompDisplay     *d,
 const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "close_window_key", "key", 0, 0, 0 },
     { "close_window_button", "button", 0, 0, 0 },
-    { "main_menu_key", "key", 0, mainMenu, 0 },
-    { "run_key", "key", 0, runDialog, 0 },
+    { "main_menu_key", "key", 0, 0, 0 },
+    { "run_key", "key", 0, 0, 0 },
     { "command0", "string", 0, 0, 0 },
     { "command1", "string", 0, 0, 0 },
     { "command2", "string", 0, 0, 0 },

@@ -36,6 +36,16 @@
       <_short>Run Command</_short>
       <_long>Run command by executing '/bin/sh -c' with the 'command' argument. The DISPLAY environment variable will be set with the current screen is default for any X11 clients</_long>
     </method>
+    <method name="mainMenu">
+      <_short>Main Menu</_short>
+      <_long>Show main menu</_long>
+      <arg name="eventTime" type="i" direction="in"/>
+    </method>
+    <method name="runDialog">
+      <_short>Run Dialog</_short>
+      <_long>Show run dialog</_long>
+      <arg name="eventTime" type="i" direction="in"/>
+    </method>
     <property name="detectOutputs" type="b">
       <_short>Detect Outputs</_short>
       <_long>Automatic detection of output devices</_long>

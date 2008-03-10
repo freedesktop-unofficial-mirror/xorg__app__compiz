@@ -2083,6 +2083,12 @@ typedef CompBool (*RemovePassiveKeyGrabProc) (CompScreen *s,
 typedef void (*RunCommandProc) (CompScreen *s,
 				const char *command);
 
+typedef void (*MainMenuProc) (CompScreen *s,
+			      int32_t    eventTime);
+
+typedef void (*RunDialogProc) (CompScreen *s,
+			       int32_t    eventTime);
+
 typedef void (*UpdatePassiveGrabsProc) (CompScreen *s);
 
 typedef struct _CompScreenVTable {
@@ -2095,6 +2101,8 @@ typedef struct _CompScreenVTable {
     AddPassiveKeyGrabProc     addPassiveKeyGrab;
     RemovePassiveKeyGrabProc  removePassiveKeyGrab;
     RunCommandProc	      runCommand;
+    MainMenuProc	      mainMenu;
+    RunDialogProc	      runDialog;
 
     UpdatePassiveGrabsProc updatePassiveGrabs;
 } CompScreenVTable;

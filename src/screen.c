@@ -729,6 +729,44 @@ noopRunCommand (CompScreen *s,
 }
 
 static void
+mainMenu (CompScreen *s,
+	  int32_t    eventTime)
+{
+    if (!s->maxGrab)
+	toolkitAction (s,
+		       s->display->toolkitActionMainMenuAtom,
+		       eventTime,
+		       s->root,
+		       0, 0, 0);
+}
+
+static void
+noopMainMenu (CompScreen *s,
+	      int32_t	 eventTime)
+{
+    FOR_BASE (&s->u.base, (*s->u.vTable->mainMenu) (s, eventTime));
+}
+
+static void
+runDialog (CompScreen *s,
+	   int32_t    eventTime)
+{
+    if (!s->maxGrab)
+	toolkitAction (s,
+		       s->display->toolkitActionRunDialogAtom,
+		       eventTime,
+		       s->root,
+		       0, 0, 0);
+}
+
+static void
+noopRunDialog (CompScreen *s,
+	       int32_t	  eventTime)
+{
+    FOR_BASE (&s->u.base, (*s->u.vTable->runDialog) (s, eventTime));
+}
+
+static void
 updateStartupFeedback (CompScreen *s)
 {
     if (s->startupSequences)
@@ -1784,22 +1822,26 @@ static const CompScreenVTable screenObjectVTable = {
     .base.getProp = screenGetProp,
 
     .updateOutputDevices   = updateOutputDevices,
-    .updatePassiveGrabs    = updatePassiveGrabs,
     .addPassiveXKeyGrab    = addPassiveXKeyGrab,
     .removePassiveXKeyGrab = removePassiveXKeyGrab,
     .addPassiveKeyGrab     = addPassiveKeyGrab,
     .removePassiveKeyGrab  = removePassiveKeyGrab,
-    .runCommand            = runCommand
+    .runCommand            = runCommand,
+    .mainMenu              = mainMenu,
+    .runDialog             = runDialog,
+    .updatePassiveGrabs    = updatePassiveGrabs
 };
 
 static const CompScreenVTable noopScreenObjectVTable = {
     .updateOutputDevices   = noopUpdateOutputDevices,
-    .updatePassiveGrabs    = noopUpdatePassiveGrabs,
     .addPassiveXKeyGrab    = noopAddPassiveXKeyGrab,
     .removePassiveXKeyGrab = noopRemovePassiveXKeyGrab,
     .addPassiveKeyGrab     = noopAddPassiveKeyGrab,
     .removePassiveKeyGrab  = noopRemovePassiveKeyGrab,
-    .runCommand            = noopRunCommand
+    .runCommand            = noopRunCommand,
+    .mainMenu              = noopMainMenu,
+    .runDialog             = noopRunDialog,
+    .updatePassiveGrabs    = noopUpdatePassiveGrabs,
 };
 
 static const CMethod screenTypeMethod[] = {
@@ -1812,7 +1854,9 @@ static const CMethod screenTypeMethod[] = {
 	      marshal__SI__E),
     C_METHOD (removePassiveKeyGrab,  "si", "", CompScreenVTable,
 	      marshal__SI__E),
-    C_METHOD (runCommand,            "s",  "", CompScreenVTable, marshal__S__)
+    C_METHOD (runCommand,            "s",  "", CompScreenVTable, marshal__S__),
+    C_METHOD (mainMenu,              "i",  "", CompScreenVTable, marshal__I__),
+    C_METHOD (runDialog,             "i",  "", CompScreenVTable, marshal__I__)
 };
 
 static const CBoolProp screenTypeBoolProp[] = {
