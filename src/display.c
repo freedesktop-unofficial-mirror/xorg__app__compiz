@@ -600,25 +600,6 @@ showDesktop (CompDisplay     *d,
 }
 
 static Bool
-toggleSlowAnimations (CompDisplay     *d,
-		      CompAction      *action,
-		      CompActionState state,
-		      CompOption      *option,
-		      int	      nOption)
-{
-    CompScreen *s;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "root", 0);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s)
-	s->data.slowAnimations = !s->data.slowAnimations;
-
-    return TRUE;
-}
-
-static Bool
 raiseInitiate (CompDisplay     *d,
 	       CompAction      *action,
 	       CompActionState state,
@@ -875,7 +856,7 @@ const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "run_command9_key", "key", 0, 0, 0 },
     { "run_command10_key", "key", 0, 0, 0 },
     { "run_command11_key", "key", 0, 0, 0 },
-    { "slow_animations_key", "key", 0, toggleSlowAnimations, 0 },
+    { "slow_animations_key", "key", 0, 0, 0 },
     { "raise_window_key", "key", 0, raiseInitiate, 0 },
     { "raise_window_button", "button", 0, raiseInitiate, 0 },
     { "lower_window_key", "key", 0, lowerInitiate, 0 },
