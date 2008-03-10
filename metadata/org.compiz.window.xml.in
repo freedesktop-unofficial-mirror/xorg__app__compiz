@@ -52,17 +52,13 @@
 	<node name="matches">
 	  <interface name="org.compiz.object">
 	    <node type="org.compiz.signalMatch.keyPress">
-	      <interface name="org.compiz.signalMatch.keyPress">
-		<node name="key">
-		  <interface name="org.compiz.keyEventDescription">
-		    <property name="key" type="s">
-		      <default>F4</default>
-		    </property>
-		    <property name="modifiers" type="i">
-		      <default>8</default>
-		    </property>
-		  </interface>
-		</node>
+	      <interface name="org.compiz.signalMatch.keyEvent">
+		<property name="key" type="s">
+		  <default>F4</default>
+		</property>
+		<property name="modifiers" type="i">
+		  <default>4</default>
+		</property>
 	      </interface>
 	    </node>
 	  </interface>

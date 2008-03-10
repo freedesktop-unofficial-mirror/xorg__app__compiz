@@ -1,0 +1,60 @@
+<compiz>
+  <interface name="org.compiz.signalMatch.keyEvent">
+    <method name="updateState">
+      <_short>Update state</_short>
+      <_long>Emit newState and oldState signals if key/modifier state has changed</_long>
+    </method>
+    <signal name="newState">
+      <_short>New State</_short>
+      <_long>Indicate that new key/modifier state has been entered</_long>
+      <arg name="key" type="s" direction="out"/>
+      <arg name="modifiers" type="i" direction="out"/>
+    </signal>
+    <signal name="oldState">
+      <_short>Old State</_short>
+      <_long>Indicate that old key/modifier state is no more</_long>
+      <arg name="key" type="s" direction="out"/>
+      <arg name="modifiers" type="i" direction="out"/>
+    </signal>
+    <property name="key" type="s">
+      <_short>Key</_short>
+      <_long>Virtual key name. E.g. 'q' or 'F4'</_long>
+      <default></default>
+    </property>
+    <property name="modifiers" type="i">
+      <_short>Modifiers</_short>
+      <_long>Virtual modifier key sum. Shift = 1, Control = 2, Alt = 4, Meta = 8, Super = 16, Hyper = 32, ModeSwitch = 64. E.g. 'Control+Alt' = 6</_long>
+      <min>0</min>
+      <max>127</max>
+      <default>0</default>
+    </property>
+    <node type="org.compiz.delegate.void">
+      <interface name="org.compiz.delegate">
+	<property name="compress" type="b">
+	  <default>true</default>
+	</property>
+	<node name="matches">
+	  <interface name="org.compiz.object">
+	    <node type="org.compiz.signalMatch.simple">
+	      <interface name="org.compiz.signalMatch.simple">
+		<property name="path" type="s">
+		  <default></default>
+		</property>
+		<property name="interface" type="s">
+		  <default>org.compiz.object</default>
+		</property>
+		<property name="name" type="s">
+		  <default>stringChanged</default>
+		</property>
+		<property name="signature" type="s">
+		  <default>sss</default>
+		</property>
+	      </interface>
+	    </node>
+	  </interface>
+	</node>
+      </interface>
+      <connect signal="notify" method="updateState"/>
+    </node>
+  </interface>
+</compiz>

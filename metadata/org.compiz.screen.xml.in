@@ -8,6 +8,30 @@
       <_short>Update passive server grabs</_short>
       <_long>Update passive server grabs to reflect the contents of the keyGrabs node</_long>
     </method>
+    <method name="addPassiveXKeyGrab">
+      <_short>Add passive X11 key grab</_short>
+      <_long>Add a passive X11 key grab for this keycode/modifier combination</_long>
+      <arg name="keycode" type="i" direction="in"/>
+      <arg name="modifiers" type="i" direction="in"/>
+    </method>
+    <method name="removePassiveXKeyGrab">
+      <_short>Remove passive X11 key grab</_short>
+      <_long>Remove a passive X11 key grab for this keycode/modifier combination</_long>
+      <arg name="keycode" type="i" direction="in"/>
+      <arg name="modifiers" type="i" direction="in"/>
+    </method>
+    <method name="addPassiveKeyGrab">
+      <_short>Add passive key grab</_short>
+      <_long>Add a passive key grab for this keycode/modifier combination</_long>
+      <arg name="key" type="s" direction="in"/>
+      <arg name="modifiers" type="i" direction="in"/>
+    </method>
+    <method name="removePassiveKeyGrab">
+      <_short>Remove passive key grab</_short>
+      <_long>Remove a passive key grab for this keycode/modifier combination</_long>
+      <arg name="key" type="s" direction="in"/>
+      <arg name="modifiers" type="i" direction="in"/>
+    </method>
     <method name="runCommand">
       <_short>Run Command</_short>
       <_long>Run command by executing '/bin/sh -c' with the 'command' argument. The DISPLAY environment variable will be set with the current screen is default for any X11 clients</_long>
@@ -77,6 +101,92 @@
       <_long>Default window icon image</_long>
       <default>icon</default>
     </property>
+    <node type="org.compiz.delegate.si">
+      <interface name="org.compiz.delegate">
+	<node name="matches">
+	  <interface name="org.compiz.object">
+	    <node type="org.compiz.signalMatch.simple">
+	      <interface name="org.compiz.signalMatch.simple">
+		<property name="path" type="s">
+		  <default>//*</default>
+		</property>
+		<property name="interface" type="s">
+		  <default>org.compiz.signalMatch.keyEvent</default>
+		</property>
+		<property name="name" type="s">
+		  <default>newState</default>
+		</property>
+		<property name="signature" type="s">
+		  <default>si</default>
+		</property>
+		<node name="args">
+		  <interface name="org.compiz.object">
+		    <node type="org.compiz.signalArgMap.string">
+		      <interface name="org.compiz.signalArgMap.string">
+			<property name="source" type="i">
+			  <default>5</default>
+			</property>
+		      </interface>
+		    </node>
+		    <node type="org.compiz.signalArgMap.string">
+		      <interface name="org.compiz.signalArgMap.int">
+			<property name="source" type="i">
+			  <default>6</default>
+			</property>
+		      </interface>
+		    </node>
+		  </interface>
+		</node>
+	      </interface>
+	    </node>
+	  </interface>
+	</node>
+      </interface>
+      <connect signal="notify" method="addPassiveKeyGrab"/>
+    </node>
+    <node type="org.compiz.delegate.si">
+      <interface name="org.compiz.delegate">
+	<node name="matches">
+	  <interface name="org.compiz.object">
+	    <node type="org.compiz.signalMatch.simple">
+	      <interface name="org.compiz.signalMatch.simple">
+		<property name="path" type="s">
+		  <default>//*</default>
+		</property>
+		<property name="interface" type="s">
+		  <default>org.compiz.signalMatch.keyEvent</default>
+		</property>
+		<property name="name" type="s">
+		  <default>oldState</default>
+		</property>
+		<property name="signature" type="s">
+		  <default>si</default>
+		</property>
+		<node name="args">
+		  <interface name="org.compiz.object">
+		    <node type="org.compiz.signalArgMap.string">
+		      <interface name="org.compiz.signalArgMap.string">
+			<property name="source" type="i">
+			  <default>5</default>
+			</property>
+		      </interface>
+		    </node>
+		    <node type="org.compiz.signalArgMap.string">
+		      <interface name="org.compiz.signalArgMap.int">
+			<property name="source" type="i">
+			  <default>6</default>
+			</property>
+		      </interface>
+		    </node>
+		  </interface>
+		</node>
+	      </interface>
+	    </node>
+	  </interface>
+	</node>
+      </interface>
+      <connect signal="notify" method="removePassiveKeyGrab"/>
+    </node>
     <node type="org.compiz.delegate.void">
       <interface name="org.compiz.delegate">
 	<property name="compress" type="b">
@@ -95,25 +205,6 @@
 	</node>
       </interface>
       <connect signal="notify" method="updateOutputDevices"/>
-    </node>
-    <node type="org.compiz.delegate.void">
-      <interface name="org.compiz.delegate">
-	<property name="compress" type="b">
-	  <default>true</default>
-	</property>
-	<node name="matches">
-	  <interface name="org.compiz.object">
-	    <node type="org.compiz.signalMatch.structureNotify">
-	      <interface name="org.compiz.signalMatch.structureNotify">
-		<property name="object" type="s">
-		  <default>keyGrabs</default>
-		</property>
-	      </interface>
-	    </node>
-	  </interface>
-	</node>
-      </interface>
-      <connect signal="notify" method="updatePassiveGrabs"/>
     </node>
     <node name="outputs">
       <interface name="org.compiz.object">
