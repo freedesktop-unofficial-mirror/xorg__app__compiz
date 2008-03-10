@@ -2124,6 +2124,37 @@ noopLowerWindow (CompWindow *w)
     FOR_BASE (&w->u.base.u.base, (*w->u.vTable->lower) (w));
 }
 
+static void
+menu (CompWindow *w,
+      int32_t    button,
+      int32_t    x,
+      int32_t    y,
+      int32_t    time)
+{
+    if (!w->screen->maxGrab)
+	toolkitAction (w->screen,
+		       w->screen->display->toolkitActionWindowMenuAtom,
+		       time,
+		       w->id,
+		       button,
+		       w->attrib.x + x,
+		       w->attrib.y + y);
+}
+
+static void
+noopMenu (CompWindow *w,
+	  int32_t    button,
+	  int32_t    x,
+	  int32_t    y,
+	  int32_t    time)
+{
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->menu) (w,
+						       button,
+						       x,
+						       y,
+						       time));
+}
+
 static int32_t
 windowVirtualModifiers (CompWindow *w,
 			int	   state)
@@ -2310,6 +2341,7 @@ static const CompWindowVTable windowObjectVTable = {
     .close = close,
     .raise = raiseWindow,
     .lower = lowerWindow,
+    .menu  = menu,
 
     /* public signals */
     .xButtonPress   = xButtonPress,
@@ -2323,6 +2355,7 @@ static const CompWindowVTable noopWindowObjectVTable = {
     .close	    = noopClose,
     .raise	    = noopRaiseWindow,
     .lower	    = noopLowerWindow,
+    .menu	    = noopMenu,
     .xButtonPress   = noopXButtonPress,
     .xButtonRelease = noopXButtonRelease,
     .xKeyPress      = noopXKeyPress,

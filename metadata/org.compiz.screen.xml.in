@@ -46,6 +46,14 @@
       <_long>Show run dialog</_long>
       <arg name="eventTime" type="i" direction="in"/>
     </method>
+    <method name="showDesktop">
+      <_short>Show Desktop</_short>
+      <_long>Minimize all windows and make desktop window visible</_long>
+    </method>
+    <method name="hideDesktop">
+      <_short>Hide Desktop</_short>
+      <_long>Unminimize all windows previously minimized when showing desktop</_long>
+    </method>
     <property name="detectOutputs" type="b">
       <_short>Detect Outputs</_short>
       <_long>Automatic detection of output devices</_long>

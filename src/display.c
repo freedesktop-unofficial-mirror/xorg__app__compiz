@@ -671,41 +671,6 @@ decreaseOpacity (CompDisplay     *d,
 }
 
 static Bool
-windowMenu (CompDisplay     *d,
-	    CompAction      *action,
-	    CompActionState state,
-	    CompOption      *option,
-	    int		    nOption)
-{
-    CompWindow *w;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "window", 0);
-
-    w = findTopLevelWindowAtDisplay (d, xid);
-    if (w)
-    {
-	int  x, y, button;
-	Time time;
-
-	time   = getIntOptionNamed (option, nOption, "time", CurrentTime);
-	button = getIntOptionNamed (option, nOption, "button", 0);
-	x      = getIntOptionNamed (option, nOption, "x", w->attrib.x);
-	y      = getIntOptionNamed (option, nOption, "y", w->attrib.y);
-
-	toolkitAction (w->screen,
-		       w->screen->display->toolkitActionWindowMenuAtom,
-		       time,
-		       w->id,
-		       button,
-		       x,
-		       y);
-    }
-
-    return TRUE;
-}
-
-static Bool
 toggleMaximized (CompDisplay     *d,
 		 CompAction      *action,
 		 CompActionState state,
@@ -835,8 +800,8 @@ const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "run_command_screenshot_key", "key", 0, 0, 0 },
     { "command_window_screenshot", "string", 0, 0, 0 },
     { "run_command_window_screenshot_key", "key", 0, 0, 0 },
-    { "window_menu_button", "button", 0, windowMenu, 0 },
-    { "window_menu_key", "key", 0, windowMenu, 0 },
+    { "window_menu_button", "button", 0, 0, 0 },
+    { "window_menu_key", "key", 0, 0, 0 },
     { "show_desktop_key", "key", 0, showDesktop, 0 },
     { "show_desktop_edge", "edge", 0, showDesktop, 0 },
     { "toggle_window_maximized_key", "key", 0, toggleMaximized, 0 },

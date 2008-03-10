@@ -767,6 +767,30 @@ noopRunDialog (CompScreen *s,
 }
 
 static void
+showDesktop (CompScreen *s)
+{
+    (*s->enterShowDesktopMode) (s);
+}
+
+static void
+noopShowDesktop (CompScreen *s)
+{
+    FOR_BASE (&s->u.base, (*s->u.vTable->showDesktop) (s));
+}
+
+static void
+hideDesktop (CompScreen *s)
+{
+    (*s->leaveShowDesktopMode) (s, NULL);
+}
+
+static void
+noopHideDesktop (CompScreen *s)
+{
+    FOR_BASE (&s->u.base, (*s->u.vTable->hideDesktop) (s));
+}
+
+static void
 updateStartupFeedback (CompScreen *s)
 {
     if (s->startupSequences)

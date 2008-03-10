@@ -2089,6 +2089,10 @@ typedef void (*MainMenuProc) (CompScreen *s,
 typedef void (*RunDialogProc) (CompScreen *s,
 			       int32_t    eventTime);
 
+typedef void (*ShowDesktopProc) (CompScreen *s);
+
+typedef void (*HideDesktopProc) (CompScreen *s);
+
 typedef void (*UpdatePassiveGrabsProc) (CompScreen *s);
 
 typedef struct _CompScreenVTable {
@@ -2103,6 +2107,8 @@ typedef struct _CompScreenVTable {
     RunCommandProc	      runCommand;
     MainMenuProc	      mainMenu;
     RunDialogProc	      runDialog;
+    ShowDesktopProc	      showDesktop;
+    HideDesktopProc	      hideDesktop;
 
     UpdatePassiveGrabsProc updatePassiveGrabs;
 } CompScreenVTable;
@@ -2632,6 +2638,12 @@ typedef void (*RaiseWindowProc) (CompWindow *w);
 
 typedef void (*LowerWindowProc) (CompWindow *w);
 
+typedef void (*WindowMenuProc) (CompWindow *w,
+				int32_t    button,
+				int32_t    x,
+				int32_t    y,
+				int32_t    time);
+
 typedef void (*XButtonEventProc) (CompWindow *w,
 				  int32_t    button,
 				  int32_t    state,
@@ -2654,6 +2666,7 @@ typedef struct _CompWindowVTable {
     CloseWindowProc close;
     RaiseWindowProc raise;
     RaiseWindowProc lower;
+    WindowMenuProc  menu;
 
     /* public signals */
     XButtonEventProc xButtonPress;

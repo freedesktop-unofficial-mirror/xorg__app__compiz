@@ -13,6 +13,10 @@
       <_short>Lower Window</_short>
       <_long>Lower window</_long>
     </method>
+    <method name="menu">
+      <_short>Window Menu</_short>
+      <_long>Show window menu</_long>
+    </method>
     <signal name="xButtonPress">
       <_short>Button Press</_short>
       <_long>Indicates that a button press event has occurred</_long>
