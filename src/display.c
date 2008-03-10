@@ -613,7 +613,7 @@ toggleSlowAnimations (CompDisplay     *d,
 
     s = findScreenAtDisplay (d, xid);
     if (s)
-	s->slowAnimations = !s->slowAnimations;
+	s->data.slowAnimations = !s->data.slowAnimations;
 
     return TRUE;
 }
@@ -1714,7 +1714,7 @@ eventLoop (CompRoot *root)
 
 			makeScreenCurrent (s);
 
-			if (s->slowAnimations)
+			if (s->data.slowAnimations)
 			{
 			    (*s->preparePaintScreen) (s,
 						      s->idle ? 2 :

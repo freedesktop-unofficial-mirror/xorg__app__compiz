@@ -2115,6 +2115,7 @@ typedef struct _CompScreenData {
     CompBool lighting;
     CompBool syncToVBlank;
     CompBool unredirectFullscreenWindows;
+    CompBool slowAnimations;
 
     uint32_t hSize;
     uint32_t numberOfDesktops;
@@ -2252,7 +2253,6 @@ struct _CompScreen {
     Bool clearBuffers;
 
     Bool lightingEnabled;
-    Bool slowAnimations;
 
     XRectangle workArea;
 

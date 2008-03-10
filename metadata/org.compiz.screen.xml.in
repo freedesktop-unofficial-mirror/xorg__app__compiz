@@ -71,6 +71,11 @@
       <_long>Allow drawing of fullscreen windows to not be redirected to offscreen pixmaps</_long>
       <default>false</default>
     </property>
+    <property name="slowAnimations" type="b">
+      <_short>Slow Animations</_short>
+      <_long>Use slow animations</_long>
+      <default>false</default>
+    </property>
     <property name="hSize" type="i">
       <_short>Horizontal Virtual Size</_short>
       <_long>Screen size multiplier for horizontal virtual size</_long>

@@ -1804,7 +1804,6 @@ screenInitObject (const CompObjectInstantiator *instantiator,
     s->optimalRedrawTime = s->redrawTime;
 
     s->lightingEnabled = FALSE;
-    s->slowAnimations  = FALSE;
 
     s->grabWindow = None;
 
@@ -1865,7 +1864,8 @@ static const CBoolProp screenTypeBoolProp[] = {
 	    .changed = detectRefreshRateChanged),
     C_PROP (lighting, CompScreenData),
     C_PROP (syncToVBlank, CompScreenData),
-    C_PROP (unredirectFullscreenWindows, CompScreenData)
+    C_PROP (unredirectFullscreenWindows, CompScreenData),
+    C_PROP (slowAnimations, CompScreenData)
 };
 
 static const CIntProp screenTypeIntProp[] = {
