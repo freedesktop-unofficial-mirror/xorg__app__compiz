@@ -83,8 +83,6 @@ Bool onlyCurrentScreen = FALSE;
 Bool useCow = TRUE;
 #endif
 
-CompMetadata coreMetadata;
-
 static void
 usage (void)
 {
@@ -609,15 +607,6 @@ main (int argc, char **argv)
     xmlInitParser ();
 
     LIBXML_TEST_VERSION;
-
-    if (!compInitMetadata (&coreMetadata))
-    {
-	compLogMessage (NULL, "core", CompLogLevelFatal,
-			"Couldn't initialize core metadata");
-	return 1;
-    }
-
-    compAddMetadataFromFile (&coreMetadata, "core");
 
     if (!compObjectInitByType (&context.factory.base, o, getRootObjectType ()))
 	return 1;

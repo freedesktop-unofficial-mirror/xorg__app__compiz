@@ -243,8 +243,7 @@ extern int lastPointerY;
 extern int pointerX;
 extern int pointerY;
 
-extern CompCore     core;
-extern CompMetadata coreMetadata;
+extern CompCore core;
 
 #define ARRAY_SIZE(array)		 \
     (sizeof (array) / sizeof (array[0]))
