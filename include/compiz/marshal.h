@@ -55,6 +55,14 @@ marshal__I__E (CompObject *object,
 	       CompArgs   *args);
 
 void
+marshal__II__E (CompObject *object,
+		CompBool   (*method) (CompObject *,
+				      int32_t     ,
+				      int32_t     ,
+				      char       **),
+		CompArgs   *args);
+
+void
 marshal__S__ (CompObject *object,
 	      void       (*method) (CompObject *,
 				    const char *),

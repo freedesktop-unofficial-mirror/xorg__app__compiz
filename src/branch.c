@@ -369,7 +369,14 @@ connectDescendants (CompBranch *b,
 					  checkSignal,
 					  (void *) &signal))
     {
-	esprintf (error, "Signal '%s' doesn't exist", signalName);
+	if (method.interface)
+	    esprintf (error, "Object '%s' has no '%s' interface with "
+		      "signal '%s'", target->name, signal.interface->name,
+		      signalName);
+	else
+	    esprintf (error, "Object '%s' has no '%s' signal", target->name,
+		      signalName);
+
 	return FALSE;
     }
 
@@ -400,7 +407,14 @@ connectDescendants (CompBranch *b,
 					  checkMethod,
 					  (void *) &method))
     {
-	esprintf (error, "Method '%s' doesn't exist", methodName);
+	if (method.interface)
+	    esprintf (error, "Object '%s' has no '%s' interface with "
+		      "method '%s'", target->name, method.interface->name,
+		      methodName);
+	else
+	    esprintf (error, "Object '%s' has no '%s' method", target->name,
+		      methodName);
+
 	free (signal.signature);
 	return FALSE;
     }

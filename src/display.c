@@ -46,11 +46,7 @@
 #include <compiz/c-object.h>
 #include <compiz/marshal.h>
 #include <compiz/error.h>
-
-static unsigned int virtualModMask[] = {
-    CompAltMask, CompMetaMask, CompSuperMask, CompHyperMask,
-    CompModeSwitchMask, CompNumLockMask, CompScrollLockMask
-};
+#include <compiz/keyboard.h>
 
 static CompScreen *targetScreen = NULL;
 static CompOutput *targetOutput;
@@ -1343,7 +1339,7 @@ void
 updateModifierMappings (CompDisplay *d)
 {
     unsigned int    modMask[CompModNum];
-    int		    i, minKeycode, maxKeycode, keysymsPerKeycode = 0;
+    int		    i, minKeycode, maxKeycode;
     KeySym*         key;
 
     for (i = 0; i < CompModNum; i++)
@@ -1352,7 +1348,7 @@ updateModifierMappings (CompDisplay *d)
     XDisplayKeycodes (d->display, &minKeycode, &maxKeycode);
     key = XGetKeyboardMapping (d->display,
 			       minKeycode, (maxKeycode - minKeycode + 1),
-			       &keysymsPerKeycode);
+			       &d->keysymsPerKeycode);
 
     if (d->modMap)
 	XFreeModifiermap (d->modMap);
@@ -1376,7 +1372,7 @@ updateModifierMappings (CompDisplay *d)
 		keysym = XKeycodeToKeysym (d->display,
 					   d->modMap->modifiermap[i],
 					   index++);
-	    } while (!keysym && index < keysymsPerKeycode);
+	    } while (!keysym && index < d->keysymsPerKeycode);
 
 	    if (keysym)
 	    {
@@ -1443,21 +1439,18 @@ updateModifierMappings (CompDisplay *d)
 }
 
 unsigned int
-virtualToRealModMask (CompDisplay  *d,
-		      unsigned int modMask)
+virtualToRealModMask (CompDisplay *d,
+		      int	  modifiers)
 {
-    int i;
+    unsigned int state = (modifiers & ShiftMask) |
+	((modifiers & (1 << KEYBOARD_MODIFIER_CONTROL)) << 1);
+    int		 i;
 
-    for (i = 0; i < CompModNum; i++)
-    {
-	if (modMask & virtualModMask[i])
-	{
-	    modMask &= ~virtualModMask[i];
-	    modMask |= d->modMask[i];
-	}
-    }
+    for (i = 2; i < KEYBOARD_MODIFIER_NUM; i++)
+	if (modifiers & (1 << i))
+	    state |= d->modMask[i - 2];
 
-    return modMask;
+    return state;
 }
 
 unsigned int
@@ -1998,10 +1991,12 @@ eventLoop (CompRoot *root)
 			/* remove destroyed windows */
 			while (s->pendingDestroys)
 			{
-			    CompWindow *w;
+			    CompWindow *w, *next;
 
-			    for (w = s->windows; w; w = w->next)
+			    for (w = s->windows; w; w = next)
 			    {
+				next = w->next;
+
 				if (w->destroyed)
 				{
 				    addWindowDamage (w);
@@ -2185,6 +2180,8 @@ displayInitObject (const CompObjectInstantiator *instantiator,
 	d->modMask[i] = CompNoMask;
 
     d->ignoredModMask = LockMask;
+
+    d->keysymsPerKeycode = 0;
 
     d->modState		   = 0;
     d->lastKeyEventTime	   = 0;

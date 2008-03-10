@@ -400,10 +400,43 @@ noopUpdateOutputDevices (CompScreen *s)
     FOR_BASE (&s->u.base, (*s->u.vTable->updateOutputDevices) (s));
 }
 
+typedef void (*GrabUngrabKeyProc) (Display      *xdisplay,
+				   KeyCode      keycode,
+				   unsigned int modifiers,
+				   Window	window);
+
+static void
+grabKey (Display      *xdisplay,
+	 KeyCode      keycode,
+	 unsigned int modifiers,
+	 Window	      window)
+{
+    XGrabKey (xdisplay,
+	      keycode,
+	      modifiers,
+	      window,
+	      TRUE,
+	      GrabModeAsync,
+	      GrabModeAsync);
+}
+
+static void
+ungrabKey (Display      *xdisplay,
+	   KeyCode      keycode,
+	   unsigned int modifiers,
+	   Window	window)
+{
+    XUngrabKey (xdisplay,
+		keycode,
+		modifiers,
+		window);
+}
+
 static Bool
-grabKeys (CompScreen   *s,
-	  int          keycode,
-	  unsigned int modifiers)
+grabUngrabKeys (CompScreen	  *s,
+		int		  keycode,
+		unsigned int	  modifiers,
+		GrabUngrabKeyProc proc)
 {
     XModifierKeymap *modMap = s->display->modMap;
     int		    ignore, mod, k;
@@ -417,13 +450,10 @@ grabKeys (CompScreen   *s,
 
 	if (keycode != 0)
 	{
-	    XGrabKey (s->display->display,
-		      keycode,
-		      modifiers | ignore,
-		      s->root,
-		      TRUE,
-		      GrabModeAsync,
-		      GrabModeAsync);
+	    (*proc) (s->display->display,
+		     keycode,
+		     modifiers | ignore,
+		     s->root);
 	}
 	else
 	{
@@ -436,13 +466,10 @@ grabKeys (CompScreen   *s,
 			 k++)
 		    {
 			if (modMap->modifiermap[k])
-			    XGrabKey (s->display->display,
-				      modMap->modifiermap[k],
-				      (modifiers & ~(1 << mod)) | ignore,
-				      s->root,
-				      TRUE,
-				      GrabModeAsync,
-				      GrabModeAsync);
+			    (*proc) (s->display->display,
+				     modMap->modifiermap[k],
+				     (modifiers & ~(1 << mod)) | ignore,
+				     s->root);
 		    }
 		}
 	    }
@@ -464,55 +491,214 @@ updatePassiveGrabs (CompScreen *s)
 
     for (i = 0; i < s->nKeyGrab; i++)
 	if (!(s->keyGrab[i].modifiers & CompNoMask))
-	    grabKeys (s, s->keyGrab[i].keycode, s->keyGrab[i].modifiers);
-
-    for (i = 0; i < s->data.keyGrabs.nChild; i++)
-    {
-	CompKeyEventDescription *ked;
-
-	ked = COMP_TYPE_CAST (s->data.keyGrabs.child[i].ref,
-			      getKeyEventDescriptionObjectType (),
-			      CompKeyEventDescription);
-	if (ked)
-	{
-	    int          j;
-	    unsigned int mask =
-		ked->data.modifiers & (ShiftMask | LockMask | ControlMask);
-
-	    for (j = 0; j < CompModNum; j++)
-		if (ked->data.modifiers & (1 << (j + 3)))
-		    mask |= s->display->modMask[j];
-
-	    if (mask)
-	    {
-		KeySym keysym;
-
-		keysym = XStringToKeysym (ked->data.key);
-		if (keysym != NoSymbol)
-		{
-		    KeyCode keycode;
-
-		    keycode = XKeysymToKeycode (s->display->display, keysym);
-		    if (keycode)
-		    {
-			for (j = 0; j < s->nKeyGrab; j++)
-			    if (keycode == s->keyGrab[j].keycode &&
-				mask    == s->keyGrab[j].modifiers)
-				break;
-
-			if (j == s->nKeyGrab)
-			    grabKeys (s, keycode, mask);
-		    }
-		}
-	    }
-	}
-    }
+	    grabUngrabKeys (s,
+			    s->keyGrab[i].keycode,
+			    s->keyGrab[i].modifiers,
+			    grabKey);
 }
 
 static void
 noopUpdatePassiveGrabs (CompScreen *s)
 {
     FOR_BASE (&s->u.base, (*s->u.vTable->updatePassiveGrabs) (s));
+}
+
+static CompBool
+addPassiveXKeyGrab (CompScreen *s,
+		    int32_t    keycode,
+		    int32_t    modifiers,
+		    char       **error)
+{
+    CompKeyGrab  *keyGrab;
+    unsigned int mask;
+    KeyCode	 code = keycode;
+    int          i;
+
+    mask = virtualToRealModMask (s->display, modifiers);
+
+    for (i = 0; i < s->nKeyGrab; i++)
+    {
+	if (code == s->keyGrab[i].keycode &&
+	    mask == s->keyGrab[i].modifiers)
+	{
+	    s->keyGrab[i].count++;
+	    return TRUE;
+	}
+    }
+
+    keyGrab = realloc (s->keyGrab, sizeof (CompKeyGrab) * (s->nKeyGrab + 1));
+    if (!keyGrab)
+    {
+	esprintf (error, NO_MEMORY_ERROR_STRING);
+	return FALSE;
+    }
+
+    keyGrab[s->nKeyGrab].keycode   = code;
+    keyGrab[s->nKeyGrab].modifiers = mask;
+    keyGrab[s->nKeyGrab].count     = 1;
+
+    s->keyGrab = keyGrab;
+    s->nKeyGrab++;
+
+    if (!(mask & CompNoMask))
+	grabUngrabKeys (s, code, mask, grabKey);
+
+    return TRUE;
+}
+
+static CompBool
+noopAddPassiveXKeyGrab (CompScreen *s,
+			int32_t    keycode,
+			int32_t    modifiers,
+			char       **error)
+{
+    CompBool status;
+
+    FOR_BASE (&s->u.base,
+	      status = (*s->u.vTable->addPassiveXKeyGrab) (s,
+							   keycode,
+							   modifiers,
+							   error));
+
+    return status;
+}
+
+static CompBool
+removePassiveXKeyGrab (CompScreen *s,
+		       int32_t    keycode,
+		       int32_t    modifiers,
+		       char       **error)
+{
+    unsigned int mask;
+    KeyCode	 code = keycode;
+    int          i;
+
+    mask = virtualToRealModMask (s->display, modifiers);
+
+    for (i = 0; i < s->nKeyGrab; i++)
+    {
+	if (code == s->keyGrab[i].keycode &&
+	    mask == s->keyGrab[i].modifiers)
+	{
+	    s->keyGrab[i].count--;
+	    if (s->keyGrab[i].count)
+		return TRUE;
+
+	    memmove (s->keyGrab + i, s->keyGrab + i + 1,
+		     (s->nKeyGrab - (i + 1)) * sizeof (CompKeyGrab));
+
+	    s->nKeyGrab--;
+	    s->keyGrab = realloc (s->keyGrab,
+				  sizeof (CompKeyGrab) * s->nKeyGrab);
+
+	    if (!(mask & CompNoMask))
+		grabUngrabKeys (s, code, mask, ungrabKey);
+	}
+    }
+
+    esprintf (error, "Passive grab of keycode '0x%x' and modifiers '%d' "
+	      "doesn't exist", keycode, modifiers);
+
+    return FALSE;
+}
+
+static CompBool
+noopRemovePassiveXKeyGrab (CompScreen *s,
+			   int32_t    keycode,
+			   int32_t    modifiers,
+			   char       **error)
+{
+    CompBool status;
+
+    FOR_BASE (&s->u.base,
+	      status = (*s->u.vTable->removePassiveXKeyGrab) (s,
+							      keycode,
+							      modifiers,
+							      error));
+
+    return status;
+}
+
+static CompBool
+addPassiveKeyGrab (CompScreen *s,
+		   const char *key,
+		   int32_t    modifiers,
+		   char	      **error)
+{
+    KeySym  keysym;
+    KeyCode keycode;
+
+    keysym = XStringToKeysym (key);
+    if (keysym == NoSymbol)
+    {
+	esprintf (error, "Cannot convert '%s' key to X11 keysym", key);
+	return FALSE;
+    }
+
+    keycode = XKeysymToKeycode (s->display->display, keysym);
+
+    return (*s->u.vTable->addPassiveXKeyGrab) (s,
+					       keycode,
+					       modifiers,
+					       error);
+}
+
+static CompBool
+noopAddPassiveKeyGrab (CompScreen *s,
+		       const char *key,
+		       int32_t    modifiers,
+		       char       **error)
+{
+    CompBool status;
+
+    FOR_BASE (&s->u.base,
+	      status = (*s->u.vTable->addPassiveKeyGrab) (s,
+							  key,
+							  modifiers,
+							  error));
+
+    return status;
+}
+
+static CompBool
+removePassiveKeyGrab (CompScreen *s,
+		      const char *key,
+		      int32_t    modifiers,
+		      char	 **error)
+{
+    KeySym  keysym;
+    KeyCode keycode;
+
+    keysym = XStringToKeysym (key);
+    if (keysym == NoSymbol)
+    {
+	esprintf (error, "Cannot convert '%s' key to X11 keysym", key);
+	return FALSE;
+    }
+
+    keycode = XKeysymToKeycode (s->display->display, keysym);
+
+    return (*s->u.vTable->removePassiveXKeyGrab) (s,
+						  keycode,
+						  modifiers,
+						  error);
+}
+
+static CompBool
+noopRemovePassiveKeyGrab (CompScreen *s,
+			  const char *key,
+			  int32_t    modifiers,
+			  char       **error)
+{
+    CompBool status;
+
+    FOR_BASE (&s->u.base,
+	      status = (*s->u.vTable->removePassiveKeyGrab) (s,
+							     key,
+							     modifiers,
+							     error));
+
+    return status;
 }
 
 static void
@@ -1595,22 +1781,38 @@ screenInitObject (const CompObjectInstantiator *instantiator,
 }
 
 static const CompScreenVTable screenObjectVTable = {
-    .base.getProp        = screenGetProp,
-    .updateOutputDevices = updateOutputDevices,
-    .updatePassiveGrabs  = updatePassiveGrabs,
-    .runCommand          = runCommand
+    .base.getProp = screenGetProp,
+
+    .updateOutputDevices   = updateOutputDevices,
+    .updatePassiveGrabs    = updatePassiveGrabs,
+    .addPassiveXKeyGrab    = addPassiveXKeyGrab,
+    .removePassiveXKeyGrab = removePassiveXKeyGrab,
+    .addPassiveKeyGrab     = addPassiveKeyGrab,
+    .removePassiveKeyGrab  = removePassiveKeyGrab,
+    .runCommand            = runCommand
 };
 
 static const CompScreenVTable noopScreenObjectVTable = {
-    .updateOutputDevices = noopUpdateOutputDevices,
-    .updatePassiveGrabs  = noopUpdatePassiveGrabs,
-    .runCommand          = noopRunCommand
+    .updateOutputDevices   = noopUpdateOutputDevices,
+    .updatePassiveGrabs    = noopUpdatePassiveGrabs,
+    .addPassiveXKeyGrab    = noopAddPassiveXKeyGrab,
+    .removePassiveXKeyGrab = noopRemovePassiveXKeyGrab,
+    .addPassiveKeyGrab     = noopAddPassiveKeyGrab,
+    .removePassiveKeyGrab  = noopRemovePassiveKeyGrab,
+    .runCommand            = noopRunCommand
 };
 
 static const CMethod screenTypeMethod[] = {
-    C_METHOD (updateOutputDevices, "",  "", CompScreenVTable, marshal____),
-    C_METHOD (updatePassiveGrabs,  "",  "", CompScreenVTable, marshal____),
-    C_METHOD (runCommand,          "s", "", CompScreenVTable, marshal__S__)
+    C_METHOD (updateOutputDevices,   "",   "", CompScreenVTable, marshal____),
+    C_METHOD (addPassiveXKeyGrab,    "ii", "", CompScreenVTable,
+	      marshal__II__E),
+    C_METHOD (removePassiveXKeyGrab, "ii", "", CompScreenVTable,
+	      marshal__II__E),
+    C_METHOD (addPassiveKeyGrab,     "si", "", CompScreenVTable,
+	      marshal__SI__E),
+    C_METHOD (removePassiveKeyGrab,  "si", "", CompScreenVTable,
+	      marshal__SI__E),
+    C_METHOD (runCommand,            "s",  "", CompScreenVTable, marshal__S__)
 };
 
 static const CBoolProp screenTypeBoolProp[] = {
@@ -1638,8 +1840,7 @@ static const CStringProp screenTypeStringProp[] = {
 
 static const CChildObject screenTypeChildObject[] = {
     C_CHILD (windows,  CompScreenData, COMPIZ_OBJECT_TYPE_NAME),
-    C_CHILD (outputs,  CompScreenData, COMPIZ_OBJECT_TYPE_NAME),
-    C_CHILD (keyGrabs, CompScreenData, COMPIZ_OBJECT_TYPE_NAME)
+    C_CHILD (outputs,  CompScreenData, COMPIZ_OBJECT_TYPE_NAME)
 };
 
 const CompObjectType *
@@ -2753,78 +2954,16 @@ otherScreenGrabExist (CompScreen *s, ...)
     return FALSE;
 }
 
-static Bool
-addPassiveKeyGrab (CompScreen		*s,
-		   const CompKeyBinding *key)
-{
-    CompKeyGrab  *keyGrab;
-    unsigned int mask;
-    int          i;
-
-    mask = virtualToRealModMask (s->display, key->modifiers);
-
-    for (i = 0; i < s->nKeyGrab; i++)
-    {
-	if (key->keycode == s->keyGrab[i].keycode &&
-	    mask         == s->keyGrab[i].modifiers)
-	{
-	    s->keyGrab[i].count++;
-	    return TRUE;
-	}
-    }
-
-    keyGrab = realloc (s->keyGrab, sizeof (CompKeyGrab) * (s->nKeyGrab + 1));
-    if (!keyGrab)
-	return FALSE;
-
-    keyGrab[s->nKeyGrab].keycode   = key->keycode;
-    keyGrab[s->nKeyGrab].modifiers = mask;
-    keyGrab[s->nKeyGrab].count     = 1;
-
-    s->keyGrab = keyGrab;
-    s->nKeyGrab++;
-
-    (*s->u.vTable->updatePassiveGrabs) (s);
-
-    return TRUE;
-}
-
-static void
-removePassiveKeyGrab (CompScreen	   *s,
-		      const CompKeyBinding *key)
-{
-    unsigned int mask;
-    int          i;
-
-    for (i = 0; i < s->nKeyGrab; i++)
-    {
-	mask = virtualToRealModMask (s->display, key->modifiers);
-	if (key->keycode == s->keyGrab[i].keycode &&
-	    mask         == s->keyGrab[i].modifiers)
-	{
-	    s->keyGrab[i].count--;
-	    if (s->keyGrab[i].count)
-		return;
-
-	    memmove (s->keyGrab + i, s->keyGrab + i + 1,
-		     (s->nKeyGrab - (i + 1)) * sizeof (CompKeyGrab));
-
-	    s->nKeyGrab--;
-	    s->keyGrab = realloc (s->keyGrab,
-				  sizeof (CompKeyGrab) * s->nKeyGrab);
-
-	    (*s->u.vTable->updatePassiveGrabs) (s);
-	}
-    }
-}
-
 Bool
 addScreenAction (CompScreen	  *s,
 		 const CompAction *action)
 {
     if (action->type & CompBindingTypeKey)
     {
-	if (!addPassiveKeyGrab (s, &action->key))
+	if (!(*s->u.vTable->addPassiveXKeyGrab) (s,
+						 action->key.keycode,
+						 action->key.modifiers,
+						 NULL))
 	    return FALSE;
     }
 
@@ -2845,7 +2984,10 @@ removeScreenAction (CompScreen	     *s,
 		    const CompAction *action)
 {
     if (action->type & CompBindingTypeKey)
-	removePassiveKeyGrab (s, &action->key);
+	(*s->u.vTable->removePassiveXKeyGrab) (s,
+					       action->key.keycode,
+					       action->key.modifiers,
+					       NULL);
 
     if (action->edgeMask)
     {

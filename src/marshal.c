@@ -81,6 +81,27 @@ marshal__I__E (CompObject *object,
 }
 
 void
+marshal__II__E (CompObject *object,
+		CompBool   (*method) (CompObject *,
+				      int32_t     ,
+				      int32_t     ,
+				      char       **),
+		CompArgs   *args)
+{
+    int32_t in0;
+    int32_t in1;
+    char    *error;
+
+    (*args->load) (args, COMP_TYPE_INT32, &in0);
+    (*args->load) (args, COMP_TYPE_INT32, &in1);
+
+    if (!(*method) (object, in0, in1, &error))
+    {
+	(*args->error) (args, error);
+    }
+}
+
+void
 marshal__S__ (CompObject *object,
 	      void       (*method) (CompObject *,
 				    const char *),

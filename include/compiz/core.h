@@ -405,13 +405,13 @@ typedef enum {
 } CompLogLevel;
 
 typedef struct _CompKeyBinding {
-    int		 keycode;
-    unsigned int modifiers;
+    int	keycode;
+    int modifiers;
 } CompKeyBinding;
 
 typedef struct _CompButtonBinding {
-    int		 button;
-    unsigned int modifiers;
+    int	button;
+    int modifiers;
 } CompButtonBinding;
 
 typedef struct _CompAction CompAction;
@@ -1153,6 +1153,7 @@ struct _CompDisplay {
     XModifierKeymap *modMap;
     unsigned int    modMask[CompModNum];
     unsigned int    ignoredModMask;
+    int		    keysymsPerKeycode;
 
     KeyCode escapeKeyCode;
     KeyCode returnKeyCode;
@@ -1262,8 +1263,8 @@ findTopLevelWindowAtDisplay (CompDisplay *d,
 			     Window      id);
 
 unsigned int
-virtualToRealModMask (CompDisplay  *d,
-		      unsigned int modMask);
+virtualToRealModMask (CompDisplay *d,
+		      int	  modifiers);
 
 void
 updateModifierMappings (CompDisplay *d);
@@ -1969,12 +1970,6 @@ typedef struct _CompKeyGrab {
     int		 count;
 } CompKeyGrab;
 
-typedef struct _CompButtonGrab {
-    int		 button;
-    unsigned int modifiers;
-    int		 count;
-} CompButtonGrab;
-
 typedef struct _CompGrab {
     Bool       active;
     Cursor     cursor;
@@ -2065,16 +2060,43 @@ typedef struct _CompActiveWindowHistory {
 
 typedef void (*UpdateOutputDevicesProc) (CompScreen *s);
 
-typedef void (*UpdatePassiveGrabsProc) (CompScreen *s);
+typedef CompBool (*AddPassiveXKeyGrabProc) (CompScreen *s,
+					    int32_t    keycode,
+					    int32_t    modifiers,
+					    char       **error);
+
+typedef CompBool (*RemovePassiveXKeyGrabProc) (CompScreen *s,
+					       int32_t    keycode,
+					       int32_t    modifiers,
+					       char       **error);
+
+typedef CompBool (*AddPassiveKeyGrabProc) (CompScreen *s,
+					   const char *key,
+					   int32_t    modifiers,
+					   char       **error);
+
+typedef CompBool (*RemovePassiveKeyGrabProc) (CompScreen *s,
+					      const char *key,
+					      int32_t    modifiers,
+					      char       **error);
 
 typedef void (*RunCommandProc) (CompScreen *s,
 				const char *command);
 
+typedef void (*UpdatePassiveGrabsProc) (CompScreen *s);
+
 typedef struct _CompScreenVTable {
-    CompObjectVTable        base;
-    UpdateOutputDevicesProc updateOutputDevices;
-    UpdatePassiveGrabsProc  updatePassiveGrabs;
-    RunCommandProc	    runCommand;
+    CompObjectVTable base;
+
+    /* public methods */
+    UpdateOutputDevicesProc   updateOutputDevices;
+    AddPassiveXKeyGrabProc    addPassiveXKeyGrab;
+    RemovePassiveXKeyGrabProc removePassiveXKeyGrab;
+    AddPassiveKeyGrabProc     addPassiveKeyGrab;
+    RemovePassiveKeyGrabProc  removePassiveKeyGrab;
+    RunCommandProc	      runCommand;
+
+    UpdatePassiveGrabsProc updatePassiveGrabs;
 } CompScreenVTable;
 
 typedef struct _CompScreenData {
@@ -2097,7 +2119,6 @@ typedef struct _CompScreenData {
 
     CompObject windows;
     CompObject outputs;
-    CompObject keyGrabs;
 } CompScreenData;
 
 struct _CompScreen {
@@ -2628,7 +2649,7 @@ typedef struct _CompWindowVTable {
     XBellProc	     xBell;
 } CompWindowVTable;
 
-typedef struct _CompWindowata {
+typedef struct _CompWindowData {
     CompObjectData base;
     CompBool       focusStealingPrevention;
 } CompWindowData;

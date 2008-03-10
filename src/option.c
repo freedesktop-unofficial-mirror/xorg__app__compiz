@@ -30,23 +30,19 @@
 #include <math.h>
 
 #include <compiz/core.h>
+#include <compiz/keyboard.h>
 
 struct _Modifier {
     char *name;
     int  modifier;
 } modifiers[] = {
-    { "<Shift>",      ShiftMask		 },
-    { "<Control>",    ControlMask	 },
-    { "<Mod1>",	      Mod1Mask		 },
-    { "<Mod2>",	      Mod2Mask		 },
-    { "<Mod3>",	      Mod3Mask		 },
-    { "<Mod4>",	      Mod4Mask		 },
-    { "<Mod5>",	      Mod5Mask		 },
-    { "<Alt>",	      CompAltMask        },
-    { "<Meta>",	      CompMetaMask       },
-    { "<Super>",      CompSuperMask      },
-    { "<Hyper>",      CompHyperMask	 },
-    { "<ModeSwitch>", CompModeSwitchMask }
+    { "<Shift>",      1 << KEYBOARD_MODIFIER_SHIFT       },
+    { "<Control>",    1 << KEYBOARD_MODIFIER_CONTROL	 },
+    { "<Alt>",	      1 << KEYBOARD_MODIFIER_ALT         },
+    { "<Meta>",	      1 << KEYBOARD_MODIFIER_META        },
+    { "<Super>",      1 << KEYBOARD_MODIFIER_SUPER       },
+    { "<Hyper>",      1 << KEYBOARD_MODIFIER_HYPER	 },
+    { "<ModeSwitch>", 1 << KEYBOARD_MODIFIER_MODE_SWITCH }
 };
 
 #define N_MODIFIERS (sizeof (modifiers) / sizeof (struct _Modifier))
@@ -678,7 +674,7 @@ buttonActionToString (CompDisplay      *d,
     return binding;
 }
 
-static unsigned int
+static int
 stringToModifiers (CompDisplay *d,
 		   const char  *binding)
 {

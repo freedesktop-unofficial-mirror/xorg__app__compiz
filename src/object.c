@@ -1726,8 +1726,12 @@ getBoolProp (CompObject *object,
 	     CompBool   *value,
 	     char	**error)
 {
-    if (error)
-	*error = strdup ("No such boolean property");
+    if (*interface)
+	esprintf (error, "Object '%s' has no '%s' interface with boolean "
+		  "property '%s'", object->name, interface, name);
+    else
+	esprintf (error, "Object '%s' has no boolean property '%s'",
+		  object->name, name);
 
     return FALSE;
 }
@@ -1757,8 +1761,14 @@ setBoolProp (CompObject *object,
 	     CompBool   value,
 	     char       **error)
 {
-    if (error)
-	*error = strdup ("No such boolean property");
+    if (*interface)
+	esprintf (error, "Object '%s' has no '%s' interface with boolean "
+		  "property '%s' that can be set to '%s'",
+		  object->name, interface, name, value ? "true" : "false");
+    else
+	esprintf (error, "Object '%s' has no boolean property '%s' "
+		  "that can be set to '%s'",
+		  object->name, name, value ? "true" : "false");
 
     return FALSE;
 }
@@ -1819,8 +1829,12 @@ getIntProp (CompObject *object,
 	     int32_t    *value,
 	     char	**error)
 {
-    if (error)
-	*error = strdup ("No such int32 property");
+    if (*interface)
+	esprintf (error, "Object '%s' has no '%s' interface with int32 "
+		  "property '%s'", object->name, interface, name);
+    else
+	esprintf (error, "Object '%s' has no int32 property '%s'",
+		  object->name, name);
 
     return FALSE;
 }
@@ -1850,8 +1864,14 @@ setIntProp (CompObject *object,
 	    int32_t    value,
 	    char       **error)
 {
-    if (error)
-	*error = strdup ("No such int32 property");
+    if (*interface)
+	esprintf (error, "Object '%s' has no '%s' interface with int32 "
+		  "property '%s' that can be set to '%d'",
+		  object->name, interface, name, value);
+    else
+	esprintf (error, "Object '%s' has no int32 property '%s' "
+		  "that can be set to '%d'",
+		  object->name, name, value);
 
     return FALSE;
 }
@@ -1912,8 +1932,12 @@ getDoubleProp (CompObject *object,
 	       double     *value,
 	       char	  **error)
 {
-    if (error)
-	*error = strdup ("No such double property");
+    if (*interface)
+	esprintf (error, "Object '%s' has no '%s' interface with double "
+		  "property '%s'", object->name, interface, name);
+    else
+	esprintf (error, "Object '%s' has no double property '%s'",
+		  object->name, name);
 
     return FALSE;
 }
@@ -1943,8 +1967,14 @@ setDoubleProp (CompObject *object,
 	       double     value,
 	       char       **error)
 {
-    if (error)
-	*error = strdup ("No such double property");
+    if (*interface)
+	esprintf (error, "Object '%s' has no '%s' interface with double "
+		  "property '%s' that can be set to '%f'",
+		  object->name, interface, name, value);
+    else
+	esprintf (error, "Object '%s' has no double property '%s' "
+		  "that can be set to '%f'",
+		  object->name, name, value);
 
     return FALSE;
 }
@@ -2006,8 +2036,12 @@ getStringProp (CompObject *object,
 	       char       **value,
 	       char	  **error)
 {
-    if (error)
-	*error = strdup ("No such string property");
+    if (*interface)
+	esprintf (error, "Object '%s' has no '%s' interface with string "
+		  "property '%s'", object->name, interface, name);
+    else
+	esprintf (error, "Object '%s' has no string property '%s'",
+		  object->name, name);
 
     return FALSE;
 }
@@ -2037,8 +2071,14 @@ setStringProp (CompObject *object,
 	       const char *value,
 	       char       **error)
 {
-    if (error)
-	*error = strdup ("No such string property");
+    if (*interface)
+	esprintf (error, "Object '%s' has no '%s' interface with string "
+		  "property '%s' that can be set to '%s'",
+		  object->name, interface, name, value);
+    else
+	esprintf (error, "Object '%s' has no string property '%s' "
+		  "that can be set to '%s'",
+		  object->name, name, value);
 
     return FALSE;
 }

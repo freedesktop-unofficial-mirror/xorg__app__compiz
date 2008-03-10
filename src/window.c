@@ -37,6 +37,7 @@
 #include <assert.h>
 
 #include <compiz/core.h>
+#include <compiz/keyboard.h>
 #include <compiz/c-object.h>
 #include <compiz/error.h>
 #include <compiz/marshal.h>
@@ -1786,12 +1787,12 @@ windowVirtualModifiers (CompWindow *w,
 			int	   state)
 {
     CompDisplay *d = w->screen->display;
-    int		i, virtualModifiers =
-	state & (ShiftMask | LockMask | ControlMask);
+    int		i, virtualModifiers = (state & ShiftMask) |
+	((state & ControlMask) >> 1);
 
-    for (i = 0; i < CompModNum; i++)
-	if (d->modMask[i] & state)
-	    virtualModifiers |= (1 << (i + 3));
+    for (i = 2; i < KEYBOARD_MODIFIER_NUM; i++)
+	if (d->modMask[i - 2] & state)
+	    virtualModifiers |= 1 << i;
 
     return virtualModifiers;
 }
@@ -1872,22 +1873,25 @@ xKeyPress (CompWindow *w,
 	   int32_t    state,
 	   int32_t    time)
 {
-    int32_t virtualModifiers = windowVirtualModifiers (w, state);
-    KeySym  keysym;
-    int     i;
+    KeySym keysym;
+    int    index;
 
     C_EMIT_SIGNAL (&w->u.base.u.base, XKeyEventProc,
 		   offsetof (CompWindowVTable, xKeyPress),
 		   keycode, state, time);
 
-    keysym = XKeycodeToKeysym (w->screen->display->display, keycode, 0);
-    for (i = 1; keysym != NoSymbol; i++)
+    index = 0;
+    do
     {
+	keysym = XKeycodeToKeysym (w->screen->display->display,
+				   keycode,
+				   index++);
+    } while (!keysym && index < w->screen->display->keysymsPerKeycode);
+
+    if (keysym)
 	(*w->u.base.u.vTable->keyPress) (&w->u.base,
 					 XKeysymToString (keysym),
-					 virtualModifiers);
-	keysym = XKeycodeToKeysym (w->screen->display->display, keycode, i);
-    }
+					 windowVirtualModifiers (w, state));
 }
 
 static void
@@ -1908,22 +1912,25 @@ xKeyRelease (CompWindow *w,
 	     int32_t    state,
 	     int32_t    time)
 {
-    int32_t virtualModifiers = windowVirtualModifiers (w, state);
-    KeySym  keysym;
-    int     i;
+    KeySym keysym;
+    int    index;
 
     C_EMIT_SIGNAL (&w->u.base.u.base, XKeyEventProc,
 		   offsetof (CompWindowVTable, xKeyRelease),
 		   keycode, state, time);
 
-    keysym = XKeycodeToKeysym (w->screen->display->display, keycode, 0);
-    for (i = 1; keysym != NoSymbol; i++)
+    index = 0;
+    do
     {
+	keysym = XKeycodeToKeysym (w->screen->display->display,
+				   keycode,
+				   index++);
+    } while (!keysym && index < w->screen->display->keysymsPerKeycode);
+
+    if (keysym)
 	(*w->u.base.u.vTable->keyRelease) (&w->u.base,
 					   XKeysymToString (keysym),
-					   virtualModifiers);
-	keysym = XKeycodeToKeysym (w->screen->display->display, keycode, i);
-    }
+					   windowVirtualModifiers (w, state));
 }
 
 static void
