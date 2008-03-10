@@ -127,20 +127,43 @@ const CompObjectType *
 getStructureNotifySignalMatchObjectType (void);
 
 
+typedef struct _CompKeyEventSignalMatch CompKeyEventSignalMatch;
+
+typedef void (*KeyEventUpdateStateProc) (CompKeyEventSignalMatch *kesm);
+
+typedef void (*KeyEventStateChangeProc) (CompKeyEventSignalMatch *kesm,
+					 const char		 *key,
+					 int32_t		 modifiers);
+
+typedef struct _CompKeyEventSignalMatchVTable {
+    CompSignalMatchVTable base;
+
+    /* public methods */
+    KeyEventUpdateStateProc updateState;
+
+    /* public signals */
+    KeyEventStateChangeProc newState;
+    KeyEventStateChangeProc oldState;
+} CompKeyEventSignalMatchVTable;
+
 typedef struct _CompKeyEventSignalMatchData {
     CompObjectData base;
 
-    CompKeyEventDescription key;
+    char    *key;
+    int32_t modifiers;
 } CompKeyEventSignalMatchData;
 
-typedef struct _CompKeyEventSignalMatch {
+struct _CompKeyEventSignalMatch {
     union {
-	CompSignalMatch		    base;
-	const CompSignalMatchVTable *vTable;
+	CompSignalMatch			    base;
+	const CompKeyEventSignalMatchVTable *vTable;
     } u;
 
     CompKeyEventSignalMatchData data;
-} CompKeyEventSignalMatch;
+
+    char    *oldKey;
+    int32_t oldModifiers;
+};
 
 #define GET_KEY_EVENT_SIGNAL_MATCH(object) \
     ((CompKeyEventSignalMatch *) (object))

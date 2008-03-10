@@ -23,6 +23,7 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <compiz/signal-match.h>
@@ -31,6 +32,7 @@
 #include <compiz/keyboard.h>
 #include <compiz/pointer.h>
 #include <compiz/c-object.h>
+#include <compiz/marshal.h>
 
 static void
 signalMatchGetProp (CompObject   *object,
@@ -386,6 +388,49 @@ getStructureNotifySignalMatchObjectType (void)
     return type;
 }
 
+static CompBool
+keyEventSignalMatchInit (CompObject *object)
+{
+    KEY_EVENT_SIGNAL_MATCH (object);
+
+    kesm->oldKey       = NULL;
+    kesm->oldModifiers = 0;
+
+    return TRUE;
+}
+
+static void
+keyEventSignalMatchFini (CompObject *object)
+{
+    KEY_EVENT_SIGNAL_MATCH (object);
+
+    if (kesm->oldKey)
+	free (kesm->oldKey);
+}
+
+static void
+keyEventSignalMatchInsert (CompObject *object,
+			   CompObject *parent)
+{
+    KEY_EVENT_SIGNAL_MATCH (object);
+
+    if (kesm->oldKey)
+	(*kesm->u.vTable->newState) (kesm,
+				     kesm->oldKey,
+				     kesm->oldModifiers);
+}
+
+static void
+keyEventSignalMatchRemove (CompObject *object)
+{
+    KEY_EVENT_SIGNAL_MATCH (object);
+
+    if (kesm->oldKey)
+	(*kesm->u.vTable->oldState) (kesm,
+				     kesm->oldKey,
+				     kesm->oldModifiers);
+}
+
 static void
 keyEventSignalMatchGetProp (CompObject   *object,
 			    unsigned int what,
@@ -410,7 +455,6 @@ keyEventMatch (CompSignalMatch *sm,
     CompBool status;
 
     KEY_EVENT_SIGNAL_MATCH (sm);
-    KEY_EVENT_DESCRIPTION (&kesm->data.key);
 
     if (strcmp (interface, getWidgetObjectType ()->name))
 	return FALSE;
@@ -418,10 +462,10 @@ keyEventMatch (CompSignalMatch *sm,
     if (strcmp (signature, "si"))
 	return FALSE;
 
-    if (strcmp (value[0].s, kesm->data.key.data.key))
+    if (strcmp (value[0].s, kesm->data.key))
 	return FALSE;
 
-    if ((value[1].i & ked->data.modifiers) != ked->data.modifiers)
+    if ((value[1].i & kesm->data.modifiers) != kesm->data.modifiers)
 	return FALSE;
 
     FOR_BASE (&sm->u.base, status = (*sm->u.vTable->match) (sm,
@@ -437,15 +481,127 @@ keyEventMatch (CompSignalMatch *sm,
     return status;
 }
 
-static const CompSignalMatchVTable keyEventSignalMatchObjectVTable = {
-    .base.getProp = keyEventSignalMatchGetProp,
+static void
+updateState (CompKeyEventSignalMatch *kesm)
+{
+    if (kesm->data.key)
+    {
+	if (kesm->oldKey)
+	{
+	    if (strcmp (kesm->data.key, kesm->oldKey) ||
+		kesm->data.modifiers != kesm->oldModifiers)
+	    {
+		(*kesm->u.vTable->newState) (kesm,
+					     kesm->data.key,
+					     kesm->data.modifiers);
+		(*kesm->u.vTable->oldState) (kesm,
+					     kesm->oldKey,
+					     kesm->oldModifiers);
+	    }
 
-    .match = keyEventMatch
+	    free (kesm->oldKey);
+	}
+	else
+	{
+	    (*kesm->u.vTable->newState) (kesm,
+					 kesm->data.key,
+					 kesm->data.modifiers);
+	}
+
+	kesm->oldKey = strdup (kesm->data.key);
+    }
+    else
+    {
+	if (kesm->oldKey)
+	{
+	    (*kesm->u.vTable->oldState) (kesm,
+					 kesm->oldKey,
+					 kesm->oldModifiers);
+	    free (kesm->oldKey);
+	    kesm->oldKey = NULL;
+	}
+    }
+
+    kesm->oldModifiers = kesm->data.modifiers;
+}
+
+static void
+noopUpdateState (CompKeyEventSignalMatch *kesm)
+{
+    FOR_BASE (&kesm->u.base.u.base, (*kesm->u.vTable->updateState) (kesm));
+}
+
+static void
+newState (CompKeyEventSignalMatch *kesm,
+	  const char		  *key,
+	  int32_t		  modifiers)
+{
+    C_EMIT_SIGNAL (&kesm->u.base.u.base, KeyEventStateChangeProc,
+		   offsetof (CompKeyEventSignalMatchVTable, newState),
+		   key, modifiers);
+}
+
+static void
+noopNewState (CompKeyEventSignalMatch *kesm,
+	      const char	      *key,
+	      int32_t		      modifiers)
+{
+    FOR_BASE (&kesm->u.base.u.base, (*kesm->u.vTable->newState) (kesm,
+								 key,
+								 modifiers));
+}
+
+static void
+oldState (CompKeyEventSignalMatch *kesm,
+	  const char		  *key,
+	  int32_t		  modifiers)
+{
+    C_EMIT_SIGNAL (&kesm->u.base.u.base, KeyEventStateChangeProc,
+		   offsetof (CompKeyEventSignalMatchVTable, oldState),
+		   key, modifiers);
+}
+
+static void
+noopOldState (CompKeyEventSignalMatch *kesm,
+	      const char	      *key,
+	      int32_t		      modifiers)
+{
+    FOR_BASE (&kesm->u.base.u.base, (*kesm->u.vTable->oldState) (kesm,
+								 key,
+								 modifiers));
+}
+
+static const CompKeyEventSignalMatchVTable keSignalMatchObjectVTable = {
+    .base.base.getProp = keyEventSignalMatchGetProp,
+    .base.match        = keyEventMatch,
+
+    .updateState = updateState,
+    .newState    = newState,
+    .oldState    = oldState
 };
 
-static const CChildObject keyEventSignalMatchTypeChildObject[] = {
-    C_CHILD (key, CompKeyEventSignalMatchData,
-	     COMPIZ_KEY_EVENT_DESCRIPTION_TYPE_NAME)
+static const CompKeyEventSignalMatchVTable noopKeSignalMatchObjectVTable = {
+    .updateState = noopUpdateState,
+    .newState    = noopNewState,
+    .oldState    = noopOldState
+};
+
+static const CMethod keyEventSignalMatchTypeMethod[] = {
+    C_METHOD (updateState, "", "", CompKeyEventSignalMatchVTable, marshal____)
+};
+
+static const CSignal keyEventSignalMatchTypeSignal[] = {
+    C_SIGNAL (newState, "si", CompKeyEventSignalMatchVTable),
+    C_SIGNAL (oldState, "si", CompKeyEventSignalMatchVTable),
+};
+
+static const CIntProp keyEventSignalMatchTypeIntProp[] = {
+    C_INT_PROP (modifiers, CompKeyEventSignalMatchData,
+		0, (1 << KEYBOARD_MODIFIER_NUM) - 1)
+};
+
+static const CStringProp keyEventSignalMatchTypeStringProp[] = {
+    C_PROP (key, CompKeyEventSignalMatchData)
 };
 
 const CompObjectType *
@@ -457,11 +613,28 @@ getKeyEventSignalMatchObjectType (void)
     {
 	static const CObjectInterface template = {
 	    .i.name	     = COMPIZ_KEY_EVENT_SIGNAL_MATCH_TYPE_NAME,
-	    .i.vTable.impl   = &keyEventSignalMatchObjectVTable.base,
+	    .i.vTable.impl   = &keSignalMatchObjectVTable.base.base,
+	    .i.vTable.noop   = &noopKeSignalMatchObjectVTable.base.base,
+	    .i.vTable.size   = sizeof (keSignalMatchObjectVTable),
 	    .i.instance.size = sizeof (CompKeyEventSignalMatch),
 
-	    .child  = keyEventSignalMatchTypeChildObject,
-	    .nChild = N_ELEMENTS (keyEventSignalMatchTypeChildObject)
+	    .method  = keyEventSignalMatchTypeMethod,
+	    .nMethod = N_ELEMENTS (keyEventSignalMatchTypeMethod),
+
+	    .signal  = keyEventSignalMatchTypeSignal,
+	    .nSignal = N_ELEMENTS (keyEventSignalMatchTypeSignal),
+
+	    .intProp  = keyEventSignalMatchTypeIntProp,
+	    .nIntProp = N_ELEMENTS (keyEventSignalMatchTypeIntProp),
+
+	    .stringProp  = keyEventSignalMatchTypeStringProp,
+	    .nStringProp = N_ELEMENTS (keyEventSignalMatchTypeStringProp),
+
+	    .init = keyEventSignalMatchInit,
+	    .fini = keyEventSignalMatchFini,
+
+	    .insert = keyEventSignalMatchInsert,
+	    .remove = keyEventSignalMatchRemove
 	};
 
 	type = signalMatchObjectTypeFromTemplate (&template);
@@ -478,6 +651,10 @@ keyEventSignalMatchObjectTypeFromTemplate (const CObjectInterface *template)
     if (!keyEventSignalMatchTemplate.i.base.name)
 	keyEventSignalMatchTemplate.i.base.name =
 	    COMPIZ_KEY_EVENT_SIGNAL_MATCH_TYPE_NAME;
+
+    if (!keyEventSignalMatchTemplate.i.vTable.size)
+	keyEventSignalMatchTemplate.i.vTable.size =
+	    sizeof (keSignalMatchObjectVTable);
 
     return signalMatchObjectTypeFromTemplate (&keyEventSignalMatchTemplate);
 }
@@ -521,10 +698,10 @@ keyPressMatch (CompSignalMatch *sm,
     return status;
 }
 
-static const CompSignalMatchVTable keyPressSignalMatchObjectVTable = {
-    .base.getProp = keyPressSignalMatchGetProp,
+static const CompKeyEventSignalMatchVTable kpSignalMatchObjectVTable = {
+    .base.base.getProp = keyPressSignalMatchGetProp,
 
-    .match = keyPressMatch
+    .base.match = keyPressMatch
 };
 
 const CompObjectType *
@@ -536,7 +713,7 @@ getKeyPressSignalMatchObjectType (void)
     {
 	static const CObjectInterface template = {
 	    .i.name	     = COMPIZ_KEY_PRESS_SIGNAL_MATCH_TYPE_NAME,
-	    .i.vTable.impl   = &keyPressSignalMatchObjectVTable.base,
+	    .i.vTable.impl   = &kpSignalMatchObjectVTable.base.base,
 	    .i.instance.size = sizeof (CompKeyPressSignalMatch)
 	};
 
@@ -585,10 +762,10 @@ keyReleaseMatch (CompSignalMatch *sm,
     return status;
 }
 
-static const CompSignalMatchVTable keyReleaseSignalMatchObjectVTable = {
-    .base.getProp = keyReleaseSignalMatchGetProp,
+static const CompKeyEventSignalMatchVTable krSignalMatchObjectVTable = {
+    .base.base.getProp = keyReleaseSignalMatchGetProp,
 
-    .match = keyReleaseMatch
+    .base.match = keyReleaseMatch
 };
 
 const CompObjectType *
@@ -600,7 +777,7 @@ getKeyReleaseSignalMatchObjectType (void)
     {
 	static const CObjectInterface template = {
 	    .i.name	     = COMPIZ_KEY_RELEASE_SIGNAL_MATCH_TYPE_NAME,
-	    .i.vTable.impl   = &keyReleaseSignalMatchObjectVTable.base,
+	    .i.vTable.impl   = &krSignalMatchObjectVTable.base.base,
 	    .i.instance.size = sizeof (CompKeyReleaseSignalMatch)
 	};
 

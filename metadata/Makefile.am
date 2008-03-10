@@ -1,7 +1,7 @@
 xmldir       = $(metadatadir)
 xml_in_files =					\
 	org.compiz.object.xml.in		\
-	org.compiz.keyEventDescription.xml.in	\
+	org.compiz.signalMatch.keyEvent.xml.in	\
 	org.compiz.metadata.xml.xml.in		\
 	org.compiz.core.xml.in			\
 	org.compiz.display.xml.in		\
