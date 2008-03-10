@@ -119,6 +119,13 @@
       <min>1</min>
       <max>32</max>
     </property>
+    <property name="overlappingOutputs" type="i">
+      <_short>Overlapping Outputs</_short>
+      <_long>Overlapping output strategy</_long>
+      <default>0</default>
+      <min>0</min>
+      <max>1</max>
+    </property>
     <property name="defaultIconImage" type="s">
       <_short>Default Icon</_short>
       <_long>Default window icon image</_long>
