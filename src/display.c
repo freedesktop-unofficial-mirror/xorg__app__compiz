@@ -575,30 +575,6 @@ maximizeVertically (CompDisplay     *d,
     return TRUE;
 }
 
-static Bool
-showDesktop (CompDisplay     *d,
-	     CompAction      *action,
-	     CompActionState state,
-	     CompOption      *option,
-	     int	     nOption)
-{
-    CompScreen *s;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "root", 0);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s)
-    {
-	if (s->showingDesktopMask == 0)
-	    (*s->enterShowDesktopMode) (s);
-	else
-	    (*s->leaveShowDesktopMode) (s, NULL);
-    }
-
-    return TRUE;
-}
-
 static void
 changeWindowOpacity (CompWindow *w,
 		     int	direction)
@@ -802,8 +778,8 @@ const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "run_command_window_screenshot_key", "key", 0, 0, 0 },
     { "window_menu_button", "button", 0, 0, 0 },
     { "window_menu_key", "key", 0, 0, 0 },
-    { "show_desktop_key", "key", 0, showDesktop, 0 },
-    { "show_desktop_edge", "edge", 0, showDesktop, 0 },
+    { "show_desktop_key", "key", 0, 0, 0 },
+    { "show_desktop_edge", "edge", 0, 0, 0 },
     { "toggle_window_maximized_key", "key", 0, toggleMaximized, 0 },
     { "toggle_window_maximized_button", "button", 0, toggleMaximized, 0 },
     { "toggle_window_maximized_horizontally_key", "key", 0,
