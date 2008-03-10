@@ -2674,7 +2674,7 @@ focusDefaultWindow (CompScreen *s)
     CompWindow  *w;
     CompWindow  *focus = NULL;
 
-    if (!d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b)
+    if (!d->data.clickToFocus)
     {
 	w = findTopLevelWindowAtDisplay (d, d->below);
 	if (w && !(w->type & (CompWindowTypeDesktopMask |
