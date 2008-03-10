@@ -1782,6 +1782,348 @@ noopClose (CompWindow *w,
     FOR_BASE (&w->u.base.u.base, (*w->u.vTable->close) (w, eventTime));
 }
 
+static int
+addWindowStackChanges (CompWindow     *w,
+		       XWindowChanges *xwc,
+		       CompWindow     *sibling)
+{
+    int	mask = 0;
+
+    if (!sibling || sibling->id != w->id)
+    {
+	if (w->prev)
+	{
+	    if (!sibling)
+	    {
+		XLowerWindow (w->screen->display->display, w->id);
+		if (w->frame)
+		    XLowerWindow (w->screen->display->display, w->frame);
+	    }
+	    else if (sibling->id != w->prev->id)
+	    {
+		mask |= CWSibling | CWStackMode;
+
+		xwc->stack_mode = Above;
+		xwc->sibling    = sibling->id;
+	    }
+	}
+	else if (sibling)
+	{
+	    mask |= CWSibling | CWStackMode;
+
+	    xwc->stack_mode = Above;
+	    xwc->sibling    = sibling->id;
+	}
+    }
+
+    if (sibling && mask)
+    {
+	/* a normal window can be stacked above fullscreen windows but we
+	   don't want normal windows to be stacked above dock window so if
+	   the sibling we're stacking above is a fullscreen window we also
+	   update all dock windows. */
+	if ((sibling->type & CompWindowTypeFullscreenMask) &&
+	    (!(w->type & (CompWindowTypeFullscreenMask |
+			  CompWindowTypeDockMask))) &&
+	    !isAncestorTo (w, sibling))
+	{
+	    CompWindow *dw;
+
+	    for (dw = w->screen->reverseWindows; dw; dw = dw->prev)
+		if (dw == sibling)
+		    break;
+
+	    for (; dw; dw = dw->prev)
+		if (dw->type & CompWindowTypeDockMask)
+		    configureXWindow (dw, mask, xwc);
+	}
+    }
+
+    return mask;
+}
+
+static Bool
+isGroupTransient (CompWindow *w,
+		  Window     clientLeader)
+{
+    if (!clientLeader)
+	return FALSE;
+
+    if (w->transientFor == None || w->transientFor == w->screen->root)
+    {
+	if (w->type & (CompWindowTypeDialogMask |
+		       CompWindowTypeModalDialogMask))
+	{
+	    if (w->clientLeader == clientLeader)
+		return TRUE;
+	}
+    }
+
+    return FALSE;
+}
+
+static Bool
+avoidStackingRelativeTo (CompWindow *w)
+{
+    if (w->attrib.override_redirect)
+	return TRUE;
+
+    if (!w->shaded && !w->pendingMaps)
+    {
+	if (w->attrib.map_state != IsViewable || w->mapNum == 0)
+	    return TRUE;
+    }
+
+    return FALSE;
+}
+
+static Bool
+stackLayerCheck (CompWindow *w,
+		 Window	    clientLeader,
+		 CompWindow *below)
+{
+    if (isAncestorTo (w, below))
+	return TRUE;
+
+    if (isAncestorTo (below, w))
+	return FALSE;
+
+    if (clientLeader && below->clientLeader == clientLeader)
+	if (isGroupTransient (below, clientLeader))
+	    return FALSE;
+
+    if (w->state & CompWindowStateAboveMask)
+    {
+	return TRUE;
+    }
+    else if (w->state & CompWindowStateBelowMask)
+    {
+	if (below->state & CompWindowStateBelowMask)
+	    return TRUE;
+    }
+    else if (!(below->state & CompWindowStateAboveMask))
+    {
+	return TRUE;
+    }
+
+    return FALSE;
+}
+
+/* goes through the stack, top-down until we find a window we should
+   stack above, normal windows can be stacked above fullscreen windows
+   if aboveFs is TRUE. */
+static CompWindow *
+findSiblingBelow (CompWindow *w,
+		  Bool	     aboveFs)
+{
+    CompWindow   *below;
+    Window	 clientLeader = w->clientLeader;
+    unsigned int type = w->type;
+    unsigned int belowMask;
+
+    if (aboveFs)
+	belowMask = CompWindowTypeDockMask;
+    else
+	belowMask = CompWindowTypeDockMask | CompWindowTypeFullscreenMask;
+
+    /* normal stacking of fullscreen windows with below state */
+    if ((type & CompWindowTypeFullscreenMask) &&
+	(w->state & CompWindowStateBelowMask))
+	type = CompWindowTypeNormalMask;
+
+    if (w->transientFor || isGroupTransient (w, clientLeader))
+	clientLeader = None;
+
+    for (below = w->screen->reverseWindows; below; below = below->prev)
+    {
+	if (below == w || avoidStackingRelativeTo (below))
+	    continue;
+
+	/* always above desktop windows */
+	if (below->type & CompWindowTypeDesktopMask)
+	    return below;
+
+	switch (type) {
+	case CompWindowTypeDesktopMask:
+	    /* desktop window layer */
+	    break;
+	case CompWindowTypeFullscreenMask:
+	case CompWindowTypeDockMask:
+	    /* fullscreen and dock layer */
+	    if (below->type & (CompWindowTypeFullscreenMask |
+			       CompWindowTypeDockMask))
+	    {
+		if (stackLayerCheck (w, clientLeader, below))
+		    return below;
+	    }
+	    else
+	    {
+		return below;
+	    }
+	    break;
+	default:
+	    /* fullscreen and normal layer */
+	    if (!(below->type & belowMask))
+	    {
+		if (stackLayerCheck (w, clientLeader, below))
+		    return below;
+	    }
+	    break;
+	}
+    }
+
+    return NULL;
+}
+
+/* goes through the stack, top-down and returns the lowest window we
+   can stack above. */
+static CompWindow *
+findLowestSiblingBelow (CompWindow *w)
+{
+    CompWindow   *below, *lowest = w->screen->reverseWindows;
+    Window	 clientLeader = w->clientLeader;
+    unsigned int type = w->type;
+
+    /* normal stacking fullscreen windows with below state */
+    if ((type & CompWindowTypeFullscreenMask) &&
+	(w->state & CompWindowStateBelowMask))
+	type = CompWindowTypeNormalMask;
+
+    if (w->transientFor || isGroupTransient (w, clientLeader))
+	clientLeader = None;
+
+    for (below = w->screen->reverseWindows; below; below = below->prev)
+    {
+	if (below == w || avoidStackingRelativeTo (below))
+	    continue;
+
+	/* always above desktop windows */
+	if (below->type & CompWindowTypeDesktopMask)
+	    return below;
+
+	switch (type) {
+	case CompWindowTypeDesktopMask:
+	    /* desktop window layer - desktop windows always should be
+	       stacked at the bottom; no other window should be below them */
+	    return NULL;
+	    break;
+	case CompWindowTypeFullscreenMask:
+	case CompWindowTypeDockMask:
+	    /* fullscreen and dock layer */
+	    if (below->type & (CompWindowTypeFullscreenMask |
+			       CompWindowTypeDockMask))
+	    {
+		if (!stackLayerCheck (below, clientLeader, w))
+		    return lowest;
+	    }
+	    else
+	    {
+		return lowest;
+	    }
+	    break;
+	default:
+	    /* fullscreen and normal layer */
+	    if (!(below->type & CompWindowTypeDockMask))
+	    {
+		if (!stackLayerCheck (below, clientLeader, w))
+		    return lowest;
+	    }
+	    break;
+	}
+
+	lowest = below;
+    }
+
+    return lowest;
+}
+
+static Bool
+validSiblingBelow (CompWindow *w,
+		   CompWindow *sibling)
+{
+    Window	 clientLeader = w->clientLeader;
+    unsigned int type = w->type;
+
+    /* normal stacking fullscreen windows with below state */
+    if ((type & CompWindowTypeFullscreenMask) &&
+	(w->state & CompWindowStateBelowMask))
+	type = CompWindowTypeNormalMask;
+
+    if (w->transientFor || isGroupTransient (w, clientLeader))
+	clientLeader = None;
+
+    if (sibling == w || avoidStackingRelativeTo (sibling))
+	return FALSE;
+
+    /* always above desktop windows */
+    if (sibling->type & CompWindowTypeDesktopMask)
+	return TRUE;
+
+    switch (type) {
+    case CompWindowTypeDesktopMask:
+	/* desktop window layer */
+	break;
+    case CompWindowTypeFullscreenMask:
+    case CompWindowTypeDockMask:
+	/* fullscreen and dock layer */
+	if (sibling->type & (CompWindowTypeFullscreenMask |
+			     CompWindowTypeDockMask))
+	{
+	    if (stackLayerCheck (w, clientLeader, sibling))
+		return TRUE;
+	}
+	else
+	{
+	    return TRUE;
+	}
+	break;
+    default:
+	/* fullscreen and normal layer */
+	if (!(sibling->type & CompWindowTypeDockMask))
+	{
+	    if (stackLayerCheck (w, clientLeader, sibling))
+		return TRUE;
+	}
+	break;
+    }
+
+    return FALSE;
+}
+
+static void
+raiseWindow (CompWindow *w)
+{
+    XWindowChanges xwc;
+    int		   mask;
+
+    mask = addWindowStackChanges (w, &xwc, findSiblingBelow (w, FALSE));
+    if (mask)
+	configureXWindow (w, mask, &xwc);
+}
+
+static void
+noopRaiseWindow (CompWindow *w)
+{
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->raise) (w));
+}
+
+static void
+lowerWindow (CompWindow *w)
+{
+    XWindowChanges xwc;
+    int		   mask;
+
+    mask = addWindowStackChanges (w, &xwc, findLowestSiblingBelow (w));
+    if (mask)
+	configureXWindow (w, mask, &xwc);
+}
+
+static void
+noopLowerWindow (CompWindow *w)
+{
+    FOR_BASE (&w->u.base.u.base, (*w->u.vTable->lower) (w));
+}
+
 static int32_t
 windowVirtualModifiers (CompWindow *w,
 			int	   state)
@@ -1966,6 +2308,8 @@ static const CompWindowVTable windowObjectVTable = {
 
     /* public methods */
     .close = close,
+    .raise = raiseWindow,
+    .lower = lowerWindow,
 
     /* public signals */
     .xButtonPress   = xButtonPress,
@@ -1977,6 +2321,8 @@ static const CompWindowVTable windowObjectVTable = {
 
 static const CompWindowVTable noopWindowObjectVTable = {
     .close	    = noopClose,
+    .raise	    = noopRaiseWindow,
+    .lower	    = noopLowerWindow,
     .xButtonPress   = noopXButtonPress,
     .xButtonRelease = noopXButtonRelease,
     .xKeyPress      = noopXKeyPress,
@@ -3119,26 +3465,6 @@ windowStateChangeNotify (CompWindow   *w,
 {
 }
 
-static Bool
-isGroupTransient (CompWindow *w,
-		  Window     clientLeader)
-{
-    if (!clientLeader)
-	return FALSE;
-
-    if (w->transientFor == None || w->transientFor == w->screen->root)
-    {
-	if (w->type & (CompWindowTypeDialogMask |
-		       CompWindowTypeModalDialogMask))
-	{
-	    if (w->clientLeader == clientLeader)
-		return TRUE;
-	}
-    }
-
-    return FALSE;
-}
-
 static CompWindow *
 getModalTransient (CompWindow *window)
 {
@@ -3261,234 +3587,6 @@ moveInputFocusToWindow (CompWindow *w)
 	    }
 	}
     }
-}
-
-static Bool
-stackLayerCheck (CompWindow *w,
-		 Window	    clientLeader,
-		 CompWindow *below)
-{
-    if (isAncestorTo (w, below))
-	return TRUE;
-
-    if (isAncestorTo (below, w))
-	return FALSE;
-
-    if (clientLeader && below->clientLeader == clientLeader)
-	if (isGroupTransient (below, clientLeader))
-	    return FALSE;
-
-    if (w->state & CompWindowStateAboveMask)
-    {
-	return TRUE;
-    }
-    else if (w->state & CompWindowStateBelowMask)
-    {
-	if (below->state & CompWindowStateBelowMask)
-	    return TRUE;
-    }
-    else if (!(below->state & CompWindowStateAboveMask))
-    {
-	return TRUE;
-    }
-
-    return FALSE;
-}
-
-static Bool
-avoidStackingRelativeTo (CompWindow *w)
-{
-    if (w->attrib.override_redirect)
-	return TRUE;
-
-    if (!w->shaded && !w->pendingMaps)
-    {
-	if (w->attrib.map_state != IsViewable || w->mapNum == 0)
-	    return TRUE;
-    }
-
-    return FALSE;
-}
-
-/* goes through the stack, top-down until we find a window we should
-   stack above, normal windows can be stacked above fullscreen windows
-   if aboveFs is TRUE. */
-static CompWindow *
-findSiblingBelow (CompWindow *w,
-		  Bool	     aboveFs)
-{
-    CompWindow   *below;
-    Window	 clientLeader = w->clientLeader;
-    unsigned int type = w->type;
-    unsigned int belowMask;
-
-    if (aboveFs)
-	belowMask = CompWindowTypeDockMask;
-    else
-	belowMask = CompWindowTypeDockMask | CompWindowTypeFullscreenMask;
-
-    /* normal stacking of fullscreen windows with below state */
-    if ((type & CompWindowTypeFullscreenMask) &&
-	(w->state & CompWindowStateBelowMask))
-	type = CompWindowTypeNormalMask;
-
-    if (w->transientFor || isGroupTransient (w, clientLeader))
-	clientLeader = None;
-
-    for (below = w->screen->reverseWindows; below; below = below->prev)
-    {
-	if (below == w || avoidStackingRelativeTo (below))
-	    continue;
-
-	/* always above desktop windows */
-	if (below->type & CompWindowTypeDesktopMask)
-	    return below;
-
-	switch (type) {
-	case CompWindowTypeDesktopMask:
-	    /* desktop window layer */
-	    break;
-	case CompWindowTypeFullscreenMask:
-	case CompWindowTypeDockMask:
-	    /* fullscreen and dock layer */
-	    if (below->type & (CompWindowTypeFullscreenMask |
-			       CompWindowTypeDockMask))
-	    {
-		if (stackLayerCheck (w, clientLeader, below))
-		    return below;
-	    }
-	    else
-	    {
-		return below;
-	    }
-	    break;
-	default:
-	    /* fullscreen and normal layer */
-	    if (!(below->type & belowMask))
-	    {
-		if (stackLayerCheck (w, clientLeader, below))
-		    return below;
-	    }
-	    break;
-	}
-    }
-
-    return NULL;
-}
-
-/* goes through the stack, top-down and returns the lowest window we
-   can stack above. */
-static CompWindow *
-findLowestSiblingBelow (CompWindow *w)
-{
-    CompWindow   *below, *lowest = w->screen->reverseWindows;
-    Window	 clientLeader = w->clientLeader;
-    unsigned int type = w->type;
-
-    /* normal stacking fullscreen windows with below state */
-    if ((type & CompWindowTypeFullscreenMask) &&
-	(w->state & CompWindowStateBelowMask))
-	type = CompWindowTypeNormalMask;
-
-    if (w->transientFor || isGroupTransient (w, clientLeader))
-	clientLeader = None;
-
-    for (below = w->screen->reverseWindows; below; below = below->prev)
-    {
-	if (below == w || avoidStackingRelativeTo (below))
-	    continue;
-
-	/* always above desktop windows */
-	if (below->type & CompWindowTypeDesktopMask)
-	    return below;
-
-	switch (type) {
-	case CompWindowTypeDesktopMask:
-	    /* desktop window layer - desktop windows always should be
-	       stacked at the bottom; no other window should be below them */
-	    return NULL;
-	    break;
-	case CompWindowTypeFullscreenMask:
-	case CompWindowTypeDockMask:
-	    /* fullscreen and dock layer */
-	    if (below->type & (CompWindowTypeFullscreenMask |
-			       CompWindowTypeDockMask))
-	    {
-		if (!stackLayerCheck (below, clientLeader, w))
-		    return lowest;
-	    }
-	    else
-	    {
-		return lowest;
-	    }
-	    break;
-	default:
-	    /* fullscreen and normal layer */
-	    if (!(below->type & CompWindowTypeDockMask))
-	    {
-		if (!stackLayerCheck (below, clientLeader, w))
-		    return lowest;
-	    }
-	    break;
-	}
-
-	lowest = below;
-    }
-
-    return lowest;
-}
-
-static Bool
-validSiblingBelow (CompWindow *w,
-		   CompWindow *sibling)
-{
-    Window	 clientLeader = w->clientLeader;
-    unsigned int type = w->type;
-
-    /* normal stacking fullscreen windows with below state */
-    if ((type & CompWindowTypeFullscreenMask) &&
-	(w->state & CompWindowStateBelowMask))
-	type = CompWindowTypeNormalMask;
-
-    if (w->transientFor || isGroupTransient (w, clientLeader))
-	clientLeader = None;
-
-    if (sibling == w || avoidStackingRelativeTo (sibling))
-	return FALSE;
-
-    /* always above desktop windows */
-    if (sibling->type & CompWindowTypeDesktopMask)
-	return TRUE;
-
-    switch (type) {
-    case CompWindowTypeDesktopMask:
-	/* desktop window layer */
-	break;
-    case CompWindowTypeFullscreenMask:
-    case CompWindowTypeDockMask:
-	/* fullscreen and dock layer */
-	if (sibling->type & (CompWindowTypeFullscreenMask |
-			     CompWindowTypeDockMask))
-	{
-	    if (stackLayerCheck (w, clientLeader, sibling))
-		return TRUE;
-	}
-	else
-	{
-	    return TRUE;
-	}
-	break;
-    default:
-	/* fullscreen and normal layer */
-	if (!(sibling->type & CompWindowTypeDockMask))
-	{
-	    if (stackLayerCheck (w, clientLeader, sibling))
-		return TRUE;
-	}
-	break;
-    }
-
-    return FALSE;
 }
 
 static void
@@ -4134,88 +4232,6 @@ updateWindowSize (CompWindow *w)
 
 	configureXWindow (w, mask, &xwc);
     }
-}
-
-static int
-addWindowStackChanges (CompWindow     *w,
-		       XWindowChanges *xwc,
-		       CompWindow     *sibling)
-{
-    int	mask = 0;
-
-    if (!sibling || sibling->id != w->id)
-    {
-	if (w->prev)
-	{
-	    if (!sibling)
-	    {
-		XLowerWindow (w->screen->display->display, w->id);
-		if (w->frame)
-		    XLowerWindow (w->screen->display->display, w->frame);
-	    }
-	    else if (sibling->id != w->prev->id)
-	    {
-		mask |= CWSibling | CWStackMode;
-
-		xwc->stack_mode = Above;
-		xwc->sibling    = sibling->id;
-	    }
-	}
-	else if (sibling)
-	{
-	    mask |= CWSibling | CWStackMode;
-
-	    xwc->stack_mode = Above;
-	    xwc->sibling    = sibling->id;
-	}
-    }
-
-    if (sibling && mask)
-    {
-	/* a normal window can be stacked above fullscreen windows but we
-	   don't want normal windows to be stacked above dock window so if
-	   the sibling we're stacking above is a fullscreen window we also
-	   update all dock windows. */
-	if ((sibling->type & CompWindowTypeFullscreenMask) &&
-	    (!(w->type & (CompWindowTypeFullscreenMask |
-			  CompWindowTypeDockMask))) &&
-	    !isAncestorTo (w, sibling))
-	{
-	    CompWindow *dw;
-
-	    for (dw = w->screen->reverseWindows; dw; dw = dw->prev)
-		if (dw == sibling)
-		    break;
-
-	    for (; dw; dw = dw->prev)
-		if (dw->type & CompWindowTypeDockMask)
-		    configureXWindow (dw, mask, xwc);
-	}
-    }
-
-    return mask;
-}
-
-void
-raiseWindow (CompWindow *w)
-{
-    XWindowChanges xwc;
-    int		   mask;
-
-    mask = addWindowStackChanges (w, &xwc, findSiblingBelow (w, FALSE));
-    if (mask)
-	configureXWindow (w, mask, &xwc);
-}
-
-void
-lowerWindow (CompWindow *w)
-{
-    XWindowChanges xwc;
-    int		   mask;
-
-    mask = addWindowStackChanges (w, &xwc, findLowestSiblingBelow (w));
-    if (mask)
-	configureXWindow (w, mask, &xwc);
 }
 
 void

@@ -829,7 +829,7 @@ rotateWithWindow (CompDisplay     *d,
 			    rs->moveWindowX = w->attrib.x;
 
 			    if (raise)
-				raiseWindow (w);
+				(*w->u.vTable->raise) (w);
 			}
 		    }
 		}

@@ -2628,6 +2628,10 @@ typedef struct _CompStruts {
 typedef void (*CloseWindowProc) (CompWindow *w,
 				 int32_t    eventTime);
 
+typedef void (*RaiseWindowProc) (CompWindow *w);
+
+typedef void (*LowerWindowProc) (CompWindow *w);
+
 typedef void (*XButtonEventProc) (CompWindow *w,
 				  int32_t    button,
 				  int32_t    state,
@@ -2648,6 +2652,8 @@ typedef struct _CompWindowVTable {
 
     /* public methods */
     CloseWindowProc close;
+    RaiseWindowProc raise;
+    RaiseWindowProc lower;
 
     /* public signals */
     XButtonEventProc xButtonPress;
@@ -3077,12 +3083,6 @@ moveInputFocusToWindow (CompWindow *w);
 
 void
 updateWindowSize (CompWindow *w);
-
-void
-raiseWindow (CompWindow *w);
-
-void
-lowerWindow (CompWindow *w);
 
 void
 restackWindowAbove (CompWindow *w,

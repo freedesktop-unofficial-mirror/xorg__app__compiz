@@ -1884,9 +1884,9 @@ handleEvent (CompDisplay *d,
 		else
 		{
 		    if (event->xclient.data.l[2] == Above)
-			raiseWindow (w);
+			(*w->u.vTable->raise) (w);
 		    else if (event->xclient.data.l[2] == Below)
-			lowerWindow (w);
+			(*w->u.vTable->lower) (w);
 		}
 	    }
 	}
@@ -2069,7 +2069,7 @@ handleEvent (CompDisplay *d,
 				restackWindowAbove (w, sibling);
 			}
 			else
-			    raiseWindow (w);
+			    (*w->u.vTable->raise) (w);
 		    }
 		    break;
 		case Below:
@@ -2079,7 +2079,7 @@ handleEvent (CompDisplay *d,
 			    restackWindowBelow (w, sibling);
 		    }
 		    else
-			lowerWindow (w);
+			(*w->u.vTable->lower) (w);
 		    break;
 		default:
 		    /* no handling of the TopIf, BottomIf, Opposite cases -

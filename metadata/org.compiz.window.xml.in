@@ -5,6 +5,14 @@
       <_long>Close window using WM_DELETE_WINDOW protocol if supported by window client</_long>
       <arg name="eventTime" type="i" direction="in"/>
     </method>
+    <method name="raise">
+      <_short>Raise Window</_short>
+      <_long>Raise window</_long>
+    </method>
+    <method name="lower">
+      <_short>Lower Window</_short>
+      <_long>Lower window</_long>
+    </method>
     <signal name="xButtonPress">
       <_short>Button Press</_short>
       <_long>Indicates that a button press event has occurred</_long>

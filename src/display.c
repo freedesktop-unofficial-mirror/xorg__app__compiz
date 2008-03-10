@@ -599,44 +599,6 @@ showDesktop (CompDisplay     *d,
     return TRUE;
 }
 
-static Bool
-raiseInitiate (CompDisplay     *d,
-	       CompAction      *action,
-	       CompActionState state,
-	       CompOption      *option,
-	       int	       nOption)
-{
-    CompWindow *w;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "window", 0);
-
-    w = findTopLevelWindowAtDisplay (d, xid);
-    if (w)
-	raiseWindow (w);
-
-    return TRUE;
-}
-
-static Bool
-lowerInitiate (CompDisplay     *d,
-	       CompAction      *action,
-	       CompActionState state,
-	       CompOption      *option,
-	       int	       nOption)
-{
-    CompWindow *w;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "window", 0);
-
-    w = findTopLevelWindowAtDisplay (d, xid);
-    if (w)
-	lowerWindow (w);
-
-    return TRUE;
-}
-
 static void
 changeWindowOpacity (CompWindow *w,
 		     int	direction)
@@ -857,10 +819,10 @@ const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
     { "run_command10_key", "key", 0, 0, 0 },
     { "run_command11_key", "key", 0, 0, 0 },
     { "slow_animations_key", "key", 0, 0, 0 },
-    { "raise_window_key", "key", 0, raiseInitiate, 0 },
-    { "raise_window_button", "button", 0, raiseInitiate, 0 },
-    { "lower_window_key", "key", 0, lowerInitiate, 0 },
-    { "lower_window_button", "button", 0, lowerInitiate, 0 },
+    { "raise_window_key", "key", 0, 0, 0 },
+    { "raise_window_button", "button", 0, 0, 0 },
+    { "lower_window_key", "key", 0, 0, 0 },
+    { "lower_window_button", "button", 0, 0, 0 },
     { "unmaximize_window_key", "key", 0, unmaximize, 0 },
     { "minimize_window_key", "key", 0, minimize, 0 },
     { "minimize_window_button", "button", 0, minimize, 0 },
