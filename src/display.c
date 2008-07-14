@@ -1545,13 +1545,20 @@ eventLoop (void)
 	{
 	    for (s = d->screens; s; s = s->next)
 	    {
-		if (s->damageMask)
+		if (manualCompositeManagement)
 		{
-		    finishScreenDrawing (s);
+		    if (s->damageMask)
+		    {
+			finishScreenDrawing (s);
+		    }
+		    else
+		    {
+			s->idle = TRUE;
+		    }
 		}
 		else
 		{
-		    s->idle = TRUE;
+		    s->damageMask = 0;
 		}
 	    }
 	}
@@ -1748,24 +1755,6 @@ eventLoop (void)
 
 			(*s->donePaintScreen) (s);
 
-			/* remove destroyed windows */
-			while (s->pendingDestroys)
-			{
-			    CompWindow *w;
-
-			    for (w = s->windows; w; w = w->next)
-			    {
-				if (w->destroyed)
-				{
-				    addWindowDamage (w);
-				    removeWindow (w);
-				    break;
-				}
-			    }
-
-			    s->pendingDestroys--;
-			}
-
 			s->idle = FALSE;
 		    }
 		}
@@ -1797,6 +1786,30 @@ eventLoop (void)
 		doPoll (-1);
 	    }
 	}
+
+	for (d = core.displays; d; d = d->next)
+	{
+	    for (s = d->screens; s; s = s->next)
+	    {
+		/* remove destroyed windows */
+		while (s->pendingDestroys)
+		{
+		    CompWindow *w;
+
+		    for (w = s->windows; w; w = w->next)
+		    {
+			if (w->destroyed)
+			{
+			    addWindowDamage (w);
+			    removeWindow (w);
+			    break;
+			}
+		    }
+
+		    s->pendingDestroys--;
+		}
+	    }
+	}
     }
 
     for (d = core.displays; d; d = d->next)
@@ -1809,7 +1822,7 @@ static int
 errorHandler (Display     *dpy,
 	      XErrorEvent *e)
 {
-
+#define DEBUG 1
 #ifdef DEBUG
     char str[128];
 #endif
@@ -2288,7 +2301,7 @@ addDisplay (const char *name)
 						   &d->xineramaEvent,
 						   &d->xineramaError);
 
-    if (d->xineramaExtension)
+    if (d->xineramaExtension && XineramaIsActive (dpy))
 	d->screenInfo = XineramaQueryScreens (dpy, &d->nScreenInfo);
 
     d->escapeKeyCode = XKeysymToKeycode (dpy, XStringToKeysym ("Escape"));
@@ -2449,16 +2462,24 @@ addDisplay (const char *name)
 
 	compCheckForError (dpy);
 
-	XCompositeRedirectSubwindows (dpy, XRootWindow (dpy, i),
-				      CompositeRedirectManual);
-
-	if (compCheckForError (dpy))
+	if (manualCompositeManagement)
 	{
-	    compLogMessage ("core", CompLogLevelError,
-			    "Another composite manager is already "
-			    "running on screen: %d", i);
+	    XCompositeRedirectSubwindows (dpy, XRootWindow (dpy, i),
+					  CompositeRedirectManual);
 
-	    continue;
+	    if (compCheckForError (dpy))
+	    {
+		compLogMessage ("core", CompLogLevelError,
+				"Another composite manager is already "
+				"running on screen: %d", i);
+
+		continue;
+	    }
+	}
+	else
+	{
+	    XCompositeRedirectSubwindows (dpy, XRootWindow (dpy, i),
+					  CompositeRedirectAutomatic);
 	}
 
 	XSetSelectionOwner (dpy, cmSnAtom, newCmSnOwner, wmSnTimestamp);

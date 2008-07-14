@@ -1935,9 +1935,18 @@ addWindow (CompScreen *screen,
     w->pixmap     = None;
     w->destroyed  = FALSE;
     w->damaged    = FALSE;
-    w->redirected = TRUE;
     w->managed    = FALSE;
-    w->bindFailed = FALSE;
+
+    if (manualCompositeManagement)
+    {
+	w->redirected = TRUE;
+	w->bindFailed = FALSE;
+    }
+    else
+    {
+	w->redirected = FALSE;
+	w->bindFailed = TRUE;
+    }
 
     w->destroyRefCnt = 1;
     w->unmapRefCnt   = 1;
@@ -2086,7 +2095,7 @@ addWindow (CompScreen *screen,
     w->type      = CompWindowTypeUnknownMask;
     w->lastPong  = d->lastPing;
 
-    if (d->shapeExtension)
+    if (d->shapeExtension && manualCompositeManagement)
 	XShapeSelectInput (d->display, id, ShapeNotifyMask);
 
     insertWindowIntoScreen (screen, w, aboveId);
@@ -2107,8 +2116,9 @@ addWindow (CompScreen *screen,
 
 	XUnionRegion (&rect, w->region, w->region);
 
-	w->damage = XDamageCreate (d->display, id,
-				   XDamageReportRawRectangles);
+	if (manualCompositeManagement)
+	    w->damage = XDamageCreate (d->display, id,
+				       XDamageReportRawRectangles);
 
 	/* need to check for DisplayModal state on all windows */
 	w->state = getWindowState (d, w->id);
@@ -2178,28 +2188,32 @@ addWindow (CompScreen *screen,
 
 	if (!w->attrib.override_redirect)
 	{
-	    w->managed = TRUE;
+	    if (windowManagement)
+	    {
+		w->managed = TRUE;
 
-	    if (getWmState (d, w->id) == IconicState)
-	    {
-		if (w->state & CompWindowStateShadedMask)
-		    w->shaded = TRUE;
-		else
-		    w->minimized = TRUE;
-	    }
-	    else
-	    {
-		if (w->wmType & (CompWindowTypeDockMask |
-				 CompWindowTypeDesktopMask))
+		if (getWmState (d, w->id) == IconicState)
 		{
-		    setDesktopForWindow (w, 0xffffffff);
+		    if (w->state & CompWindowStateShadedMask)
+			w->shaded = TRUE;
+		    else
+			w->minimized = TRUE;
 		}
 		else
 		{
-		    if (w->desktop != 0xffffffff)
-			w->desktop = screen->currentDesktop;
+		    if (w->wmType & (CompWindowTypeDockMask |
+				     CompWindowTypeDesktopMask))
+		    {
+			setDesktopForWindow (w, 0xffffffff);
+		    }
+		    else
+		    {
+			if (w->desktop != 0xffffffff)
+			    w->desktop = screen->currentDesktop;
 
-		    setWindowProp (d, w->id, d->winDesktopAtom, w->desktop);
+			setWindowProp (d, w->id, d->winDesktopAtom,
+				       w->desktop);
+		    }
 		}
 	    }
 	}
@@ -2279,7 +2293,7 @@ removeWindow (CompWindow *w)
 	if (w->damage)
 	    XDamageDestroy (d->display, w->damage);
 
-	if (d->shapeExtension)
+	if (d->shapeExtension && manualCompositeManagement)
 	    XShapeSelectInput (d->display, w->id, NoEventMask);
 
 	XSelectInput (d->display, w->id, NoEventMask);
@@ -2299,7 +2313,7 @@ removeWindow (CompWindow *w)
     if (w->destroyed)
 	updateClientListForScreen (w->screen);
 
-    if (!w->redirected)
+    if (manualCompositeManagement && !w->redirected)
     {
 	w->screen->overlayWindowCount--;
 
@@ -4131,7 +4145,7 @@ updateWindowAttributes (CompWindow             *w,
     XWindowChanges xwc;
     int		   mask = 0;
 
-    if (w->attrib.override_redirect || !w->managed)
+    if (!w->managed)
 	return;
 
     if (w->state & CompWindowStateShadedMask)
@@ -4209,7 +4223,7 @@ ensureWindowVisibility (CompWindow *w)
     int dx = 0;
     int dy = 0;
 
-    if (w->struts || w->attrib.override_redirect)
+    if (w->struts || !w->managed)
 	return;
 
     if (w->type & (CompWindowTypeDockMask	|
@@ -4642,7 +4656,7 @@ void
 maximizeWindow (CompWindow *w,
 		int	   state)
 {
-    if (w->attrib.override_redirect)
+    if (!w->managed)
 	return;
 
     state = constrainWindowState (state, w->actions);
@@ -4889,7 +4903,7 @@ unredirectWindow (CompWindow *w)
 void
 redirectWindow (CompWindow *w)
 {
-    if (w->redirected)
+    if (!manualCompositeManagement || w->redirected)
 	return;
 
     XCompositeRedirectWindow (w->screen->display->display, w->id,

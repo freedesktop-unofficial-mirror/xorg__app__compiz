@@ -1968,6 +1968,17 @@ handleEvent (CompDisplay *d,
 	    if (w)
 		setDesktopForWindow (w, event->xclient.data.l[0]);
 	}
+	else if (event->xclient.message_type == d->desktopViewportAtom)
+	{
+	    s = findScreenAtDisplay (d, event->xclient.window);
+	    if (s)
+		moveScreenViewport (s,
+				    s->x -
+				    (event->xclient.data.l[0] / s->width),
+				    s->y -
+				    (event->xclient.data.l[1] / s->height),
+				    TRUE);
+	}
 	break;
     case MappingNotify:
 	updateModifierMappings (d);
