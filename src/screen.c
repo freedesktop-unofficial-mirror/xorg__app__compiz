@@ -3851,30 +3851,30 @@ getTopWindow (CompScreen *s)
 void
 makeScreenCurrent (CompScreen *s)
 {
-    if (!manualCompositeManagement)
-	return;
-
-    if (currentRoot != s->root)
+    if (manualCompositeManagement)
     {
-	glXMakeCurrent (s->display->display, s->output, s->ctx);
-	currentRoot = s->root;
-    }
+	if (currentRoot != s->root)
+	{
+	    glXMakeCurrent (s->display->display, s->output, s->ctx);
+	    currentRoot = s->root;
+	}
 
-    s->pendingCommands = TRUE;
+	s->pendingCommands = TRUE;
+    }
 }
 
 void
 finishScreenDrawing (CompScreen *s)
 {
-    if (!manualCompositeManagement)
-	return;
-
-    if (s->pendingCommands)
+    if (manualCompositeManagement)
     {
-	makeScreenCurrent (s);
-	glFinish ();
+	if (s->pendingCommands)
+	{
+	    makeScreenCurrent (s);
+	    glFinish ();
 
-	s->pendingCommands = FALSE;
+	    s->pendingCommands = FALSE;
+	}
     }
 }
 
