@@ -69,6 +69,7 @@ Bool useCow = TRUE;
 #endif
 
 Bool windowManagement = TRUE;
+Bool manualCompositeManagement = TRUE;
 
 CompMetadata coreMetadata;
 
@@ -96,6 +97,7 @@ usage (void)
 #endif
 
 	    "[--no-wm] "
+	    "[--server-side-cm] "
 	    "[--version] "
 	    "[--help] "
 	    "[PLUGIN]...\n",
@@ -364,6 +366,10 @@ main (int argc, char **argv)
 	else if (!strcmp (argv[i], "--no-wm"))
 	{
 	    windowManagement = FALSE;
+	}
+	else if (!strcmp (argv[i], "--server-side-cm"))
+	{
+	    manualCompositeManagement = FALSE;
 	}
 	else if (*argv[i] == '-')
 	{

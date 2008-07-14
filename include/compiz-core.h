@@ -220,6 +220,7 @@ extern Bool       noDetection;
 extern Bool	  useDesktopHints;
 extern Bool       onlyCurrentScreen;
 extern Bool       windowManagement;
+extern Bool       manualCompositeManagement;
 
 extern int  defaultRefreshRate;
 extern char *defaultTextureFilter;
