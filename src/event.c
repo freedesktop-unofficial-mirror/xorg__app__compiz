@@ -1341,11 +1341,8 @@ handleEvent (CompDisplay *d,
 	w = findWindowAtDisplay (d, event->xmap.window);
 	if (w)
 	{
-	    if (w->pendingMaps)
-		w->managed = TRUE;
-
 	    /* been shaded */
-	    if (w->height == 0)
+	    if (w->managed && w->height == 0)
 	    {
 		if (w->id == d->activeWindow)
 		    moveInputFocusToWindow (w);
@@ -1364,7 +1361,7 @@ handleEvent (CompDisplay *d,
 		setWmState (d, IconicState, w->id);
 		w->pendingUnmaps--;
 	    }
-	    else /* X -> Withdrawn */
+	    else if (w->managed) /* X -> Withdrawn */
 	    {
 		/* Iconic -> Withdrawn */
 		if (w->state & CompWindowStateHiddenMask)
@@ -1685,6 +1682,9 @@ handleEvent (CompDisplay *d,
     case MotionNotify:
 	break;
     case ClientMessage:
+	if (!windowManagement)
+	    break;
+
 	if (event->xclient.message_type == d->winActiveAtom)
 	{
 	    w = findWindowAtDisplay (d, event->xclient.window);

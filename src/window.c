@@ -2063,10 +2063,13 @@ addWindow (CompScreen *screen,
 
     w->saveMask = 0;
 
-    XSelectInput (d->display, id,
-		  PropertyChangeMask |
-		  EnterWindowMask    |
-		  FocusChangeMask);
+    if (windowManagement)
+	XSelectInput (d->display, id,
+		      PropertyChangeMask |
+		      EnterWindowMask    |
+		      FocusChangeMask);
+    else
+	XSelectInput (d->display, id, PropertyChangeMask);
 
     w->id = id;
 
@@ -2402,7 +2405,7 @@ mapWindow (CompWindow *w)
 
     w->attrib.map_state = IsViewable;
 
-    if (!w->attrib.override_redirect)
+    if (w->managed)
 	setWmState (w->screen->display, NormalState, w->id);
 
     w->invisible  = TRUE;
@@ -2429,7 +2432,7 @@ mapWindow (CompWindow *w)
 	sendConfigureNotify (w);
     }
 
-    if (!w->attrib.override_redirect)
+    if (w->managed)
     {
 	/* been shaded */
 	if (!w->height)
@@ -2613,6 +2616,9 @@ initializeSyncCounter (CompWindow *w)
     int			 result, format;
     unsigned long	 n, left;
     unsigned char	 *data;
+
+    if (!windowManagement)
+	return FALSE;
 
     if (w->syncCounter)
 	return w->syncAlarm != None;
@@ -2979,6 +2985,9 @@ moveInputFocusToWindow (CompWindow *w)
     CompScreen  *s = w->screen;
     CompDisplay *d = s->display;
     CompWindow  *modalTransient;
+
+    if (!w->managed)
+	return;
 
     modalTransient = getModalTransient (w);
     if (modalTransient)

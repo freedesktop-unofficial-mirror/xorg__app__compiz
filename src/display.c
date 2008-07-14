@@ -2319,7 +2319,7 @@ addDisplay (const char *name)
 	Time		     wmSnTimestamp = 0;
 	XEvent		     event;
 	XSetWindowAttributes attr;
-	Window		     currentWmSnOwner, currentCmSnOwner;
+	Window		     currentWmSnOwner = None, currentCmSnOwner;
 	char		     buf[128];
 	Window		     rootDummy, childDummy;
 	unsigned int	     uDummy;
@@ -2328,7 +2328,8 @@ addDisplay (const char *name)
 	sprintf (buf, "WM_S%d", i);
 	wmSnAtom = XInternAtom (dpy, buf, 0);
 
-	currentWmSnOwner = XGetSelectionOwner (dpy, wmSnAtom);
+	if (windowManagement)
+	    currentWmSnOwner = XGetSelectionOwner (dpy, wmSnAtom);
 
 	if (currentWmSnOwner != None)
 	{
@@ -2366,6 +2367,9 @@ addDisplay (const char *name)
 
 		continue;
 	    }
+
+	    XSelectInput (dpy, currentCmSnOwner,
+			  StructureNotifyMask);
 	}
 
 	attr.override_redirect = TRUE;
@@ -2379,54 +2383,66 @@ addDisplay (const char *name)
 			   CWOverrideRedirect | CWEventMask,
 			   &attr);
 
-	XChangeProperty (dpy,
-			 newWmSnOwner,
-			 d->wmNameAtom,
-			 d->utf8StringAtom, 8,
-			 PropModeReplace,
-			 (unsigned char *) PACKAGE,
-			 strlen (PACKAGE));
-
-	XWindowEvent (dpy,
-		      newWmSnOwner,
-		      PropertyChangeMask,
-		      &event);
-
-	wmSnTimestamp = event.xproperty.time;
-
-	XSetSelectionOwner (dpy, wmSnAtom, newWmSnOwner, wmSnTimestamp);
-
-	if (XGetSelectionOwner (dpy, wmSnAtom) != newWmSnOwner)
+	if (windowManagement)
 	{
-	    compLogMessage ("core", CompLogLevelError,
-			    "Could not acquire window manager "
-			    "selection on screen %d display \"%s\"",
-			    i, DisplayString (dpy));
+	    XChangeProperty (dpy,
+			     newWmSnOwner,
+			     d->wmNameAtom,
+			     d->utf8StringAtom, 8,
+			     PropModeReplace,
+			     (unsigned char *) PACKAGE,
+			     strlen (PACKAGE));
 
-	    XDestroyWindow (dpy, newWmSnOwner);
+	    XWindowEvent (dpy,
+			  newWmSnOwner,
+			  PropertyChangeMask,
+			  &event);
 
-	    continue;
+	    wmSnTimestamp = event.xproperty.time;
+
+	    XSetSelectionOwner (dpy, wmSnAtom, newWmSnOwner, wmSnTimestamp);
+
+	    if (XGetSelectionOwner (dpy, wmSnAtom) != newWmSnOwner)
+	    {
+		compLogMessage ("core", CompLogLevelError,
+				"Could not acquire window manager "
+				"selection on screen %d display \"%s\"",
+				i, DisplayString (dpy));
+
+		XDestroyWindow (dpy, newWmSnOwner);
+
+		continue;
+	    }
+
+	    /* Send client message indicating that we are now the WM */
+	    event.xclient.type	       = ClientMessage;
+	    event.xclient.window       = XRootWindow (dpy, i);
+	    event.xclient.message_type = d->managerAtom;
+	    event.xclient.format       = 32;
+	    event.xclient.data.l[0]    = wmSnTimestamp;
+	    event.xclient.data.l[1]    = wmSnAtom;
+	    event.xclient.data.l[2]    = 0;
+	    event.xclient.data.l[3]    = 0;
+	    event.xclient.data.l[4]    = 0;
+
+	    XSendEvent (dpy, XRootWindow (dpy, i), FALSE,
+			StructureNotifyMask, &event);
 	}
-
-	/* Send client message indicating that we are now the WM */
-	event.xclient.type	   = ClientMessage;
-	event.xclient.window       = XRootWindow (dpy, i);
-	event.xclient.message_type = d->managerAtom;
-	event.xclient.format       = 32;
-	event.xclient.data.l[0]    = wmSnTimestamp;
-	event.xclient.data.l[1]    = wmSnAtom;
-	event.xclient.data.l[2]    = 0;
-	event.xclient.data.l[3]    = 0;
-	event.xclient.data.l[4]    = 0;
-
-	XSendEvent (dpy, XRootWindow (dpy, i), FALSE,
-		    StructureNotifyMask, &event);
 
 	/* Wait for old window manager to go away */
 	if (currentWmSnOwner != None)
 	{
 	    do {
 		XWindowEvent (dpy, currentWmSnOwner,
+			      StructureNotifyMask, &event);
+	    } while (event.type != DestroyNotify);
+	}
+
+	/* Wait for old compositing manager to go away */
+	if (currentCmSnOwner != None && currentCmSnOwner != currentWmSnOwner)
+	{
+	    do {
+		XWindowEvent (dpy, currentCmSnOwner,
 			      StructureNotifyMask, &event);
 	    } while (event.type != DestroyNotify);
 	}
@@ -2459,28 +2475,39 @@ addDisplay (const char *name)
 
 	XGrabServer (dpy);
 
-	XSelectInput (dpy, XRootWindow (dpy, i),
-		      SubstructureRedirectMask |
-		      SubstructureNotifyMask   |
-		      StructureNotifyMask      |
-		      PropertyChangeMask       |
-		      LeaveWindowMask	       |
-		      EnterWindowMask	       |
-		      KeyPressMask	       |
-		      KeyReleaseMask	       |
-		      ButtonPressMask	       |
-		      ButtonReleaseMask	       |
-		      FocusChangeMask	       |
-		      ExposureMask);
-
-	if (compCheckForError (dpy))
+	if (windowManagement)
 	{
-	    compLogMessage ("core", CompLogLevelError,
-			    "Another window manager is "
-			    "already running on screen: %d", i);
+	    XSelectInput (dpy, XRootWindow (dpy, i),
+			  SubstructureRedirectMask |
+			  SubstructureNotifyMask   |
+			  StructureNotifyMask      |
+			  PropertyChangeMask       |
+			  LeaveWindowMask          |
+			  EnterWindowMask          |
+			  KeyPressMask             |
+			  KeyReleaseMask           |
+			  ButtonPressMask          |
+			  ButtonReleaseMask        |
+			  FocusChangeMask          |
+			  ExposureMask);
+   
+	    if (compCheckForError (dpy))
+	    {
+		compLogMessage ("core", CompLogLevelError,
+				"Another window manager is "
+				"already running on screen: %d", i);
 
-	    XUngrabServer (dpy);
-	    continue;
+		XUngrabServer (dpy);
+		continue;
+	    }
+	}
+	else
+	{
+	    XSelectInput (dpy, XRootWindow (dpy, i),
+			  SubstructureNotifyMask   |
+			  StructureNotifyMask      |
+			  PropertyChangeMask       |
+			  ExposureMask);
 	}
 
 	if (!addScreen (d, i, newWmSnOwner, wmSnAtom, wmSnTimestamp))
@@ -2510,33 +2537,37 @@ addDisplay (const char *name)
 
     setAudibleBell (d, d->opt[COMP_DISPLAY_OPTION_AUDIBLE_BELL].value.b);
 
-    XGetInputFocus (dpy, &focus, &revertTo);
-
-    /* move input focus to root window so that we get a FocusIn event when
-       moving it to the default window */
-    XSetInputFocus (dpy, d->screens->root, RevertToPointerRoot, CurrentTime);
-
-    if (focus == None || focus == PointerRoot)
+    if (windowManagement)
     {
-	focusDefaultWindow (d->screens);
-    }
-    else
-    {
-	CompWindow *w;
+	XGetInputFocus (dpy, &focus, &revertTo);
 
-	w = findWindowAtDisplay (d, focus);
-	if (w)
+	/* move input focus to root window so that we get a FocusIn event when
+	   moving it to the default window */
+	XSetInputFocus (dpy, d->screens->root, RevertToPointerRoot,
+			CurrentTime);
+
+	if (focus == None || focus == PointerRoot)
 	{
-	    moveInputFocusToWindow (w);
+	    focusDefaultWindow (d->screens);
 	}
 	else
-	    focusDefaultWindow (d->screens);
-    }
+	{
+	    CompWindow *w;
 
-    d->pingHandle =
-	compAddTimeout (d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i,
-			d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i + 500,
-			pingTimeout, d);
+	    w = findWindowAtDisplay (d, focus);
+	    if (w)
+	    {
+		moveInputFocusToWindow (w);
+	    }
+	    else
+		focusDefaultWindow (d->screens);
+	}
+
+	d->pingHandle =
+	    compAddTimeout (d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i,
+			    d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i +
+			    500, pingTimeout, d);
+    }
 
     return TRUE;
 }

@@ -2441,6 +2441,9 @@ focusDefaultWindow (CompScreen *s)
     CompWindow  *w;
     CompWindow  *focus = NULL;
 
+    if (!windowManagement)
+	return;
+
     if (!d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b)
     {
 	w = findTopLevelWindowAtDisplay (d, d->below);
@@ -2548,18 +2551,19 @@ findTopLevelWindowAtScreen (CompScreen *s,
 
     if (w->attrib.override_redirect)
     {
-	/* likely a frame window */
-	if (w->attrib.class == InputOnly)
-	{
-	    for (w = s->windows; w; w = w->next)
-		if (w->frame == id)
-		    return w;
-	}
+	if (w->attrib.class != InputOnly)
+	    return NULL;
 
-	return NULL;
+	/* likely a frame window */
+	for (w = s->windows; w; w = w->next)
+	    if (w->frame == id)
+		break;
     }
 
-    return w;
+    if (w && w->managed)
+	return w;
+
+    return NULL;
 }
 
 void
