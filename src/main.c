@@ -68,6 +68,8 @@ Bool onlyCurrentScreen = FALSE;
 Bool useCow = TRUE;
 #endif
 
+Bool windowManagement = TRUE;
+
 CompMetadata coreMetadata;
 
 static void
@@ -93,6 +95,7 @@ usage (void)
 	    "\n       "
 #endif
 
+	    "[--no-wm] "
 	    "[--version] "
 	    "[--help] "
 	    "[PLUGIN]...\n",
@@ -357,6 +360,10 @@ main (int argc, char **argv)
 	{
 	    if (i + 1 < argc)
 		backgroundImage = argv[++i];
+	}
+	else if (!strcmp (argv[i], "--no-wm"))
+	{
+	    windowManagement = FALSE;
 	}
 	else if (*argv[i] == '-')
 	{
