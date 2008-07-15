@@ -2005,6 +2005,8 @@ addWindow (CompScreen *screen,
     w->syncCounter    = 0;
     w->syncWaitHandle = 0;
 
+    XSyncIntToValue (&w->syncValue, 0);
+
     w->closeRequests	    = 0;
     w->lastCloseRequestTime = 0;
 
@@ -2445,6 +2447,10 @@ mapWindow (CompWindow *w)
 	sendSyncRequest (w);
 	sendConfigureNotify (w);
     }
+    else
+    {
+	leaveSyncWaitState (w);
+    }
 
     if (w->managed)
     {
@@ -2464,6 +2470,8 @@ unmapWindow (CompWindow *w)
     {
 	if (w->frame && !w->shaded)
 	    XUnmapWindow (w->screen->display->display, w->frame);
+
+	enterSyncWaitState (w);
 
 	w->mapNum = 0;
     }
@@ -2653,7 +2661,6 @@ initializeSyncCounter (CompWindow *w)
 
 	XFree (data);
 
-	XSyncIntsToValue (&w->syncValue, (unsigned int) rand (), 0);
 	XSyncSetCounter (w->screen->display->display,
 			 w->syncCounter,
 			 w->syncValue);
@@ -2717,7 +2724,10 @@ sendSyncRequest (CompWindow *w)
 	return;
 
     if (!initializeSyncCounter (w))
+    {
+	leaveSyncWaitState (w);
 	return;
+    }
 
     xev.type	     = ClientMessage;
     xev.window	     = w->id;
@@ -2730,6 +2740,8 @@ sendSyncRequest (CompWindow *w)
     xev.data.l[4]    = 0;
 
     syncValueIncrement (&w->syncValue);
+
+    enterSyncWaitState (w);
 
     XSendEvent (w->screen->display->display, w->id, FALSE, 0, (XEvent *) &xev);
 
@@ -5221,4 +5233,26 @@ getWindowMovementForOffset (CompWindow *w,
 	    *retY = offY;
     }
 
+}
+
+void
+enterSyncWaitState (CompWindow *w)
+{
+    XDeleteProperty (w->screen->display->display,
+		     w->id,
+		     w->screen->display->syncStateAtom);
+}
+
+void
+leaveSyncWaitState (CompWindow *w)
+{
+    unsigned long data = XSyncValueLow32 (w->syncValue);
+
+    XChangeProperty (w->screen->display->display,
+		     w->id,
+		     w->screen->display->syncStateAtom,
+		     XA_CARDINAL,
+		     32,
+		     PropModeReplace,
+		     (unsigned char *) &data, 1);
 }

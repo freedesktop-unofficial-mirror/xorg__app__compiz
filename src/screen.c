@@ -1206,6 +1206,8 @@ setSupported (CompScreen *s)
     data[i++] = d->moveResizeWindowAtom;
     data[i++] = d->restackWindowAtom;
 
+    data[i++] = d->syncStateAtom;
+
     XChangeProperty (d->display, s->root, d->supportedAtom, XA_ATOM, 32,
 		     PropModeReplace, (unsigned char *) data, i);
 }

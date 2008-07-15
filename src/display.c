@@ -2211,6 +2211,8 @@ addDisplay (const char *name)
 
     d->startupIdAtom = XInternAtom (dpy, "_NET_STARTUP_ID", 0);
 
+    d->syncStateAtom = XInternAtom (dpy, "_COMPIZ_SYNC_STATE", 0);
+
     d->snDisplay = sn_display_new (dpy, NULL, NULL);
     if (!d->snDisplay)
 	return FALSE;

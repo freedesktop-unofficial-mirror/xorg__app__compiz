@@ -99,6 +99,8 @@ handleSyncAlarm (CompWindow *w)
 	    XRectangle *rects;
 	    int	       nDamage;
 
+	    leaveSyncWaitState (w);
+
 	    nDamage = w->nDamage;
 	    rects   = w->damageRects;
 	    while (nDamage--)

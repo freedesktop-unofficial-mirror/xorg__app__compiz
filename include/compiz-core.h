@@ -1055,6 +1055,8 @@ struct _CompDisplay {
 
     Atom startupIdAtom;
 
+    Atom syncStateAtom;
+
     unsigned int      lastPing;
     CompTimeoutHandle pingHandle;
 
@@ -3097,6 +3099,13 @@ getWindowMovementForOffset (CompWindow *w,
 			    int        offY,
 			    int        *retX,
 			    int        *retY);
+
+void
+enterSyncWaitState (CompWindow *w);
+
+void
+leaveSyncWaitState (CompWindow *w);
+
 
 /* plugin.c */
 
