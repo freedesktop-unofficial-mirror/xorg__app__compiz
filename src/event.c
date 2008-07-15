@@ -1335,6 +1335,9 @@ handleEvent (CompDisplay *d,
 	w = findWindowAtDisplay (d, event->xdestroywindow.window);
 	if (w)
 	{
+	    if (w->screen->supportingWmCheckWindow == w->id)
+		getSupportingWmCheck (w->screen);
+
 	    moveInputFocusToOtherWindow (w);
 	    destroyWindow (w);
 	}
@@ -1679,6 +1682,13 @@ handleEvent (CompDisplay *d,
 	    w = findWindowAtDisplay (d, event->xproperty.window);
 	    if (w)
 		updateWindowClassHints (w);
+	}
+	else if (event->xproperty.atom == d->supportingWmCheckAtom ||
+		 event->xproperty.atom == d->supportedAtom)
+	{
+	    s = findScreenAtDisplay (d, event->xproperty.window);
+	    if (s)
+		getSupportingWmCheck (s);
 	}
 	break;
     case MotionNotify:

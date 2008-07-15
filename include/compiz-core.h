@@ -2155,6 +2155,9 @@ struct _CompScreen {
     CompCursor      *cursors;
     CompCursorImage *cursorImages;
 
+    Bool   syncStateSupport;
+    Window supportingWmCheckWindow;
+
     GLXGetProcAddressProc    getProcAddress;
     GLXBindTexImageProc      bindTexImage;
     GLXReleaseTexImageProc   releaseTexImage;
@@ -2285,6 +2288,9 @@ updateScreenBackground (CompScreen  *screen,
 
 void
 detectRefreshRateOfScreen (CompScreen *s);
+
+void
+getSupportingWmCheck (CompScreen *s);
 
 void
 showOutputWindow (CompScreen *s);

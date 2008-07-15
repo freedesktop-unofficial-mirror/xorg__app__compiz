@@ -1212,6 +1212,58 @@ setSupported (CompScreen *s)
 		     PropModeReplace, (unsigned char *) data, i);
 }
 
+void
+getSupportingWmCheck (CompScreen *s)
+{
+    CompDisplay   *d = s->display;
+    Atom	  actual;
+    int		  result, format;
+    unsigned long n, left;
+    unsigned char *propData;
+
+    s->syncStateSupport = FALSE;
+
+    result = XGetWindowProperty (d->display, s->root,
+				 d->supportingWmCheckAtom, 0L, 1L, FALSE,
+				 XA_WINDOW, &actual, &format,
+				 &n, &left, &propData);
+    if (result == Success && n && propData)
+    {
+	Window wmCheckWindow = *((unsigned long *) propData);
+
+	XFree (propData);
+
+	result = XGetWindowProperty (d->display,
+				     wmCheckWindow,
+				     d->supportingWmCheckAtom, 0L, 1L, FALSE,
+				     XA_WINDOW, &actual, &format,
+				     &n, &left, &propData);
+	if (result == Success && n && propData)
+	{
+	    XFree (propData);
+
+	    s->supportingWmCheckWindow = wmCheckWindow;
+
+	    result = XGetWindowProperty (d->display,
+					 s->root,
+					 d->supportedAtom, 0L, 4096L,
+					 FALSE, XA_ATOM, &actual, &format,
+					 &n, &left, &propData);
+	    if (result == Success && n && propData)
+	    {
+		unsigned long *data = (unsigned long *) propData;
+		int           i;
+
+		for (i = 0; i < n; i++)
+		    if ((Atom) data[i] == d->syncStateAtom)
+			s->syncStateSupport = TRUE;
+
+		XFree (propData);
+	    }
+	}
+    }
+}
+
 static void
 getDesktopHints (CompScreen *s)
 {
@@ -2355,11 +2407,17 @@ addScreen (CompDisplay *display,
 
     updateScreenEdges (s);
 
+    s->supportingWmCheckWindow = None;
+
     if (windowManagement)
     {
 	setDesktopHints (s);
 	setSupportingWmCheck (s);
 	setSupported (s);
+    }
+    else
+    {
+	getSupportingWmCheck (s);
     }
 
     s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
