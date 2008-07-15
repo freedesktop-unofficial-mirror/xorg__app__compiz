@@ -2758,7 +2758,7 @@ configureWindow (CompWindow	 *w,
     }
     else
     {
-	if (ce->override_redirect)
+	if (!w->managed)
 	{
 	    w->serverX		 = ce->x;
 	    w->serverY		 = ce->y;
