@@ -1822,7 +1822,7 @@ static int
 errorHandler (Display     *dpy,
 	      XErrorEvent *e)
 {
-#define DEBUG 1
+
 #ifdef DEBUG
     char str[128];
 #endif
