@@ -2780,6 +2780,15 @@ void
 configureWindow (CompWindow	 *w,
 		 XConfigureEvent *ce)
 {
+    if (!w->managed)
+    {
+	w->serverX	     = ce->x;
+	w->serverY	     = ce->y;
+	w->serverWidth       = ce->width;
+	w->serverHeight      = ce->height;
+	w->serverBorderWidth = ce->border_width;
+    }
+
     if (w->syncWait)
     {
 	w->syncX	   = ce->x;
@@ -2790,15 +2799,6 @@ configureWindow (CompWindow	 *w,
     }
     else
     {
-	if (!w->managed)
-	{
-	    w->serverX		 = ce->x;
-	    w->serverY		 = ce->y;
-	    w->serverWidth       = ce->width;
-	    w->serverHeight      = ce->height;
-	    w->serverBorderWidth = ce->border_width;
-	}
-
 	resizeWindow (w, ce->x, ce->y, ce->width, ce->height,
 		      ce->border_width);
     }
