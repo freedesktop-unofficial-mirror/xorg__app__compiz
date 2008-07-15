@@ -99,7 +99,8 @@ handleSyncAlarm (CompWindow *w)
 	    XRectangle *rects;
 	    int	       nDamage;
 
-	    leaveSyncWaitState (w);
+	    if (windowManagement)
+		leaveSyncWaitState (w);
 
 	    nDamage = w->nDamage;
 	    rects   = w->damageRects;
@@ -1689,6 +1690,23 @@ handleEvent (CompDisplay *d,
 	    s = findScreenAtDisplay (d, event->xproperty.window);
 	    if (s)
 		getSupportingWmCheck (s);
+	}
+	else if (event->xproperty.atom == d->syncStateAtom)
+	{
+	    if (!windowManagement)
+	    {
+		w = findWindowAtDisplay (d, event->xproperty.window);
+		if (w)
+		{
+		    if (event->xproperty.state == PropertyDelete)
+		    {
+			if (w->screen->syncStateSupport)
+			    syncWait (w);
+		    }
+		    else
+			handleSyncAlarm (w);
+		}
+	    }
 	}
 	break;
     case MotionNotify:

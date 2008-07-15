@@ -2901,6 +2901,9 @@ void
 syncWindowPosition (CompWindow *w);
 
 void
+syncWait (CompWindow *w);
+
+void
 sendSyncRequest (CompWindow *w);
 
 Bool

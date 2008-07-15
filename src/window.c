@@ -2075,12 +2075,22 @@ addWindow (CompScreen *screen,
     w->saveMask = 0;
 
     if (windowManagement)
+    {
 	XSelectInput (d->display, id,
 		      PropertyChangeMask |
 		      EnterWindowMask    |
 		      FocusChangeMask);
+    }
     else
+    {
 	XSelectInput (d->display, id, PropertyChangeMask);
+
+	if (w->screen->syncStateSupport)
+	{
+	    if (!getWindowProp (d, w->id, d->syncStateAtom, 0))
+		syncWait (w);
+	}
+    }
 
     w->id = id;
 
@@ -2442,14 +2452,17 @@ mapWindow (CompWindow *w)
     if (w->type & CompWindowTypeDesktopMask)
 	w->screen->desktopWindowCount++;
 
-    if (w->protocols & CompWindowProtocolSyncRequestMask)
+    if (windowManagement)
     {
-	sendSyncRequest (w);
-	sendConfigureNotify (w);
-    }
-    else
-    {
-	leaveSyncWaitState (w);
+	if (w->protocols & CompWindowProtocolSyncRequestMask)
+	{
+	    sendSyncRequest (w);
+	    sendConfigureNotify (w);
+	}
+	else
+	{
+	    leaveSyncWaitState (w);
+	}
     }
 
     if (w->managed)
@@ -2471,7 +2484,8 @@ unmapWindow (CompWindow *w)
 	if (w->frame && !w->shaded)
 	    XUnmapWindow (w->screen->display->display, w->frame);
 
-	enterSyncWaitState (w);
+	if (windowManagement)
+	    enterSyncWaitState (w);
 
 	w->mapNum = 0;
     }
@@ -2716,6 +2730,20 @@ syncWaitTimeout (void *closure)
 }
 
 void
+syncWait (CompWindow *w)
+{
+    w->syncWait	       = TRUE;
+    w->syncX	       = w->serverX;
+    w->syncY	       = w->serverY;
+    w->syncWidth       = w->serverWidth;
+    w->syncHeight      = w->serverHeight;
+    w->syncBorderWidth = w->serverBorderWidth;
+
+    if (!w->syncWaitHandle)
+	w->syncWaitHandle = compAddTimeout (1000, 1200, syncWaitTimeout, w);
+}
+
+void
 sendSyncRequest (CompWindow *w)
 {
     XClientMessageEvent xev;
@@ -2745,15 +2773,7 @@ sendSyncRequest (CompWindow *w)
 
     XSendEvent (w->screen->display->display, w->id, FALSE, 0, (XEvent *) &xev);
 
-    w->syncWait	       = TRUE;
-    w->syncX	       = w->serverX;
-    w->syncY	       = w->serverY;
-    w->syncWidth       = w->serverWidth;
-    w->syncHeight      = w->serverHeight;
-    w->syncBorderWidth = w->serverBorderWidth;
-
-    if (!w->syncWaitHandle)
-	w->syncWaitHandle = compAddTimeout (1000, 1200, syncWaitTimeout, w);
+    syncWait (w);
 }
 
 void
