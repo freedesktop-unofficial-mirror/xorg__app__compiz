@@ -1689,7 +1689,15 @@ handleEvent (CompDisplay *d,
 	{
 	    s = findScreenAtDisplay (d, event->xproperty.window);
 	    if (s)
+	    {
 		getSupportingWmCheck (s);
+	    }
+	    else
+	    {
+		w = findWindowAtDisplay (d, event->xproperty.window);
+		if (w)
+		    getSupportingWmCheck (w->screen);
+	    }
 	}
 	else if (event->xproperty.atom == d->syncStateAtom)
 	{
