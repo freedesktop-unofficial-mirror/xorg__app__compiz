@@ -184,6 +184,9 @@ setDesktopHints (CompScreen *s)
     unsigned long *data;
     int		  size, offset, hintSize, i;
 
+    if (!windowManagement)
+	return;
+
     size = s->nDesktop * 2 + s->nDesktop * 2 + s->nDesktop * 4 + 1;
 
     data = malloc (sizeof (unsigned long) * size);
@@ -1283,17 +1286,20 @@ getDesktopHints (CompScreen *s)
 	    (*s->enterShowDesktopMode) (s);
     }
 
-    data[0] = s->currentDesktop;
+    if (windowManagement)
+    {
+	data[0] = s->currentDesktop;
 
-    XChangeProperty (d->display, s->root, d->currentDesktopAtom,
-		     XA_CARDINAL, 32, PropModeReplace,
-		     (unsigned char *) data, 1);
+	XChangeProperty (d->display, s->root, d->currentDesktopAtom,
+			 XA_CARDINAL, 32, PropModeReplace,
+			 (unsigned char *) data, 1);
 
-    data[0] = s->showingDesktopMask ? TRUE : FALSE;
+	data[0] = s->showingDesktopMask ? TRUE : FALSE;
 
-    XChangeProperty (d->display, s->root, d->showingDesktopAtom,
-		     XA_CARDINAL, 32, PropModeReplace,
-		     (unsigned char *) data, 1);
+	XChangeProperty (d->display, s->root, d->showingDesktopAtom,
+			 XA_CARDINAL, 32, PropModeReplace,
+			 (unsigned char *) data, 1);
+    }
 }
 
 void
@@ -1421,6 +1427,9 @@ enterShowDesktopMode (CompScreen *s)
     int		  count = 0;
     CompOption    *st = &d->opt[COMP_DISPLAY_OPTION_HIDE_SKIP_TASKBAR_WINDOWS];
 
+    if (!windowManagement)
+	return;
+
     s->showingDesktopMask = ~(CompWindowTypeDesktopMask |
 			      CompWindowTypeDockMask);
 
@@ -1459,6 +1468,9 @@ leaveShowDesktopMode (CompScreen *s,
 {
     CompWindow    *w;
     unsigned long data = 0;
+
+    if (!windowManagement)
+	return;
 
     if (window)
     {
@@ -2341,9 +2353,12 @@ addScreen (CompDisplay *display,
 
     updateScreenEdges (s);
 
-    setDesktopHints (s);
-    setSupportingWmCheck (s);
-    setSupported (s);
+    if (windowManagement)
+    {
+	setDesktopHints (s);
+	setSupportingWmCheck (s);
+	setSupported (s);
+    }
 
     s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
     s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
@@ -3329,6 +3344,9 @@ updateClientListForScreen (CompScreen *s)
     Bool   updateClientListStacking = FALSE;
     int	   i, n = 0;
 
+    if (!windowManagement)
+	return;
+
     forEachWindowOnScreen (s, countClientListWindow, (void *) &n);
 
     if (n == 0)
@@ -3941,6 +3959,9 @@ setCurrentDesktop (CompScreen   *s,
 {
     unsigned long data;
     CompWindow    *w;
+
+    if (!windowManagement)
+	return;
 
     if (desktop >= s->nDesktop)
 	return;
