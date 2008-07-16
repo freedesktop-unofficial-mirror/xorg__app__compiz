@@ -2591,6 +2591,10 @@ addDisplay (const char *name)
 			    d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i +
 			    500, pingTimeout, d);
     }
+    else
+    {
+	d->activeWindow = getActiveWindow (d, d->screens->root);
+    }
 
     return TRUE;
 }
