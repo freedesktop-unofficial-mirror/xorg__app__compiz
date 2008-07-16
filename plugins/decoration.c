@@ -261,19 +261,26 @@ decorGetTexture (CompScreen *screen,
 	return NULL;
     }
 
-    if (!bindPixmapToTexture (screen, &texture->texture, pixmap,
-			      width, height, depth))
+    if (manualCompositeManagement)
     {
-	finiTexture (screen, &texture->texture);
-	free (texture);
-	return NULL;
+	if (!bindPixmapToTexture (screen, &texture->texture, pixmap,
+				  width, height, depth))
+	{
+	    finiTexture (screen, &texture->texture);
+	    free (texture);
+	    return NULL;
+	}
+
+	if (!dd->opt[DECOR_DISPLAY_OPTION_MIPMAP].value.b)
+	    texture->texture.mipmap = FALSE;
+
+	texture->damage = XDamageCreate (screen->display->display, pixmap,
+					 XDamageReportRawRectangles);
     }
-
-    if (!dd->opt[DECOR_DISPLAY_OPTION_MIPMAP].value.b)
-	texture->texture.mipmap = FALSE;
-
-    texture->damage = XDamageCreate (screen->display->display, pixmap,
-				     XDamageReportRawRectangles);
+    else
+    {
+	texture->damage = None;
+    }
 
     texture->refCount = 1;
     texture->pixmap   = pixmap;
@@ -408,9 +415,11 @@ decorCreateDecoration (CompScreen *screen,
     int		    left, right, top, bottom;
     int		    x1, y1, x2, y2;
 
+    DECOR_DISPLAY (screen->display);
+
     result = XGetWindowProperty (screen->display->display, id,
 				 decorAtom, 0L, 1024L, FALSE,
-				 XA_INTEGER, &actual, &format,
+				 dd->winDecorAtom, &actual, &format,
 				 &n, &nleft, &data);
 
     if (result != Success || !n || !data)
@@ -654,6 +663,9 @@ updateWindowDecorationScale (CompWindow *w)
     if (!wd)
 	return;
 
+    if (!manualCompositeManagement)
+	return;
+
     for (i = 0; i < wd->nQuad; i++)
     {
 	computeQuadBox (&wd->decor->quad[i], w->width, w->height,
@@ -829,7 +841,7 @@ decorWindowUpdate (CompWindow *w,
 	moveDy = -oldShiftY;
     }
 
-    if (w->placed && !w->attrib.override_redirect && (moveDx || moveDy))
+    if (w->placed && w->managed && (moveDx || moveDy))
     {
 	XWindowChanges xwc;
 	unsigned int   mask = CWX | CWY;
@@ -1246,7 +1258,7 @@ decorWindowMoveNotify (CompWindow *w,
     DECOR_SCREEN (w->screen);
     DECOR_WINDOW (w);
 
-    if (dw->wd)
+    if (dw->wd && manualCompositeManagement)
     {
 	WindowDecoration *wd = dw->wd;
 	int		 i;
@@ -1291,15 +1303,20 @@ decorWindowResizeNotify (CompWindow *w,
     DECOR_SCREEN (w->screen);
     DECOR_WINDOW (w);
 
-    /* FIXME: we should not need a timer for calling decorWindowUpdate,
-       and only call updateWindowDecorationScale if decorWindowUpdate
-       returns FALSE. Unfortunately, decorWindowUpdate may call
-       updateWindowOutputExtents, which may call WindowResizeNotify. As
-       we never should call a wrapped function that's currently
-       processed, we need the timer for the moment. updateWindowOutputExtents
-       should be fixed so that it does not emit a resize notification. */
-    dw->resizeUpdateHandle = compAddTimeout (0, 0, decorResizeUpdateTimeout, w);
-    updateWindowDecorationScale (w);
+    if (manualCompositeManagement)
+    {
+	/* FIXME: we should not need a timer for calling decorWindowUpdate,
+	   and only call updateWindowDecorationScale if decorWindowUpdate
+	   returns FALSE. Unfortunately, decorWindowUpdate may call
+	   updateWindowOutputExtents, which may call WindowResizeNotify. As
+	   we never should call a wrapped function that's currently
+	   processed, we need the timer for the moment.
+	   updateWindowOutputExtents should be fixed so that it does not
+	   emit a resize notification. */
+	dw->resizeUpdateHandle =
+	    compAddTimeout (0, 0, decorResizeUpdateTimeout, w);
+	updateWindowDecorationScale (w);
+    }
 
     UNWRAP (ds, w->screen, windowResizeNotify);
     (*w->screen->windowResizeNotify) (w, dx, dy, dwidth, dheight);
