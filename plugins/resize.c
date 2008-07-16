@@ -438,6 +438,10 @@ resizeInitiate (CompDisplay     *d,
 	    }
 	}
 
+	/* only normal resize mode can be used without manual compositing */
+	if (!manualCompositeManagement)
+	    rd->mode = RESIZE_MODE_NORMAL;
+
 	if (!rs->grabIndex)
 	{
 	    Cursor cursor;
