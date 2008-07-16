@@ -575,21 +575,6 @@ decor_update_window_property (decor_t *d)
 
     extents.top += titlebar_height;
 
-    decor_quads_to_property (data, GDK_PIXMAP_XID (d->pixmap),
-			     &extents, &extents,
-			     ICON_SPACE + d->button_width,
-			     0,
-			     quads, nQuad);
-
-    gdk_error_trap_push ();
-    XChangeProperty (xdisplay, d->prop_xid,
-		     win_decor_atom,
-		     win_decor_atom,
-		     32, PropModeReplace, (guchar *) data,
-		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
-    gdk_display_sync (gdk_display_get_default ());
-    gdk_error_trap_pop ();
-
     if (d->active_pixmap)
     {
 	decor_quads_to_property (data, GDK_PIXMAP_XID (d->active_pixmap),
@@ -607,6 +592,21 @@ decor_update_window_property (decor_t *d)
 	gdk_display_sync (gdk_display_get_default ());
 	gdk_error_trap_pop ();
     }
+
+    decor_quads_to_property (data, GDK_PIXMAP_XID (d->pixmap),
+			     &extents, &extents,
+			     ICON_SPACE + d->button_width,
+			     0,
+			     quads, nQuad);
+
+    gdk_error_trap_push ();
+    XChangeProperty (xdisplay, d->prop_xid,
+		     win_decor_atom,
+		     win_decor_atom,
+		     32, PropModeReplace, (guchar *) data,
+		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
+    gdk_display_sync (gdk_display_get_default ());
+    gdk_error_trap_pop ();
 
     top.rects = &top.extents;
     top.numRects = top.size = 1;
@@ -1467,21 +1467,6 @@ decor_update_meta_window_property (decor_t	  *d,
     extents.top += titlebar_height;
     max_extents.top += max_titlebar_height;
 
-    decor_quads_to_property (data, GDK_PIXMAP_XID (d->pixmap),
-			     &extents, &max_extents,
-			     ICON_SPACE + d->button_width,
-			     0,
-			     quads, nQuad);
-
-    gdk_error_trap_push ();
-    XChangeProperty (xdisplay, d->prop_xid,
-		     win_decor_atom,
-		     win_decor_atom,
-		     32, PropModeReplace, (guchar *) data,
-		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
-    gdk_display_sync (gdk_display_get_default ());
-    gdk_error_trap_pop ();
-
     if (d->active_pixmap)
     {
 	decor_quads_to_property (data, GDK_PIXMAP_XID (d->active_pixmap),
@@ -1499,6 +1484,21 @@ decor_update_meta_window_property (decor_t	  *d,
 	gdk_display_sync (gdk_display_get_default ());
 	gdk_error_trap_pop ();
     }
+
+    decor_quads_to_property (data, GDK_PIXMAP_XID (d->pixmap),
+			     &extents, &max_extents,
+			     ICON_SPACE + d->button_width,
+			     0,
+			     quads, nQuad);
+
+    gdk_error_trap_push ();
+    XChangeProperty (xdisplay, d->prop_xid,
+		     win_decor_atom,
+		     win_decor_atom,
+		     32, PropModeReplace, (guchar *) data,
+		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
+    gdk_display_sync (gdk_display_get_default ());
+    gdk_error_trap_pop ();
 
     decor_update_blur_property (d,
 				w, lh,
