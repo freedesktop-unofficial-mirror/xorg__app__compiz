@@ -384,7 +384,7 @@ rotatePreparePaintScreen (CompScreen *s,
 			xev.xclient.message_type = d->desktopViewportAtom;
 			xev.xclient.window	 = s->root;
 
-			xev.xclient.data.l[0] = (s->x + tx) * s->width;
+			xev.xclient.data.l[0] = (s->x - tx) * s->width;
 			xev.xclient.data.l[1] = s->y * s->height;
 			xev.xclient.data.l[2] = 0;
 			xev.xclient.data.l[3] = 0;
@@ -396,6 +396,8 @@ rotatePreparePaintScreen (CompScreen *s,
 				    SubstructureRedirectMask |
 				    SubstructureNotifyMask,
 				    &xev);
+
+			moveScreenViewport (s, tx, 0, FALSE);
 		    }
 
 		    rs->xrot = 0.0f;
