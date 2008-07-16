@@ -139,7 +139,7 @@ typedef struct _DecorScreen {
 
 typedef struct _DecorWindow {
     WindowDecoration *wd;
-    Decoration	     *decor;
+    Decoration	     *decor[DECOR_NUM];
 
     CompTimeoutHandle resizeUpdateHandle;
 } DecorWindow;
@@ -541,19 +541,20 @@ decorReleaseDecoration (CompScreen *screen,
 }
 
 static void
-decorWindowUpdateDecoration (CompWindow *w)
+decorWindowUpdateDecoration (CompWindow *w,
+			     Atom       atom,
+			     int        type)
 {
     Decoration *decoration;
 
-    DECOR_DISPLAY (w->screen->display);
     DECOR_WINDOW (w);
 
-    decoration = decorCreateDecoration (w->screen, w->id, dd->winDecorAtom);
+    decoration = decorCreateDecoration (w->screen, w->id, atom);
 
-    if (dw->decor)
-	decorReleaseDecoration (w->screen, dw->decor);
+    if (dw->decor[type])
+	decorReleaseDecoration (w->screen, dw->decor[type]);
 
-    dw->decor = decoration;
+    dw->decor[type] = decoration;
 }
 
 static WindowDecoration *
@@ -766,11 +767,12 @@ decorWindowUpdate (CompWindow *w,
 
     if (decorate)
     {
-	if (dw->decor && decorCheckSize (w, dw->decor))
-	{
-	    decor = dw->decor;
-	}
-	else
+	decor = dw->decor[DECOR_NORMAL];
+	if (w->id == w->screen->display->activeWindow &&
+	    dw->decor[DECOR_ACTIVE])
+	    decor = dw->decor[DECOR_ACTIVE];
+		    
+	if (!decor || !decorCheckSize (w, decor))
 	{
 	    if (w->id == w->screen->display->activeWindow)
 		decor = ds->decor[DECOR_ACTIVE];
@@ -931,10 +933,13 @@ decorCheckForDmOnScreen (CompScreen *s,
 	    {
 		DECOR_WINDOW (w);
 
-		if (dw->decor)
+		for (i = 0; i < DECOR_NUM; i++)
 		{
-		    decorReleaseDecoration (s, dw->decor);
-		    dw->decor = 0;
+		    if (dw->decor[i])
+		    {
+			decorReleaseDecoration (s, dw->decor[i]);
+			dw->decor[i] = 0;
+		    }
 		}
 	    }
 	}
@@ -1034,7 +1039,20 @@ decorHandleEvent (CompDisplay *d,
 	    w = findWindowAtDisplay (d, event->xproperty.window);
 	    if (w)
 	    {
-		decorWindowUpdateDecoration (w);
+		decorWindowUpdateDecoration (w,
+					     dd->winDecorAtom,
+					     DECOR_NORMAL);
+		decorWindowUpdate (w, TRUE);
+	    }
+	}
+	else if (event->xproperty.atom == dd->decorAtom[DECOR_ACTIVE])
+	{
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w)
+	    {
+		decorWindowUpdateDecoration (w,
+					     dd->decorAtom[DECOR_ACTIVE],
+					     DECOR_ACTIVE);
 		decorWindowUpdate (w, TRUE);
 	    }
 	}
@@ -1608,6 +1626,7 @@ decorInitWindow (CompPlugin *p,
 		 CompWindow *w)
 {
     DecorWindow *dw;
+    int         i;
 
     DECOR_SCREEN (w->screen);
 
@@ -1615,15 +1634,26 @@ decorInitWindow (CompPlugin *p,
     if (!dw)
 	return FALSE;
 
-    dw->wd    = NULL;
-    dw->decor = NULL;
+    dw->wd = NULL;
+
+    for (i = 0; i < DECOR_NUM; i++)
+	dw->decor[i] = 0;
 
     dw->resizeUpdateHandle = 0;
 
     w->base.privates[ds->windowPrivateIndex].ptr = dw;
 
     if (!w->attrib.override_redirect)
-	decorWindowUpdateDecoration (w);
+    {
+	DECOR_DISPLAY (w->screen->display);
+
+	decorWindowUpdateDecoration (w,
+				     dd->winDecorAtom,
+				     DECOR_NORMAL);
+	decorWindowUpdateDecoration (w,
+				     dd->decorAtom[DECOR_ACTIVE],
+				     DECOR_ACTIVE);
+    }
 
     if (w->base.parent)
 	decorWindowAdd (w->screen, w);
@@ -1635,6 +1665,8 @@ static void
 decorFiniWindow (CompPlugin *p,
 		 CompWindow *w)
 {
+    int i;
+
     DECOR_WINDOW (w);
 
     if (dw->resizeUpdateHandle)
@@ -1646,8 +1678,9 @@ decorFiniWindow (CompPlugin *p,
     if (dw->wd)
 	destroyWindowDecoration (w->screen, dw->wd);
 
-    if (dw->decor)
-	decorReleaseDecoration (w->screen, dw->decor);
+    for (i = 0; i < DECOR_NUM; i++)
+	if (dw->decor[i])
+	    decorReleaseDecoration (w->screen, dw->decor[i]);
 
     free (dw);
 }
