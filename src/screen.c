@@ -3680,7 +3680,7 @@ moveWindowToViewportPosition (CompWindow *w,
     {
 	int m, wx, wy;
 
-	if (!w->managed)
+	if (w->attrib.override_redirect)
 	    return;
 
 	if (w->type & (CompWindowTypeDesktopMask | CompWindowTypeDockMask))
