@@ -4333,6 +4333,30 @@ revealAncestors (CompWindow *w,
 void
 activateWindow (CompWindow *w)
 {
+    if (!windowManagement)
+    {
+	XEvent xev;
+
+	xev.xclient.type    = ClientMessage;
+	xev.xclient.display = w->screen->display->display;
+	xev.xclient.format  = 32;
+
+	xev.xclient.message_type = w->screen->display->winActiveAtom;
+	xev.xclient.window	 = w->id;
+
+	xev.xclient.data.l[0] = 2; /* pretend to be a pager */
+	xev.xclient.data.l[1] = 0;
+	xev.xclient.data.l[2] = 0;
+	xev.xclient.data.l[3] = 0;
+	xev.xclient.data.l[4] = 0;
+
+	XSendEvent (w->screen->display->display, w->screen->root, FALSE,
+		    SubstructureRedirectMask | SubstructureNotifyMask,
+		    &xev);
+
+	return;
+    }
+
     setCurrentDesktop (w->screen, w->desktop);
 
     forEachWindowOnScreen (w->screen, revealAncestors, (void *) w);
