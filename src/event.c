@@ -2084,7 +2084,7 @@ handleEvent (CompDisplay *d,
 
 		    xwcm = adjustConfigureRequestForGravity (w, &xwc,
 							     CWX | CWY,
-							     gravity);
+							     gravity, 1);
 
 		    if ((*w->screen->placeWindow) (w, xwc.x, xwc.y,
 						   &newX, &newY))

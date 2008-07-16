@@ -2888,7 +2888,8 @@ unsigned int
 adjustConfigureRequestForGravity (CompWindow     *w,
 				  XWindowChanges *xwc,
 				  unsigned int   xwcm,
-				  int            gravity);
+				  int            gravity,
+				  int		 direction);
 
 void
 moveResizeWindow (CompWindow     *w,
