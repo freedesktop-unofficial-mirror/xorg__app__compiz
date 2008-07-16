@@ -530,7 +530,7 @@ KWD::Decorator::updateShadow (void)
 	KWD::trapXError ();
 	XChangeProperty (qt_xdisplay (), qt_xrootwin (),
 			 Atoms::netWindowDecorBare,
-			 XA_INTEGER,
+			 Atoms::netWindowDecor,
 			 32, PropModeReplace, (unsigned char *) data,
 			 BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
 	KWD::popXError ();

@@ -581,7 +581,7 @@ decor_update_window_property (decor_t *d)
     gdk_error_trap_push ();
     XChangeProperty (xdisplay, d->prop_xid,
 		     win_decor_atom,
-		     XA_INTEGER,
+		     win_decor_atom,
 		     32, PropModeReplace, (guchar *) data,
 		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
     gdk_display_sync (gdk_display_get_default ());
@@ -650,7 +650,7 @@ decor_update_switcher_property (decor_t *d)
     gdk_error_trap_push ();
     XChangeProperty (xdisplay, d->prop_xid,
 		     win_decor_atom,
-		     XA_INTEGER,
+		     win_decor_atom,
 		     32, PropModeReplace, (guchar *) data,
 		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
     gdk_display_sync (gdk_display_get_default ());
@@ -1439,7 +1439,7 @@ decor_update_meta_window_property (decor_t	  *d,
     gdk_error_trap_push ();
     XChangeProperty (xdisplay, d->prop_xid,
 		     win_decor_atom,
-		     XA_INTEGER,
+		     win_decor_atom,
 		     32, PropModeReplace, (guchar *) data,
 		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
     gdk_display_sync (gdk_display_get_default ());
@@ -2564,7 +2564,7 @@ update_default_decorations (GdkScreen *screen)
 
 	XChangeProperty (xdisplay, xroot,
 			 bareAtom,
-			 XA_INTEGER,
+			 win_decor_atom,
 			 32, PropModeReplace, (guchar *) data,
 			 BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
 
@@ -2572,12 +2572,12 @@ update_default_decorations (GdkScreen *screen)
 	{
 	    XChangeProperty (xdisplay, xroot,
 			     normalAtom,
-			     XA_INTEGER,
+			     win_decor_atom,
 			     32, PropModeReplace, (guchar *) data,
 			     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
 	    XChangeProperty (xdisplay, xroot,
 			     activeAtom,
-			     XA_INTEGER,
+			     win_decor_atom,
 			     32, PropModeReplace, (guchar *) data,
 			     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
 	}
@@ -2635,7 +2635,7 @@ update_default_decorations (GdkScreen *screen)
 
 	XChangeProperty (xdisplay, xroot,
 			 normalAtom,
-			 XA_INTEGER,
+			 win_decor_atom,
 			 32, PropModeReplace, (guchar *) data,
 			 BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
     }
@@ -2661,7 +2661,7 @@ update_default_decorations (GdkScreen *screen)
 
 	XChangeProperty (xdisplay, xroot,
 			 activeAtom,
-			 XA_INTEGER,
+			 win_decor_atom,
 			 32, PropModeReplace, (guchar *) data,
 			 BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
     }

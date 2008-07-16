@@ -1442,7 +1442,7 @@ KWD::Window::updateProperty (void)
 
     KWD::trapXError ();
     XChangeProperty (qt_xdisplay (), mClientId, atom,
-		     XA_INTEGER,
+		     Atoms::netWindowDecor,
 		     32, PropModeReplace, (unsigned char *) data,
 		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
     KWD::popXError ();
