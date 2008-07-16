@@ -1264,7 +1264,7 @@ getSupportingWmCheck (CompScreen *s)
     }
 }
 
-static void
+void
 getDesktopHints (CompScreen *s)
 {
     CompDisplay   *d = s->display;

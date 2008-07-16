@@ -1725,6 +1725,15 @@ handleEvent (CompDisplay *d,
 		    d->activeWindow = getActiveWindow (d, s->root);
 	    }
 	}
+	else if (event->xproperty.atom == d->desktopViewportAtom)
+	{
+	    if (!windowManagement)
+	    {
+		s = findScreenAtDisplay (d, event->xproperty.window);
+		if (s)
+		    getDesktopHints (s);
+	    }
+	}
 	break;
     case MotionNotify:
 	break;

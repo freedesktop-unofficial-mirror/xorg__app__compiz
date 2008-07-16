@@ -2293,6 +2293,9 @@ void
 getSupportingWmCheck (CompScreen *s);
 
 void
+getDesktopHints (CompScreen *s);
+
+void
 showOutputWindow (CompScreen *s);
 
 void
