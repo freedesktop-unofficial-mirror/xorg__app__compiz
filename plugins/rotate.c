@@ -1540,6 +1540,9 @@ rotateHandleEvent (CompDisplay *d,
 	}
 	break;
     case ClientMessage:
+	if (!windowManagement)
+	    break;
+
 	if (event->xclient.message_type == d->desktopViewportAtom)
 	{
 	    s = findScreenAtDisplay (d, event->xclient.window);
