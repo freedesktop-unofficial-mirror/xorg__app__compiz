@@ -236,6 +236,7 @@ int right_click_action  = RIGHT_CLICK_ACTION_DEFAULT;
 int wheel_action        = WHEEL_ACTION_DEFAULT;
 
 static gboolean minimal = FALSE;
+static gboolean reduced_resources = FALSE;
 
 static double decoration_alpha = 0.5;
 
@@ -304,8 +305,9 @@ static decor_shadow_t *switcher_shadow = NULL;
 static GdkPixmap *decor_normal_pixmap = NULL;
 static GdkPixmap *decor_active_pixmap = NULL;
 
-static Atom frame_window_atom;
 static Atom win_decor_atom;
+static Atom win_decor_active_atom;
+static Atom frame_window_atom;
 static Atom win_blur_decor_atom;
 static Atom wm_move_resize_atom;
 static Atom restack_window_atom;
@@ -384,8 +386,9 @@ typedef struct _decor {
     Window	      event_windows[3][3];
     Window	      button_windows[BUTTON_NUM];
     guint	      button_states[BUTTON_NUM];
-    GdkPixmap	      *pixmap;
     GdkPixmap	      *buffer_pixmap;
+    GdkPixmap	      *pixmap;
+    GdkPixmap	      *active_pixmap;
     GdkGC	      *gc;
     decor_layout_t    border_layout;
     decor_context_t   *context;
@@ -586,6 +589,24 @@ decor_update_window_property (decor_t *d)
 		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
     gdk_display_sync (gdk_display_get_default ());
     gdk_error_trap_pop ();
+
+    if (d->active_pixmap)
+    {
+	decor_quads_to_property (data, GDK_PIXMAP_XID (d->active_pixmap),
+				 &extents, &extents,
+				 ICON_SPACE + d->button_width,
+				 0,
+				 quads, nQuad);
+
+	gdk_error_trap_push ();
+	XChangeProperty (xdisplay, d->prop_xid,
+			 win_decor_active_atom,
+			 win_decor_atom,
+			 32, PropModeReplace, (guchar *) data,
+			 BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
+	gdk_display_sync (gdk_display_get_default ());
+	gdk_error_trap_pop ();
+    }
 
     top.rects = &top.extents;
     top.numRects = top.size = 1;
@@ -976,7 +997,9 @@ button_state_paint (cairo_t	  *cr,
 }
 
 static void
-draw_window_decoration (decor_t *d)
+draw_window_decoration_to_pixmap (decor_t   *d,
+				  GdkPixmap *pixmap,
+				  gint      active)
 {
     cairo_t       *cr;
     GtkStyle	  *style;
@@ -987,7 +1010,7 @@ draw_window_decoration (decor_t *d)
     int		  top;
     int		  button_x;
 
-    if (!d->pixmap)
+    if (!pixmap)
 	return;
 
     style = gtk_widget_get_style (style_window);
@@ -1003,7 +1026,7 @@ draw_window_decoration (decor_t *d)
     if (d->buffer_pixmap)
 	cr = gdk_cairo_create (GDK_DRAWABLE (d->buffer_pixmap));
     else
-	cr = gdk_cairo_create (GDK_DRAWABLE (d->pixmap));
+	cr = gdk_cairo_create (GDK_DRAWABLE (pixmap));
 
     cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 
@@ -1020,7 +1043,7 @@ draw_window_decoration (decor_t *d)
 
     draw_shadow_background (d, cr, d->shadow, d->context);
 
-    if (d->active)
+    if (active)
     {
 	decor_color_t *title_color = _title_color;
 
@@ -1145,7 +1168,7 @@ draw_window_decoration (decor_t *d)
 
     cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 
-    if (d->active)
+    if (active)
     {
 	gdk_cairo_set_source_color_alpha (cr,
 					  &style->fg[GTK_STATE_NORMAL],
@@ -1219,7 +1242,7 @@ draw_window_decoration (decor_t *d)
 
 	button_x -= 17;
 
-	if (d->active)
+	if (active)
 	{
 	    cairo_move_to (cr, x, y);
 	    draw_close_button (d, cr, 3.0);
@@ -1247,7 +1270,7 @@ draw_window_decoration (decor_t *d)
 
 	cairo_set_fill_rule (cr, CAIRO_FILL_RULE_EVEN_ODD);
 
-	if (d->active)
+	if (active)
 	{
 	    gdk_cairo_set_source_color_alpha (cr,
 					      &style->fg[GTK_STATE_NORMAL],
@@ -1288,7 +1311,7 @@ draw_window_decoration (decor_t *d)
 
 	button_x -= 17;
 
-	if (d->active)
+	if (active)
 	{
 	    gdk_cairo_set_source_color_alpha (cr,
 					      &style->fg[GTK_STATE_NORMAL],
@@ -1311,7 +1334,7 @@ draw_window_decoration (decor_t *d)
 
     if (d->layout)
     {
-	if (d->active)
+	if (active)
 	{
 	    cairo_move_to (cr,
 			   d->context->left_space + 21.0,
@@ -1348,7 +1371,7 @@ draw_window_decoration (decor_t *d)
 	cairo_rectangle (cr, 0.0, 0.0, 16.0, 16.0);
 	cairo_clip (cr);
 
-	if (d->active)
+	if (active)
 	    cairo_paint (cr);
 	else
 	    cairo_paint_with_alpha (cr, alpha);
@@ -1357,7 +1380,7 @@ draw_window_decoration (decor_t *d)
     cairo_destroy (cr);
 
     if (d->buffer_pixmap)
-	gdk_draw_drawable  (d->pixmap,
+	gdk_draw_drawable  (pixmap,
 			    d->gc,
 			    d->buffer_pixmap,
 			    0,
@@ -1366,6 +1389,20 @@ draw_window_decoration (decor_t *d)
 			    0,
 			    d->width,
 			    d->height);
+}
+
+static void
+draw_window_decoration (decor_t *d)
+{
+    if (d->active_pixmap)
+    {
+	draw_window_decoration_to_pixmap (d, d->pixmap, FALSE);
+	draw_window_decoration_to_pixmap (d, d->active_pixmap, TRUE);
+    }
+    else
+    {
+	draw_window_decoration_to_pixmap (d, d->pixmap, d->active);
+    }		
 
     if (d->prop_xid)
     {
@@ -1444,6 +1481,24 @@ decor_update_meta_window_property (decor_t	  *d,
 		     BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
     gdk_display_sync (gdk_display_get_default ());
     gdk_error_trap_pop ();
+
+    if (d->active_pixmap)
+    {
+	decor_quads_to_property (data, GDK_PIXMAP_XID (d->active_pixmap),
+				 &extents, &max_extents,
+				 ICON_SPACE + d->button_width,
+				 0,
+				 quads, nQuad);
+
+	gdk_error_trap_push ();
+	XChangeProperty (xdisplay, d->prop_xid,
+			 win_decor_active_atom,
+			 win_decor_atom,
+			 32, PropModeReplace, (guchar *) data,
+			 BASE_PROP_SIZE + QUAD_PROP_SIZE * nQuad);
+	gdk_display_sync (gdk_display_get_default ());
+	gdk_error_trap_pop ();
+    }
 
     decor_update_blur_property (d,
 				w, lh,
@@ -1823,9 +1878,6 @@ meta_get_decoration_geometry (decor_t		*d,
     if (d->actions & WNCK_WINDOW_ACTION_SHADE)
 	*flags |= META_FRAME_ALLOWS_SHADE;
 
-    if (d->active)
-	*flags |= META_FRAME_HAS_FOCUS;
-
 #define META_MAXIMIZED (WNCK_WINDOW_STATE_MAXIMIZED_HORIZONTALLY | \
 			WNCK_WINDOW_STATE_MAXIMIZED_VERTICALLY)
 
@@ -1880,17 +1932,25 @@ meta_get_decoration_geometry (decor_t		*d,
 }
 
 static void
-meta_draw_window_decoration (decor_t *d)
+meta_draw_window_decoration_to_pixmap (decor_t        *d,
+				       GdkPixmap      *pixmap,
+				       MetaTheme      *theme,
+				       gint           active,
+				       gint           bg,
+				       Region         *top_region_return,
+				       Region         *bottom_region_return,
+				       Region         *left_region_return,
+				       Region         *right_region_return,
+				       MetaFrameFlags *flags_return)
 {
     Display	      *xdisplay =
 	GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
-    GdkPixmap	      *pixmap;
+    GdkPixmap         *pix;
     Picture	      src;
     MetaButtonState   button_states[META_BUTTON_TYPE_LAST];
     MetaButtonLayout  button_layout;
     MetaFrameGeometry fgeom;
     MetaFrameFlags    flags;
-    MetaTheme	      *theme;
     GtkStyle	      *style;
     cairo_t	      *cr;
     gint	      size, i;
@@ -1900,14 +1960,14 @@ meta_draw_window_decoration (decor_t *d)
     Region	      bottom_region = NULL;
     Region	      left_region = NULL;
     Region	      right_region = NULL;
-    double	      alpha = (d->active) ? meta_active_opacity : meta_opacity;
-    gboolean	      shade_alpha = (d->active) ? meta_active_shade_opacity :
+    double	      alpha = (active) ? meta_active_opacity : meta_opacity;
+    gboolean	      shade_alpha = (active) ? meta_active_shade_opacity :
 	meta_shade_opacity;
     MetaFrameStyle    *frame_style;
     GdkColor	      bg_color;
     double	      bg_alpha;
 
-    if (!d->pixmap || !d->picture)
+    if (!pixmap || !d->picture)
 	return;
 
     if (decoration_alpha == 1.0)
@@ -1915,20 +1975,19 @@ meta_draw_window_decoration (decor_t *d)
 
     style = gtk_widget_get_style (style_window);
 
-    drawable = d->buffer_pixmap ? d->buffer_pixmap : d->pixmap;
+    drawable = d->buffer_pixmap ? d->buffer_pixmap : pixmap;
 
     cr = gdk_cairo_create (GDK_DRAWABLE (drawable));
 
     cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 
-    theme = meta_theme_get_current ();
-
     meta_get_decoration_geometry (d, theme, &flags, &fgeom, &button_layout,
 				  &clip);
 
-    /* we only have to redraw the shadow background when decoration
-       changed size */
-    if (d->prop_xid || !d->buffer_pixmap)
+    if (active)
+	flags |= META_FRAME_HAS_FOCUS;
+
+    if (bg)
 	draw_shadow_background (d, cr, d->shadow, d->context);
 
     for (i = 0; i < META_BUTTON_TYPE_LAST; i++)
@@ -1962,14 +2021,14 @@ meta_draw_window_decoration (decor_t *d)
 
     if (rect.width && size)
     {
-	pixmap = create_pixmap (rect.width, size);
+	pix = create_pixmap (rect.width, size);
 
-	cr = gdk_cairo_create (GDK_DRAWABLE (pixmap));
+	cr = gdk_cairo_create (GDK_DRAWABLE (pix));
 	gdk_cairo_set_source_color_alpha (cr, &bg_color, bg_alpha);
 	cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 
 	src = XRenderCreatePicture (xdisplay,
-				    GDK_PIXMAP_XID (pixmap),
+				    GDK_PIXMAP_XID (pix),
 				    xformat, 0, NULL);
 
 	if (fgeom.top_height)
@@ -1980,7 +2039,7 @@ meta_draw_window_decoration (decor_t *d)
 
 	    meta_theme_draw_frame (theme,
 				   style_window,
-				   pixmap,
+				   pix,
 				   &rect,
 				   0, 0,
 				   META_FRAME_TYPE_NORMAL,
@@ -2019,7 +2078,7 @@ meta_draw_window_decoration (decor_t *d)
 
 	    meta_theme_draw_frame (theme,
 				   style_window,
-				   pixmap,
+				   pix,
 				   &rect,
 				   0,
 				   -(clip.height - fgeom.bottom_height),
@@ -2053,7 +2112,7 @@ meta_draw_window_decoration (decor_t *d)
 
 	cairo_destroy (cr);
 
-	g_object_unref (G_OBJECT (pixmap));
+	g_object_unref (G_OBJECT (pix));
 
 	XRenderFreePicture (xdisplay, src);
     }
@@ -2064,14 +2123,14 @@ meta_draw_window_decoration (decor_t *d)
 
     if (size && rect.height)
     {
-	pixmap = create_pixmap (size, rect.height);
+	pix = create_pixmap (size, rect.height);
 
-	cr = gdk_cairo_create (GDK_DRAWABLE (pixmap));
+	cr = gdk_cairo_create (GDK_DRAWABLE (pix));
 	gdk_cairo_set_source_color_alpha (cr, &bg_color, bg_alpha);
 	cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 
 	src = XRenderCreatePicture (xdisplay,
-				    GDK_PIXMAP_XID (pixmap),
+				    GDK_PIXMAP_XID (pix),
 				    xformat, 0, NULL);
 
 	if (fgeom.left_width)
@@ -2082,7 +2141,7 @@ meta_draw_window_decoration (decor_t *d)
 
 	    meta_theme_draw_frame (theme,
 				   style_window,
-				   pixmap,
+				   pix,
 				   &rect,
 				   0,
 				   -fgeom.top_height,
@@ -2122,7 +2181,7 @@ meta_draw_window_decoration (decor_t *d)
 
 	    meta_theme_draw_frame (theme,
 				   style_window,
-				   pixmap,
+				   pix,
 				   &rect,
 				   -(clip.width - fgeom.right_width),
 				   -fgeom.top_height,
@@ -2156,13 +2215,13 @@ meta_draw_window_decoration (decor_t *d)
 
 	cairo_destroy (cr);
 
-	g_object_unref (G_OBJECT (pixmap));
+	g_object_unref (G_OBJECT (pix));
 
 	XRenderFreePicture (xdisplay, src);
     }
 
     if (d->buffer_pixmap)
-	gdk_draw_drawable  (d->pixmap,
+	gdk_draw_drawable  (pixmap,
 			    d->gc,
 			    d->buffer_pixmap,
 			    0,
@@ -2172,16 +2231,119 @@ meta_draw_window_decoration (decor_t *d)
 			    d->width,
 			    d->height);
 
-    if (d->prop_xid)
+    /* translate from frame to client window space */
+    if (top_region_return)
     {
-	/* translate from frame to client window space */
 	if (top_region)
 	    XOffsetRegion (top_region, -fgeom.left_width, -fgeom.top_height);
+
+	*top_region_return = top_region;
+    }
+    else if (top_region)
+    {
+	XDestroyRegion (top_region);
+    }
+
+    if (bottom_region_return)
+    {
 	if (bottom_region)
 	    XOffsetRegion (bottom_region, -fgeom.left_width, 0);
+
+	*bottom_region_return = bottom_region;
+    }
+    else if (bottom_region)
+    {
+	XDestroyRegion (bottom_region);
+    }
+
+    if (left_region_return)
+    {
 	if (left_region)
 	    XOffsetRegion (left_region, -fgeom.left_width, 0);
 
+	*left_region_return = left_region;
+    }
+    else if (left_region)
+    {
+	XDestroyRegion (left_region);
+    }
+
+    if (right_region_return)
+    {
+        *right_region_return = right_region;
+    }
+    else if (right_region)
+    {
+	XDestroyRegion (right_region);
+    }
+
+    *flags_return = flags;
+}
+
+static void
+meta_draw_window_decoration (decor_t *d)
+{
+    MetaTheme      *theme = meta_theme_get_current ();
+    MetaFrameFlags flags;
+    Region         top_region = NULL;
+    Region         bottom_region = NULL;
+    Region         left_region = NULL;
+    Region         right_region = NULL;
+    Region         *top_region_ptr = NULL;
+    Region         *bottom_region_ptr = NULL;
+    Region         *left_region_ptr = NULL;
+    Region         *right_region_ptr = NULL;
+    gint           bg = FALSE;
+
+    if (d->prop_xid)
+    {
+	bg = TRUE;
+
+	top_region_ptr    = &top_region;
+	bottom_region_ptr = &bottom_region;
+	left_region_ptr   = &left_region;
+	right_region_ptr  = &right_region;
+    }
+    else if (!d->buffer_pixmap)
+    {
+	bg = TRUE;
+    }
+
+    if (d->active_pixmap)
+    {
+	meta_draw_window_decoration_to_pixmap (d,
+					       d->pixmap,
+					       theme,
+					       FALSE,
+					       bg,
+					       NULL, NULL, NULL, NULL, &flags);
+	meta_draw_window_decoration_to_pixmap (d,
+					       d->active_pixmap,
+					       theme,
+					       TRUE,
+					       FALSE,
+					       top_region_ptr,
+					       bottom_region_ptr,
+					       left_region_ptr,
+					       right_region_ptr,
+					       &flags);
+    }
+    else
+    {
+	meta_draw_window_decoration_to_pixmap (d,
+					       d->pixmap,
+					       theme,
+					       d->active,
+					       bg,
+					       top_region_ptr,
+					       bottom_region_ptr,
+					       left_region_ptr,
+					       right_region_ptr,
+					       &flags);
+    }
+
+    if (d->prop_xid)
+    {
 	decor_update_meta_window_property (d, theme, flags,
 					   top_region,
 					   bottom_region,
@@ -3488,7 +3650,7 @@ static gboolean
 update_window_decoration_size (WnckWindow *win)
 {
     decor_t   *d = g_object_get_data (G_OBJECT (win), "decor");
-    GdkPixmap *pixmap, *buffer_pixmap = NULL;
+    GdkPixmap *pixmap, *active_pixmap = NULL, *buffer_pixmap = NULL;
     Picture   picture;
     gint      width, height;
     gint      w, h, name_width;
@@ -3510,10 +3672,21 @@ update_window_decoration_size (WnckWindow *win)
     if (!pixmap)
 	return FALSE;
 
+    if (!reduced_resources)
+    {
+	active_pixmap = create_pixmap (width, height);
+	if (!active_pixmap)
+	{
+	    g_object_unref (G_OBJECT (pixmap));
+	    return FALSE;
+	}
+    }
+
     buffer_pixmap = create_pixmap (width, height);
     if (!buffer_pixmap)
     {
 	g_object_unref (G_OBJECT (pixmap));
+	g_object_unref (G_OBJECT (active_pixmap));
 	return FALSE;
     }
 
@@ -3522,6 +3695,9 @@ update_window_decoration_size (WnckWindow *win)
 
     if (d->pixmap)
 	g_object_unref (G_OBJECT (d->pixmap));
+
+    if (d->active_pixmap)
+	g_object_unref (G_OBJECT (d->active_pixmap));
 
     if (d->buffer_pixmap)
 	g_object_unref (G_OBJECT (d->buffer_pixmap));
@@ -3532,7 +3708,8 @@ update_window_decoration_size (WnckWindow *win)
     if (d->picture)
 	XRenderFreePicture (xdisplay, d->picture);
 
-    d->pixmap	     = pixmap;
+    d->pixmap        = pixmap;
+    d->active_pixmap = active_pixmap;
     d->buffer_pixmap = buffer_pixmap;
     d->gc	     = gdk_gc_new (pixmap);
 
@@ -3792,6 +3969,7 @@ update_switcher_window (WnckWindow *win,
     g_object_ref (G_OBJECT (buffer_pixmap));
 
     d->pixmap	     = pixmap;
+    d->active_pixmap = NULL;
     d->buffer_pixmap = buffer_pixmap;
     d->gc	     = gdk_gc_new (pixmap);
 
@@ -3820,6 +3998,12 @@ remove_frame_window (WnckWindow *win)
     {
 	g_object_unref (G_OBJECT (d->pixmap));
 	d->pixmap = NULL;
+    }
+
+    if (d->active_pixmap)
+    {
+	g_object_unref (G_OBJECT (d->active_pixmap));
+	d->active_pixmap = NULL;
     }
 
     if (d->buffer_pixmap)
@@ -3999,10 +4183,11 @@ active_window_changed (WnckScreen *screen)
     if (win)
     {
 	d = g_object_get_data (G_OBJECT (win), "decor");
-	if (d && d->pixmap)
+	if (d)
 	{
 	    d->active = wnck_window_is_active (win);
-	    queue_decor_draw (d);
+	    if (d->pixmap && !d->active_pixmap)
+		queue_decor_draw (d);
 	}
     }
 
@@ -4010,10 +4195,11 @@ active_window_changed (WnckScreen *screen)
     if (win)
     {
 	d = g_object_get_data (G_OBJECT (win), "decor");
-	if (d && d->pixmap)
+	if (d)
 	{
 	    d->active = wnck_window_is_active (win);
-	    queue_decor_draw (d);
+	    if (d->pixmap && !d->active_pixmap)
+		queue_decor_draw (d);
 	}
     }
 }
@@ -6909,6 +7095,10 @@ main (int argc, char *argv[])
 	{
 	    replace = TRUE;
 	}
+	else if (strcmp (argv[i], "--reduced-resources") == 0)
+	{
+	    reduced_resources = TRUE;
+	}
 	else if (strcmp (argv[i], "--blur") == 0)
 	{
 	    if (argc > ++i)
@@ -6957,6 +7147,7 @@ main (int argc, char *argv[])
 	    fprintf (stderr, "%s "
 		     "[--minimal] "
 		     "[--replace] "
+		     "[--reduced-resources] "
 		     "[--blur none|titlebar|all] "
 
 #ifdef USE_METACITY
@@ -6999,8 +7190,12 @@ main (int argc, char *argv[])
     xdisplay   = gdk_x11_display_get_xdisplay (gdkdisplay);
     gdkscreen  = gdk_display_get_default_screen (gdkdisplay);
 
+    win_decor_atom	  = XInternAtom (xdisplay, DECOR_WINDOW_ATOM_NAME,
+					 FALSE);
+    win_decor_active_atom = XInternAtom (xdisplay, DECOR_ACTIVE_ATOM_NAME,
+					 FALSE);
+
     frame_window_atom	= XInternAtom (xdisplay, "_NET_FRAME_WINDOW", FALSE);
-    win_decor_atom	= XInternAtom (xdisplay, DECOR_WINDOW_ATOM_NAME, FALSE);
     win_blur_decor_atom	= XInternAtom (xdisplay, DECOR_BLUR_ATOM_NAME, FALSE);
     wm_move_resize_atom = XInternAtom (xdisplay, "_NET_WM_MOVERESIZE", FALSE);
     restack_window_atom = XInternAtom (xdisplay, "_NET_RESTACK_WINDOW", FALSE);
