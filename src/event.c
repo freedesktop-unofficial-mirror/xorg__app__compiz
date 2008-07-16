@@ -2128,6 +2128,15 @@ handleEvent (CompDisplay *d,
 
 		if (!(w->state & CompWindowStateHiddenMask))
 		{
+		    /* predict that input will be moved to window. this
+		       makes it look like the window became active just
+		       before it got mapped to external applications */
+		    if (w->inputHint && allowFocus)
+			XChangeProperty (d->display, w->screen->root,
+					 d->winActiveAtom,
+					 XA_WINDOW, 32, PropModeReplace,
+					 (unsigned char *) &w->id, 1);
+			
 		    w->pendingMaps++;
 		    XMapWindow (d->display, w->id);
 		}
