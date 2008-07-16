@@ -1045,17 +1045,6 @@ decorHandleEvent (CompDisplay *d,
 		decorWindowUpdate (w, TRUE);
 	    }
 	}
-	else if (event->xproperty.atom == dd->decorAtom[DECOR_ACTIVE])
-	{
-	    w = findWindowAtDisplay (d, event->xproperty.window);
-	    if (w)
-	    {
-		decorWindowUpdateDecoration (w,
-					     dd->decorAtom[DECOR_ACTIVE],
-					     DECOR_ACTIVE);
-		decorWindowUpdate (w, TRUE);
-	    }
-	}
 	else if (event->xproperty.atom == d->mwmHintsAtom)
 	{
 	    w = findWindowAtDisplay (d, event->xproperty.window);
@@ -1094,6 +1083,17 @@ decorHandleEvent (CompDisplay *d,
 				decorWindowUpdate (w, TRUE);
 			}
 		    }
+		}
+	    }
+	    else if (event->xproperty.atom == dd->decorAtom[DECOR_ACTIVE])
+	    {
+		w = findWindowAtDisplay (d, event->xproperty.window);
+		if (w)
+		{
+		    decorWindowUpdateDecoration (w,
+						 dd->decorAtom[DECOR_ACTIVE],
+						 DECOR_ACTIVE);
+		    decorWindowUpdate (w, TRUE);
 		}
 	    }
 	}
