@@ -534,12 +534,18 @@ moveHandleMotionEvent (CompScreen *s,
 
 	if (dx || dy)
 	{
+	    Bool lazy = md->opt[MOVE_DISPLAY_OPTION_LAZY_POSITIONING].value.b;
+
 	    moveWindow (w,
 			wX + dx - w->attrib.x,
 			wY + dy - w->attrib.y,
 			TRUE, FALSE);
 
-	    if (md->opt[MOVE_DISPLAY_OPTION_LAZY_POSITIONING].value.b)
+	    /* lazy positioning cannot be used without manual compositing */
+	    if (!manualCompositeManagement)
+		lazy = FALSE;
+
+	    if (lazy)
 	    {
 		/* FIXME: This form of lazy positioning is broken and should
 		   be replaced asap. Current code exists just to avoid a
