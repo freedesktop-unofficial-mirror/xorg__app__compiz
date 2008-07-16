@@ -368,7 +368,35 @@ rotatePreparePaintScreen (CompScreen *s,
 		    /* flag end of rotation */
 		    cs->rotationState = RotationNone;
 
-		    moveScreenViewport (s, tx, 0, TRUE);
+		    if (windowManagement)
+		    {
+			moveScreenViewport (s, tx, 0, TRUE);
+		    }
+		    else
+		    {
+			CompDisplay *d = s->display;
+			XEvent      xev;
+
+			xev.xclient.type    = ClientMessage;
+			xev.xclient.display = d->display;
+			xev.xclient.format  = 32;
+
+			xev.xclient.message_type = d->desktopViewportAtom;
+			xev.xclient.window	 = s->root;
+
+			xev.xclient.data.l[0] = (s->x + tx) * s->width;
+			xev.xclient.data.l[1] = s->y * s->height;
+			xev.xclient.data.l[2] = 0;
+			xev.xclient.data.l[3] = 0;
+			xev.xclient.data.l[4] = 0;
+
+			XSendEvent (s->display->display,
+				    s->root,
+				    FALSE,
+				    SubstructureRedirectMask |
+				    SubstructureNotifyMask,
+				    &xev);
+		    }
 
 		    rs->xrot = 0.0f;
 		    rs->yrot = 0.0f;
