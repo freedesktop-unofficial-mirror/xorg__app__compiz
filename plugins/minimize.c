@@ -762,7 +762,9 @@ minInitDisplay (CompPlugin  *p,
 {
     MinDisplay *md;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
+    if (!checkPluginABI ("core", CORE_ABIVERSION) ||
+	!checkPluginABI ("wm",   CORE_ABIVERSION) ||
+	!checkPluginABI ("glx",  CORE_ABIVERSION))
 	return FALSE;
 
     md = malloc (sizeof (MinDisplay));

@@ -1864,7 +1864,8 @@ cubeInitCore (CompPlugin *p,
 {
     CubeCore *cc;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
+    if (!checkPluginABI ("core", CORE_ABIVERSION) ||
+	!checkPluginABI ("glx",  CORE_ABIVERSION))
 	return FALSE;
 
     cc = malloc (sizeof (CubeCore));

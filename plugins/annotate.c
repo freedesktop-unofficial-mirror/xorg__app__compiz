@@ -758,7 +758,8 @@ annoInitDisplay (CompPlugin  *p,
 {
     AnnoDisplay *ad;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
+    if (!checkPluginABI ("core", CORE_ABIVERSION) ||
+	!checkPluginABI ("glx",  CORE_ABIVERSION))
 	return FALSE;
 
     ad = malloc (sizeof (AnnoDisplay));
