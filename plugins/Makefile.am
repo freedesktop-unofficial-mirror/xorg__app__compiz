@@ -1,3 +1,6 @@
+libwm_la_LDFLAGS = -module -avoid-version -no-undefined
+libwm_la_SOURCES = wm.c
+
 libfade_la_LDFLAGS = -module -avoid-version -no-undefined
 libfade_la_SOURCES = fade.c
 
@@ -148,6 +151,7 @@ INCLUDES =					\
 moduledir = $(plugindir)
 
 module_LTLIBRARIES =		\
+	libwm.la		\
 	$(libglib_module)	\
 	$(libgconf_module)	\
 	$(libkconfig_module)	\

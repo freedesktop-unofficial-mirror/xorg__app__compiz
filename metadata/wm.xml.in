@@ -1,0 +1,6 @@
+<compiz>
+    <plugin name="wm">
+	<_short>Window Management</_short>
+	<_long>Window management</_long>
+    </plugin>
+</compiz>
