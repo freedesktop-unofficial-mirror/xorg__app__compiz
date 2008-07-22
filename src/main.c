@@ -453,6 +453,9 @@ main (int argc, char **argv)
     if (!addDisplay (displayName))
 	return 1;
 
+    if (!manageDisplay (core.displays))
+	return 1;
+
     eventLoop ();
 
     if (!disableSm)

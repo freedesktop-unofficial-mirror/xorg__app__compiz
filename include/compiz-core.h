@@ -1167,6 +1167,9 @@ addDisplay (const char *name);
 void
 removeDisplay (CompDisplay *d);
 
+Bool
+manageDisplay (CompDisplay *d);
+
 Time
 getCurrentTimeFromDisplay (CompDisplay *d);
 

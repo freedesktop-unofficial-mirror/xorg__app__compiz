@@ -1933,12 +1933,10 @@ addDisplay (const char *name)
     CompDisplay *d;
     CompPrivate	*privates;
     Display     *dpy;
-    Window	focus;
-    int		revertTo, i;
     int		compositeMajor, compositeMinor;
     int		fixesMinor;
     int		xkbOpcode;
-    int		firstScreen, lastScreen;
+    int		i;
 
     d = malloc (sizeof (CompDisplay));
     if (!d)
@@ -2316,6 +2314,49 @@ addDisplay (const char *name)
 
     (*core.objectAdd) (&core.base, &d->base);
 
+    return TRUE;
+}
+
+void
+removeDisplay (CompDisplay *d)
+{
+    CompDisplay *p;
+
+    for (p = core.displays; p; p = p->next)
+	if (p->next == d)
+	    break;
+
+    if (p)
+	p->next = d->next;
+    else
+	core.displays = NULL;
+
+    while (d->screens)
+	removeScreen (d->screens);
+
+    (*core.objectRemove) (&core.base, &d->base);
+
+    objectFiniPlugins (&d->base);
+
+    compRemoveTimeout (d->pingHandle);
+
+    if (d->snDisplay)
+	sn_display_unref (d->snDisplay);
+
+    XSync (d->display, False);
+    XCloseDisplay (d->display);
+
+    freeDisplay (d);
+}
+
+Bool
+manageDisplay (CompDisplay *d)
+{
+    Display *dpy = d->display;
+    Window  focus;
+    int     revertTo, i;
+    int     firstScreen, lastScreen;
+
     if (onlyCurrentScreen)
     {
 	firstScreen = DefaultScreen (dpy);
@@ -2553,8 +2594,7 @@ addDisplay (const char *name)
     if (!d->screens)
     {
 	compLogMessage ("core", CompLogLevelFatal,
-			"No manageable screens found on display %s",
-			XDisplayName (name));
+			"No manageable screens found on display");
 	return FALSE;
     }
 
@@ -2597,38 +2637,6 @@ addDisplay (const char *name)
     }
 
     return TRUE;
-}
-
-void
-removeDisplay (CompDisplay *d)
-{
-    CompDisplay *p;
-
-    for (p = core.displays; p; p = p->next)
-	if (p->next == d)
-	    break;
-
-    if (p)
-	p->next = d->next;
-    else
-	core.displays = NULL;
-
-    while (d->screens)
-	removeScreen (d->screens);
-
-    (*core.objectRemove) (&core.base, &d->base);
-
-    objectFiniPlugins (&d->base);
-
-    compRemoveTimeout (d->pingHandle);
-
-    if (d->snDisplay)
-	sn_display_unref (d->snDisplay);
-
-    XSync (d->display, False);
-    XCloseDisplay (d->display);
-
-    freeDisplay (d);
 }
 
 Time
