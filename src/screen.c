@@ -859,7 +859,7 @@ reshape (CompScreen *s,
 {
 
 #ifdef USE_COW
-    if (useCow)
+    if (useCow && manualCompositeManagement)
 	XMoveResizeWindow (s->display->display, s->overlay, 0, 0, w, h);
 #endif
 
@@ -1361,7 +1361,7 @@ showOutputWindow (CompScreen *s)
 {
 
 #ifdef USE_COW
-    if (useCow)
+    if (useCow && manualCompositeManagement)
     {
 	Display       *dpy = s->display->display;
 	XserverRegion region;
@@ -1390,7 +1390,7 @@ hideOutputWindow (CompScreen *s)
 {
 
 #ifdef USE_COW
-    if (useCow)
+    if (useCow && manualCompositeManagement)
     {
 	Display       *dpy = s->display->display;
 	XserverRegion region;
@@ -1413,7 +1413,7 @@ updateOutputWindow (CompScreen *s)
 {
 
 #ifdef USE_COW
-    if (useCow)
+    if (useCow && manualCompositeManagement)
     {
 	Display       *dpy = s->display->display;
 	XserverRegion region;
@@ -1457,7 +1457,7 @@ makeOutputWindow (CompScreen *s)
 {
 
 #ifdef USE_COW
-    if (useCow)
+    if (useCow && manualCompositeManagement)
     {
 	s->overlay = XCompositeGetOverlayWindow (s->display->display, s->root);
 	s->output  = s->overlay;
@@ -2476,7 +2476,7 @@ removeScreen (CompScreen *s)
     XFreeCursor (d->display, s->invisibleCursor);
 
 #ifdef USE_COW
-    if (useCow)
+    if (useCow && manualCompositeManagement)
 	XCompositeReleaseOverlayWindow (s->display->display, s->root);
 #endif
 

@@ -378,11 +378,6 @@ main (int argc, char **argv)
 	}
     }
 
-#ifdef USE_COW
-    if (!manualCompositeManagement)
-	useCow = FALSE;
-#endif
-
     if (refreshRateArg)
     {
 	ctx.refreshRateData = malloc (strlen (refreshRateArg) + 256);
