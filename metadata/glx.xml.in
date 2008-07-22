@@ -2,5 +2,8 @@
     <plugin name="glx">
 	<_short>GLX</_short>
 	<_long>GLX compositing output</_long>
+	<display>
+	    <option name="abi" type="int" read_only="true"/>
+	</display>
     </plugin>
 </compiz>

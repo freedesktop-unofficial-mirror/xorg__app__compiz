@@ -27,6 +27,15 @@
 
 static CompMetadata wmMetadata;
 
+static CompOption *
+wmGetDisplayOptions (CompPlugin  *plugin,
+		     CompDisplay *display,
+		     int	 *count)
+{
+    *count = 1;
+    return &display->opt[COMP_DISPLAY_OPTION_ABI];
+}
+
 static Bool
 wmInitDisplay (CompPlugin  *p,
 	       CompDisplay *d)
@@ -90,7 +99,7 @@ CompPluginVTable wmVTable = {
     wmFini,
     wmInitObject,
     0, /* FiniObject */
-    0, /* GetObjectOptions */
+    wmGetDisplayOptions,
     0  /* SetObjectOption */
 };
 

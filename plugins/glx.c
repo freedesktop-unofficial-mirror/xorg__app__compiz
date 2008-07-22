@@ -27,6 +27,15 @@
 
 static CompMetadata glxMetadata;
 
+static CompOption *
+glxGetDisplayOptions (CompPlugin  *plugin,
+		      CompDisplay *display,
+		      int	  *count)
+{
+    *count = 1;
+    return &display->opt[COMP_DISPLAY_OPTION_ABI];
+}
+
 static Bool
 glxInitDisplay (CompPlugin  *p,
 		CompDisplay *d)
@@ -90,7 +99,7 @@ CompPluginVTable glxVTable = {
     glxFini,
     glxInitObject,
     0, /* FiniObject */
-    0, /* GetObjectOptions */
+    glxGetDisplayOptions,
     0  /* SetObjectOption */
 };
 

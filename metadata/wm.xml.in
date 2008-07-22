@@ -2,5 +2,8 @@
     <plugin name="wm">
 	<_short>Window Management</_short>
 	<_long>Window management</_long>
+	<display>
+	    <option name="abi" type="int" read_only="true"/>
+	</display>
     </plugin>
 </compiz>
