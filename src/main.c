@@ -69,7 +69,7 @@ Bool useCow = TRUE;
 #endif
 
 Bool windowManagement = FALSE;
-Bool manualCompositeManagement = TRUE;
+Bool manualCompositeManagement = FALSE;
 
 CompMetadata coreMetadata;
 
@@ -96,7 +96,6 @@ usage (void)
 	    "\n       "
 #endif
 
-	    "[--server-side-cm] "
 	    "[--version] "
 	    "[--help] "
 	    "[PLUGIN]...\n",
@@ -361,10 +360,6 @@ main (int argc, char **argv)
 	{
 	    if (i + 1 < argc)
 		backgroundImage = argv[++i];
-	}
-	else if (!strcmp (argv[i], "--server-side-cm"))
-	{
-	    manualCompositeManagement = FALSE;
 	}
 	else if (*argv[i] == '-')
 	{
