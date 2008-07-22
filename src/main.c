@@ -68,7 +68,7 @@ Bool onlyCurrentScreen = FALSE;
 Bool useCow = TRUE;
 #endif
 
-Bool windowManagement = TRUE;
+Bool windowManagement = FALSE;
 Bool manualCompositeManagement = TRUE;
 
 CompMetadata coreMetadata;
@@ -96,7 +96,6 @@ usage (void)
 	    "\n       "
 #endif
 
-	    "[--no-wm] "
 	    "[--server-side-cm] "
 	    "[--version] "
 	    "[--help] "
@@ -362,10 +361,6 @@ main (int argc, char **argv)
 	{
 	    if (i + 1 < argc)
 		backgroundImage = argv[++i];
-	}
-	else if (!strcmp (argv[i], "--no-wm"))
-	{
-	    windowManagement = FALSE;
 	}
 	else if (!strcmp (argv[i], "--server-side-cm"))
 	{
