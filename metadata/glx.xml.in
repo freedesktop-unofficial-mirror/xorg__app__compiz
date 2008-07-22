@@ -1,0 +1,6 @@
+<compiz>
+    <plugin name="glx">
+	<_short>GLX</_short>
+	<_long>GLX compositing output</_long>
+    </plugin>
+</compiz>

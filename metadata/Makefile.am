@@ -11,6 +11,7 @@ xml_in_files =		  \
 	fs.xml.in	  \
 	gconf.xml.in	  \
 	glib.xml.in	  \
+	glx.xml.in	  \
 	ini.xml.in	  \
 	inotify.xml.in	  \
 	kconfig.xml.in	  \
