@@ -1170,6 +1170,9 @@ removeDisplay (CompDisplay *d);
 Bool
 manageDisplay (CompDisplay *d);
 
+void
+updatePlugins (CompDisplay *d);
+
 Time
 getCurrentTimeFromDisplay (CompDisplay *d);
 

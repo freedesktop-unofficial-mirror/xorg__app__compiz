@@ -841,7 +841,7 @@ setDisplayOption (CompPlugin	  *plugin,
     return FALSE;
 }
 
-static void
+void
 updatePlugins (CompDisplay *d)
 {
     CompOption *o;
