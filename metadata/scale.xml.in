@@ -2,6 +2,11 @@
     <plugin name="scale">
 	<_short>Scale</_short>
 	<_long>Scale windows</_long>
+	<deps>
+	    <requirement>
+		<plugin>glx</plugin>
+	    </requirement>
+	</deps>
 	<display>
 	    <option name="abi" type="int" read_only="true"/>
 	    <option name="index" type="int" read_only="true"/>

@@ -4,5 +4,10 @@
 	<_long>Svg image loader</_long>
 	<feature>imageext:svg</feature>
 	<feature>imagemime:image/svg+xml</feature>
+	<deps>
+	    <requirement>
+		<plugin>glx</plugin>
+	    </requirement>
+	</deps>
     </plugin>
 </compiz>

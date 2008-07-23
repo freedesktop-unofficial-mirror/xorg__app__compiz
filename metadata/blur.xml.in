@@ -4,6 +4,9 @@
 	<_long>Blur windows</_long>
 	<feature>blur</feature>
 	<deps>
+	    <requirement>
+		<plugin>glx</plugin>
+	    </requirement>
 	    <relation type="before">
 		<plugin>video</plugin>
 	    </relation>

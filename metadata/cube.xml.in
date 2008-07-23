@@ -4,6 +4,9 @@
 	<_long>Place windows on cube</_long>
 	<feature>largedesktop</feature>
 	<deps>
+	    <requirement>
+		<plugin>glx</plugin>
+	    </requirement>
 	    <relation type="before">
 		<plugin>switcher</plugin>
 		<plugin>scale</plugin>

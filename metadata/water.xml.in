@@ -3,6 +3,9 @@
 	<_short>Water Effect</_short>
 	<_long>Adds water effects to different desktop actions</_long>
 	<deps>
+	    <requirement>
+		<plugin>glx</plugin>
+	    </requirement>
 	    <relation type="before">
 		<plugin>blur</plugin>
 		<plugin>video</plugin>

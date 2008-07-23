@@ -2,6 +2,11 @@
     <plugin name="clone">
 	<_short>Clone Output</_short>
 	<_long>Output clone handler</_long>
+	<deps>
+	    <requirement>
+		<plugin>glx</plugin>
+	    </requirement>
+	</deps>
 	<display>
 	    <option name="initiate_button" type="button">
 		<_short>Initiate</_short>

@@ -2,6 +2,11 @@
     <plugin name="place">
 	<_short>Place Windows</_short>
 	<_long>Place windows at appropriate positions when mapped</_long>
+	<deps>
+	    <requirement>
+		<plugin>wm</plugin>
+	    </requirement>
+	</deps>
 	<screen>
 	    <option name="workarounds" type="bool">
 		<_short>Workarounds</_short>

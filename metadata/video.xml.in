@@ -3,6 +3,11 @@
 	<_short>Video Playback</_short>
 	<_long>Video playback</_long>
 	<feature>video</feature>
+	<deps>
+	    <requirement>
+		<plugin>glx</plugin>
+	    </requirement>
+	</deps>
 	<display>
 	    <option name="yv12" type="bool">
 		<_short>YV12 colorspace</_short>
