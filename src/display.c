@@ -1877,7 +1877,8 @@ compCheckForError (Display *dpy)
 static void
 addScreenActions (CompScreen *s)
 {
-    int i;
+    CompPlugin *p;
+    int        i;
 
     for (i = 0; i < COMP_DISPLAY_OPTION_NUM; i++)
     {
@@ -1886,6 +1887,27 @@ addScreenActions (CompScreen *s)
 
 	if (s->display->opt[i].value.action.state & CompActionStateAutoGrab)
 	    addScreenAction (s, &s->display->opt[i].value.action);
+    }
+
+    for (p = getPlugins (); p; p = p->next)
+    {
+	CompOption *option;
+	int	   nOption;
+
+	if (!p->vTable->getObjectOptions)
+	    continue;
+
+	option = (*p->vTable->getObjectOptions) (p,
+						 &s->display->base,
+						 &nOption);
+	for (i = 0; i < nOption; i++)
+	{
+	    if (!isActionOption (&option[i]))
+		continue;
+
+	    if (option[i].value.action.state & CompActionStateAutoGrab)
+		addScreenAction (s, &option[i].value.action);
+	}
     }
 }
 
