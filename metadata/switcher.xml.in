@@ -4,7 +4,6 @@
 	<_long>Application Switcher</_long>
 	<deps>
 	    <requirement>
-		<plugin>wm</plugin>
 		<plugin>glx</plugin>
 	    </requirement>
 	</deps>

@@ -600,7 +600,7 @@ switchInitiate (CompScreen            *s,
     if (count < 1)
 	return;
 
-    if (!ss->popupWindow && showPopup)
+    if (!ss->popupWindow && showPopup && windowManagement)
     {
 	Display		     *dpy = s->display->display;
 	XSizeHints	     xsh;
@@ -1844,7 +1844,6 @@ switchInitDisplay (CompPlugin  *p,
     SwitchDisplay *sd;
 
     if (!checkPluginABI ("core", CORE_ABIVERSION) ||
-	!checkPluginABI ("wm",   CORE_ABIVERSION) ||
 	!checkPluginABI ("glx",  CORE_ABIVERSION))
 	return FALSE;
 
