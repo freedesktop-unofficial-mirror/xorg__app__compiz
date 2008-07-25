@@ -1088,6 +1088,8 @@ setSupportingWmCheck (CompScreen *s)
 {
     CompDisplay *d = s->display;
 
+    s->supportingWmCheckWindow = s->grabWindow;
+
     XChangeProperty (d->display, s->grabWindow, d->supportingWmCheckAtom,
 		     XA_WINDOW, 32, PropModeReplace,
 		     (unsigned char *) &s->grabWindow, 1);
