@@ -2354,30 +2354,6 @@ addScreen (CompDisplay *display,
 
     getDesktopHints (s);
 
-    /* TODO: bailout properly when objectInitPlugins fails */
-    assert (objectInitPlugins (&s->base));
-
-    (*core.objectAdd) (&display->base, &s->base);
-
-    XQueryTree (dpy, s->root,
-		&rootReturn, &parentReturn,
-		&children, &nchildren);
-
-    for (i = 0; i < nchildren; i++)
-	addWindow (s, children[i], i ? children[i - 1] : 0);
-
-    for (w = s->windows; w; w = w->next)
-    {
-	if (w->attrib.map_state == IsViewable)
-	{
-	    w->activeNum = s->activeNum++;
-	    w->damaged   = TRUE;
-	    w->invisible = WINDOW_INVISIBLE (w);
-	}
-    }
-
-    XFree (children);
-
     attrib.override_redirect = 1;
     attrib.event_mask	     = PropertyChangeMask;
 
@@ -2431,6 +2407,30 @@ addScreen (CompDisplay *display,
     s->filter[NOTHING_TRANS_FILTER] = COMP_TEXTURE_FILTER_FAST;
     s->filter[SCREEN_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
     s->filter[WINDOW_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
+
+    /* TODO: bailout properly when objectInitPlugins fails */
+    assert (objectInitPlugins (&s->base));
+
+    (*core.objectAdd) (&display->base, &s->base);
+
+    XQueryTree (dpy, s->root,
+		&rootReturn, &parentReturn,
+		&children, &nchildren);
+
+    for (i = 0; i < nchildren; i++)
+	addWindow (s, children[i], i ? children[i - 1] : 0);
+
+    for (w = s->windows; w; w = w->next)
+    {
+	if (w->attrib.map_state == IsViewable)
+	{
+	    w->activeNum = s->activeNum++;
+	    w->damaged   = TRUE;
+	    w->invisible = WINDOW_INVISIBLE (w);
+	}
+    }
+
+    XFree (children);
 
     return TRUE;
 }
