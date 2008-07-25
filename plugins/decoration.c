@@ -122,6 +122,7 @@ typedef struct _DecorScreen {
     int	windowPrivateIndex;
 
     Window dmWin;
+    Window wmWin;
 
     Decoration *decor[DECOR_NUM];
 
@@ -755,6 +756,9 @@ decorWindowUpdate (CompWindow *w,
 	break;
     }
 
+    if (!ds->wmWin)
+	decorate = FALSE;
+
     if (w->attrib.override_redirect)
 	decorate = FALSE;
 
@@ -883,6 +887,7 @@ decorCheckForDmOnScreen (CompScreen *s,
     unsigned long n, left;
     unsigned char *data;
     Window	  dmWin = None;
+    Window	  wmWin = s->supportingWmCheckWindow;
 
     DECOR_DISPLAY (s->display);
     DECOR_SCREEN (s);
@@ -943,11 +948,17 @@ decorCheckForDmOnScreen (CompScreen *s,
 		}
 	    }
 	}
+    }
 
+    if ((wmWin != ds->wmWin) || (dmWin != ds->dmWin))
+    {
+	ds->wmWin = wmWin;
 	ds->dmWin = dmWin;
 
 	if (updateWindows)
 	{
+	    CompWindow *w;
+
 	    for (w = s->windows; w; w = w->next)
 		decorWindowUpdate (w, TRUE);
 	}
@@ -970,7 +981,10 @@ decorHandleEvent (CompDisplay *d,
 	{
 	    DECOR_SCREEN (w->screen);
 
-	    if (w->id == ds->dmWin)
+	    if (w->screen->supportingWmCheckWindow == w->id)
+		getSupportingWmCheck (w->screen);
+
+	    if (w->id == ds->wmWin || w->id == ds->dmWin)
 		decorCheckForDmOnScreen (w->screen, TRUE);
 	}
 	break;
@@ -1058,7 +1072,8 @@ decorHandleEvent (CompDisplay *d,
 	    s = findScreenAtDisplay (d, event->xproperty.window);
 	    if (s)
 	    {
-		if (event->xproperty.atom == dd->supportingDmCheckAtom)
+		if (event->xproperty.atom == d->supportingWmCheckAtom ||
+		    event->xproperty.atom == dd->supportingDmCheckAtom)
 		{
 		    decorCheckForDmOnScreen (s, TRUE);
 		}
@@ -1573,7 +1588,9 @@ decorInitScreen (CompPlugin *p,
 
     memset (ds->decor, 0, sizeof (ds->decor));
 
-    ds->dmWin                = None;
+    ds->wmWin = None;
+    ds->dmWin = None;
+
     ds->decoratorStartHandle = 0;
 
     WRAP (ds, s, drawWindow, decorDrawWindow);
