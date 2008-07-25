@@ -1221,7 +1221,8 @@ getSupportingWmCheck (CompScreen *s)
     unsigned long n, left;
     unsigned char *propData;
 
-    s->syncStateSupport = FALSE;
+    s->supportingWmCheckWindow = None;
+    s->syncStateSupport        = FALSE;
 
     result = XGetWindowProperty (d->display, s->root,
 				 d->supportingWmCheckAtom, 0L, 1L, FALSE,
