@@ -2617,7 +2617,8 @@ resizeWindow (CompWindow *w,
 
 	w->invisible = WINDOW_INVISIBLE (w);
 
-	updateFrameWindow (w);
+	if (windowManagement)
+	    updateFrameWindow (w);
     }
     else if (w->attrib.x != x || w->attrib.y != y)
     {
