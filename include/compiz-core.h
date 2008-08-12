@@ -48,6 +48,9 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
+#undef CORE_ABIVERSION
+#define CORE_ABIVERSION 30080727
+
 COMPIZ_BEGIN_DECLS
 
 #if COMPOSITE_MAJOR > 0 || COMPOSITE_MINOR > 2
