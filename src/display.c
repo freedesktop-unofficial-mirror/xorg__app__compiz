@@ -1349,7 +1349,7 @@ doPoll (int timeout)
     return rv;
 }
 
-static void
+void
 handleTimeouts (struct timeval *tv)
 {
     CompTimeout *t;

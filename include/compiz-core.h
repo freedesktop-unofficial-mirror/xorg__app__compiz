@@ -1203,6 +1203,9 @@ virtualToRealModMask (CompDisplay  *d,
 void
 updateModifierMappings (CompDisplay *d);
 
+void
+handleTimeouts (struct timeval *tv);
+
 unsigned int
 keycodeToModifiers (CompDisplay *d,
 		    int         keycode);

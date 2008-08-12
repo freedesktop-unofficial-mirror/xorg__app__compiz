@@ -438,7 +438,11 @@ main (int argc, char **argv)
     if (!addDisplay (displayName))
 	return 1;
 
-    updatePlugins (core.displays);
+    while (core.displays->dirtyPluginList)
+    {
+	updatePlugins (core.displays);
+	handleTimeouts (&core.lastTimeout);
+    }
 
     if (!manageDisplay (core.displays))
 	return 1;
