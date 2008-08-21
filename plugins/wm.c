@@ -43,6 +43,9 @@ wmInitDisplay (CompPlugin  *p,
     if (!checkPluginABI ("core", CORE_ABIVERSION))
 	return FALSE;
 
+    if (windowManagement)
+	return TRUE;
+
     if (d->screens)
     {
 	compLogMessage (p->vTable->name, CompLogLevelError,

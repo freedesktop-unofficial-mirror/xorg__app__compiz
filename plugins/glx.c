@@ -43,6 +43,9 @@ glxInitDisplay (CompPlugin  *p,
     if (!checkPluginABI ("core", CORE_ABIVERSION))
 	return FALSE;
 
+    if (manualCompositeManagement)
+	return TRUE;
+
     if (d->screens)
     {
 	compLogMessage (p->vTable->name, CompLogLevelError,
