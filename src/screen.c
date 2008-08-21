@@ -1603,6 +1603,12 @@ initWindowWalker (CompScreen *screen,
     walker->prev  = walkPrev;
 }
 
+static FuncPtr
+dummyGetProcAddress (const GLubyte *procName)
+{
+    return NULL;
+}
+
 static void
 freeScreen (CompScreen *s)
 {
@@ -1856,7 +1862,7 @@ addScreen (CompDisplay *display,
 
     s->initWindowWalker = initWindowWalker;
 
-    s->getProcAddress = 0;
+    s->getProcAddress = dummyGetProcAddress;
 
     if (!XGetWindowAttributes (dpy, s->root, &s->attrib))
 	return FALSE;
