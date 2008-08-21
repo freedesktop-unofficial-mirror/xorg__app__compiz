@@ -40,8 +40,17 @@ static Bool
 glxInitDisplay (CompPlugin  *p,
 		CompDisplay *d)
 {
+    int error, event;
+
     if (!checkPluginABI ("core", CORE_ABIVERSION))
 	return FALSE;
+
+    if (!glXQueryExtension (d->display, &error, &event))
+    {
+	compLogMessage (d, p->vTable->name, CompLogLevelError,
+			"GLX extension is not available");
+	return FALSE;
+    }
 
     if (manualCompositeManagement)
 	return TRUE;
