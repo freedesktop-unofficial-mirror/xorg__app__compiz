@@ -65,8 +65,10 @@ typedef struct _DbusCore {
 
     CompFileWatchHandle fileWatch[DBUS_FILE_WATCH_NUM];
 
-    InitPluginForObjectProc initPluginForObject;
-    SetOptionForPluginProc  setOptionForPlugin;
+    SetOptionForPluginProc setOptionForPlugin;
+
+    ObjectAddProc    objectAdd;
+    ObjectRemoveProc objectRemove;
 } DbusCore;
 
 typedef struct _DbusDisplay {
@@ -2169,62 +2171,6 @@ dbusUnregisterPluginsForScreen (DBusConnection *connection,
 }
 
 static CompBool
-dbusInitPluginForDisplay (CompPlugin  *p,
-			  CompDisplay *d)
-{
-    char objectPath[256];
-
-    DBUS_CORE (&core);
-
-    snprintf (objectPath, 256, "%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
-	      p->vTable->name, "allscreens");
-    dbusRegisterOptions (dc->connection, objectPath);
-
-    return TRUE;
-}
-
-static Bool
-dbusInitPluginForScreen (CompPlugin *p,
-			 CompScreen *s)
-{
-    char objectPath[256];
-
-    DBUS_CORE (&core);
-
-    snprintf (objectPath, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
-	      p->vTable->name, s->screenNum);
-    dbusRegisterOptions (dc->connection, objectPath);
-
-    return TRUE;
-}
-
-static CompBool
-dbusInitPluginForObject (CompPlugin *p,
-			 CompObject *o)
-{
-    CompBool status;
-
-    DBUS_CORE (&core);
-
-    UNWRAP (dc, &core, initPluginForObject);
-    status = (*core.initPluginForObject) (p, o);
-    WRAP (dc, &core, initPluginForObject, dbusInitPluginForObject);
-
-    if (status && p->vTable->getObjectOptions)
-    {
-	static InitPluginForObjectProc dispTab[] = {
-	    (InitPluginForObjectProc) 0, /* InitPluginForCore */
-	    (InitPluginForObjectProc) dbusInitPluginForDisplay,
-	    (InitPluginForObjectProc) dbusInitPluginForScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-    }
-
-    return status;
-}
-
-static CompBool
 dbusSetOptionForPlugin (CompObject      *object,
 			const char      *plugin,
 			const char      *name,
@@ -2295,6 +2241,81 @@ dbusSendPluginsChangedSignal (const char *name,
     dbus_connection_flush (dc->connection);
 
     dbus_message_unref (signal);
+}
+
+static void
+dbusDisplayAdd (CompCore    *c,
+		CompDisplay *d)
+{
+    DBUS_CORE (&core);
+
+    dbusUpdatePluginList (d);
+    dbusRegisterPluginsForDisplay (dc->connection, d);
+}
+
+static void
+dbusDisplayRemove (CompCore    *c,
+		   CompDisplay *d)
+{
+    DBUS_CORE (&core);
+
+    dbusUnregisterPluginsForDisplay (dc->connection, d);
+}
+
+static void
+dbusScreenAdd (CompDisplay *d,
+	       CompScreen  *s)
+{
+    DBUS_CORE (&core);
+
+    dbusRegisterPluginsForScreen (dc->connection, s);
+}
+
+static void
+dbusScreenRemove (CompDisplay *d,
+		  CompScreen  *s)
+{
+    DBUS_CORE (&core);
+
+    dbusUnregisterPluginsForScreen (dc->connection, s);
+}
+
+static void
+dbusObjectAdd (CompObject *parent,
+	       CompObject *object)
+{
+    static ObjectAddProc dispTab[] = {
+	(ObjectAddProc) 0, /* CoreAdd */
+	(ObjectAddProc) dbusDisplayAdd,
+	(ObjectAddProc) dbusScreenAdd
+    };
+
+    DBUS_CORE (&core);
+
+    UNWRAP (dc, &core, objectAdd);
+    (*core.objectAdd) (parent, object);
+    WRAP (dc, &core, objectAdd, dbusObjectAdd);
+
+    DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), (parent, object));
+}
+
+static void
+dbusObjectRemove (CompObject *parent,
+		  CompObject *object)
+{
+    static ObjectRemoveProc dispTab[] = {
+	(ObjectRemoveProc) 0, /* CoreRemove */
+	(ObjectRemoveProc) dbusDisplayRemove,
+	(ObjectRemoveProc) dbusScreenRemove
+    };
+
+    DBUS_CORE (&core);
+
+    DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), (parent, object));
+
+    UNWRAP (dc, &core, objectRemove);
+    (*core.objectRemove) (parent, object);
+    WRAP (dc, &core, objectRemove, dbusObjectRemove);
 }
 
 static Bool
@@ -2415,7 +2436,8 @@ dbusInitCore (CompPlugin *p,
 	}
     }
 
-    WRAP (dc, c, initPluginForObject, dbusInitPluginForObject);
+    WRAP (dc, c, objectAdd, dbusObjectAdd);
+    WRAP (dc, c, objectRemove, dbusObjectRemove);
     WRAP (dc, c, setOptionForPlugin, dbusSetOptionForPlugin);
 
     c->base.privates[corePrivateIndex].ptr = dc;
@@ -2452,7 +2474,8 @@ dbusFiniCore (CompPlugin *p,
       dbus_connection_unref (dc->connection);
     */
 
-    UNWRAP (dc, c, initPluginForObject);
+    UNWRAP (dc, c, objectAdd);
+    UNWRAP (dc, c, objectRemove);
     UNWRAP (dc, c, setOptionForPlugin);
 
     free (dc);
@@ -2475,8 +2498,8 @@ dbusInitDisplay (CompPlugin  *p,
 
     d->base.privates[displayPrivateIndex].ptr = dd;
     
-    dbusUpdatePluginList (d);
-    dbusRegisterPluginsForDisplay (dc->connection, d);
+    if (d->base.parent)
+	dbusObjectAdd (d->base.parent, &d->base);
 
     return TRUE;
 }
@@ -2485,10 +2508,10 @@ static void
 dbusFiniDisplay (CompPlugin  *p,
 		 CompDisplay *d)
 {
-    DBUS_CORE (&core);
     DBUS_DISPLAY (d);
 
-    dbusUnregisterPluginsForDisplay (dc->connection, d);
+    if (d->base.parent)
+	dbusObjectRemove (d->base.parent, &d->base);
 
     if (dd->pluginList)
     {
@@ -2506,9 +2529,8 @@ static Bool
 dbusInitScreen (CompPlugin *p,
 		CompScreen *s)
 {
-    DBUS_CORE (&core);
-
-    dbusRegisterPluginsForScreen (dc->connection, s);
+    if (s->base.parent)
+	dbusObjectAdd (s->base.parent, &s->base);
 
     return TRUE;
 }
@@ -2517,9 +2539,8 @@ static void
 dbusFiniScreen (CompPlugin *p,
 		CompScreen *s)
 {
-    DBUS_CORE (&core);
-
-    dbusUnregisterPluginsForScreen (dc->connection, s);
+    if (s->base.parent)
+	dbusObjectRemove (s->base.parent, &s->base);
 }
 
 static CompBool
