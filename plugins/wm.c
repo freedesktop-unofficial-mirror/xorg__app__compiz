@@ -68,6 +68,20 @@ wmInitObject (CompPlugin *p,
     RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
 }
 
+static CompOption *
+wmGetObjectOptions (CompPlugin *plugin,
+		    CompObject *object,
+		    int	       *count)
+{
+    static GetPluginObjectOptionsProc dispTab[] = {
+	(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
+	(GetPluginObjectOptionsProc) wmGetDisplayOptions
+    };
+
+    RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
+		     (void *) (*count = 0), (plugin, object, count));
+}
+
 static Bool
 wmInit (CompPlugin *p)
 {
@@ -99,7 +113,7 @@ CompPluginVTable wmVTable = {
     wmFini,
     wmInitObject,
     0, /* FiniObject */
-    wmGetDisplayOptions,
+    wmGetObjectOptions,
     0  /* SetObjectOption */
 };
 
