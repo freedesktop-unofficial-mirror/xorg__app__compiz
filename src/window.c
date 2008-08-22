@@ -1885,6 +1885,32 @@ setDefaultWindowAttributes (XWindowAttributes *wa)
 }
 
 void
+initRootWindow (CompScreen *s,
+		CompWindow *root)
+{
+    CompWindow  *w = root;
+    CompDisplay *d = s->display;
+
+    memset (w, 0, sizeof (*w));
+
+    w->id     = XRootWindow (d->display, s->screenNum);
+    w->screen = s;
+
+    w->redirected = FALSE;
+    w->bindFailed = TRUE;
+
+    w->paint.xScale	= 1.0f;
+    w->paint.yScale	= 1.0f;
+    w->paint.xTranslate	= 0.0f;
+    w->paint.yTranslate	= 0.0f;
+
+    w->lastPaint = w->paint;
+
+    if (!XGetWindowAttributes (d->display, w->id, &w->attrib))
+	setDefaultWindowAttributes (&w->attrib);
+}
+
+void
 addWindow (CompScreen *screen,
 	   Window     id,
 	   Window     aboveId)

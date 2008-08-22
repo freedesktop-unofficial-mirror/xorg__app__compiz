@@ -1080,6 +1080,10 @@ Bool
 updateWindowStruts (CompWindow *w);
 
 void
+initRootWindow (CompScreen *s,
+		CompWindow *root);
+
+void
 addWindow (CompScreen *screen,
 	   Window     id,
 	   Window     aboveId);

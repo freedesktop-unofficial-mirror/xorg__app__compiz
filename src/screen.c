@@ -1760,7 +1760,8 @@ addScreen (CompDisplay *display,
 
     s->screenNum = screenNum;
     s->colormap  = DefaultColormap (dpy, screenNum);
-    s->root.id	 = XRootWindow (dpy, screenNum);
+
+    initRootWindow (s, &s->root);
 
     s->mapNum    = 1;
     s->activeNum = 1;
