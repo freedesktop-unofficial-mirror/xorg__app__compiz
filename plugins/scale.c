@@ -151,7 +151,7 @@ scaleActivateEvent (CompScreen *s,
 
     o[0].type = CompOptionTypeInt;
     o[0].name = "root";
-    o[0].value.i = s->root;
+    o[0].value.i = s->root.id;
 
     o[1].type = CompOptionTypeBool;
     o[1].name = "active";
@@ -1028,7 +1028,7 @@ scaleTerminate (CompDisplay     *d,
     {
 	SCALE_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (ss->grab)
@@ -1102,7 +1102,7 @@ scaleEnsureDndRedirectWindow (CompScreen *s)
 	attr.override_redirect = TRUE;
 
 	ss->dndTarget = XCreateWindow (s->display->display,
-				       s->root,
+				       s->root.id,
 				       0, 0, 1, 1, 0,
 				       CopyFromParent,
 				       InputOnly,
@@ -1548,7 +1548,7 @@ scaleWindowRemove (CompDisplay *d,
 
 			o.type    = CompOptionTypeInt;
 			o.name    = "root";
-			o.value.i = w->screen->root;
+			o.value.i = w->screen->root.id;
 
 			opt = SCALE_DISPLAY_OPTION_INITIATE_EDGE;
 			action = &sd->opt[opt].value.action;
@@ -1592,7 +1592,7 @@ scaleHoverTimeout (void *closure)
 
 	o.type    = CompOptionTypeInt;
 	o.name    = "root";
-	o.value.i = s->root;
+	o.value.i = s->root.id;
 
 	option = SCALE_DISPLAY_OPTION_INITIATE_EDGE;
 	scaleTerminate (s->display, &sd->opt[option].value.action, 0, &o, 1);
@@ -1649,7 +1649,7 @@ scaleHandleEvent (CompDisplay *d,
 
 		    o.type    = CompOptionTypeInt;
 		    o.name    = "root";
-		    o.value.i = s->root;
+		    o.value.i = s->root.id;
 
 		    if (scaleSelectWindowAt (s,
 					     event->xbutton.x_root,
@@ -1788,7 +1788,7 @@ scaleHandleEvent (CompDisplay *d,
 
 		    o.type    = CompOptionTypeInt;
 		    o.name    = "root";
-		    o.value.i = w->screen->root;
+		    o.value.i = w->screen->root.id;
 
 		    option = SCALE_DISPLAY_OPTION_INITIATE_EDGE;
 		    scaleTerminate (d, &sd->opt[option].value.action,

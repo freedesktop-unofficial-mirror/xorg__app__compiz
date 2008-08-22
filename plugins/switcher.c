@@ -328,7 +328,7 @@ switchActivateEvent (CompScreen *s,
 
     o[0].type = CompOptionTypeInt;
     o[0].name = "root";
-    o[0].value.i = s->root;
+    o[0].value.i = s->root.id;
 
     o[1].type = CompOptionTypeBool;
     o[1].name = "active";
@@ -475,7 +475,7 @@ switchToWindow (CompScreen *s,
 	    xev.xclient.format = 32;
 
 	    xev.xclient.message_type = s->display->desktopViewportAtom;
-	    xev.xclient.window = s->root;
+	    xev.xclient.window = s->root.id;
 
 	    xev.xclient.data.l[0] = x * s->width;
 	    xev.xclient.data.l[1] = y * s->height;
@@ -483,7 +483,7 @@ switchToWindow (CompScreen *s,
 	    xev.xclient.data.l[3] = 0;
 	    xev.xclient.data.l[4] = 0;
 
-	    XSendEvent (s->display->display, s->root, FALSE,
+	    XSendEvent (s->display->display, s->root.id, FALSE,
 			SubstructureRedirectMask | SubstructureNotifyMask,
 			&xev);
 	}
@@ -635,11 +635,11 @@ switchInitiate (CompScreen            *s,
 
 	attr.background_pixel = 0;
 	attr.border_pixel     = 0;
-	attr.colormap	      = XCreateColormap (dpy, s->root, visual,
+	attr.colormap	      = XCreateColormap (dpy, s->root.id, visual,
 						 AllocNone);
 
 	ss->popupWindow =
-	    XCreateWindow (dpy, s->root,
+	    XCreateWindow (dpy, s->root.id,
 			   s->width  / 2 - xsh.width / 2,
 			   s->height / 2 - xsh.height / 2,
 			   xsh.width, xsh.height, 0,
@@ -727,7 +727,7 @@ switchTerminate (CompDisplay     *d,
     {
 	SWITCH_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (ss->grabIndex)
@@ -989,7 +989,7 @@ switchWindowRemove (CompDisplay *d,
 
 	    o.type    = CompOptionTypeInt;
 	    o.name    = "root";
-	    o.value.i = w->screen->root;
+	    o.value.i = w->screen->root.id;
 
 	    switchTerminate (d, NULL, 0, &o, 1);
 	    return;

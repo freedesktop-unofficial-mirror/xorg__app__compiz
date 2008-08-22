@@ -1268,7 +1268,8 @@ waterInitiate (CompDisplay     *d,
 	if (!ws->grabIndex)
 	    ws->grabIndex = pushScreenGrab (s, None, "water");
 
-	if (XQueryPointer (d->display, s->root, &root, &child, &xRoot, &yRoot,
+	if (XQueryPointer (d->display, s->root.id, &root, &child,
+			   &xRoot, &yRoot,
 			   &i, &i, &ui))
 	{
 	    XPoint p;

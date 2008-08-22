@@ -195,8 +195,8 @@ mainMenu (CompDisplay     *d,
 
     s = findScreenAtDisplay (d, xid);
     if (s && !s->maxGrab)
-	toolkitAction (s, s->display->toolkitActionMainMenuAtom, time, s->root,
-		       0, 0, 0);
+	toolkitAction (s, s->display->toolkitActionMainMenuAtom, time,
+		       s->root.id, 0, 0, 0);
 
     return TRUE;
 }
@@ -217,8 +217,8 @@ runDialog (CompDisplay     *d,
 
     s = findScreenAtDisplay (d, xid);
     if (s && !s->maxGrab)
-	toolkitAction (s, s->display->toolkitActionRunDialogAtom, time, s->root,
-		       0, 0, 0);
+	toolkitAction (s, s->display->toolkitActionRunDialogAtom, time,
+		       s->root.id, 0, 0, 0);
 
     return TRUE;
 }
@@ -2628,7 +2628,7 @@ manageDisplay (CompDisplay *d)
 
 	/* move input focus to root window so that we get a FocusIn event when
 	   moving it to the default window */
-	XSetInputFocus (dpy, d->screens->root, RevertToPointerRoot,
+	XSetInputFocus (dpy, d->screens->root.id, RevertToPointerRoot,
 			CurrentTime);
 
 	if (focus == None || focus == PointerRoot)
@@ -2655,7 +2655,7 @@ manageDisplay (CompDisplay *d)
     }
     else
     {
-	d->activeWindow = getActiveWindow (d, d->screens->root);
+	d->activeWindow = getActiveWindow (d, d->screens->root.id);
     }
 
     return TRUE;
@@ -2684,7 +2684,7 @@ findScreenAtDisplay (CompDisplay *d,
 
     for (s = d->screens; s; s = s->next)
     {
-	if (s->root == root)
+	if (s->root.id == root)
 	    return s;
     }
 
@@ -2911,7 +2911,7 @@ warpPointer (CompScreen *s,
 	pointerY = 0;
 
     XWarpPointer (display->display,
-		  None, s->root,
+		  None, s->root.id,
 		  0, 0, 0, 0,
 		  pointerX, pointerY);
 

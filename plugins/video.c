@@ -190,7 +190,7 @@ videoSetSupportedHint (CompScreen *s)
 	    data[n++] = vd->videoImageFormatAtom[i];
     }
 
-    XChangeProperty (s->display->display, s->root,
+    XChangeProperty (s->display->display, s->root.id,
 		     vd->videoSupportedAtom, XA_ATOM, 32,
 		     PropModeReplace, (unsigned char *) data, n);
 }
@@ -1165,7 +1165,7 @@ videoFiniScreen (CompPlugin *p,
 
     freeWindowPrivateIndex (s, vs->windowPrivateIndex);
 
-    XDeleteProperty (s->display->display, s->root, vd->videoSupportedAtom);
+    XDeleteProperty (s->display->display, s->root.id, vd->videoSupportedAtom);
 
     videoDestroyFragmentFunctions (s, &vs->yv12Functions);
 

@@ -1181,7 +1181,7 @@ updateFrameWindow (CompWindow *w)
 	    attr.event_mask	   = 0;
 	    attr.override_redirect = TRUE;
 
-	    w->frame = XCreateWindow (d->display, w->screen->root,
+	    w->frame = XCreateWindow (d->display, w->screen->root.id,
 				      x, y, width, height, 0,
 				      CopyFromParent,
 				      InputOnly,
@@ -2941,7 +2941,7 @@ isGroupTransient (CompWindow *w,
     if (!clientLeader)
 	return FALSE;
 
-    if (w->transientFor == None || w->transientFor == w->screen->root)
+    if (w->transientFor == None || w->transientFor == w->screen->root.id)
     {
 	if (w->type & (CompWindowTypeDialogMask |
 		       CompWindowTypeModalDialogMask))
@@ -3029,7 +3029,7 @@ moveInputFocusToWindow (CompWindow *w)
     if (w->state & CompWindowStateHiddenMask)
     {
 	XSetInputFocus (d->display, w->frame, RevertToPointerRoot, CurrentTime);
-	XChangeProperty (d->display, s->root, d->winActiveAtom,
+	XChangeProperty (d->display, s->root.id, d->winActiveAtom,
 			 XA_WINDOW, 32, PropModeReplace,
 			 (unsigned char *) &w->id, 1);
     }
@@ -4348,7 +4348,7 @@ activateWindow (CompWindow *w)
 	xev.xclient.data.l[3] = 0;
 	xev.xclient.data.l[4] = 0;
 
-	XSendEvent (w->screen->display->display, w->screen->root, FALSE,
+	XSendEvent (w->screen->display->display, w->screen->root.id, FALSE,
 		    SubstructureRedirectMask | SubstructureNotifyMask,
 		    &xev);
 

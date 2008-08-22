@@ -664,7 +664,7 @@ moveHandleEvent (CompDisplay *d,
 
 			option = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
 
-			XQueryPointer (d->display, w->screen->root,
+			XQueryPointer (d->display, w->screen->root.id,
 				       &root, &child, &xRoot, &yRoot,
 				       &i, &i, &mods);
 

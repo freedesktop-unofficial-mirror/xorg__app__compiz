@@ -382,7 +382,7 @@ rotatePreparePaintScreen (CompScreen *s,
 			xev.xclient.format  = 32;
 
 			xev.xclient.message_type = d->desktopViewportAtom;
-			xev.xclient.window	 = s->root;
+			xev.xclient.window	 = s->root.id;
 
 			xev.xclient.data.l[0] = (s->x - tx) * s->width;
 			xev.xclient.data.l[1] = s->y * s->height;
@@ -391,7 +391,7 @@ rotatePreparePaintScreen (CompScreen *s,
 			xev.xclient.data.l[4] = 0;
 
 			XSendEvent (s->display->display,
-				    s->root,
+				    s->root.id,
 				    FALSE,
 				    SubstructureRedirectMask |
 				    SubstructureNotifyMask,
@@ -710,7 +710,7 @@ rotateTerminate (CompDisplay     *d,
     {
 	ROTATE_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (rs->grabIndex)
@@ -780,7 +780,7 @@ rotate (CompDisplay     *d,
 
 	    o[2].type	 = CompOptionTypeInt;
 	    o[2].name	 = "root";
-	    o[2].value.i = s->root;
+	    o[2].value.i = s->root.id;
 
 	    rotateInitiate (d, NULL, 0, o, 3);
 	}
@@ -869,7 +869,7 @@ rotateWithWindow (CompDisplay     *d,
 
 	    o[2].type	 = CompOptionTypeInt;
 	    o[2].name	 = "root";
-	    o[2].value.i = s->root;
+	    o[2].value.i = s->root.id;
 
 	    rotateInitiate (d, NULL, 0, o, 3);
 	}
@@ -1044,7 +1044,7 @@ rotateFlipLeft (void *closure)
 
     o[2].type	 = CompOptionTypeInt;
     o[2].name	 = "root";
-    o[2].value.i = s->root;
+    o[2].value.i = s->root.id;
 
     o[3].type	 = CompOptionTypeInt;
     o[3].name	 = "direction";
@@ -1089,7 +1089,7 @@ rotateFlipRight (void *closure)
 
     o[2].type	 = CompOptionTypeInt;
     o[2].name	 = "root";
-    o[2].value.i = s->root;
+    o[2].value.i = s->root.id;
 
     o[3].type	 = CompOptionTypeInt;
     o[3].name	 = "direction";
@@ -1169,7 +1169,7 @@ rotateEdgeFlip (CompScreen      *s,
 
     o[2].type	 = CompOptionTypeInt;
     o[2].name	 = "root";
-    o[2].value.i = s->root;
+    o[2].value.i = s->root.id;
 
     o[3].type	 = CompOptionTypeInt;
     o[3].name	 = "direction";
@@ -1286,7 +1286,7 @@ rotateFlipTerminate (CompDisplay     *d,
     {
 	ROTATE_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (rs->rotateHandle)
@@ -1413,7 +1413,7 @@ rotateTo (CompDisplay     *d,
 
 	o[2].type    = CompOptionTypeInt;
 	o[2].name    = "root";
-	o[2].value.i = s->root;
+	o[2].value.i = s->root.id;
 
 	o[3].type    = CompOptionTypeInt;
 	o[3].name    = "direction";
@@ -1473,7 +1473,7 @@ rotateToWithWindow (CompDisplay     *d,
 
 	o[2].type    = CompOptionTypeInt;
 	o[2].name    = "root";
-	o[2].value.i = s->root;
+	o[2].value.i = s->root.id;
 
 	o[3].type    = CompOptionTypeInt;
 	o[3].name    = "direction";
@@ -1568,7 +1568,7 @@ rotateHandleEvent (CompDisplay *d,
 		    unsigned int ui;
 		    CompOption   o[4];
 
-		    XQueryPointer (d->display, s->root,
+		    XQueryPointer (d->display, s->root.id,
 				   &win, &win, &x, &y, &i, &i, &ui);
 
 		    if (dx * 2 > s->hsize)
@@ -1586,7 +1586,7 @@ rotateHandleEvent (CompDisplay *d,
 
 		    o[2].type	 = CompOptionTypeInt;
 		    o[2].name	 = "root";
-		    o[2].value.i = s->root;
+		    o[2].value.i = s->root.id;
 
 		    o[3].type	 = CompOptionTypeInt;
 		    o[3].name	 = "direction";
@@ -1629,7 +1629,7 @@ rotateActivateWindow (CompWindow *w)
 	    unsigned int ui;
 	    CompOption   o[5];
 
-	    XQueryPointer (s->display->display, s->root,
+	    XQueryPointer (s->display->display, s->root.id,
 			   &win, &win, &x, &y, &i, &i, &ui);
 
 	    if (dx * 2 > s->hsize)
@@ -1647,7 +1647,7 @@ rotateActivateWindow (CompWindow *w)
 
 	    o[2].type    = CompOptionTypeInt;
 	    o[2].name    = "root";
-	    o[2].value.i = s->root;
+	    o[2].value.i = s->root.id;
 
 	    o[3].type    = CompOptionTypeInt;
 	    o[3].name    = "direction";

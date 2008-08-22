@@ -133,7 +133,7 @@ moveInputFocusToOtherWindow (CompWindow *w)
     {
 	CompWindow *ancestor;
 
-	if (w->transientFor && w->transientFor != w->screen->root)
+	if (w->transientFor && w->transientFor != w->screen->root.id)
 	{
 	    ancestor = findWindowAtDisplay (display, w->transientFor);
 	    if (ancestor && !(ancestor->type & (CompWindowTypeDesktopMask |
@@ -280,7 +280,7 @@ triggerButtonPressBindings (CompDisplay  *d,
 
 	if (event->window != edgeWindow)
 	{
-	    if (!s->maxGrab || event->window != s->root)
+	    if (!s->maxGrab || event->window != s->root.id)
 		return FALSE;
 	}
 
@@ -1067,7 +1067,7 @@ handleActionEvent (CompDisplay *d,
 			if (event->xclient.window == s->screenEdge[i].id)
 			{
 			    edge = 1 << i;
-			    root = s->root;
+			    root = s->root.id;
 			    break;
 			}
 		    }
@@ -1118,7 +1118,7 @@ handleActionEvent (CompDisplay *d,
 			if (xdndWindow == s->screenEdge[i].id)
 			{
 			    edge = 1 << i;
-			    root = s->root;
+			    root = s->root.id;
 			    break;
 			}
 		    }
@@ -1722,7 +1722,7 @@ handleEvent (CompDisplay *d,
 	    {
 		s = findScreenAtDisplay (d, event->xproperty.window);
 		if (s)
-		    d->activeWindow = getActiveWindow (d, s->root);
+		    d->activeWindow = getActiveWindow (d, s->root.id);
 	    }
 	}
 	else if (event->xproperty.atom == d->desktopViewportAtom)
@@ -1988,7 +1988,7 @@ handleEvent (CompDisplay *d,
 	{
 	    for (s = d->screens; s; s = s->next)
 	    {
-		if (event->xclient.window == s->root ||
+		if (event->xclient.window == s->root.id ||
 		    event->xclient.window == None)
 		{
 		    if (event->xclient.data.l[0])
@@ -2132,7 +2132,7 @@ handleEvent (CompDisplay *d,
 		       makes it look like the window became active just
 		       before it got mapped to external applications */
 		    if (w->inputHint && allowFocus)
-			XChangeProperty (d->display, w->screen->root,
+			XChangeProperty (d->display, w->screen->root.id,
 					 d->winActiveAtom,
 					 XA_WINDOW, 32, PropModeReplace,
 					 (unsigned char *) &w->id, 1);
@@ -2248,7 +2248,7 @@ handleEvent (CompDisplay *d,
 
 		    addToCurrentActiveWindowHistory (w->screen, w->id);
 
-		    XChangeProperty (d->display, w->screen->root,
+		    XChangeProperty (d->display, w->screen->root.id,
 				     d->winActiveAtom,
 				     XA_WINDOW, 32, PropModeReplace,
 				     (unsigned char *) &w->id, 1);

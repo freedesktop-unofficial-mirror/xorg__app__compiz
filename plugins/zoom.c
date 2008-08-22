@@ -163,7 +163,7 @@ zoomInEvent (CompScreen *s)
 
     o[0].type    = CompOptionTypeInt;
     o[0].name    = "root";
-    o[0].value.i = s->root;
+    o[0].value.i = s->root.id;
 
     o[1].type    = CompOptionTypeInt;
     o[1].name    = "output";
@@ -197,7 +197,7 @@ zoomOutEvent (CompScreen *s)
 
     o[0].type    = CompOptionTypeInt;
     o[0].name    = "root";
-    o[0].value.i = s->root;
+    o[0].value.i = s->root.id;
 
     o[1].type    = CompOptionTypeInt;
     o[1].name    = "output";
@@ -694,7 +694,7 @@ zoomTerminate (CompDisplay     *d,
     {
 	ZOOM_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (zs->grab)
@@ -719,7 +719,7 @@ zoomTerminate (CompDisplay     *d,
 
 	    o.type    = CompOptionTypeInt;
 	    o.name    = "root";
-	    o.value.i = s->root;
+	    o.value.i = s->root.id;
 
 	    zoomOut (d, action, state, &o, 1);
 	}
@@ -787,7 +787,7 @@ zoomTerminatePan (CompDisplay     *d,
     {
 	ZOOM_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (zs->panGrabIndex)

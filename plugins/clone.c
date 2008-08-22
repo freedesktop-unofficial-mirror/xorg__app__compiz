@@ -167,7 +167,7 @@ cloneFinish (CompScreen *s)
 
 		    clone->input =
 			XCreateWindow (s->display->display,
-				       s->root, x, y,
+				       s->root.id, x, y,
 				       s->outputDev[cs->dst].width,
 				       s->outputDev[cs->dst].height,
 				       0, 0, InputOnly, CopyFromParent,
@@ -515,7 +515,7 @@ cloneTerminate (CompDisplay     *d,
     {
 	CLONE_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (cs->grabIndex)

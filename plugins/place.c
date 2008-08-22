@@ -257,7 +257,7 @@ placeSendWindowMaximizationRequest (CompWindow *w)
     xev.xclient.data.l[3] = 0;
     xev.xclient.data.l[4] = 0;
 
-    XSendEvent (d->display, w->screen->root, FALSE,
+    XSendEvent (d->display, w->screen->root.id, FALSE,
 		SubstructureRedirectMask | SubstructureNotifyMask, &xev);
 }
 
@@ -1047,7 +1047,7 @@ placeGetPlacementOutput (CompWindow        *w,
 	    /* this means a server roundtrip, which kind of sucks; thus
 	       this code should be replaced as soon as we have software
 	       cursor rendering and thus have a cached pointer coordinate */
-	    if (XQueryPointer (s->display->display, s->root,
+	    if (XQueryPointer (s->display->display, s->root.id,
 			       &wDummy, &wDummy, &xPointer, &yPointer,
 			       &iDummy, &iDummy, &uiDummy))
 	    {

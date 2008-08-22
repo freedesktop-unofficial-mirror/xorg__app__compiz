@@ -203,7 +203,7 @@ setDesktopHints (CompScreen *s)
     }
 
     if (!desktopHintEqual (s, data, size, offset, hintSize))
-	XChangeProperty (d->display, s->root, d->desktopViewportAtom,
+	XChangeProperty (d->display, s->root.id, d->desktopViewportAtom,
 			 XA_CARDINAL, 32, PropModeReplace,
 			 (unsigned char *) &data[offset], hintSize);
 
@@ -216,7 +216,7 @@ setDesktopHints (CompScreen *s)
     }
 
     if (!desktopHintEqual (s, data, size, offset, hintSize))
-	XChangeProperty (d->display, s->root, d->desktopGeometryAtom,
+	XChangeProperty (d->display, s->root.id, d->desktopGeometryAtom,
 			 XA_CARDINAL, 32, PropModeReplace,
 			 (unsigned char *) &data[offset], hintSize);
 
@@ -232,7 +232,7 @@ setDesktopHints (CompScreen *s)
     }
 
     if (!desktopHintEqual (s, data, size, offset, hintSize))
-	XChangeProperty (d->display, s->root, d->workareaAtom,
+	XChangeProperty (d->display, s->root.id, d->workareaAtom,
 			 XA_CARDINAL, 32, PropModeReplace,
 			 (unsigned char *) &data[offset], hintSize);
 
@@ -242,7 +242,7 @@ setDesktopHints (CompScreen *s)
     hintSize = 1;
 
     if (!desktopHintEqual (s, data, size, offset, hintSize))
-	XChangeProperty (d->display, s->root, d->numberOfDesktopsAtom,
+	XChangeProperty (d->display, s->root.id, d->numberOfDesktopsAtom,
 			 XA_CARDINAL, 32, PropModeReplace,
 			 (unsigned char *) &data[offset], hintSize);
 
@@ -650,9 +650,9 @@ static void
 updateStartupFeedback (CompScreen *s)
 {
     if (s->startupSequences)
-	XDefineCursor (s->display->display, s->root, s->busyCursor);
+	XDefineCursor (s->display->display, s->root.id, s->busyCursor);
     else
-	XDefineCursor (s->display->display, s->root, s->normalCursor);
+	XDefineCursor (s->display->display, s->root.id, s->normalCursor);
 }
 
 #define STARTUP_TIMEOUT_DELAY 15000
@@ -978,7 +978,7 @@ updateScreenBackground (CompScreen  *screen,
 
     for (i = 0; pixmap == 0 && i < 2; i++)
     {
-	status = XGetWindowProperty (dpy, screen->root,
+	status = XGetWindowProperty (dpy, screen->root.id,
 				     screen->display->xBackgroundAtom[i],
 				     0, 4, FALSE, AnyPropertyType,
 				     &actualType, &actualFormat, &nItems,
@@ -1061,7 +1061,7 @@ detectRefreshRateOfScreen (CompScreen *s)
 	{
 	    XRRScreenConfiguration *config;
 
-	    config  = XRRGetScreenInfo (s->display->display, s->root);
+	    config  = XRRGetScreenInfo (s->display->display, s->root.id);
 	    value.i = (int) XRRConfigCurrentRate (config);
 
 	    XRRFreeScreenConfigInfo (config);
@@ -1107,7 +1107,7 @@ setSupportingWmCheck (CompScreen *s)
 		     XA_ATOM, 32, PropModeAppend,
 		     (unsigned char *) &d->winStateHiddenAtom, 1);
 
-    XChangeProperty (d->display, s->root, d->supportingWmCheckAtom,
+    XChangeProperty (d->display, s->root.id, d->supportingWmCheckAtom,
 		     XA_WINDOW, 32, PropModeReplace,
 		     (unsigned char *) &s->grabWindow, 1);
 }
@@ -1210,7 +1210,7 @@ setSupported (CompScreen *s)
 
     data[i++] = d->syncStateAtom;
 
-    XChangeProperty (d->display, s->root, d->supportedAtom, XA_ATOM, 32,
+    XChangeProperty (d->display, s->root.id, d->supportedAtom, XA_ATOM, 32,
 		     PropModeReplace, (unsigned char *) data, i);
 }
 
@@ -1226,7 +1226,7 @@ getSupportingWmCheck (CompScreen *s)
     s->supportingWmCheckWindow = None;
     s->syncStateSupport        = FALSE;
 
-    result = XGetWindowProperty (d->display, s->root,
+    result = XGetWindowProperty (d->display, s->root.id,
 				 d->supportingWmCheckAtom, 0L, 1L, FALSE,
 				 XA_WINDOW, &actual, &format,
 				 &n, &left, &propData);
@@ -1248,7 +1248,7 @@ getSupportingWmCheck (CompScreen *s)
 	    s->supportingWmCheckWindow = wmCheckWindow;
 
 	    result = XGetWindowProperty (d->display,
-					 s->root,
+					 s->root.id,
 					 d->supportedAtom, 0L, 4096L,
 					 FALSE, XA_ATOM, &actual, &format,
 					 &n, &left, &propData);
@@ -1279,7 +1279,7 @@ getDesktopHints (CompScreen *s)
 
     if (useDesktopHints)
     {
-	result = XGetWindowProperty (s->display->display, s->root,
+	result = XGetWindowProperty (s->display->display, s->root.id,
 				     d->numberOfDesktopsAtom, 0L, 1L, FALSE,
 				     XA_CARDINAL, &actual, &format,
 				     &n, &left, &propData);
@@ -1293,7 +1293,7 @@ getDesktopHints (CompScreen *s)
 		s->nDesktop = data[0];
 	}
 
-	result = XGetWindowProperty (s->display->display, s->root,
+	result = XGetWindowProperty (s->display->display, s->root.id,
 				     d->currentDesktopAtom, 0L, 1L, FALSE,
 				     XA_CARDINAL, &actual, &format,
 				     &n, &left, &propData);
@@ -1308,7 +1308,7 @@ getDesktopHints (CompScreen *s)
 	}
     }
 
-    result = XGetWindowProperty (s->display->display, s->root,
+    result = XGetWindowProperty (s->display->display, s->root.id,
 				 d->desktopViewportAtom, 0L, 2L,
 				 FALSE, XA_CARDINAL, &actual, &format,
 				 &n, &left, &propData);
@@ -1329,7 +1329,7 @@ getDesktopHints (CompScreen *s)
 	XFree (propData);
     }
 
-    result = XGetWindowProperty (s->display->display, s->root,
+    result = XGetWindowProperty (s->display->display, s->root.id,
 				 d->showingDesktopAtom, 0L, 1L, FALSE,
 				 XA_CARDINAL, &actual, &format,
 				 &n, &left, &propData);
@@ -1347,13 +1347,13 @@ getDesktopHints (CompScreen *s)
     {
 	data[0] = s->currentDesktop;
 
-	XChangeProperty (d->display, s->root, d->currentDesktopAtom,
+	XChangeProperty (d->display, s->root.id, d->currentDesktopAtom,
 			 XA_CARDINAL, 32, PropModeReplace,
 			 (unsigned char *) data, 1);
 
 	data[0] = s->showingDesktopMask ? TRUE : FALSE;
 
-	XChangeProperty (d->display, s->root, d->showingDesktopAtom,
+	XChangeProperty (d->display, s->root.id, d->showingDesktopAtom,
 			 XA_CARDINAL, 32, PropModeReplace,
 			 (unsigned char *) data, 1);
     }
@@ -1462,7 +1462,8 @@ makeOutputWindow (CompScreen *s)
 #ifdef USE_COW
     if (useCow && manualCompositeManagement)
     {
-	s->overlay = XCompositeGetOverlayWindow (s->display->display, s->root);
+	s->overlay = XCompositeGetOverlayWindow (s->display->display,
+						 s->root.id);
 	s->output  = s->overlay;
 
 	XSelectInput (s->display->display, s->output, ExposureMask);
@@ -1470,7 +1471,7 @@ makeOutputWindow (CompScreen *s)
     else
 #endif
 
-	s->output = s->overlay = s->root;
+	s->output = s->overlay = s->root.id;
 
     showOutputWindow (s);
 }
@@ -1513,7 +1514,7 @@ enterShowDesktopMode (CompScreen *s)
 	data = 0;
     }
 
-    XChangeProperty (s->display->display, s->root,
+    XChangeProperty (s->display->display, s->root.id,
 		     s->display->showingDesktopAtom,
 		     XA_CARDINAL, 32, PropModeReplace,
 		     (unsigned char *) &data, 1);
@@ -1562,7 +1563,7 @@ leaveShowDesktopMode (CompScreen *s,
 	focusDefaultWindow (s);
     }
 
-    XChangeProperty (s->display->display, s->root,
+    XChangeProperty (s->display->display, s->root.id,
 		     s->display->showingDesktopAtom,
 		     XA_CARDINAL, 32, PropModeReplace,
 		     (unsigned char *) &data, 1);
@@ -1759,7 +1760,7 @@ addScreen (CompDisplay *display,
 
     s->screenNum = screenNum;
     s->colormap  = DefaultColormap (dpy, screenNum);
-    s->root	 = XRootWindow (dpy, screenNum);
+    s->root.id	 = XRootWindow (dpy, screenNum);
 
     s->mapNum    = 1;
     s->activeNum = 1;
@@ -1864,7 +1865,7 @@ addScreen (CompDisplay *display,
 
     s->getProcAddress = dummyGetProcAddress;
 
-    if (!XGetWindowAttributes (dpy, s->root, &s->attrib))
+    if (!XGetWindowAttributes (dpy, s->root.id, &s->attrib))
 	return FALSE;
 
     s->workArea.x      = 0;
@@ -1897,7 +1898,7 @@ addScreen (CompDisplay *display,
 	return FALSE;
     }
 
-    bitmap = XCreateBitmapFromData (dpy, s->root, &data, 1, 1);
+    bitmap = XCreateBitmapFromData (dpy, s->root.id, &data, 1, 1);
     if (!bitmap)
     {
 	compLogMessage ("core", CompLogLevelFatal, "Couldn't create bitmap");
@@ -2023,7 +2024,7 @@ addScreen (CompDisplay *display,
 	}
 
 	glXMakeCurrent (dpy, s->output, s->ctx);
-	currentRoot = s->root;
+	currentRoot = s->root.id;
 
 	glExtensions = (const char *) glGetString (GL_EXTENSIONS);
 	if (!glExtensions)
@@ -2363,7 +2364,7 @@ addScreen (CompDisplay *display,
     attrib.override_redirect = 1;
     attrib.event_mask	     = PropertyChangeMask;
 
-    s->grabWindow = XCreateWindow (dpy, s->root, -100, -100, 1, 1, 0,
+    s->grabWindow = XCreateWindow (dpy, s->root.id, -100, -100, 1, 1, 0,
 				   CopyFromParent, InputOnly, CopyFromParent,
 				   CWOverrideRedirect | CWEventMask,
 				   &attrib);
@@ -2373,9 +2374,13 @@ addScreen (CompDisplay *display,
     {
 	long xdndVersion = 3;
 
-	s->screenEdge[i].id = XCreateWindow (dpy, s->root, -100, -100, 1, 1, 0,
-					     CopyFromParent, InputOnly,
-					     CopyFromParent, CWOverrideRedirect,
+	s->screenEdge[i].id = XCreateWindow (dpy,
+					     s->root.id,
+					     -100, -100, 1, 1, 0,
+					     CopyFromParent,
+					     InputOnly,
+					     CopyFromParent,
+					     CWOverrideRedirect,
 					     &attrib);
 
 	XChangeProperty (dpy, s->screenEdge[i].id, display->xdndAwareAtom,
@@ -2408,7 +2413,7 @@ addScreen (CompDisplay *display,
     s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
     s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
 
-    XDefineCursor (dpy, s->root, s->normalCursor);
+    XDefineCursor (dpy, s->root.id, s->normalCursor);
 
     s->filter[NOTHING_TRANS_FILTER] = COMP_TEXTURE_FILTER_FAST;
     s->filter[SCREEN_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
@@ -2419,7 +2424,7 @@ addScreen (CompDisplay *display,
 
     (*core.objectAdd) (&display->base, &s->base);
 
-    XQueryTree (dpy, s->root,
+    XQueryTree (dpy, s->root.id,
 		&rootReturn, &parentReturn,
 		&children, &nchildren);
 
@@ -2464,7 +2469,7 @@ removeScreen (CompScreen *s)
 
     objectFiniPlugins (&s->base);
 
-    XUngrabKey (d->display, AnyKey, AnyModifier, s->root);
+    XUngrabKey (d->display, AnyKey, AnyModifier, s->root.id);
 
     for (i = 0; i < SCREEN_EDGE_NUM; i++)
 	XDestroyWindow (d->display, s->screenEdge[i].id);
@@ -2486,7 +2491,7 @@ removeScreen (CompScreen *s)
 
 #ifdef USE_COW
     if (useCow && manualCompositeManagement)
-	XCompositeReleaseOverlayWindow (s->display->display, s->root);
+	XCompositeReleaseOverlayWindow (s->display->display, s->root.id);
 #endif
 
     freeScreen (s);
@@ -2565,11 +2570,11 @@ focusDefaultWindow (CompScreen *s)
 	    /* huh, we didn't find d->below ... perhaps it's out of date;
 	       try grabbing it through the server */
 
-	    status = XQueryPointer (d->display, s->root, &rootReturn,
+	    status = XQueryPointer (d->display, s->root.id, &rootReturn,
 				    &childReturn, &dummyInt, &dummyInt,
 				    &dummyInt, &dummyInt, &dummyUInt);
 
-	    if (status && rootReturn == s->root)
+	    if (status && rootReturn == s->root.id)
 	    {
 		w = findTopLevelWindowAtDisplay (d, childReturn);
 
@@ -2615,7 +2620,7 @@ focusDefaultWindow (CompScreen *s)
     }
     else
     {
-	XSetInputFocus (d->display, s->root, RevertToPointerRoot,
+	XSetInputFocus (d->display, s->root.id, RevertToPointerRoot,
 			CurrentTime);
     }
 }
@@ -2784,7 +2789,7 @@ pushScreenGrab (CompScreen *s,
 	status = XGrabPointer (s->display->display, s->grabWindow, TRUE,
 			       POINTER_GRAB_MASK,
 			       GrabModeAsync, GrabModeAsync,
-			       s->root, cursor,
+			       s->root.id, cursor,
 			       CurrentTime);
 
 	if (status == GrabSuccess)
@@ -2936,7 +2941,7 @@ grabUngrabOneKey (CompScreen   *s,
 	XGrabKey (s->display->display,
 		  keycode,
 		  modifiers,
-		  s->root,
+		  s->root.id,
 		  TRUE,
 		  GrabModeAsync,
 		  GrabModeAsync);
@@ -2946,7 +2951,7 @@ grabUngrabOneKey (CompScreen   *s,
 	XUngrabKey (s->display->display,
 		    keycode,
 		    modifiers,
-		    s->root);
+		    s->root.id);
     }
 }
 
@@ -3076,7 +3081,7 @@ updatePassiveKeyGrabs (CompScreen *s)
 {
     int i;
 
-    XUngrabKey (s->display->display, AnyKey, AnyModifier, s->root);
+    XUngrabKey (s->display->display, AnyKey, AnyModifier, s->root.id);
 
     for (i = 0; i < s->nKeyGrab; i++)
     {
@@ -3427,11 +3432,11 @@ updateClientListForScreen (CompScreen *s)
 	    s->clientList  = NULL;
 	    s->nClientList = 0;
 
-	    XChangeProperty (s->display->display, s->root,
+	    XChangeProperty (s->display->display, s->root.id,
 			     s->display->clientListAtom,
 			     XA_WINDOW, 32, PropModeReplace,
 			     (unsigned char *) &s->grabWindow, 1);
-	    XChangeProperty (s->display->display, s->root,
+	    XChangeProperty (s->display->display, s->root.id,
 			     s->display->clientListStackingAtom,
 			     XA_WINDOW, 32, PropModeReplace,
 			     (unsigned char *) &s->grabWindow, 1);
@@ -3487,13 +3492,13 @@ updateClientListForScreen (CompScreen *s)
     }
 
     if (updateClientList)
-	XChangeProperty (s->display->display, s->root,
+	XChangeProperty (s->display->display, s->root.id,
 			 s->display->clientListAtom,
 			 XA_WINDOW, 32, PropModeReplace,
 			 (unsigned char *) clientList, s->nClientList);
 
     if (updateClientListStacking)
-	XChangeProperty (s->display->display, s->root,
+	XChangeProperty (s->display->display, s->root.id,
 			 s->display->clientListStackingAtom,
 			 XA_WINDOW, 32, PropModeReplace,
 			 (unsigned char *) clientListStacking, s->nClientList);
@@ -3547,7 +3552,8 @@ toolkitAction (CompScreen *s,
     XUngrabPointer (s->display->display, CurrentTime);
     XUngrabKeyboard (s->display->display, CurrentTime);
 
-    XSendEvent (s->display->display, s->root, FALSE, StructureNotifyMask, &ev);
+    XSendEvent (s->display->display, s->root.id, FALSE, StructureNotifyMask,
+		&ev);
 }
 
 void
@@ -3860,7 +3866,7 @@ sendWindowActivationRequest (CompScreen *s,
     xev.xclient.data.l[4] = 0;
 
     XSendEvent (s->display->display,
-		s->root,
+		s->root.id,
 		FALSE,
 		SubstructureRedirectMask | SubstructureNotifyMask,
 		&xev);
@@ -3940,10 +3946,10 @@ makeScreenCurrent (CompScreen *s)
 {
     if (manualCompositeManagement)
     {
-	if (currentRoot != s->root)
+	if (currentRoot != s->root.id)
 	{
 	    glXMakeCurrent (s->display->display, s->output, s->ctx);
-	    currentRoot = s->root;
+	    currentRoot = s->root.id;
 	}
 
 	s->pendingCommands = TRUE;
@@ -4053,7 +4059,7 @@ setCurrentDesktop (CompScreen   *s,
 
     data = desktop;
 
-    XChangeProperty (s->display->display, s->root,
+    XChangeProperty (s->display->display, s->root.id,
 		     s->display->currentDesktopAtom,
 		     XA_CARDINAL, 32, PropModeReplace,
 		     (unsigned char *) &data, 1);

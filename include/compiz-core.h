@@ -49,7 +49,7 @@
 #include <GL/glx.h>
 
 #undef CORE_ABIVERSION
-#define CORE_ABIVERSION 30080727
+#define CORE_ABIVERSION 30080822
 
 COMPIZ_BEGIN_DECLS
 
@@ -741,6 +741,615 @@ void
 removeFileWatch (CompFileWatchHandle handle);
 
 
+/* window.c */
+
+typedef struct _CompMatrix {
+    float xx; float yx;
+    float xy; float yy;
+    float x0; float y0;
+} CompMatrix;
+
+typedef struct _CompGroup {
+    struct _CompGroup *next;
+    unsigned int      refCnt;
+    Window	      id;
+} CompGroup;
+
+/* XXX: scale and translate fields will be removed */
+typedef struct _WindowPaintAttrib {
+    GLushort opacity;
+    GLushort brightness;
+    GLushort saturation;
+    GLfloat  xScale;
+    GLfloat  yScale;
+    GLfloat  xTranslate;
+    GLfloat  yTranslate;
+} WindowPaintAttrib;
+
+typedef void (*DrawWindowGeometryProc) (CompWindow *window);
+
+#define WINDOW_INVISIBLE(w)				       \
+    ((w)->attrib.map_state != IsViewable		    || \
+     (!(w)->damaged)					    || \
+     (w)->attrib.x + (w)->width  + (w)->output.right  <= 0  || \
+     (w)->attrib.y + (w)->height + (w)->output.bottom <= 0  || \
+     (w)->attrib.x - (w)->output.left >= (w)->screen->width || \
+     (w)->attrib.y - (w)->output.top >= (w)->screen->height)
+
+typedef enum {
+    CompStackingUpdateModeNone = 0,
+    CompStackingUpdateModeNormal,
+    CompStackingUpdateModeAboveFullscreen,
+    CompStackingUpdateModeInitialMap,
+    CompStackingUpdateModeInitialMapDeniedFocus
+} CompStackingUpdateMode;
+
+struct _CompWindowExtents {
+    int left;
+    int right;
+    int top;
+    int bottom;
+};
+
+typedef struct _CompStruts {
+    XRectangle left;
+    XRectangle right;
+    XRectangle top;
+    XRectangle bottom;
+} CompStruts;
+
+struct _CompWindow {
+    CompObject base;
+
+    CompScreen *screen;
+    CompWindow *next;
+    CompWindow *prev;
+
+    int		      refcnt;
+    Window	      id;
+    Window	      frame;
+    unsigned int      mapNum;
+    unsigned int      activeNum;
+    XWindowAttributes attrib;
+    int		      serverX;
+    int		      serverY;
+    int		      serverWidth;
+    int		      serverHeight;
+    int		      serverBorderWidth;
+    Window	      transientFor;
+    Window	      clientLeader;
+    XSizeHints	      sizeHints;
+    Pixmap	      pixmap;
+    CompTexture       *texture;
+    CompMatrix        matrix;
+    Damage	      damage;
+    Bool	      inputHint;
+    Bool	      alpha;
+    GLint	      width;
+    GLint	      height;
+    Region	      region;
+    Region	      clip;
+    unsigned int      wmType;
+    unsigned int      type;
+    unsigned int      state;
+    unsigned int      actions;
+    unsigned int      protocols;
+    unsigned int      mwmDecor;
+    unsigned int      mwmFunc;
+    Bool	      invisible;
+    Bool	      destroyed;
+    Bool	      damaged;
+    Bool	      redirected;
+    Bool	      managed;
+    Bool	      bindFailed;
+    Bool	      overlayWindow;
+    int		      destroyRefCnt;
+    int		      unmapRefCnt;
+
+    unsigned int initialViewportX;
+    unsigned int initialViewportY;
+
+    Time initialTimestamp;
+    Bool initialTimestampSet;
+
+    Bool placed;
+    Bool minimized;
+    Bool inShowDesktopMode;
+    Bool shaded;
+    Bool hidden;
+    Bool grabbed;
+
+    unsigned int desktop;
+
+    int pendingUnmaps;
+    int pendingMaps;
+
+    char *startupId;
+    char *resName;
+    char *resClass;
+
+    CompGroup *group;
+
+    unsigned int lastPong;
+    Bool	 alive;
+
+    WindowPaintAttrib paint;
+    WindowPaintAttrib lastPaint;
+
+    unsigned int lastMask;
+
+    CompWindowExtents input;
+    CompWindowExtents output;
+
+    CompStruts *struts;
+
+    CompIcon **icon;
+    int	     nIcon;
+
+    XRectangle iconGeometry;
+    Bool       iconGeometrySet;
+
+    XWindowChanges saveWc;
+    int		   saveMask;
+
+    XSyncCounter  syncCounter;
+    XSyncValue	  syncValue;
+    XSyncAlarm	  syncAlarm;
+    unsigned long syncAlarmConnection;
+    unsigned int  syncWaitHandle;
+
+    Bool syncWait;
+    int	 syncX;
+    int	 syncY;
+    int	 syncWidth;
+    int	 syncHeight;
+    int	 syncBorderWidth;
+
+    Bool closeRequests;
+    Time lastCloseRequestTime;
+
+    XRectangle *damageRects;
+    int	       sizeDamage;
+    int	       nDamage;
+
+    GLfloat  *vertices;
+    int      vertexSize;
+    int      vertexStride;
+    GLushort *indices;
+    int      indexSize;
+    int      vCount;
+    int      texUnits;
+    int      texCoordSize;
+    int      indexCount;
+
+    /* must be set by addWindowGeometry */
+    DrawWindowGeometryProc drawWindowGeometry;
+};
+
+#define GET_CORE_WINDOW(object) ((CompWindow *) (object))
+#define CORE_WINDOW(object) CompWindow *w = GET_CORE_WINDOW (object)
+
+CompBool
+allocWindowObjectPrivates (CompObject *object,
+			   CompObject *parent);
+
+int
+allocWindowObjectPrivateIndex (CompObject *parent);
+
+void
+freeWindowObjectPrivateIndex (CompObject *parent,
+			      int	 index);
+
+CompBool
+forEachWindowObject (CompObject	        *parent,
+		     ObjectCallBackProc proc,
+		     void	        *closure);
+
+char *
+nameWindowObject (CompObject *object);
+
+CompObject *
+findWindowObject (CompObject *parent,
+		  const char *name);
+
+int
+allocateWindowPrivateIndex (CompScreen *screen);
+
+void
+freeWindowPrivateIndex (CompScreen *screen,
+			int	   index);
+
+unsigned int
+windowStateMask (CompDisplay *display,
+		 Atom	     state);
+
+unsigned int
+windowStateFromString (const char *str);
+
+unsigned int
+getWindowState (CompDisplay *display,
+		Window      id);
+
+void
+setWindowState (CompDisplay  *display,
+		unsigned int state,
+		Window       id);
+
+void
+changeWindowState (CompWindow   *w,
+		   unsigned int newState);
+
+void
+recalcWindowActions (CompWindow *w);
+
+unsigned int
+constrainWindowState (unsigned int state,
+		      unsigned int actions);
+
+unsigned int
+windowTypeFromString (const char *str);
+
+unsigned int
+getWindowType (CompDisplay *display,
+	       Window      id);
+
+void
+recalcWindowType (CompWindow *w);
+
+void
+getMwmHints (CompDisplay  *display,
+	     Window	  id,
+	     unsigned int *func,
+	     unsigned int *decor);
+
+unsigned int
+getProtocols (CompDisplay *display,
+	      Window      id);
+
+unsigned int
+getWindowProp (CompDisplay  *display,
+	       Window	    id,
+	       Atom	    property,
+	       unsigned int defaultValue);
+
+void
+setWindowProp (CompDisplay  *display,
+	       Window       id,
+	       Atom	    property,
+	       unsigned int value);
+
+Bool
+readWindowProp32 (CompDisplay    *display,
+		  Window	 id,
+		  Atom		 property,
+		  unsigned short *returnValue);
+
+unsigned short
+getWindowProp32 (CompDisplay	*display,
+		 Window		id,
+		 Atom		property,
+		 unsigned short defaultValue);
+
+void
+setWindowProp32 (CompDisplay    *display,
+		 Window         id,
+		 Atom		property,
+		 unsigned short value);
+
+void
+updateNormalHints (CompWindow *window);
+
+void
+updateWmHints (CompWindow *w);
+
+void
+updateWindowClassHints (CompWindow *window);
+
+void
+updateTransientHint (CompWindow *w);
+
+void
+updateIconGeometry (CompWindow *w);
+
+Window
+getClientLeader (CompWindow *w);
+
+char *
+getStartupId (CompWindow *w);
+
+int
+getWmState (CompDisplay *display,
+	    Window      id);
+
+void
+setWmState (CompDisplay *display,
+	    int		state,
+	    Window      id);
+
+void
+setWindowFrameExtents (CompWindow	 *w,
+		       CompWindowExtents *input);
+
+void
+updateWindowOutputExtents (CompWindow *w);
+
+void
+updateWindowRegion (CompWindow *w);
+
+Bool
+updateWindowStruts (CompWindow *w);
+
+void
+addWindow (CompScreen *screen,
+	   Window     id,
+	   Window     aboveId);
+
+void
+removeWindow (CompWindow *w);
+
+void
+destroyWindow (CompWindow *w);
+
+void
+sendConfigureNotify (CompWindow *w);
+
+void
+mapWindow (CompWindow *w);
+
+void
+unmapWindow (CompWindow *w);
+
+Bool
+bindWindow (CompWindow *w);
+
+void
+releaseWindow (CompWindow *w);
+
+void
+moveWindow (CompWindow *w,
+	    int        dx,
+	    int        dy,
+	    Bool       damage,
+	    Bool       immediate);
+
+void
+configureXWindow (CompWindow	 *w,
+		  unsigned int	 valueMask,
+		  XWindowChanges *xwc);
+
+unsigned int
+adjustConfigureRequestForGravity (CompWindow     *w,
+				  XWindowChanges *xwc,
+				  unsigned int   xwcm,
+				  int            gravity,
+				  int		 direction);
+
+void
+moveResizeWindow (CompWindow     *w,
+		  XWindowChanges *xwc,
+		  unsigned int   xwcm,
+		  int            gravity,
+		  unsigned int   source);
+
+void
+syncWindowPosition (CompWindow *w);
+
+void
+syncWait (CompWindow *w);
+
+void
+sendSyncRequest (CompWindow *w);
+
+Bool
+resizeWindow (CompWindow *w,
+	      int	 x,
+	      int	 y,
+	      int	 width,
+	      int	 height,
+	      int	 borderWidth);
+
+void
+configureWindow (CompWindow	 *w,
+		 XConfigureEvent *ce);
+
+void
+circulateWindow (CompWindow	 *w,
+		 XCirculateEvent *ce);
+
+void
+addWindowDamageRect (CompWindow *w,
+		     BoxPtr     rect);
+
+void
+getOutputExtentsForWindow (CompWindow	     *w,
+			   CompWindowExtents *output);
+
+void
+getAllowedActionsForWindow (CompWindow   *w,
+			    unsigned int *setActions,
+			    unsigned int *clearActions);
+
+void
+addWindowDamage (CompWindow *w);
+
+void
+damageWindowOutputExtents (CompWindow *w);
+
+Bool
+damageWindowRect (CompWindow *w,
+		  Bool       initial,
+		  BoxPtr     rect);
+
+void
+damageTransformedWindowRect (CompWindow *w,
+			     float	xScale,
+			     float	yScale,
+			     float	xTranslate,
+			     float	yTranslate,
+			     BoxPtr     rect);
+
+Bool
+focusWindow (CompWindow *w);
+
+Bool
+placeWindow (CompWindow *w,
+	     int        x,
+	     int        y,
+	     int        *newX,
+	     int        *newY);
+
+void
+validateWindowResizeRequest (CompWindow     *w,
+			     unsigned int   *mask,
+			     XWindowChanges *xwc,
+			     unsigned int   source);
+
+void
+windowResizeNotify (CompWindow *w,
+		    int	       dx,
+		    int	       dy,
+		    int	       dwidth,
+		    int	       dheight);
+
+void
+windowMoveNotify (CompWindow *w,
+		  int	     dx,
+		  int	     dy,
+		  Bool	     immediate);
+
+void
+windowGrabNotify (CompWindow   *w,
+		  int	       x,
+		  int	       y,
+		  unsigned int state,
+		  unsigned int mask);
+
+void
+windowUngrabNotify (CompWindow *w);
+
+void
+windowStateChangeNotify (CompWindow   *w,
+			 unsigned int lastState);
+
+void
+moveInputFocusToWindow (CompWindow *w);
+
+void
+updateWindowSize (CompWindow *w);
+
+void
+raiseWindow (CompWindow *w);
+
+void
+lowerWindow (CompWindow *w);
+
+void
+restackWindowAbove (CompWindow *w,
+		    CompWindow *sibling);
+
+void
+restackWindowBelow (CompWindow *w,
+		    CompWindow *sibling);
+
+void
+updateWindowAttributes (CompWindow             *w,
+			CompStackingUpdateMode stackingMode);
+
+void
+activateWindow (CompWindow *w);
+
+void
+closeWindow (CompWindow *w,
+	     Time	serverTime);
+
+Bool
+constrainNewWindowSize (CompWindow *w,
+			int        width,
+			int        height,
+			int        *newWidth,
+			int        *newHeight);
+
+void
+hideWindow (CompWindow *w);
+
+void
+showWindow (CompWindow *w);
+
+void
+minimizeWindow (CompWindow *w);
+
+void
+unminimizeWindow (CompWindow *w);
+
+void
+maximizeWindow (CompWindow *w,
+		int	   state);
+
+Bool
+getWindowUserTime (CompWindow *w,
+		   Time       *time);
+
+void
+setWindowUserTime (CompWindow *w,
+		   Time       time);
+
+Bool
+allowWindowFocus (CompWindow   *w,
+		  unsigned int noFocusMask,
+		  unsigned int viewportX,
+		  unsigned int viewportY,
+		  Time         timestamp);
+
+void
+unredirectWindow (CompWindow *w);
+
+void
+redirectWindow (CompWindow *w);
+
+void
+defaultViewportForWindow (CompWindow *w,
+			  int	     *vx,
+			  int        *vy);
+
+CompIcon *
+getWindowIcon (CompWindow *w,
+	       int	  width,
+	       int	  height);
+
+void
+freeWindowIcons (CompWindow *w);
+
+int
+outputDeviceForWindow (CompWindow *w);
+
+Bool
+onCurrentDesktop (CompWindow *w);
+
+void
+setDesktopForWindow (CompWindow   *w,
+		     unsigned int desktop);
+
+int
+compareWindowActiveness (CompWindow *w1,
+			 CompWindow *w2);
+
+Bool
+windowOnAllViewports (CompWindow *w);
+
+void
+getWindowMovementForOffset (CompWindow *w,
+			    int        offX,
+			    int        offY,
+			    int        *retX,
+			    int        *retY);
+
+void
+enterSyncWaitState (CompWindow *w);
+
+void
+leaveSyncWaitState (CompWindow *w);
+
+
 /* display.c */
 
 #define COMP_DISPLAY_OPTION_ABI                              0
@@ -1346,25 +1955,8 @@ typedef struct _ScreenPaintAttrib {
     GLfloat zCamera;
 } ScreenPaintAttrib;
 
-/* XXX: scale and translate fields will be removed */
-typedef struct _WindowPaintAttrib {
-    GLushort opacity;
-    GLushort brightness;
-    GLushort saturation;
-    GLfloat  xScale;
-    GLfloat  yScale;
-    GLfloat  xTranslate;
-    GLfloat  yTranslate;
-} WindowPaintAttrib;
-
 extern ScreenPaintAttrib defaultScreenPaintAttrib;
 extern WindowPaintAttrib defaultWindowPaintAttrib;
-
-typedef struct _CompMatrix {
-    float xx; float yx;
-    float xy; float yy;
-    float x0; float y0;
-} CompMatrix;
 
 #define COMP_TEX_COORD_X(m, vx) ((m)->xx * (vx) + (m)->x0)
 #define COMP_TEX_COORD_Y(m, vy) ((m)->yy * (vy) + (m)->y0)
@@ -1509,8 +2101,6 @@ typedef void (*DrawWindowTextureProc) (CompWindow	    *w,
 				       CompTexture	    *texture,
 				       const FragmentAttrib *fragment,
 				       unsigned int	    mask);
-
-typedef void (*DrawWindowGeometryProc) (CompWindow *window);
 
 typedef void (*PaintCursorProc) (CompCursor	     *cursor,
 				 const CompTransform *transform,
@@ -1941,12 +2531,6 @@ typedef struct _CompGrab {
     const char *name;
 } CompGrab;
 
-typedef struct _CompGroup {
-    struct _CompGroup *next;
-    unsigned int      refCnt;
-    Window	      id;
-} CompGroup;
-
 typedef struct _CompStartupSequence {
     struct _CompStartupSequence *next;
     SnStartupSequence		*sequence;
@@ -2035,6 +2619,9 @@ struct _CompScreen {
 
     CompScreen  *next;
     CompDisplay *display;
+
+    CompWindow root;
+
     CompWindow	*windows;
     CompWindow	*reverseWindows;
 
@@ -2054,7 +2641,6 @@ struct _CompScreen {
     REGION	      region;
     Region	      damage;
     unsigned long     damageMask;
-    Window	      root;
     Window	      overlay;
     Window	      output;
     XWindowAttributes attrib;
@@ -2546,590 +3132,6 @@ void
 setWindowPaintOffset (CompScreen *s,
 		      int        x,
 		      int        y);
-
-
-/* window.c */
-
-#define WINDOW_INVISIBLE(w)				       \
-    ((w)->attrib.map_state != IsViewable		    || \
-     (!(w)->damaged)					    || \
-     (w)->attrib.x + (w)->width  + (w)->output.right  <= 0  || \
-     (w)->attrib.y + (w)->height + (w)->output.bottom <= 0  || \
-     (w)->attrib.x - (w)->output.left >= (w)->screen->width || \
-     (w)->attrib.y - (w)->output.top >= (w)->screen->height)
-
-typedef enum {
-    CompStackingUpdateModeNone = 0,
-    CompStackingUpdateModeNormal,
-    CompStackingUpdateModeAboveFullscreen,
-    CompStackingUpdateModeInitialMap,
-    CompStackingUpdateModeInitialMapDeniedFocus
-} CompStackingUpdateMode;
-
-struct _CompWindowExtents {
-    int left;
-    int right;
-    int top;
-    int bottom;
-};
-
-typedef struct _CompStruts {
-    XRectangle left;
-    XRectangle right;
-    XRectangle top;
-    XRectangle bottom;
-} CompStruts;
-
-struct _CompWindow {
-    CompObject base;
-
-    CompScreen *screen;
-    CompWindow *next;
-    CompWindow *prev;
-
-    int		      refcnt;
-    Window	      id;
-    Window	      frame;
-    unsigned int      mapNum;
-    unsigned int      activeNum;
-    XWindowAttributes attrib;
-    int		      serverX;
-    int		      serverY;
-    int		      serverWidth;
-    int		      serverHeight;
-    int		      serverBorderWidth;
-    Window	      transientFor;
-    Window	      clientLeader;
-    XSizeHints	      sizeHints;
-    Pixmap	      pixmap;
-    CompTexture       *texture;
-    CompMatrix        matrix;
-    Damage	      damage;
-    Bool	      inputHint;
-    Bool	      alpha;
-    GLint	      width;
-    GLint	      height;
-    Region	      region;
-    Region	      clip;
-    unsigned int      wmType;
-    unsigned int      type;
-    unsigned int      state;
-    unsigned int      actions;
-    unsigned int      protocols;
-    unsigned int      mwmDecor;
-    unsigned int      mwmFunc;
-    Bool	      invisible;
-    Bool	      destroyed;
-    Bool	      damaged;
-    Bool	      redirected;
-    Bool	      managed;
-    Bool	      bindFailed;
-    Bool	      overlayWindow;
-    int		      destroyRefCnt;
-    int		      unmapRefCnt;
-
-    unsigned int initialViewportX;
-    unsigned int initialViewportY;
-
-    Time initialTimestamp;
-    Bool initialTimestampSet;
-
-    Bool placed;
-    Bool minimized;
-    Bool inShowDesktopMode;
-    Bool shaded;
-    Bool hidden;
-    Bool grabbed;
-
-    unsigned int desktop;
-
-    int pendingUnmaps;
-    int pendingMaps;
-
-    char *startupId;
-    char *resName;
-    char *resClass;
-
-    CompGroup *group;
-
-    unsigned int lastPong;
-    Bool	 alive;
-
-    WindowPaintAttrib paint;
-    WindowPaintAttrib lastPaint;
-
-    unsigned int lastMask;
-
-    CompWindowExtents input;
-    CompWindowExtents output;
-
-    CompStruts *struts;
-
-    CompIcon **icon;
-    int	     nIcon;
-
-    XRectangle iconGeometry;
-    Bool       iconGeometrySet;
-
-    XWindowChanges saveWc;
-    int		   saveMask;
-
-    XSyncCounter  syncCounter;
-    XSyncValue	  syncValue;
-    XSyncAlarm	  syncAlarm;
-    unsigned long syncAlarmConnection;
-    unsigned int  syncWaitHandle;
-
-    Bool syncWait;
-    int	 syncX;
-    int	 syncY;
-    int	 syncWidth;
-    int	 syncHeight;
-    int	 syncBorderWidth;
-
-    Bool closeRequests;
-    Time lastCloseRequestTime;
-
-    XRectangle *damageRects;
-    int	       sizeDamage;
-    int	       nDamage;
-
-    GLfloat  *vertices;
-    int      vertexSize;
-    int      vertexStride;
-    GLushort *indices;
-    int      indexSize;
-    int      vCount;
-    int      texUnits;
-    int      texCoordSize;
-    int      indexCount;
-
-    /* must be set by addWindowGeometry */
-    DrawWindowGeometryProc drawWindowGeometry;
-};
-
-#define GET_CORE_WINDOW(object) ((CompWindow *) (object))
-#define CORE_WINDOW(object) CompWindow *w = GET_CORE_WINDOW (object)
-
-CompBool
-allocWindowObjectPrivates (CompObject *object,
-			   CompObject *parent);
-
-int
-allocWindowObjectPrivateIndex (CompObject *parent);
-
-void
-freeWindowObjectPrivateIndex (CompObject *parent,
-			      int	 index);
-
-CompBool
-forEachWindowObject (CompObject	        *parent,
-		     ObjectCallBackProc proc,
-		     void	        *closure);
-
-char *
-nameWindowObject (CompObject *object);
-
-CompObject *
-findWindowObject (CompObject *parent,
-		  const char *name);
-
-int
-allocateWindowPrivateIndex (CompScreen *screen);
-
-void
-freeWindowPrivateIndex (CompScreen *screen,
-			int	   index);
-
-unsigned int
-windowStateMask (CompDisplay *display,
-		 Atom	     state);
-
-unsigned int
-windowStateFromString (const char *str);
-
-unsigned int
-getWindowState (CompDisplay *display,
-		Window      id);
-
-void
-setWindowState (CompDisplay  *display,
-		unsigned int state,
-		Window       id);
-
-void
-changeWindowState (CompWindow   *w,
-		   unsigned int newState);
-
-void
-recalcWindowActions (CompWindow *w);
-
-unsigned int
-constrainWindowState (unsigned int state,
-		      unsigned int actions);
-
-unsigned int
-windowTypeFromString (const char *str);
-
-unsigned int
-getWindowType (CompDisplay *display,
-	       Window      id);
-
-void
-recalcWindowType (CompWindow *w);
-
-void
-getMwmHints (CompDisplay  *display,
-	     Window	  id,
-	     unsigned int *func,
-	     unsigned int *decor);
-
-unsigned int
-getProtocols (CompDisplay *display,
-	      Window      id);
-
-unsigned int
-getWindowProp (CompDisplay  *display,
-	       Window	    id,
-	       Atom	    property,
-	       unsigned int defaultValue);
-
-void
-setWindowProp (CompDisplay  *display,
-	       Window       id,
-	       Atom	    property,
-	       unsigned int value);
-
-Bool
-readWindowProp32 (CompDisplay    *display,
-		  Window	 id,
-		  Atom		 property,
-		  unsigned short *returnValue);
-
-unsigned short
-getWindowProp32 (CompDisplay	*display,
-		 Window		id,
-		 Atom		property,
-		 unsigned short defaultValue);
-
-void
-setWindowProp32 (CompDisplay    *display,
-		 Window         id,
-		 Atom		property,
-		 unsigned short value);
-
-void
-updateNormalHints (CompWindow *window);
-
-void
-updateWmHints (CompWindow *w);
-
-void
-updateWindowClassHints (CompWindow *window);
-
-void
-updateTransientHint (CompWindow *w);
-
-void
-updateIconGeometry (CompWindow *w);
-
-Window
-getClientLeader (CompWindow *w);
-
-char *
-getStartupId (CompWindow *w);
-
-int
-getWmState (CompDisplay *display,
-	    Window      id);
-
-void
-setWmState (CompDisplay *display,
-	    int		state,
-	    Window      id);
-
-void
-setWindowFrameExtents (CompWindow	 *w,
-		       CompWindowExtents *input);
-
-void
-updateWindowOutputExtents (CompWindow *w);
-
-void
-updateWindowRegion (CompWindow *w);
-
-Bool
-updateWindowStruts (CompWindow *w);
-
-void
-addWindow (CompScreen *screen,
-	   Window     id,
-	   Window     aboveId);
-
-void
-removeWindow (CompWindow *w);
-
-void
-destroyWindow (CompWindow *w);
-
-void
-sendConfigureNotify (CompWindow *w);
-
-void
-mapWindow (CompWindow *w);
-
-void
-unmapWindow (CompWindow *w);
-
-Bool
-bindWindow (CompWindow *w);
-
-void
-releaseWindow (CompWindow *w);
-
-void
-moveWindow (CompWindow *w,
-	    int        dx,
-	    int        dy,
-	    Bool       damage,
-	    Bool       immediate);
-
-void
-configureXWindow (CompWindow	 *w,
-		  unsigned int	 valueMask,
-		  XWindowChanges *xwc);
-
-unsigned int
-adjustConfigureRequestForGravity (CompWindow     *w,
-				  XWindowChanges *xwc,
-				  unsigned int   xwcm,
-				  int            gravity,
-				  int		 direction);
-
-void
-moveResizeWindow (CompWindow     *w,
-		  XWindowChanges *xwc,
-		  unsigned int   xwcm,
-		  int            gravity,
-		  unsigned int   source);
-
-void
-syncWindowPosition (CompWindow *w);
-
-void
-syncWait (CompWindow *w);
-
-void
-sendSyncRequest (CompWindow *w);
-
-Bool
-resizeWindow (CompWindow *w,
-	      int	 x,
-	      int	 y,
-	      int	 width,
-	      int	 height,
-	      int	 borderWidth);
-
-void
-configureWindow (CompWindow	 *w,
-		 XConfigureEvent *ce);
-
-void
-circulateWindow (CompWindow	 *w,
-		 XCirculateEvent *ce);
-
-void
-addWindowDamageRect (CompWindow *w,
-		     BoxPtr     rect);
-
-void
-getOutputExtentsForWindow (CompWindow	     *w,
-			   CompWindowExtents *output);
-
-void
-getAllowedActionsForWindow (CompWindow   *w,
-			    unsigned int *setActions,
-			    unsigned int *clearActions);
-
-void
-addWindowDamage (CompWindow *w);
-
-void
-damageWindowOutputExtents (CompWindow *w);
-
-Bool
-damageWindowRect (CompWindow *w,
-		  Bool       initial,
-		  BoxPtr     rect);
-
-void
-damageTransformedWindowRect (CompWindow *w,
-			     float	xScale,
-			     float	yScale,
-			     float	xTranslate,
-			     float	yTranslate,
-			     BoxPtr     rect);
-
-Bool
-focusWindow (CompWindow *w);
-
-Bool
-placeWindow (CompWindow *w,
-	     int        x,
-	     int        y,
-	     int        *newX,
-	     int        *newY);
-
-void
-validateWindowResizeRequest (CompWindow     *w,
-			     unsigned int   *mask,
-			     XWindowChanges *xwc,
-			     unsigned int   source);
-
-void
-windowResizeNotify (CompWindow *w,
-		    int	       dx,
-		    int	       dy,
-		    int	       dwidth,
-		    int	       dheight);
-
-void
-windowMoveNotify (CompWindow *w,
-		  int	     dx,
-		  int	     dy,
-		  Bool	     immediate);
-
-void
-windowGrabNotify (CompWindow   *w,
-		  int	       x,
-		  int	       y,
-		  unsigned int state,
-		  unsigned int mask);
-
-void
-windowUngrabNotify (CompWindow *w);
-
-void
-windowStateChangeNotify (CompWindow   *w,
-			 unsigned int lastState);
-
-void
-moveInputFocusToWindow (CompWindow *w);
-
-void
-updateWindowSize (CompWindow *w);
-
-void
-raiseWindow (CompWindow *w);
-
-void
-lowerWindow (CompWindow *w);
-
-void
-restackWindowAbove (CompWindow *w,
-		    CompWindow *sibling);
-
-void
-restackWindowBelow (CompWindow *w,
-		    CompWindow *sibling);
-
-void
-updateWindowAttributes (CompWindow             *w,
-			CompStackingUpdateMode stackingMode);
-
-void
-activateWindow (CompWindow *w);
-
-void
-closeWindow (CompWindow *w,
-	     Time	serverTime);
-
-Bool
-constrainNewWindowSize (CompWindow *w,
-			int        width,
-			int        height,
-			int        *newWidth,
-			int        *newHeight);
-
-void
-hideWindow (CompWindow *w);
-
-void
-showWindow (CompWindow *w);
-
-void
-minimizeWindow (CompWindow *w);
-
-void
-unminimizeWindow (CompWindow *w);
-
-void
-maximizeWindow (CompWindow *w,
-		int	   state);
-
-Bool
-getWindowUserTime (CompWindow *w,
-		   Time       *time);
-
-void
-setWindowUserTime (CompWindow *w,
-		   Time       time);
-
-Bool
-allowWindowFocus (CompWindow   *w,
-		  unsigned int noFocusMask,
-		  unsigned int viewportX,
-		  unsigned int viewportY,
-		  Time         timestamp);
-
-void
-unredirectWindow (CompWindow *w);
-
-void
-redirectWindow (CompWindow *w);
-
-void
-defaultViewportForWindow (CompWindow *w,
-			  int	     *vx,
-			  int        *vy);
-
-CompIcon *
-getWindowIcon (CompWindow *w,
-	       int	  width,
-	       int	  height);
-
-void
-freeWindowIcons (CompWindow *w);
-
-int
-outputDeviceForWindow (CompWindow *w);
-
-Bool
-onCurrentDesktop (CompWindow *w);
-
-void
-setDesktopForWindow (CompWindow   *w,
-		     unsigned int desktop);
-
-int
-compareWindowActiveness (CompWindow *w1,
-			 CompWindow *w2);
-
-Bool
-windowOnAllViewports (CompWindow *w);
-
-void
-getWindowMovementForOffset (CompWindow *w,
-			    int        offX,
-			    int        offY,
-			    int        *retX,
-			    int        *retY);
-
-void
-enterSyncWaitState (CompWindow *w);
-
-void
-leaveSyncWaitState (CompWindow *w);
 
 
 /* plugin.c */

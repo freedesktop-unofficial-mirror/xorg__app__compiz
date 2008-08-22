@@ -892,7 +892,7 @@ decorCheckForDmOnScreen (CompScreen *s,
     DECOR_DISPLAY (s->display);
     DECOR_SCREEN (s);
 
-    result = XGetWindowProperty (d->display, s->root,
+    result = XGetWindowProperty (d->display, s->root.id,
 				 dd->supportingDmCheckAtom, 0L, 1L, FALSE,
 				 XA_WINDOW, &actual, &format,
 				 &n, &left, &data);
@@ -921,7 +921,7 @@ decorCheckForDmOnScreen (CompScreen *s,
 	{
 	    for (i = 0; i < DECOR_NUM; i++)
 		ds->decor[i] =
-		    decorCreateDecoration (s, s->root, dd->decorAtom[i]);
+		    decorCreateDecoration (s, s->root.id, dd->decorAtom[i]);
 	}
 	else
 	{
@@ -1091,7 +1091,7 @@ decorHandleEvent (CompDisplay *d,
 				decorReleaseDecoration (s, ds->decor[i]);
 
 			    ds->decor[i] =
-				decorCreateDecoration (s, s->root,
+				decorCreateDecoration (s, s->root.id,
 						       dd->decorAtom[i]);
 
 			    for (w = s->windows; w; w = w->next)

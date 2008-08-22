@@ -122,7 +122,7 @@ shotTerminate (CompDisplay     *d,
     {
 	SHOT_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (ss->grabIndex)

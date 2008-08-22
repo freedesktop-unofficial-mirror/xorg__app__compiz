@@ -118,7 +118,7 @@ annoCairoContext (CompScreen *s)
 	format = XRenderFindStandardFormat (s->display->display,
 					    PictStandardARGB32);
 
-	as->pixmap = XCreatePixmap (s->display->display, s->root, w, h, 32);
+	as->pixmap = XCreatePixmap (s->display->display, s->root.id, w, h, 32);
 
 	if (!bindPixmapToTexture (s, &as->texture, as->pixmap, w, h, 32))
 	{
@@ -497,7 +497,7 @@ annoTerminate (CompDisplay     *d,
     {
 	ANNO_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (as->grabIndex)

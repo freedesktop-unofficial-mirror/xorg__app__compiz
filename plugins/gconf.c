@@ -701,12 +701,12 @@ gconfSendGLibNotify (CompDisplay *d)
     xev.xclient.format  = 32;
 
     xev.xclient.message_type = XInternAtom (dpy, "_COMPIZ_GLIB_NOTIFY", 0);
-    xev.xclient.window	     = d->screens->root;
+    xev.xclient.window	     = d->screens->root.id;
 
     memset (xev.xclient.data.l, 0, sizeof (xev.xclient.data.l));
 
     XSendEvent (dpy,
-		d->screens->root,
+		d->screens->root.id,
 		FALSE,
 		SubstructureRedirectMask | SubstructureNotifyMask,
 		&xev);

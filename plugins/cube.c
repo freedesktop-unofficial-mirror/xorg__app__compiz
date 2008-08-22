@@ -1701,7 +1701,7 @@ cubeFold (CompDisplay     *d,
     {
 	CUBE_SCREEN (s);
 
-	if (xid && s->root != xid)
+	if (xid && s->root.id != xid)
 	    continue;
 
 	if (cs->grabIndex)

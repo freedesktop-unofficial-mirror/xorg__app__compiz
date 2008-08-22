@@ -269,7 +269,7 @@ resizeSendResizeNotify (CompDisplay *d)
     xev.xclient.data.l[4] = 0;
 
     XSendEvent (d->display,
-		rd->w->screen->root,
+		rd->w->screen->root.id,
 		FALSE,
 		SubstructureRedirectMask | SubstructureNotifyMask,
 		&xev);
@@ -904,7 +904,7 @@ resizeHandleEvent (CompDisplay *d,
 
 			option = RESIZE_DISPLAY_OPTION_INITIATE_BUTTON;
 
-			XQueryPointer (d->display, w->screen->root,
+			XQueryPointer (d->display, w->screen->root.id,
 				       &root, &child, &xRoot, &yRoot,
 				       &i, &i, &mods);
 
