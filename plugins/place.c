@@ -681,7 +681,7 @@ placeCascade (CompWindow *w,
     unsigned int count = 0;
 
     /* get the total window count */
-    for (wi = w->screen->windows; wi; wi = wi->next)
+    for (wi = w->screen->root.windows; wi; wi = wi->next)
 	count++;
 
     windows = malloc (sizeof (CompWindow *) * count);
@@ -692,7 +692,7 @@ placeCascade (CompWindow *w,
      * as placed window, may be shaded - if shaded we pretend it isn't
      * for placement purposes)
      */
-    for (wi = w->screen->windows, count = 0; wi; wi = wi->next)
+    for (wi = w->screen->root.windows, count = 0; wi; wi = wi->next)
     {
 	if (!IS_PLACE_RELEVANT (wi, w))
 	    continue;
@@ -813,7 +813,7 @@ placeSmart (CompWindow *w,
 	    cyt = yTmp;
 	    cyb = yTmp + ch;
 
-	    for (wi = w->screen->windows; wi; wi = wi->next)
+	    for (wi = w->screen->root.windows; wi; wi = wi->next)
 	    {
 		if (!IS_PLACE_RELEVANT (wi, w))
 		    continue;
@@ -871,7 +871,7 @@ placeSmart (CompWindow *w,
 		possible -= cw;
 
 	    /* compare to the position of each client on the same desk */
-	    for (wi = w->screen->windows; wi; wi = wi->next)
+	    for (wi = w->screen->root.windows; wi; wi = wi->next)
 	    {
 		if (!IS_PLACE_RELEVANT (wi, w))
 		    continue;
@@ -906,7 +906,7 @@ placeSmart (CompWindow *w,
 		possible -= ch;
 
 	    /* test the position of each window on the desk */
-	    for (wi = w->screen->windows; wi; wi = wi->next)
+	    for (wi = w->screen->root.windows; wi; wi = wi->next)
 	    {
 		if (!IS_PLACE_RELEVANT (wi, w))
 		    continue;

@@ -400,7 +400,7 @@ clonePaintOutput (CompScreen		  *s,
 	if (cs->offset == 0.0f)
 	    s->display->textureFilter = GL_LINEAR_MIPMAP_LINEAR;
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    if (w->destroyed)
 		continue;

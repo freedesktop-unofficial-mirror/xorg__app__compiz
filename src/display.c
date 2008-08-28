@@ -725,7 +725,7 @@ pingTimeout (void *closure)
 
     for (s = d->screens; s; s = s->next)
     {
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    if (w->attrib.map_state != IsViewable)
 		continue;
@@ -1631,7 +1631,7 @@ eventLoop (void)
 			/* substract top most overlay window region */
 			if (s->overlayWindowCount)
 			{
-			    for (w = s->reverseWindows; w; w = w->prev)
+			    for (w = s->root.reverseWindows; w; w = w->prev)
 			    {
 				if (w->destroyed || w->invisible)
 				    continue;
@@ -1796,7 +1796,7 @@ eventLoop (void)
 		{
 		    CompWindow *w;
 
-		    for (w = s->windows; w; w = w->next)
+		    for (w = s->root.windows; w; w = w->next)
 		    {
 			if (w->destroyed)
 			{

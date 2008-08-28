@@ -1432,7 +1432,7 @@ updateOutputWindow (CompScreen *s)
 
 	XSubtractRegion (&s->region, &emptyRegion, tmpRegion);
 
-	for (w = s->reverseWindows; w; w = w->prev)
+	for (w = s->root.reverseWindows; w; w = w->prev)
 	    if (w->overlayWindow)
 	    {
 		XSubtractRegion (tmpRegion, w->region, tmpRegion);
@@ -1491,7 +1491,7 @@ enterShowDesktopMode (CompScreen *s)
     s->showingDesktopMask = ~(CompWindowTypeDesktopMask |
 			      CompWindowTypeDockMask);
 
-    for (w = s->windows; w; w = w->next)
+    for (w = s->root.windows; w; w = w->next)
     {
 	if ((s->showingDesktopMask & w->wmType) &&
 	    (!(w->state & CompWindowStateSkipTaskbarMask) || st->value.b))
@@ -1539,7 +1539,7 @@ leaveShowDesktopMode (CompScreen *s,
 	showWindow (window);
 
 	/* return if some other window is still in show desktop mode */
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    if (w->inShowDesktopMode)
 		return;
 
@@ -1549,7 +1549,7 @@ leaveShowDesktopMode (CompScreen *s,
     {
 	s->showingDesktopMask = 0;
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    if (!w->inShowDesktopMode)
 		continue;
@@ -1572,13 +1572,13 @@ leaveShowDesktopMode (CompScreen *s,
 static CompWindow *
 walkFirst (CompScreen *s)
 {
-    return s->windows;
+    return s->root.windows;
 }
 
 static CompWindow *
 walkLast (CompScreen *s)
 {
-    return s->reverseWindows;
+    return s->root.reverseWindows;
 }
 
 static CompWindow *
@@ -1792,9 +1792,6 @@ addScreen (CompDisplay *display,
     s->outputDev	= NULL;
     s->nOutputDev	= 0;
     s->currentOutputDev = 0;
-
-    s->windows = 0;
-    s->reverseWindows = 0;
 
     s->nextRedraw  = 0;
     s->frameStatus = 0;
@@ -2432,7 +2429,7 @@ addScreen (CompDisplay *display,
     for (i = 0; i < nchildren; i++)
 	addWindow (s, children[i], i ? children[i - 1] : 0);
 
-    for (w = s->windows; w; w = w->next)
+    for (w = s->root.windows; w; w = w->next)
     {
 	if (w->attrib.map_state == IsViewable)
 	{
@@ -2463,8 +2460,8 @@ removeScreen (CompScreen *s)
     else
 	d->screens = NULL;
 
-    while (s->windows)
-	removeWindow (s->windows);
+    while (s->root.windows)
+	removeWindow (s->root.windows);
 
     (*core.objectRemove) (&d->base, &s->base);
 
@@ -2537,7 +2534,7 @@ forEachWindowOnScreen (CompScreen	 *screen,
 {
     CompWindow *w;
 
-    for (w = screen->windows; w; w = w->next)
+    for (w = screen->root.windows; w; w = w->next)
 	(*proc) (w, closure);
 }
 
@@ -2591,7 +2588,7 @@ focusDefaultWindow (CompScreen *s)
 
     if (!focus)
     {
-	for (w = s->reverseWindows; w; w = w->prev)
+	for (w = s->root.reverseWindows; w; w = w->prev)
 	{
 	    if (w->type & CompWindowTypeDockMask)
 		continue;
@@ -2638,7 +2635,7 @@ findWindowAtScreen (CompScreen *s,
     {
 	CompWindow *w;
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    if (w->id == id)
 		return (lastFoundWindow = w);
     }
@@ -2662,7 +2659,7 @@ findTopLevelWindowAtScreen (CompScreen *s,
 	    return NULL;
 
 	/* likely a frame window */
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    if (w->frame == id)
 		break;
     }
@@ -2671,108 +2668,6 @@ findTopLevelWindowAtScreen (CompScreen *s,
 	return w;
 
     return NULL;
-}
-
-void
-insertWindowIntoScreen (CompScreen *s,
-			CompWindow *w,
-			Window	   aboveId)
-{
-    CompWindow *p;
-
-    if (s->windows)
-    {
-	if (!aboveId)
-	{
-	    w->next = s->windows;
-	    w->prev = NULL;
-	    s->windows->prev = w;
-	    s->windows = w;
-	}
-	else
-	{
-	    for (p = s->windows; p; p = p->next)
-	    {
-		if (p->id == aboveId)
-		{
-		    if (p->next)
-		    {
-			w->next = p->next;
-			w->prev = p;
-			p->next->prev = w;
-			p->next = w;
-		    }
-		    else
-		    {
-			p->next = w;
-			w->next = NULL;
-			w->prev = p;
-			s->reverseWindows = w;
-		    }
-		    break;
-		}
-	    }
-
-#ifdef DEBUG
-	    if (!p)
-		abort ();
-#endif
-
-	}
-    }
-    else
-    {
-	s->reverseWindows = s->windows = w;
-	w->prev = w->next = NULL;
-    }
-}
-
-void
-unhookWindowFromScreen (CompScreen *s,
-			CompWindow *w)
-{
-    CompWindow *next, *prev;
-
-    next = w->next;
-    prev = w->prev;
-
-    if (next || prev)
-    {
-	if (next)
-	{
-	    if (prev)
-	    {
-		next->prev = prev;
-	    }
-	    else
-	    {
-		s->windows = next;
-		next->prev = NULL;
-	    }
-	}
-
-	if (prev)
-	{
-	    if (next)
-	    {
-		prev->next = next;
-	    }
-	    else
-	    {
-		s->reverseWindows = prev;
-		prev->next = NULL;
-	    }
-	}
-    }
-    else
-    {
-	s->windows = s->reverseWindows = NULL;
-    }
-
-    if (w == lastFoundWindow)
-	lastFoundWindow = NULL;
-    if (w == lastDamagedWindow)
-	lastDamagedWindow = NULL;
 }
 
 #define POINTER_GRAB_MASK (ButtonReleaseMask | \
@@ -3238,7 +3133,7 @@ computeWorkareaForBox (CompScreen *s,
 
     XUnionRegion (&r, region, region);
 
-    for (w = s->windows; w; w = w->next)
+    for (w = s->root.windows; w; w = w->next)
     {
 	if (!w->mapNum)
 	    continue;
@@ -3352,7 +3247,7 @@ updateWorkareaForScreen (CompScreen *s)
 
 	/* as work area changed, update all maximized windows on this
 	   screen to snap to the new work area */
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    updateWindowSize (w);
     }
 }
@@ -3625,7 +3520,7 @@ moveScreenViewport (CompScreen *s,
     tx *= -s->width;
     ty *= -s->height;
 
-    for (w = s->windows; w; w = w->next)
+    for (w = s->root.windows; w; w = w->next)
     {
 	if (windowOnAllViewports (w))
 	    continue;
@@ -3933,7 +3828,7 @@ getTopWindow (CompScreen *s)
     CompWindow *w;
 
     /* return first window that has not been destroyed */
-    for (w = s->reverseWindows; w; w = w->prev)
+    for (w = s->root.reverseWindows; w; w = w->prev)
     {
 	if (w->id > 1)
 	    return w->id;
@@ -4015,7 +3910,7 @@ setNumberOfDesktops (CompScreen   *s,
     if (s->currentDesktop >= nDesktop)
 	s->currentDesktop = nDesktop - 1;
 
-    for (w = s->windows; w; w = w->next)
+    for (w = s->root.windows; w; w = w->next)
     {
 	if (w->desktop == 0xffffffff)
 	    continue;
@@ -4047,7 +3942,7 @@ setCurrentDesktop (CompScreen   *s,
 
     s->currentDesktop = desktop;
 
-    for (w = s->windows; w; w = w->next)
+    for (w = s->root.windows; w; w = w->next)
     {
 	if (w->desktop == 0xffffffff)
 	    continue;

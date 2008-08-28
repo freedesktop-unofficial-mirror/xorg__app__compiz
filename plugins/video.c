@@ -939,7 +939,7 @@ videoHandleEvent (CompDisplay *d,
 		    {
 			vs = GET_VIDEO_SCREEN (s, vd);
 
-			for (w = s->windows; w; w = w->next)
+			for (w = s->root.windows; w; w = w->next)
 			{
 			    if (w->shaded || w->mapNum)
 			    {

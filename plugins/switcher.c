@@ -415,7 +415,7 @@ switchCreateWindowList (CompScreen *s,
 
     ss->nWindows = 0;
 
-    for (w = s->windows; w; w = w->next)
+    for (w = s->root.windows; w; w = w->next)
     {
 	if (isSwitchWin (w))
 	    switchAddWindowToList (s, w);
@@ -532,7 +532,7 @@ switchCountWindows (CompScreen *s)
     CompWindow *w;
     int	       count = 0;
 
-    for (w = s->windows; w && count < 5; w = w->next)
+    for (w = s->root.windows; w && count < 5; w = w->next)
 	if (isSwitchWin (w))
 	    count++;
 
@@ -1322,8 +1322,8 @@ switchPaintOutput (CompScreen		   *s,
 		for (w = zoomed->prev; w && w->id <= 1; w = w->prev);
 		zoomedAbove = (w) ? w->id : None;
 
-		unhookWindowFromScreen (s, zoomed);
-		insertWindowIntoScreen (s, zoomed, s->reverseWindows->id);
+		unhookWindow (&s->root, zoomed);
+		insertWindow (&s->root, zoomed, s->root.reverseWindows->id);
 	    }
 	}
 	else
@@ -1356,8 +1356,8 @@ switchPaintOutput (CompScreen		   *s,
 
 	if (zoomed)
 	{
-	    unhookWindowFromScreen (s, zoomed);
-	    insertWindowIntoScreen (s, zoomed, zoomedAbove);
+	    unhookWindow (&s->root, zoomed);
+	    insertWindow (&s->root, zoomed, zoomedAbove);
 	}
 
 	if (switcher)

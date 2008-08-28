@@ -270,7 +270,7 @@ findNextWestEdge (CompWindow *w,
 
 	v1 = w->screen->outputDev[output].region.extents.x1;
 
-	for (p = w->screen->windows; p; p = p->next)
+	for (p = w->screen->root.windows; p; p = p->next)
 	{
 	    if (w == p)
 		continue;
@@ -375,7 +375,7 @@ findNextEastEdge (CompWindow *w,
 
 	v1 = w->screen->outputDev[output].region.extents.x2;
 
-	for (p = w->screen->windows; p; p = p->next)
+	for (p = w->screen->root.windows; p; p = p->next)
 	{
 	    if (w == p)
 		continue;
@@ -480,7 +480,7 @@ findNextNorthEdge (CompWindow *w,
 
 	v1 = w->screen->outputDev[output].region.extents.y1;
 
-	for (p = w->screen->windows; p; p = p->next)
+	for (p = w->screen->root.windows; p; p = p->next)
 	{
 	    if (w == p)
 		continue;
@@ -583,7 +583,7 @@ findNextSouthEdge (CompWindow *w,
 
 	v1 = w->screen->outputDev[output].region.extents.y2;
 
-	for (p = w->screen->windows; p; p = p->next)
+	for (p = w->screen->root.windows; p; p = p->next)
 	{
 	    if (w == p)
 		continue;
@@ -1656,7 +1656,7 @@ wobblyPreparePaintScreen (CompScreen *s,
 	springK  = ws->opt[WOBBLY_SCREEN_OPTION_SPRING_K].value.f;
 
 	ws->wobblyWindows = 0;
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    ww = GET_WOBBLY_WINDOW (w, ws);
 
@@ -2000,7 +2000,7 @@ wobblyEnableSnapping (CompDisplay     *d,
 
     for (s = d->screens; s; s = s->next)
     {
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    WOBBLY_WINDOW (w);
 
@@ -2031,7 +2031,7 @@ wobblyDisableSnapping (CompDisplay     *d,
 
     for (s = d->screens; s; s = s->next)
     {
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    WOBBLY_WINDOW (w);
 

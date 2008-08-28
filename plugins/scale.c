@@ -742,7 +742,7 @@ layoutThumbs (CompScreen *s)
     ss->nWindows = 0;
 
     /* add windows scale list, top most window first */
-    for (w = s->reverseWindows; w; w = w->prev)
+    for (w = s->root.reverseWindows; w; w = w->prev)
     {
 	SCALE_WINDOW (w);
 
@@ -897,7 +897,7 @@ scalePreparePaintScreen (CompScreen *s,
 	{
 	    ss->moreAdjust = 0;
 
-	    for (w = s->windows; w; w = w->next)
+	    for (w = s->root.windows; w; w = w->next)
 	    {
 		SCALE_WINDOW (w);
 
@@ -962,7 +962,7 @@ scaleCheckForWindowAt (CompScreen *s,
     int        x1, y1, x2, y2;
     CompWindow *w;
 
-    for (w = s->reverseWindows; w; w = w->prev)
+    for (w = s->root.reverseWindows; w; w = w->prev)
     {
 	SCALE_WINDOW (w);
 
@@ -1048,7 +1048,7 @@ scaleTerminate (CompDisplay     *d,
 	    {
 		CompWindow *w;
 
-		for (w = s->windows; w; w = w->next)
+		for (w = s->root.windows; w; w = w->next)
 		{
 		    SCALE_WINDOW (w);
 
@@ -1420,7 +1420,7 @@ scaleMoveFocusWindow (CompScreen *s,
 	    cx = (sw->slot->x1 + sw->slot->x2) / 2;
 	    cy = (sw->slot->y1 + sw->slot->y2) / 2;
 
-	    for (w = s->windows; w; w = w->next)
+	    for (w = s->root.windows; w; w = w->next)
 	    {
 		slot = GET_SCALE_WINDOW (w, ss)->slot;
 		if (!slot)
@@ -1453,7 +1453,7 @@ scaleMoveFocusWindow (CompScreen *s,
 
 	SCALE_SCREEN (s);
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    if (!GET_SCALE_WINDOW (w, ss)->slot)
 		continue;

@@ -299,7 +299,7 @@ obsMatchExpHandlerChanged (CompDisplay *d)
 
     /* match options are up to date after the call to matchExpHandlerChanged */
     for (s = d->screens; s; s = s->next)
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    for (i = 0; i < MODIFIER_COUNT; i++)
 		updatePaintModifier (w, i);
 }
@@ -386,7 +386,7 @@ obsSetScreenOption (CompPlugin      *p,
 		for (j = 0; j < o->value.list.nValue; j++)
 		    matchUpdate (s->display, &o->value.list.value[j].match);
 
-		for (w = s->windows; w; w = w->next)
+		for (w = s->root.windows; w; w = w->next)
 		    updatePaintModifier (w, i);
 
 		return TRUE;
@@ -398,7 +398,7 @@ obsSetScreenOption (CompPlugin      *p,
 	    {
 		CompWindow *w;
 
-		for (w = s->windows; w; w = w->next)
+		for (w = s->root.windows; w; w = w->next)
 		    updatePaintModifier (w, i);
 
 		return TRUE;

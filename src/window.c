@@ -57,7 +57,7 @@ reallocWindowPrivates (int  size,
     CompWindow *w;
     void       *privates;
 
-    for (w = s->windows; w; w = w->next)
+    for (w = s->root.windows; w; w = w->next)
     {
 	privates = realloc (w->base.privates, size * sizeof (CompPrivate));
 	if (!privates)
@@ -102,7 +102,7 @@ forEachWindowObject (CompObject	        *parent,
 
 	CORE_SCREEN (parent);
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    if (!(*proc) (&w->base, closure))
 		return FALSE;
@@ -135,7 +135,7 @@ findWindowObject (CompObject *parent,
 
 	CORE_SCREEN (parent);
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    if (w->id == id)
 		return &w->base;
     }
@@ -1923,6 +1923,9 @@ addWindow (CompScreen *screen,
     if (!w)
 	return;
 
+    w->windows        = 0;
+    w->reverseWindows = 0;
+
     w->next = NULL;
     w->prev = NULL;
 
@@ -2139,7 +2142,7 @@ addWindow (CompScreen *screen,
     if (d->shapeExtension && manualCompositeManagement)
 	XShapeSelectInput (d->display, id, ShapeNotifyMask);
 
-    insertWindowIntoScreen (screen, w, aboveId);
+    insertWindow (&screen->root, w, aboveId);
 
     EMPTY_REGION (w->region);
 
@@ -2312,7 +2315,7 @@ addWindow (CompScreen *screen,
 void
 removeWindow (CompWindow *w)
 {
-    unhookWindowFromScreen (w->screen, w);
+    unhookWindow (&w->screen->root, w);
 
     if (!w->destroyed)
     {
@@ -2564,8 +2567,8 @@ restackWindow (CompWindow *w,
     else if (aboveId == None && !w->next)
 	return 0;
 
-    unhookWindowFromScreen (w->screen, w);
-    insertWindowIntoScreen (w->screen, w, aboveId);
+    unhookWindow (&w->screen->root, w);
+    insertWindow (&w->screen->root, w, aboveId);
 
     updateClientListForScreen (w->screen);
 
@@ -2987,7 +2990,7 @@ getModalTransient (CompWindow *window)
 
     modalTransient = window;
 
-    for (w = window->screen->reverseWindows; w; w = w->prev)
+    for (w = window->screen->root.reverseWindows; w; w = w->prev)
     {
 	if (w == modalTransient || w->mapNum == 0)
 	    continue;
@@ -2997,7 +3000,7 @@ getModalTransient (CompWindow *window)
 	    if (w->state & CompWindowStateModalMask)
 	    {
 		modalTransient = w;
-		w = window->screen->reverseWindows;
+		w = window->screen->root.reverseWindows;
 	    }
 	}
     }
@@ -3009,7 +3012,7 @@ getModalTransient (CompWindow *window)
 	if (window->state & CompWindowStateModalMask)
 	    return NULL;
 
-	for (w = window->screen->reverseWindows; w; w = w->prev)
+	for (w = window->screen->root.reverseWindows; w; w = w->prev)
 	{
 	    if (w == modalTransient || w->mapNum == 0)
 		continue;
@@ -3095,7 +3098,9 @@ moveInputFocusToWindow (CompWindow *w)
 	    CompWindow *ancestor;
 
 	    /* move input to closest ancestor */
-	    for (ancestor = s->windows; ancestor; ancestor = ancestor->next)
+	    for (ancestor = s->root.windows;
+		 ancestor;
+		 ancestor = ancestor->next)
 	    {
 		if (isAncestorTo (w, ancestor))
 		{
@@ -3179,7 +3184,7 @@ findSiblingBelow (CompWindow *w,
     if (w->transientFor || isGroupTransient (w, clientLeader))
 	clientLeader = None;
 
-    for (below = w->screen->reverseWindows; below; below = below->prev)
+    for (below = w->screen->root.reverseWindows; below; below = below->prev)
     {
 	if (below == w || avoidStackingRelativeTo (below))
 	    continue;
@@ -3225,7 +3230,7 @@ findSiblingBelow (CompWindow *w,
 static CompWindow *
 findLowestSiblingBelow (CompWindow *w)
 {
-    CompWindow   *below, *lowest = w->screen->reverseWindows;
+    CompWindow   *below, *lowest = w->screen->root.reverseWindows;
     Window	 clientLeader = w->clientLeader;
     unsigned int type = w->type;
 
@@ -3237,7 +3242,7 @@ findLowestSiblingBelow (CompWindow *w)
     if (w->transientFor || isGroupTransient (w, clientLeader))
 	clientLeader = None;
 
-    for (below = w->screen->reverseWindows; below; below = below->prev)
+    for (below = w->screen->root.reverseWindows; below; below = below->prev)
     {
 	if (below == w || avoidStackingRelativeTo (below))
 	    continue;
@@ -3481,7 +3486,7 @@ stackTransients (CompWindow	*w,
     if (w->transientFor || isGroupTransient (w, clientLeader))
 	clientLeader = None;
 
-    for (t = w->screen->reverseWindows; t; t = t->prev)
+    for (t = w->screen->root.reverseWindows; t; t = t->prev)
     {
 	if (t == w || t == avoid)
 	    continue;
@@ -3539,7 +3544,7 @@ stackAncestors (CompWindow     *w,
     {
 	CompWindow *a;
 
-	for (a = w->screen->reverseWindows; a; a = a->prev)
+	for (a = w->screen->root.reverseWindows; a; a = a->prev)
 	{
 	    if (a->clientLeader == w->clientLeader &&
 		a->transientFor == None		   &&
@@ -4106,7 +4111,7 @@ addWindowStackChanges (CompWindow     *w,
 	{
 	    CompWindow *dw;
 
-	    for (dw = w->screen->reverseWindows; dw; dw = dw->prev)
+	    for (dw = w->screen->root.reverseWindows; dw; dw = dw->prev)
 		if (dw == sibling)
 		    break;
 
@@ -4171,7 +4176,7 @@ findValidStackSiblingBelow (CompWindow *w,
     lowest = last = findLowestSiblingBelow (w);
 
     /* walk from bottom up */
-    for (p = w->screen->windows; p; p = p->next)
+    for (p = w->screen->root.windows; p; p = p->next)
     {
 	/* stop walking when we reach the sibling we should try to stack
 	   below */
@@ -5342,4 +5347,106 @@ leaveSyncWaitState (CompWindow *w)
 		     32,
 		     PropModeReplace,
 		     (unsigned char *) &data, 1);
+}
+
+void
+insertWindow (CompWindow *parent,
+	      CompWindow *w,
+	      Window	 aboveId)
+{
+    CompWindow *p;
+
+    if (parent->windows)
+    {
+	if (!aboveId)
+	{
+	    w->next = parent->windows;
+	    w->prev = NULL;
+	    parent->windows->prev = w;
+	    parent->windows = w;
+	}
+	else
+	{
+	    for (p = parent->windows; p; p = p->next)
+	    {
+		if (p->id == aboveId)
+		{
+		    if (p->next)
+		    {
+			w->next = p->next;
+			w->prev = p;
+			p->next->prev = w;
+			p->next = w;
+		    }
+		    else
+		    {
+			p->next = w;
+			w->next = NULL;
+			w->prev = p;
+			parent->reverseWindows = w;
+		    }
+		    break;
+		}
+	    }
+
+#ifdef DEBUG
+	    if (!p)
+		abort ();
+#endif
+
+	}
+    }
+    else
+    {
+	parent->reverseWindows = parent->windows = w;
+	w->prev = w->next = NULL;
+    }
+}
+
+void
+unhookWindow (CompWindow *parent,
+	      CompWindow *w)
+{
+    CompWindow *next, *prev;
+
+    next = w->next;
+    prev = w->prev;
+
+    if (next || prev)
+    {
+	if (next)
+	{
+	    if (prev)
+	    {
+		next->prev = prev;
+	    }
+	    else
+	    {
+		parent->windows = next;
+		next->prev = NULL;
+	    }
+	}
+
+	if (prev)
+	{
+	    if (next)
+	    {
+		prev->next = next;
+	    }
+	    else
+	    {
+		parent->reverseWindows = prev;
+		prev->next = NULL;
+	    }
+	}
+    }
+    else
+    {
+	parent->windows = parent->reverseWindows = NULL;
+    }
+
+    if (w == lastFoundWindow)
+	lastFoundWindow = NULL;
+    if (w == lastDamagedWindow)
+	lastDamagedWindow = NULL;
 }

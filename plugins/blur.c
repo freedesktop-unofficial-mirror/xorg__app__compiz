@@ -588,7 +588,7 @@ blurSetScreenOption (CompPlugin      *plugin,
 	{
 	    CompWindow *w;
 
-	    for (w = screen->windows; w; w = w->next)
+	    for (w = screen->root.windows; w; w = w->next)
 		blurUpdateWindowMatch (bs, w);
 
 	    bs->moreBlur = TRUE;
@@ -784,7 +784,7 @@ blurPreparePaintScreen (CompScreen *s,
 
 	bs->moreBlur = FALSE;
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    BLUR_WINDOW (w);
 
@@ -843,7 +843,7 @@ blurPreparePaintScreen (CompScreen *s,
 	    int	       x1, y1, x2, y2;
 	    int	       count = 0;
 
-	    for (w = s->windows; w; w = w->next)
+	    for (w = s->root.windows; w; w = w->next)
 	    {
 		BLUR_WINDOW (w);
 
@@ -914,7 +914,7 @@ blurPaintOutput (CompScreen		 *s,
 
 	XSubtractRegion (&emptyRegion, &emptyRegion, bs->occlusion);
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    XSubtractRegion (&emptyRegion, &emptyRegion,
 			     GET_BLUR_WINDOW (w, bs)->clip);
     }
@@ -944,7 +944,7 @@ blurPaintTransformedOutput (CompScreen		    *s,
 
 	XSubtractRegion (&emptyRegion, &emptyRegion, bs->occlusion);
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    XSubtractRegion (&emptyRegion, &emptyRegion,
 			     GET_BLUR_WINDOW (w, bs)->clip);
     }
@@ -964,7 +964,7 @@ blurDonePaintScreen (CompScreen *s)
     {
 	CompWindow *w;
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    BLUR_WINDOW (w);
 
@@ -2715,7 +2715,7 @@ blurMatchExpHandlerChanged (CompDisplay *d)
     {
 	BLUR_SCREEN (s);
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	    blurUpdateWindowMatch (bs, w);
     }
 }

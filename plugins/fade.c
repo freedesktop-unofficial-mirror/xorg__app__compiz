@@ -196,7 +196,7 @@ fadePreparePaintScreen (CompScreen *s,
 	if (steps < 12)
 	    steps = 12;
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    FadeWindow *fw = GET_FADE_WINDOW (w, fs);
 	    fw->steps    = steps;
@@ -205,7 +205,7 @@ fadePreparePaintScreen (CompScreen *s,
 
 	break;
     case FADE_MODE_CONSTANTTIME:
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    FadeWindow *fw = GET_FADE_WINDOW (w, fs);
 
@@ -569,7 +569,7 @@ fadeHandleEvent (CompDisplay *d,
 			option = FADE_SCREEN_OPTION_FULLSCREEN_VISUAL_BELL;
 			if (fs->opt[option].value.b)
 			{
-			    for (w = s->windows; w; w = w->next)
+			    for (w = s->root.windows; w; w = w->next)
 			    {
 				if (w->destroyed)
 				    continue;

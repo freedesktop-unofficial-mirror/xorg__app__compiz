@@ -49,7 +49,7 @@
 #include <GL/glx.h>
 
 #undef CORE_ABIVERSION
-#define CORE_ABIVERSION 30080822
+#define CORE_ABIVERSION 30080823
 
 COMPIZ_BEGIN_DECLS
 
@@ -805,6 +805,9 @@ struct _CompWindow {
     CompWindow *next;
     CompWindow *prev;
 
+    CompWindow *windows;
+    CompWindow *reverseWindows;
+
     int		      refcnt;
     Window	      id;
     Window	      frame;
@@ -1352,6 +1355,15 @@ enterSyncWaitState (CompWindow *w);
 
 void
 leaveSyncWaitState (CompWindow *w);
+
+void
+insertWindow (CompWindow *parent,
+	      CompWindow *w,
+	      Window	 aboveId);
+
+void
+unhookWindow (CompWindow *parent,
+	      CompWindow *w);
 
 
 /* display.c */
@@ -2626,9 +2638,6 @@ struct _CompScreen {
 
     CompWindow root;
 
-    CompWindow	*windows;
-    CompWindow	*reverseWindows;
-
     char *windowPrivateIndices;
     int  windowPrivateLen;
 
@@ -2925,15 +2934,6 @@ damageScreen (CompScreen *screen);
 
 void
 damagePendingOnScreen (CompScreen *s);
-
-void
-insertWindowIntoScreen (CompScreen *s,
-			CompWindow *w,
-			Window	   aboveId);
-
-void
-unhookWindowFromScreen (CompScreen *s,
-			CompWindow *w);
 
 void
 forEachWindowOnScreen (CompScreen	 *screen,

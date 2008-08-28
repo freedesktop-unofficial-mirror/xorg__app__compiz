@@ -934,7 +934,7 @@ decorCheckForDmOnScreen (CompScreen *s,
 		}
 	    }
 
-	    for (w = s->windows; w; w = w->next)
+	    for (w = s->root.windows; w; w = w->next)
 	    {
 		DECOR_WINDOW (w);
 
@@ -959,7 +959,7 @@ decorCheckForDmOnScreen (CompScreen *s,
 	{
 	    CompWindow *w;
 
-	    for (w = s->windows; w; w = w->next)
+	    for (w = s->root.windows; w; w = w->next)
 		decorWindowUpdate (w, TRUE);
 	}
     }
@@ -1013,7 +1013,7 @@ decorHandleEvent (CompDisplay *d,
 		    {
 			ds = GET_DECOR_SCREEN (s, dd);
 
-			for (w = s->windows; w; w = w->next)
+			for (w = s->root.windows; w; w = w->next)
 			{
 			    if (w->shaded || w->mapNum)
 			    {
@@ -1094,7 +1094,7 @@ decorHandleEvent (CompDisplay *d,
 				decorCreateDecoration (s, s->root.id,
 						       dd->decorAtom[i]);
 
-			    for (w = s->windows; w; w = w->next)
+			    for (w = s->root.windows; w; w = w->next)
 				decorWindowUpdate (w, TRUE);
 			}
 		    }
@@ -1269,7 +1269,7 @@ decorSetDisplayOption (CompPlugin      *plugin,
 	    CompWindow *w;
 
 	    for (s = display->screens; s; s = s->next)
-		for (w = s->windows; w; w = w->next)
+		for (w = s->root.windows; w; w = w->next)
 		    decorWindowUpdate (w, TRUE);
 	}
 	break;

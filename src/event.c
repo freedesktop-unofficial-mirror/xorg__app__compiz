@@ -149,7 +149,7 @@ moveInputFocusToOtherWindow (CompWindow *w)
 	{
 	    CompWindow *a, *focus = NULL;
 
-	    for (a = w->screen->reverseWindows; a; a = a->prev)
+	    for (a = w->screen->root.reverseWindows; a; a = a->prev)
 	    {
 		if (a->clientLeader == w->clientLeader)
 		{
@@ -2400,7 +2400,7 @@ handleEvent (CompDisplay *d,
 
 	    for (s = d->screens; s; s = s->next)
 	    {
-		for (w = s->windows; w; w = w->next)
+		for (w = s->root.windows; w; w = w->next)
 		{
 		    if (w->syncAlarm == sa->alarm)
 			break;

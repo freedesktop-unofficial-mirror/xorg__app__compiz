@@ -312,7 +312,7 @@ minPreparePaintScreen (CompScreen *s,
 	{
 	    ms->moreAdjust = 0;
 
-	    for (w = s->windows; w; w = w->next)
+	    for (w = s->root.windows; w; w = w->next)
 	    {
 		MIN_WINDOW (w);
 
@@ -395,7 +395,7 @@ minPreparePaintScreen (CompScreen *s,
 
 	if (ms->moreAdjust)
 	{
-	    for (w = s->windows; w; w = w->next)
+	    for (w = s->root.windows; w; w = w->next)
 	    {
 		MIN_WINDOW (w);
 
@@ -431,7 +431,7 @@ minDonePaintScreen (CompScreen *s)
 	CompWindow *w;
 	int	   h;
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    MIN_WINDOW (w);
 

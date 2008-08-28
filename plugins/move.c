@@ -298,7 +298,7 @@ moveGetYConstrainRegion (CompScreen *s)
 	getWorkareaForOutput (s, i, &workArea);
 	extents = s->outputDev[i].region.extents;
 
-	for (w = s->windows; w; w = w->next)
+	for (w = s->root.windows; w; w = w->next)
 	{
 	    if (!w->mapNum)
 		continue;
