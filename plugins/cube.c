@@ -1602,12 +1602,12 @@ cubePaintWindow (CompWindow		  *w,
 }
 
 static void
-cubeInitWindowWalker (CompScreen *s, CompWalker* walker)
+cubeInitWindowWalker (CompScreen *s, CompWindow *w, CompWalker* walker)
 {
     CUBE_SCREEN (s);
 
     UNWRAP (cs, s, initWindowWalker);
-    (*s->initWindowWalker) (s, walker);
+    (*s->initWindowWalker) (s, w, walker);
     WRAP (cs, s, initWindowWalker, cubeInitWindowWalker);
 
     if (cs->paintOrder == FTB)

@@ -283,7 +283,7 @@ paintOutputRegion (CompScreen	       *screen,
 
     XSubtractRegion (region, &emptyRegion, tmpRegion);
 
-    (*screen->initWindowWalker) (screen, &walk);
+    (*screen->initWindowWalker) (screen, &screen->root, &walk);
 
     if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
     {

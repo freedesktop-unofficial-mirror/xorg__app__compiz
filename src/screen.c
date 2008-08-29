@@ -1595,6 +1595,7 @@ walkPrev (CompWindow *w)
 
 static void
 initWindowWalker (CompScreen *screen,
+		  CompWindow *window,
 		  CompWalker *walker)
 {
     walker->fini  = NULL;

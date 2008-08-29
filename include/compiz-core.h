@@ -1,3 +1,4 @@
+
 /*
  * Copyright © 2007 Novell, Inc.
  *
@@ -2523,6 +2524,7 @@ typedef void (*WindowStateChangeNotifyProc) (CompWindow   *window,
 typedef void (*OutputChangeNotifyProc) (CompScreen *screen);
 
 typedef void (*InitWindowWalkerProc) (CompScreen *screen,
+				      CompWindow *window,
 				      CompWalker *walker);
 
 #define COMP_SCREEN_DAMAGE_PENDING_MASK (1 << 0)
