@@ -1570,15 +1570,15 @@ leaveShowDesktopMode (CompScreen *s,
 }
 
 static CompWindow *
-walkFirst (CompScreen *s)
+walkFirst (CompWindow *parent)
 {
-    return s->root.windows;
+    return parent->windows;
 }
 
 static CompWindow *
-walkLast (CompScreen *s)
+walkLast (CompWindow *parent)
 {
-    return s->root.reverseWindows;
+    return parent->reverseWindows;
 }
 
 static CompWindow *

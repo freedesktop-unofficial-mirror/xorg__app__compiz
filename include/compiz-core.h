@@ -2032,7 +2032,7 @@ typedef void (*DisableOutputClippingProc) (CompScreen *screen);
 typedef void (*WalkerFiniProc) (CompScreen *screen,
 				CompWalker *walker);
 
-typedef CompWindow *(*WalkInitProc) (CompScreen *screen);
+typedef CompWindow *(*WalkInitProc) (CompWindow *parent);
 typedef CompWindow *(*WalkStepProc) (CompWindow *window);
 
 struct _CompWalker {

@@ -288,7 +288,7 @@ paintOutputRegion (CompScreen	       *screen,
     if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
     {
 	/* detect occlusions */
-	for (w = (*walk.last) (screen); w; w = (*walk.prev) (w))
+	for (w = (*walk.last) (&screen->root); w; w = (*walk.prev) (w))
 	{
 	    if (w->destroyed)
 		continue;
@@ -371,7 +371,7 @@ paintOutputRegion (CompScreen	       *screen,
 			 (mask & PAINT_SCREEN_TRANSFORMED_MASK));
 
     /* paint all windows from bottom to top */
-    for (w = (*walk.first) (screen); w; w = (*walk.next) (w))
+    for (w = (*walk.first) (&screen->root); w; w = (*walk.next) (w))
     {
 	if (w->destroyed)
 	    continue;
