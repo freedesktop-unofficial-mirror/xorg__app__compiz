@@ -2075,6 +2075,12 @@ struct _CompWalker {
 #define PAINT_WINDOW_WITH_OFFSET_MASK           (1 << 2)
 
 /*
+  this flag is present when occlusion detection has been
+  performed and the window clip region is properly set.
+*/
+#define PAINT_WINDOW_CLIP_MASK                  (1 << 3)
+
+/*
   flag indicate that window is translucent.
 */
 #define PAINT_WINDOW_TRANSLUCENT_MASK           (1 << 16)

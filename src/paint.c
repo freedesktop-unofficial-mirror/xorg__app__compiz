@@ -370,6 +370,9 @@ paintOutputRegion (CompScreen	       *screen,
 	paintBackground (screen, tmpRegion,
 			 (mask & PAINT_SCREEN_TRANSFORMED_MASK));
 
+    if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
+	windowMask |= PAINT_WINDOW_CLIP_MASK;
+	
     /* paint all windows from bottom to top */
     for (w = (*walk.first) (&screen->root); w; w = (*walk.next) (w))
     {
@@ -1218,6 +1221,8 @@ paintWindow (CompWindow		     *w,
 	     unsigned int	     mask)
 {
     FragmentAttrib fragment;
+    CompWindow     *c;
+    CompWalker     walk;
     Bool	   status;
 
     w->lastPaint = *attrib;
@@ -1241,6 +1246,50 @@ paintWindow (CompWindow		     *w,
 	if (w->shaded)
 	    return FALSE;
 
+	(*w->screen->initWindowWalker) (w->screen, w, &walk);
+
+	c = (*walk.last) (w);
+	if (c)
+	{
+	    CompTransform cTransform = *transform;
+	    int           offsetMask = 0;
+
+	    if (w->attrib.x || w->attrib.y)
+	    {
+		matrixTranslate (&cTransform, w->attrib.x, w->attrib.y, 0);
+		XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
+		offsetMask = PAINT_WINDOW_WITH_OFFSET_MASK;
+	    }
+	
+	    for (; c; c = (*walk.prev) (c))
+	    {
+		if (c->destroyed)
+		    continue;
+
+		if (!c->shaded)
+		{
+		    if (c->attrib.map_state != IsViewable || !c->damaged)
+			continue;
+		}
+
+		/* copy region */
+		XSubtractRegion (region, &emptyRegion, c->clip);
+
+		if ((*w->screen->paintWindow) (c,
+					       &c->paint,
+					       &cTransform,
+					       region,
+					       mask | offsetMask))
+		    XSubtractRegion (region, c->region, region);
+	    }
+
+	    if (offsetMask)
+		XOffsetRegion (region, w->attrib.x, w->attrib.y);
+	}
+
+	if (walk.fini)
+	    (*walk.fini) (w->screen, &walk);
+
 	return TRUE;
     }
 
@@ -1261,6 +1310,57 @@ paintWindow (CompWindow		     *w,
     if (mask & PAINT_WINDOW_TRANSFORMED_MASK ||
         mask & PAINT_WINDOW_WITH_OFFSET_MASK)
 	glPopMatrix ();
+
+    if (!status)
+	return FALSE;
+    
+    (*w->screen->initWindowWalker) (w->screen, w, &walk);
+
+    c = (*walk.first) (w);
+    if (c)
+    {
+	CompTransform cTransform = *transform;
+	Region        clip = region;
+	int           offsetMask = 0;
+
+	if (mask & PAINT_WINDOW_CLIP_MASK)
+	    clip = w->clip;
+
+	if (w->attrib.x || w->attrib.y)
+	{
+	    matrixTranslate (&cTransform, w->attrib.x, w->attrib.y, 0);
+	    XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
+	    offsetMask = PAINT_WINDOW_WITH_OFFSET_MASK;
+
+	    if (clip == region)
+		XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
+	}
+
+	/* paint all sub-windows from bottom to top */
+	for (; c; c = (*walk.next) (c))
+	{
+	    if (c->destroyed)
+		continue;
+
+	    if (!c->shaded)
+	    {
+		if (c->attrib.map_state != IsViewable || !c->damaged)
+		    continue;
+	    }
+
+	    (*w->screen->paintWindow) (c,
+				       &c->paint,
+				       &cTransform,
+				       clip,
+				       mask | offsetMask);
+	}
+
+	if (offsetMask && clip == region)
+	    XOffsetRegion (region, w->attrib.x, w->attrib.y);
+    }
+
+    if (walk.fini)
+	(*walk.fini) (w->screen, &walk);
 
     return status;
 }
