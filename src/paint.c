@@ -304,13 +304,15 @@ paintOutputRegion (CompScreen	       *screen,
 
 	    odMask = PAINT_WINDOW_OCCLUSION_DETECTION_MASK;
 		
-	    if ((screen->windowOffsetX != 0 || screen->windowOffsetY != 0) &&
+	    if ((screen->root.viewportOffsetX != 0 ||
+		 screen->root.viewportOffsetY != 0) &&
 		!windowOnAllViewports (w))
 	    {
 		withOffset = TRUE;
 
-		getWindowMovementForOffset (w, screen->windowOffsetX,
-					    screen->windowOffsetY,
+		getWindowMovementForOffset (w,
+					    screen->root.viewportOffsetX,
+					    screen->root.viewportOffsetY,
 					    &offX, &offY);
 
 		vTransform = *transform;
@@ -391,11 +393,14 @@ paintOutputRegion (CompScreen	       *screen,
 	if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
 	    clip = w->clip;
 
-	if ((screen->windowOffsetX != 0 || screen->windowOffsetY != 0) &&
+	if ((screen->root.viewportOffsetX != 0 ||
+	     screen->root.viewportOffsetY != 0) &&
 	    !windowOnAllViewports (w))
 	{
-	    getWindowMovementForOffset (w, screen->windowOffsetX,
-					screen->windowOffsetY, &offX, &offY);
+	    getWindowMovementForOffset (w,
+					screen->root.viewportOffsetX,
+					screen->root.viewportOffsetY,
+					&offX, &offY);
 
 	    vTransform = *transform;
 	    matrixTranslate (&vTransform, offX, offY, 0);

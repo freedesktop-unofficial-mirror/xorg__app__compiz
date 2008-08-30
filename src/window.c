@@ -1929,6 +1929,9 @@ addWindow (CompScreen *screen,
     w->next = NULL;
     w->prev = NULL;
 
+    w->viewportOffsetX = 0;
+    w->viewportOffsetY = 0;
+    
     w->mapNum	 = 0;
     w->activeNum = 0;
 

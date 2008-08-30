@@ -809,6 +809,9 @@ struct _CompWindow {
     CompWindow *windows;
     CompWindow *reverseWindows;
 
+    int viewportOffsetX;
+    int viewportOffsetY;
+
     int		      refcnt;
     Window	      id;
     Window	      frame;
@@ -2693,9 +2696,6 @@ struct _CompScreen {
     int	       currentOutputDev;
     CompOutput fullscreenOutput;
     Bool       hasOverlappingOutputs;
-
-    int windowOffsetX;
-    int windowOffsetY;
 
     XRectangle lastViewport;
 
