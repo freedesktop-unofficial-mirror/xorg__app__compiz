@@ -1268,6 +1268,9 @@ paintWindow (CompWindow		     *w,
 	
 	    for (; c; c = (*walk.prev) (c))
 	    {
+		int viewportOffsetX = 0;
+		int viewportOffsetY = 0;
+		
 		if (c->destroyed)
 		    continue;
 
@@ -1275,6 +1278,29 @@ paintWindow (CompWindow		     *w,
 		{
 		    if (c->attrib.map_state != IsViewable || !c->damaged)
 			continue;
+		}
+
+		if (!windowOnAllViewports (c))
+		{
+		    if (w->viewportOffsetX || w->viewportOffsetY)
+		    {
+			getWindowMovementForOffset (w,
+						    w->viewportOffsetX,
+						    w->viewportOffsetY,
+						    &viewportOffsetX,
+						    &viewportOffsetY);
+			
+			matrixTranslate (&cTransform,
+					 viewportOffsetX,
+					 viewportOffsetY,
+					 0);
+
+			XOffsetRegion (region,
+				       -viewportOffsetX,
+				       -viewportOffsetY);
+
+			offsetMask = PAINT_WINDOW_WITH_OFFSET_MASK;
+		    }
 		}
 
 		/* copy region */
@@ -1286,9 +1312,14 @@ paintWindow (CompWindow		     *w,
 					       region,
 					       mask | offsetMask))
 		    XSubtractRegion (region, c->region, region);
+
+		if (viewportOffsetX || viewportOffsetY)
+		    XOffsetRegion (region,
+				   viewportOffsetX,
+				   viewportOffsetY);
 	    }
 
-	    if (offsetMask)
+	    if (w->attrib.x || w->attrib.y)
 		XOffsetRegion (region, w->attrib.x, w->attrib.y);
 	}
 
@@ -1334,7 +1365,6 @@ paintWindow (CompWindow		     *w,
 	if (w->attrib.x || w->attrib.y)
 	{
 	    matrixTranslate (&cTransform, w->attrib.x, w->attrib.y, 0);
-	    XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
 	    offsetMask = PAINT_WINDOW_WITH_OFFSET_MASK;
 
 	    if (clip == region)
@@ -1344,6 +1374,9 @@ paintWindow (CompWindow		     *w,
 	/* paint all sub-windows from bottom to top */
 	for (; c; c = (*walk.next) (c))
 	{
+	    int viewportOffsetX = 0;
+	    int viewportOffsetY = 0;
+
 	    if (c->destroyed)
 		continue;
 
@@ -1353,14 +1386,43 @@ paintWindow (CompWindow		     *w,
 		    continue;
 	    }
 
+	    if (!windowOnAllViewports (c))
+	    {
+		if (w->viewportOffsetX || w->viewportOffsetY)
+		{
+		    getWindowMovementForOffset (w,
+						w->viewportOffsetX,
+						w->viewportOffsetY,
+						&viewportOffsetX,
+						&viewportOffsetY);
+
+		    matrixTranslate (&cTransform,
+				     viewportOffsetX,
+				     viewportOffsetY,
+				     0);
+
+		    if (clip == region)
+			XOffsetRegion (region,
+				       -viewportOffsetX,
+				       -viewportOffsetY);
+
+		    offsetMask = PAINT_WINDOW_WITH_OFFSET_MASK;
+		}
+	    }
+
 	    (*w->screen->paintWindow) (c,
 				       &c->paint,
 				       &cTransform,
 				       clip,
 				       mask | offsetMask);
+
+	    if (clip == region && (viewportOffsetX || viewportOffsetY))
+		XOffsetRegion (region,
+			       viewportOffsetX,
+			       viewportOffsetY);
 	}
 
-	if (offsetMask && clip == region)
+	if (clip == region && (w->attrib.x || w->attrib.y))
 	    XOffsetRegion (region, w->attrib.x, w->attrib.y);
     }
 
