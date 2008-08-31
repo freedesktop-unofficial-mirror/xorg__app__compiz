@@ -811,6 +811,8 @@ struct _CompWindow {
     CompWindow *windows;
     CompWindow *reverseWindows;
 
+    Bool redirectSubwindows;
+
     int viewportOffsetX;
     int viewportOffsetY;
 

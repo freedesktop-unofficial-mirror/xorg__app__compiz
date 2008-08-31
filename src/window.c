@@ -1931,6 +1931,8 @@ addWindow (CompScreen *screen,
     w->next = NULL;
     w->prev = NULL;
 
+    w->redirectSubwindows = FALSE;
+
     w->viewportOffsetX = 0;
     w->viewportOffsetY = 0;
     
@@ -5012,7 +5014,7 @@ unredirectWindow (CompWindow *w)
 void
 redirectWindow (CompWindow *w)
 {
-    if (!manualCompositeManagement || w->redirected)
+    if (!w->parent || !w->parent->redirectSubwindows || w->redirected)
 	return;
 
     XCompositeRedirectWindow (w->screen->display->display, w->id,

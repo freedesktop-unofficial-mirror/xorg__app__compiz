@@ -2327,6 +2327,8 @@ addScreen (CompDisplay *display,
 	glColorMaterial (GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
 	glNormal3f (0.0f, 0.0f, -1.0f);
+
+	s->root.redirectSubWindows = TRUE;
     }
     else
     {
