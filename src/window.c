@@ -1964,13 +1964,13 @@ initRootWindow (CompScreen *s,
 }
 
 void
-addWindow (CompScreen *screen,
+addWindow (CompWindow *parent,
 	   Window     id,
 	   Window     aboveId)
 {
-    CompWindow  *parent = &screen->root;
     CompWindow  *w;
     CompPrivate	*privates;
+    CompScreen  *screen = parent->screen;
     CompDisplay *d = screen->display;
 
     w = (CompWindow *) malloc (sizeof (CompWindow));

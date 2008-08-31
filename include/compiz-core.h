@@ -1096,7 +1096,7 @@ initRootWindow (CompScreen *s,
 		CompWindow *root);
 
 void
-addWindow (CompScreen *screen,
+addWindow (CompWindow *parent,
 	   Window     id,
 	   Window     aboveId);
 

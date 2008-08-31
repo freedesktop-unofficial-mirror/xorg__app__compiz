@@ -2427,7 +2427,7 @@ addScreen (CompDisplay *display,
 		&children, &nchildren);
 
     for (i = 0; i < nchildren; i++)
-	addWindow (s, children[i], i ? children[i - 1] : 0);
+	addWindow (&s->root, children[i], i ? children[i - 1] : 0);
 
     for (w = s->root.windows; w; w = w->next)
     {
