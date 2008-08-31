@@ -252,16 +252,9 @@ paintOutputRegion (CompScreen	       *screen,
 		   unsigned int	       mask)
 {
     static Region tmpRegion = NULL;
-    CompWindow    *w;
     CompCursor	  *c;
-    int		  count, windowMask, odMask, i;
-    CompWindow	  *fullscreenWindow = NULL;
-    CompWalker    walk;
-    Bool          status;
-    Bool          withOffset = FALSE;
-    CompTransform vTransform;
-    int           offX, offY;
-    Region        clip = region;
+    int		  windowMask = 0;
+    Region        clip;
 
     if (!tmpRegion)
     {
@@ -271,151 +264,34 @@ paintOutputRegion (CompScreen	       *screen,
     }
 
     if (mask & PAINT_SCREEN_TRANSFORMED_MASK)
-    {
-	windowMask     = PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK;
-	count	       = 1;
-    }
-    else
-    {
-	windowMask     = 0;
-	count	       = 0;
-    }
+    	windowMask = PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK;
 
     XSubtractRegion (region, &emptyRegion, tmpRegion);
 
-    (*screen->initWindowWalker) (screen, &screen->root, &walk);
-
+    clip = tmpRegion;
+    
     if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
     {
-	/* detect occlusions */
-	for (w = (*walk.last) (&screen->root); w; w = (*walk.prev) (w))
-	{
-	    if (w->destroyed)
-		continue;
+	if ((*screen->paintWindow) (&screen->root,
+				    &screen->root.paint,
+				    transform,
+				    tmpRegion,
+				    PAINT_WINDOW_OCCLUSION_DETECTION_MASK))
+	    XSubtractRegion (tmpRegion, screen->root.region, tmpRegion);
 
-	    if (!w->shaded)
-	    {
-		if (w->attrib.map_state != IsViewable || !w->damaged)
-		    continue;
-	    }
-
-	    /* copy region */
-	    XSubtractRegion (tmpRegion, &emptyRegion, w->clip);
-
-	    odMask = PAINT_WINDOW_OCCLUSION_DETECTION_MASK;
-		
-	    if ((screen->root.viewportOffsetX != 0 ||
-		 screen->root.viewportOffsetY != 0) &&
-		!windowOnAllViewports (w))
-	    {
-		withOffset = TRUE;
-
-		getWindowMovementForOffset (w,
-					    screen->root.viewportOffsetX,
-					    screen->root.viewportOffsetY,
-					    &offX, &offY);
-
-		vTransform = *transform;
-		matrixTranslate (&vTransform, offX, offY, 0);
-	 
-		XOffsetRegion (w->clip, -offX, -offY);
-
-		odMask |= PAINT_WINDOW_WITH_OFFSET_MASK;
-		status = (*screen->paintWindow) (w, &w->paint, &vTransform,
-						 tmpRegion, odMask);
-	    }
-	    else
-	    {
-		withOffset = FALSE;
-		status = (*screen->paintWindow) (w, &w->paint, transform, tmpRegion,
-						 odMask);
-	    }
-
-	    if (status)
-	    {
-		if (withOffset)
-		{
-		    XOffsetRegion (w->region, offX, offY);
-		    XSubtractRegion (tmpRegion, w->region, tmpRegion);
-		    XOffsetRegion (w->region, -offX, -offY);
-		}
-		else
-		    XSubtractRegion (tmpRegion, w->region, tmpRegion);
-
-		/* unredirect top most fullscreen windows. */
-		if (count == 0 &&
-		    screen->opt[COMP_SCREEN_OPTION_UNREDIRECT_FS].value.b)
-		{
-		    if (XEqualRegion (w->region, &screen->region) &&
-			!REGION_NOT_EMPTY (tmpRegion))
-		    {
-			fullscreenWindow = w;
-		    }
-		    else
-		    {
-			for (i = 0; i < screen->nOutputDev; i++)
-			    if (XEqualRegion (w->region,
-					      &screen->outputDev[i].region))
-				fullscreenWindow = w;
-		    }
-		}
-	    }
-
-	    count++;
-	}
+	clip = screen->root.clip;
+	windowMask |= PAINT_WINDOW_CLIP_MASK;
     }
-
-    if (fullscreenWindow)
-	unredirectWindow (fullscreenWindow);
 
     if (!(mask & PAINT_SCREEN_NO_BACKGROUND_MASK))
 	paintBackground (screen, tmpRegion,
 			 (mask & PAINT_SCREEN_TRANSFORMED_MASK));
 
-    if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
-	windowMask |= PAINT_WINDOW_CLIP_MASK;
-	
-    /* paint all windows from bottom to top */
-    for (w = (*walk.first) (&screen->root); w; w = (*walk.next) (w))
-    {
-	if (w->destroyed)
-	    continue;
-
-	if (w == fullscreenWindow)
-	    continue;
-
-	if (!w->shaded)
-	{
-	    if (w->attrib.map_state != IsViewable || !w->damaged)
-		continue;
-	}
-
-	if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
-	    clip = w->clip;
-
-	if ((screen->root.viewportOffsetX != 0 ||
-	     screen->root.viewportOffsetY != 0) &&
-	    !windowOnAllViewports (w))
-	{
-	    getWindowMovementForOffset (w,
-					screen->root.viewportOffsetX,
-					screen->root.viewportOffsetY,
-					&offX, &offY);
-
-	    vTransform = *transform;
-	    matrixTranslate (&vTransform, offX, offY, 0);
-	    (*screen->paintWindow) (w, &w->paint, &vTransform, clip,
-				    windowMask | PAINT_WINDOW_WITH_OFFSET_MASK);
-	}
-	else
-	{
-	    (*screen->paintWindow) (w, &w->paint, transform, clip,
-				    windowMask);
-	}
-    }
-
-    if (walk.fini)
-	(*walk.fini) (screen, &walk);
+    (*screen->paintWindow) (&screen->root,
+			    &screen->root.paint,
+			    transform,
+			    clip,
+			    windowMask);
 
     /* paint cursors */
     for (c = screen->cursors; c; c = c->next)
@@ -1257,7 +1133,6 @@ paintWindow (CompWindow		     *w,
 	if (c)
 	{
 	    CompTransform cTransform = *transform;
-	    int           offsetMask = 0;
 	    int		  count = 0;
 	    CompWindow	  *fullscreenWindow = NULL;
 
@@ -1265,13 +1140,14 @@ paintWindow (CompWindow		     *w,
 	    {
 		matrixTranslate (&cTransform, w->attrib.x, w->attrib.y, 0);
 		XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
-		offsetMask = PAINT_WINDOW_WITH_OFFSET_MASK;
+		mask |= PAINT_WINDOW_WITH_OFFSET_MASK;
 	    }
 	
 	    for (; c; c = (*walk.prev) (c))
 	    {
 		int viewportOffsetX = 0;
 		int viewportOffsetY = 0;
+		int offsetMask = 0;
 		
 		if (c->destroyed)
 		    continue;
@@ -1319,31 +1195,33 @@ paintWindow (CompWindow		     *w,
 		    XOffsetRegion (region,
 				   viewportOffsetX,
 				   viewportOffsetY);
+
+		/* unredirect top most top-level fullscreen windows. */
+		if (!w->parent &&
+		    count == 0 &&
+		    w->screen->opt[COMP_SCREEN_OPTION_UNREDIRECT_FS].value.b)
+		{
+		    if (XEqualRegion (c->region, &w->screen->region) &&
+			!REGION_NOT_EMPTY (region))
+		    {
+			fullscreenWindow = c;
+		    }
+		    else
+		    {
+			int i;
+
+			for (i = 0; i < w->screen->nOutputDev; i++)
+			    if (XEqualRegion (c->region,
+					      &w->screen->outputDev[i].region))
+				fullscreenWindow = c;
+		    }
+		}
+
+		count++;
 	    }
 
 	    if (w->attrib.x || w->attrib.y)
 		XOffsetRegion (region, w->attrib.x, w->attrib.y);
-
-	    /* unredirect top most top-level fullscreen windows. */
-	    if (!w->parent &&
-		count == 0 &&
-		w->screen->opt[COMP_SCREEN_OPTION_UNREDIRECT_FS].value.b)
-	    {
-		if (XEqualRegion (c->region, &w->screen->region) &&
-		    !REGION_NOT_EMPTY (region))
-		{
-		    fullscreenWindow = c;
-		}
-		else
-		{
-		    int i;
-
-		    for (i = 0; i < w->screen->nOutputDev; i++)
-			if (XEqualRegion (c->region,
-					  &w->screen->outputDev[i].region))
-			    fullscreenWindow = c;
-		}
-	    }
 
 	    if (fullscreenWindow)
 		unredirectWindow (fullscreenWindow);
@@ -1351,6 +1229,9 @@ paintWindow (CompWindow		     *w,
 
 	if (walk.fini)
 	    (*walk.fini) (w->screen, &walk);
+
+	if (!w->redirected)
+	    return FALSE;
 
 	return TRUE;
     }
@@ -1373,9 +1254,6 @@ paintWindow (CompWindow		     *w,
         mask & PAINT_WINDOW_WITH_OFFSET_MASK)
 	glPopMatrix ();
 
-    if (!status)
-	return FALSE;
-    
     (*w->screen->initWindowWalker) (w->screen, w, &walk);
 
     c = (*walk.first) (w);
@@ -1383,17 +1261,14 @@ paintWindow (CompWindow		     *w,
     {
 	CompTransform cTransform = *transform;
 	Region        clip = region;
-	int           offsetMask = 0;
-
-	if (mask & PAINT_WINDOW_CLIP_MASK)
-	    clip = w->clip;
 
 	if (w->attrib.x || w->attrib.y)
 	{
 	    matrixTranslate (&cTransform, w->attrib.x, w->attrib.y, 0);
-	    offsetMask = PAINT_WINDOW_WITH_OFFSET_MASK;
 
-	    if (clip == region)
+	    mask |= PAINT_WINDOW_WITH_OFFSET_MASK;
+
+	    if (!(mask & PAINT_WINDOW_CLIP_MASK))
 		XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
 	}
 
@@ -1402,6 +1277,7 @@ paintWindow (CompWindow		     *w,
 	{
 	    int viewportOffsetX = 0;
 	    int viewportOffsetY = 0;
+	    int offsetMask = 0;
 
 	    if (c->destroyed)
 		continue;
@@ -1411,6 +1287,9 @@ paintWindow (CompWindow		     *w,
 		if (c->attrib.map_state != IsViewable || !c->damaged)
 		    continue;
 	    }
+
+	    if (mask & PAINT_WINDOW_CLIP_MASK)
+		clip = c->clip;
 
 	    if (!windowOnAllViewports (c))
 	    {
@@ -1448,8 +1327,11 @@ paintWindow (CompWindow		     *w,
 			       viewportOffsetY);
 	}
 
-	if (clip == region && (w->attrib.x || w->attrib.y))
-	    XOffsetRegion (region, w->attrib.x, w->attrib.y);
+	if (w->attrib.x || w->attrib.y)
+	{
+	    if (!(mask & PAINT_WINDOW_CLIP_MASK))
+		XOffsetRegion (region, w->attrib.x, w->attrib.y);
+	}
     }
 
     if (walk.fini)
