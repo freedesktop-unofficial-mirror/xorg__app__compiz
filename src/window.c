@@ -2911,7 +2911,7 @@ circulateWindow (CompWindow	 *w,
     Window newAboveId;
 
     if (ce->place == PlaceOnTop)
-	newAboveId = getTopWindow (w->screen);
+	newAboveId = getTopWindow (w->parent);
     else
 	newAboveId = 0;
 

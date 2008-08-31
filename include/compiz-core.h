@@ -3064,7 +3064,7 @@ disableScreenEdge (CompScreen *s,
 		   int	      edge);
 
 Window
-getTopWindow (CompScreen *s);
+getTopWindow (CompWindow *parent);
 
 void
 makeScreenCurrent (CompScreen *s);

@@ -1331,7 +1331,7 @@ handleEvent (CompDisplay *d,
 	    if (s->overlay != event->xcreatewindow.window)
 		addWindow (&s->root,
 			   event->xcreatewindow.window,
-			   getTopWindow (s));
+			   getTopWindow (&s->root));
 	}
 	break;
     case DestroyNotify:
@@ -1400,7 +1400,9 @@ handleEvent (CompDisplay *d,
 	s = findScreenAtDisplay (d, event->xreparent.parent);
 	if (s && !w)
 	{
-	    addWindow (&s->root, event->xreparent.window, getTopWindow (s));
+	    addWindow (&s->root,
+		       event->xreparent.window,
+		       getTopWindow (&s->root));
 	}
 	else if (w)
 	{

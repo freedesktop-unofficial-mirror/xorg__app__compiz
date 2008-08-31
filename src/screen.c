@@ -3823,12 +3823,12 @@ disableScreenEdge (CompScreen *s,
 }
 
 Window
-getTopWindow (CompScreen *s)
+getTopWindow (CompWindow *parent)
 {
     CompWindow *w;
 
     /* return first window that has not been destroyed */
-    for (w = s->root.reverseWindows; w; w = w->prev)
+    for (w = parent->reverseWindows; w; w = w->prev)
     {
 	if (w->id > 1)
 	    return w->id;
