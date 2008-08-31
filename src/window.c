@@ -53,18 +53,18 @@ static int
 reallocWindowPrivates (int  size,
 		       void *closure)
 {
-    CompScreen *s = (CompScreen *) closure;
-    CompWindow *w;
+    CompWindow *c, *w = (CompWindow *) closure;
     void       *privates;
 
-    for (w = s->root.windows; w; w = w->next)
-    {
-	privates = realloc (w->base.privates, size * sizeof (CompPrivate));
-	if (!privates)
-	    return FALSE;
+    privates = realloc (w->base.privates, size * sizeof (CompPrivate));
+    if (!privates)
+	return FALSE;
 
-	w->base.privates = (CompPrivate *) privates;
-    }
+    w->base.privates = (CompPrivate *) privates;
+
+    for (c = w->windows; c; c = c->next)
+	if (!reallocWindowPrivates (size, (void *) c))
+	    return FALSE;
 
     return TRUE;
 }
@@ -77,7 +77,7 @@ allocWindowObjectPrivateIndex (CompObject *parent)
     return allocatePrivateIndex (&screen->windowPrivateLen,
 				 &screen->windowPrivateIndices,
 				 reallocWindowPrivates,
-				 (void *) screen);
+				 (void *) &screen->root);
 }
 
 void
@@ -98,15 +98,16 @@ forEachWindowObject (CompObject	        *parent,
 {
     if (parent->type == COMP_OBJECT_TYPE_SCREEN)
     {
-	CompWindow *w;
+	if (!(*proc) (&GET_CORE_SCREEN (parent)->root.base, closure))
+	    return FALSE;
+    }
+    else if (parent->type == COMP_OBJECT_TYPE_WINDOW)
+    {
+	CompWindow *c;
 
-	CORE_SCREEN (parent);
-
-	for (w = s->root.windows; w; w = w->next)
-	{
-	    if (!(*proc) (&w->base, closure))
+	for (c = GET_CORE_WINDOW (parent)->windows; c; c = c->next)
+	    if (!(*proc) (&c->base, closure))
 		return FALSE;
-	}
     }
 
     return TRUE;
@@ -130,14 +131,23 @@ findWindowObject (CompObject *parent,
 {
     if (parent->type == COMP_OBJECT_TYPE_SCREEN)
     {
-	CompWindow *w;
-	Window	   id = atoi (name);
+	Window id = atoi (name);
 
 	CORE_SCREEN (parent);
 
-	for (w = s->root.windows; w; w = w->next)
-	    if (w->id == id)
-		return &w->base;
+	if (s->root.id == id)
+	    return &s->root.base;
+    }
+    else if (parent->type == COMP_OBJECT_TYPE_WINDOW)
+    {
+	CompWindow *c;
+	Window	   id = atoi (name);
+
+	CORE_WINDOW (parent);
+
+	for (c = w->windows; c; c = c->next)
+	    if (c->id == id)
+		return &c->base;
     }
 
     return NULL;
@@ -1889,6 +1899,7 @@ initRootWindow (CompScreen *s,
 		CompWindow *root)
 {
     CompWindow  *w = root;
+    CompPrivate	*privates;
     CompDisplay *d = s->display;
 
     memset (w, 0, sizeof (*w));
@@ -1899,6 +1910,9 @@ initRootWindow (CompScreen *s,
     w->redirected = FALSE;
     w->bindFailed = TRUE;
 
+    w->paint.opacity    = OPAQUE;
+    w->paint.brightness = BRIGHT;
+    w->paint.saturation = COLOR;
     w->paint.xScale	= 1.0f;
     w->paint.yScale	= 1.0f;
     w->paint.xTranslate	= 0.0f;
@@ -1906,8 +1920,45 @@ initRootWindow (CompScreen *s,
 
     w->lastPaint = w->paint;
 
+    if (s->windowPrivateLen)
+    {
+	privates = malloc (s->windowPrivateLen * sizeof (CompPrivate));
+	assert (privates);
+    }
+    else
+	privates = 0;
+
+    compObjectInit (&w->base, privates, COMP_OBJECT_TYPE_WINDOW);
+
+    w->clip   = XCreateRegion ();
+    w->region = XCreateRegion ();
+
+    assert (w->clip && w->region);
+
     if (!XGetWindowAttributes (d->display, w->id, &w->attrib))
 	setDefaultWindowAttributes (&w->attrib);
+
+    w->attrib.override_redirect = TRUE;
+
+    w->serverWidth	 = w->attrib.width;
+    w->serverHeight	 = w->attrib.height;
+    w->serverBorderWidth = w->attrib.border_width;
+
+    w->width  = w->attrib.width  + w->attrib.border_width * 2;
+    w->height = w->attrib.height + w->attrib.border_width * 2;
+
+    w->serverX = w->attrib.x;
+    w->serverY = w->attrib.y;
+
+    w->syncWait	       = FALSE;
+    w->syncX	       = w->attrib.x;
+    w->syncY	       = w->attrib.y;
+    w->syncWidth       = w->attrib.width;
+    w->syncHeight      = w->attrib.height;
+    w->syncBorderWidth = w->attrib.border_width;
+
+    w->alpha = (w->attrib.depth == 32);
+    w->type  = CompWindowTypeUnknownMask;
 }
 
 void
@@ -2307,7 +2358,7 @@ addWindow (CompScreen *screen,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&w->base));
 
-    (*core.objectAdd) (&screen->base, &w->base);
+    (*core.objectAdd) (&screen->root.base, &w->base);
 
     recalcWindowActions (w);
     updateIconGeometry (w);
@@ -2372,7 +2423,7 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (w->screen);
     }
 
-    (*core.objectRemove) (&w->screen->base, &w->base);
+    (*core.objectRemove) (&w->screen->root.base, &w->base);
 
     objectFiniPlugins (&w->base);
 

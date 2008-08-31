@@ -2328,7 +2328,7 @@ addScreen (CompDisplay *display,
 
 	glNormal3f (0.0f, 0.0f, -1.0f);
 
-	s->root.redirectSubWindows = TRUE;
+	s->root.redirectSubwindows = TRUE;
     }
     else
     {
@@ -2419,8 +2419,10 @@ addScreen (CompDisplay *display,
 
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&s->base));
-
     (*core.objectAdd) (&display->base, &s->base);
+
+    assert (objectInitPlugins (&s->root.base));
+    (*core.objectAdd) (&s->base, &s->root.base);
 
     XQueryTree (dpy, s->root.id,
 		&rootReturn, &parentReturn,
