@@ -1258,6 +1258,8 @@ paintWindow (CompWindow		     *w,
 	{
 	    CompTransform cTransform = *transform;
 	    int           offsetMask = 0;
+	    int		  count = 0;
+	    CompWindow	  *fullscreenWindow = NULL;
 
 	    if (w->attrib.x || w->attrib.y)
 	    {
@@ -1321,6 +1323,30 @@ paintWindow (CompWindow		     *w,
 
 	    if (w->attrib.x || w->attrib.y)
 		XOffsetRegion (region, w->attrib.x, w->attrib.y);
+
+	    /* unredirect top most top-level fullscreen windows. */
+	    if (!w->parent &&
+		count == 0 &&
+		w->screen->opt[COMP_SCREEN_OPTION_UNREDIRECT_FS].value.b)
+	    {
+		if (XEqualRegion (c->region, &w->screen->region) &&
+		    !REGION_NOT_EMPTY (region))
+		{
+		    fullscreenWindow = c;
+		}
+		else
+		{
+		    int i;
+
+		    for (i = 0; i < w->screen->nOutputDev; i++)
+			if (XEqualRegion (c->region,
+					  &w->screen->outputDev[i].region))
+			    fullscreenWindow = c;
+		}
+	    }
+
+	    if (fullscreenWindow)
+		unredirectWindow (fullscreenWindow);
 	}
 
 	if (walk.fini)
