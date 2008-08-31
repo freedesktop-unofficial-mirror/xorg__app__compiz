@@ -368,7 +368,7 @@ rotatePreparePaintScreen (CompScreen *s,
 		    /* flag end of rotation */
 		    cs->rotationState = RotationNone;
 
-		    if (windowManagement)
+		    if (s->root.substructureRedirect)
 		    {
 			moveScreenViewport (s, tx, 0, TRUE);
 		    }

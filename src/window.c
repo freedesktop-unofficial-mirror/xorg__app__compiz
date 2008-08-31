@@ -1191,7 +1191,7 @@ updateFrameWindow (CompWindow *w)
 	    attr.event_mask	   = 0;
 	    attr.override_redirect = TRUE;
 
-	    w->frame = XCreateWindow (d->display, w->screen->root.id,
+	    w->frame = XCreateWindow (d->display, w->parent->id,
 				      x, y, width, height, 0,
 				      CopyFromParent,
 				      InputOnly,
@@ -1291,7 +1291,7 @@ setWindowFrameExtents (CompWindow	 *w,
 	data[2] = input->top;
 	data[3] = input->bottom;
 
-	if (windowManagement)
+	if (w->parent->substructureRedirect)
 	{
 	    updateWindowSize (w);
 	    updateFrameWindow (w);
@@ -1959,6 +1959,8 @@ initRootWindow (CompScreen *s,
 
     w->alpha = (w->attrib.depth == 32);
     w->type  = CompWindowTypeUnknownMask;
+
+    w->invisible = TRUE;
 }
 
 void
@@ -1966,6 +1968,7 @@ addWindow (CompScreen *screen,
 	   Window     id,
 	   Window     aboveId)
 {
+    CompWindow  *parent = &screen->root;
     CompWindow  *w;
     CompPrivate	*privates;
     CompDisplay *d = screen->display;
@@ -1974,7 +1977,7 @@ addWindow (CompScreen *screen,
     if (!w)
 	return;
 
-    w->parent = &screen->root;
+    w->parent = parent;
 
     w->windows        = 0;
     w->reverseWindows = 0;
@@ -1982,7 +1985,8 @@ addWindow (CompScreen *screen,
     w->next = NULL;
     w->prev = NULL;
 
-    w->redirectSubwindows = FALSE;
+    w->substructureRedirect = FALSE;
+    w->redirectSubwindows   = FALSE;
 
     w->viewportOffsetX = 0;
     w->viewportOffsetY = 0;
@@ -2027,7 +2031,7 @@ addWindow (CompScreen *screen,
     w->damaged    = FALSE;
     w->managed    = FALSE;
 
-    if (manualCompositeManagement)
+    if (parent->redirectSubwindows)
     {
 	w->redirected = TRUE;
 	w->bindFailed = FALSE;
@@ -2164,7 +2168,7 @@ addWindow (CompScreen *screen,
 
     w->saveMask = 0;
 
-    if (windowManagement)
+    if (w->parent->substructureRedirect)
     {
 	XSelectInput (d->display, id,
 		      PropertyChangeMask |
@@ -2197,10 +2201,10 @@ addWindow (CompScreen *screen,
     w->type      = CompWindowTypeUnknownMask;
     w->lastPong  = d->lastPing;
 
-    if (d->shapeExtension && manualCompositeManagement)
+    if (d->shapeExtension && parent->redirectSubwindows)
 	XShapeSelectInput (d->display, id, ShapeNotifyMask);
 
-    insertWindow (&screen->root, w, aboveId);
+    insertWindow (parent, w, aboveId);
 
     EMPTY_REGION (w->region);
 
@@ -2218,7 +2222,7 @@ addWindow (CompScreen *screen,
 
 	XUnionRegion (&rect, w->region, w->region);
 
-	if (manualCompositeManagement)
+	if (parent->redirectSubwindows)
 	    w->damage = XDamageCreate (d->display, id,
 				       XDamageReportRawRectangles);
 
@@ -2290,7 +2294,7 @@ addWindow (CompScreen *screen,
 
 	if (!w->attrib.override_redirect)
 	{
-	    if (windowManagement)
+	    if (w->parent->substructureRedirect)
 	    {
 		w->managed = TRUE;
 
@@ -2358,7 +2362,7 @@ addWindow (CompScreen *screen,
     /* TODO: bailout properly when objectInitPlugins fails */
     assert (objectInitPlugins (&w->base));
 
-    (*core.objectAdd) (&screen->root.base, &w->base);
+    (*core.objectAdd) (&parent->base, &w->base);
 
     recalcWindowActions (w);
     updateIconGeometry (w);
@@ -2373,7 +2377,7 @@ addWindow (CompScreen *screen,
 void
 removeWindow (CompWindow *w)
 {
-    unhookWindow (&w->screen->root, w);
+    unhookWindow (w->parent, w);
 
     if (!w->destroyed)
     {
@@ -2395,7 +2399,7 @@ removeWindow (CompWindow *w)
 	if (w->damage)
 	    XDamageDestroy (d->display, w->damage);
 
-	if (d->shapeExtension && manualCompositeManagement)
+	if (d->shapeExtension && w->parent->redirectSubwindows)
 	    XShapeSelectInput (d->display, w->id, NoEventMask);
 
 	XSelectInput (d->display, w->id, NoEventMask);
@@ -2415,7 +2419,7 @@ removeWindow (CompWindow *w)
     if (w->destroyed)
 	updateClientListForScreen (w->screen);
 
-    if (manualCompositeManagement && !w->redirected)
+    if (w->parent->redirectSubwindows && !w->redirected)
     {
 	w->screen->overlayWindowCount--;
 
@@ -2423,7 +2427,7 @@ removeWindow (CompWindow *w)
 	    showOutputWindow (w->screen);
     }
 
-    (*core.objectRemove) (&w->screen->root.base, &w->base);
+    (*core.objectRemove) (&w->parent->base, &w->base);
 
     objectFiniPlugins (&w->base);
 
@@ -2542,7 +2546,7 @@ mapWindow (CompWindow *w)
     if (w->type & CompWindowTypeDesktopMask)
 	w->screen->desktopWindowCount++;
 
-    if (windowManagement)
+    if (w->parent->substructureRedirect)
     {
 	if (w->protocols & CompWindowProtocolSyncRequestMask)
 	{
@@ -2574,7 +2578,7 @@ unmapWindow (CompWindow *w)
 	if (w->frame && !w->shaded)
 	    XUnmapWindow (w->screen->display->display, w->frame);
 
-	if (windowManagement)
+	if (w->parent->substructureRedirect)
 	    enterSyncWaitState (w);
 
 	w->mapNum = 0;
@@ -2625,8 +2629,8 @@ restackWindow (CompWindow *w,
     else if (aboveId == None && !w->next)
 	return 0;
 
-    unhookWindow (&w->screen->root, w);
-    insertWindow (&w->screen->root, w, aboveId);
+    unhookWindow (w->parent, w);
+    insertWindow (w->parent, w, aboveId);
 
     updateClientListForScreen (w->screen);
 
@@ -2704,7 +2708,7 @@ resizeWindow (CompWindow *w,
 
 	w->invisible = WINDOW_INVISIBLE (w);
 
-	if (windowManagement)
+	if (w->parent->substructureRedirect)
 	    updateFrameWindow (w);
     }
     else if (w->attrib.x != x || w->attrib.y != y)
@@ -2744,7 +2748,7 @@ initializeSyncCounter (CompWindow *w)
     unsigned long	 n, left;
     unsigned char	 *data;
 
-    if (!windowManagement)
+    if (!w->parent->substructureRedirect)
 	return FALSE;
 
     if (w->syncCounter)
@@ -3028,7 +3032,8 @@ isGroupTransient (CompWindow *w,
     if (!clientLeader)
 	return FALSE;
 
-    if (w->transientFor == None || w->transientFor == w->screen->root.id)
+    if (w->transientFor == None ||
+	(w->parent && w->transientFor == w->parent->id))
     {
 	if (w->type & (CompWindowTypeDialogMask |
 		       CompWindowTypeModalDialogMask))
@@ -3048,7 +3053,7 @@ getModalTransient (CompWindow *window)
 
     modalTransient = window;
 
-    for (w = window->screen->root.reverseWindows; w; w = w->prev)
+    for (w = window->parent->reverseWindows; w; w = w->prev)
     {
 	if (w == modalTransient || w->mapNum == 0)
 	    continue;
@@ -3058,7 +3063,7 @@ getModalTransient (CompWindow *window)
 	    if (w->state & CompWindowStateModalMask)
 	    {
 		modalTransient = w;
-		w = window->screen->root.reverseWindows;
+		w = window->parent->reverseWindows;
 	    }
 	}
     }
@@ -3070,7 +3075,7 @@ getModalTransient (CompWindow *window)
 	if (window->state & CompWindowStateModalMask)
 	    return NULL;
 
-	for (w = window->screen->root.reverseWindows; w; w = w->prev)
+	for (w = window->parent->reverseWindows; w; w = w->prev)
 	{
 	    if (w == modalTransient || w->mapNum == 0)
 		continue;
@@ -3115,8 +3120,9 @@ moveInputFocusToWindow (CompWindow *w)
 
     if (w->state & CompWindowStateHiddenMask)
     {
-	XSetInputFocus (d->display, w->frame, RevertToPointerRoot, CurrentTime);
-	XChangeProperty (d->display, s->root.id, d->winActiveAtom,
+	XSetInputFocus (d->display, w->frame, RevertToPointerRoot,
+			CurrentTime);
+	XChangeProperty (d->display, w->parent->id, d->winActiveAtom,
 			 XA_WINDOW, 32, PropModeReplace,
 			 (unsigned char *) &w->id, 1);
     }
@@ -3156,7 +3162,7 @@ moveInputFocusToWindow (CompWindow *w)
 	    CompWindow *ancestor;
 
 	    /* move input to closest ancestor */
-	    for (ancestor = s->root.windows;
+	    for (ancestor = w->parent->windows;
 		 ancestor;
 		 ancestor = ancestor->next)
 	    {
@@ -3242,7 +3248,7 @@ findSiblingBelow (CompWindow *w,
     if (w->transientFor || isGroupTransient (w, clientLeader))
 	clientLeader = None;
 
-    for (below = w->screen->root.reverseWindows; below; below = below->prev)
+    for (below = w->parent->reverseWindows; below; below = below->prev)
     {
 	if (below == w || avoidStackingRelativeTo (below))
 	    continue;
@@ -3288,7 +3294,7 @@ findSiblingBelow (CompWindow *w,
 static CompWindow *
 findLowestSiblingBelow (CompWindow *w)
 {
-    CompWindow   *below, *lowest = w->screen->root.reverseWindows;
+    CompWindow   *below, *lowest = w->parent->reverseWindows;
     Window	 clientLeader = w->clientLeader;
     unsigned int type = w->type;
 
@@ -3300,7 +3306,7 @@ findLowestSiblingBelow (CompWindow *w)
     if (w->transientFor || isGroupTransient (w, clientLeader))
 	clientLeader = None;
 
-    for (below = w->screen->root.reverseWindows; below; below = below->prev)
+    for (below = w->parent->reverseWindows; below; below = below->prev)
     {
 	if (below == w || avoidStackingRelativeTo (below))
 	    continue;
@@ -3497,7 +3503,7 @@ reconfigureXWindow (CompWindow	   *w,
     if (valueMask & CWBorderWidth)
 	w->serverBorderWidth = xwc->border_width;
 
-    if (!windowManagement)
+    if (!w->parent->substructureRedirect)
 	valueMask |=
 	    adjustConfigureRequestForGravity (w,
 					      xwc, valueMask,
@@ -3544,7 +3550,7 @@ stackTransients (CompWindow	*w,
     if (w->transientFor || isGroupTransient (w, clientLeader))
 	clientLeader = None;
 
-    for (t = w->screen->root.reverseWindows; t; t = t->prev)
+    for (t = w->parent->reverseWindows; t; t = t->prev)
     {
 	if (t == w || t == avoid)
 	    continue;
@@ -3602,7 +3608,7 @@ stackAncestors (CompWindow     *w,
     {
 	CompWindow *a;
 
-	for (a = w->screen->root.reverseWindows; a; a = a->prev)
+	for (a = w->parent->reverseWindows; a; a = a->prev)
 	{
 	    if (a->clientLeader == w->clientLeader &&
 		a->transientFor == None		   &&
@@ -4169,7 +4175,7 @@ addWindowStackChanges (CompWindow     *w,
 	{
 	    CompWindow *dw;
 
-	    for (dw = w->screen->root.reverseWindows; dw; dw = dw->prev)
+	    for (dw = w->parent->reverseWindows; dw; dw = dw->prev)
 		if (dw == sibling)
 		    break;
 
@@ -4234,7 +4240,7 @@ findValidStackSiblingBelow (CompWindow *w,
     lowest = last = findLowestSiblingBelow (w);
 
     /* walk from bottom up */
-    for (p = w->screen->root.windows; p; p = p->next)
+    for (p = w->parent->windows; p; p = p->next)
     {
 	/* stop walking when we reach the sibling we should try to stack
 	   below */
@@ -4420,7 +4426,7 @@ revealAncestors (CompWindow *w,
 void
 activateWindow (CompWindow *w)
 {
-    if (!windowManagement)
+    if (!w->parent->substructureRedirect)
     {
 	XEvent xev;
 
@@ -4437,7 +4443,7 @@ activateWindow (CompWindow *w)
 	xev.xclient.data.l[3] = 0;
 	xev.xclient.data.l[4] = 0;
 
-	XSendEvent (w->screen->display->display, w->screen->root.id, FALSE,
+	XSendEvent (w->screen->display->display, w->parent->id, FALSE,
 		    SubstructureRedirectMask | SubstructureNotifyMask,
 		    &xev);
 

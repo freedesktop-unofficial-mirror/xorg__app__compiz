@@ -600,7 +600,7 @@ switchInitiate (CompScreen            *s,
     if (count < 1)
 	return;
 
-    if (!ss->popupWindow && showPopup && windowManagement)
+    if (!ss->popupWindow && showPopup && s->root.substructureRedirect)
     {
 	Display		     *dpy = s->display->display;
 	XSizeHints	     xsh;

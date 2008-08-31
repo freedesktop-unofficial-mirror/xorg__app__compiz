@@ -184,7 +184,7 @@ setDesktopHints (CompScreen *s)
     unsigned long *data;
     int		  size, offset, hintSize, i;
 
-    if (!windowManagement)
+    if (!s->root.substructureRedirect)
 	return;
 
     size = s->nDesktop * 2 + s->nDesktop * 2 + s->nDesktop * 4 + 1;
@@ -1343,7 +1343,7 @@ getDesktopHints (CompScreen *s)
 	    (*s->enterShowDesktopMode) (s);
     }
 
-    if (windowManagement)
+    if (s->root.substructureRedirect)
     {
 	data[0] = s->currentDesktop;
 
@@ -1485,7 +1485,7 @@ enterShowDesktopMode (CompScreen *s)
     int		  count = 0;
     CompOption    *st = &d->opt[COMP_DISPLAY_OPTION_HIDE_SKIP_TASKBAR_WINDOWS];
 
-    if (!windowManagement)
+    if (!s->root.substructureRedirect)
 	return;
 
     s->showingDesktopMask = ~(CompWindowTypeDesktopMask |
@@ -1527,7 +1527,7 @@ leaveShowDesktopMode (CompScreen *s,
     CompWindow    *w;
     unsigned long data = 0;
 
-    if (!windowManagement)
+    if (!s->root.substructureRedirect)
 	return;
 
     if (window)
@@ -1915,7 +1915,7 @@ addScreen (CompDisplay *display,
     XFreePixmap (dpy, bitmap);
     XFreeColors (dpy, s->colormap, &black.pixel, 1, 0);
 
-    if (manualCompositeManagement)
+    if ((s->root.redirectSubwindows = manualCompositeManagement))
     {
 	glXGetConfig (dpy, visinfo, GLX_USE_GL, &value);
 	if (!value)
@@ -2327,8 +2327,6 @@ addScreen (CompDisplay *display,
 	glColorMaterial (GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
 	glNormal3f (0.0f, 0.0f, -1.0f);
-
-	s->root.redirectSubwindows = TRUE;
     }
     else
     {
@@ -2397,21 +2395,21 @@ addScreen (CompDisplay *display,
 
     s->supportingWmCheckWindow = None;
 
-    if (windowManagement)
+    s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
+    s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
+
+    if ((s->root.substructureRedirect = windowManagement))
     {
 	setDesktopHints (s);
 	setSupportingWmCheck (s);
 	setSupported (s);
+
+	XDefineCursor (dpy, s->root.id, s->normalCursor);
     }
     else
     {
 	getSupportingWmCheck (s);
     }
-
-    s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
-    s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
-
-    XDefineCursor (dpy, s->root.id, s->normalCursor);
 
     s->filter[NOTHING_TRANS_FILTER] = COMP_TEXTURE_FILTER_FAST;
     s->filter[SCREEN_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
@@ -2547,7 +2545,7 @@ focusDefaultWindow (CompScreen *s)
     CompWindow  *w;
     CompWindow  *focus = NULL;
 
-    if (!windowManagement)
+    if (!s->root.substructureRedirect)
 	return;
 
     if (!d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b)
@@ -3316,7 +3314,7 @@ updateClientListForScreen (CompScreen *s)
     Bool   updateClientListStacking = FALSE;
     int	   i, n = 0;
 
-    if (!windowManagement)
+    if (!s->root.substructureRedirect)
 	return;
 
     forEachWindowOnScreen (s, countClientListWindow, (void *) &n);
@@ -3933,7 +3931,7 @@ setCurrentDesktop (CompScreen   *s,
     unsigned long data;
     CompWindow    *w;
 
-    if (!windowManagement)
+    if (!s->root.substructureRedirect)
 	return;
 
     if (desktop >= s->nDesktop)

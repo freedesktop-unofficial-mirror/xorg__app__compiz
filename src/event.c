@@ -99,7 +99,7 @@ handleSyncAlarm (CompWindow *w)
 	    XRectangle *rects;
 	    int	       nDamage;
 
-	    if (windowManagement)
+	    if (w->parent->substructureRedirect)
 		leaveSyncWaitState (w);
 
 	    nDamage = w->nDamage;
@@ -1701,10 +1701,10 @@ handleEvent (CompDisplay *d,
 	}
 	else if (event->xproperty.atom == d->syncStateAtom)
 	{
-	    if (!windowManagement)
-	    {
-		w = findWindowAtDisplay (d, event->xproperty.window);
-		if (w)
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w && w->parent)
+	    {	
+		if (!w->parent->substructureRedirect)
 		{
 		    if (event->xproperty.state == PropertyDelete)
 		    {
@@ -1718,20 +1718,20 @@ handleEvent (CompDisplay *d,
 	}
 	else if (event->xproperty.atom == d->winActiveAtom)
 	{
-	    if (!windowManagement)
-	    {
-		s = findScreenAtDisplay (d, event->xproperty.window);
-		if (s)
-		    d->activeWindow = getActiveWindow (d, s->root.id);
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w && w->parent == &w->screen->root)
+	    {	
+		if (!w->parent->substructureRedirect)
+		    d->activeWindow = getActiveWindow (d, w->parent->id);
 	    }
 	}
 	else if (event->xproperty.atom == d->desktopViewportAtom)
 	{
-	    if (!windowManagement)
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w && w->parent == &w->screen->root)
 	    {
-		s = findScreenAtDisplay (d, event->xproperty.window);
-		if (s)
-		    getDesktopHints (s);
+		if (!w->parent->substructureRedirect)
+		    getDesktopHints (w->screen);
 	    }
 	}
 	break;
