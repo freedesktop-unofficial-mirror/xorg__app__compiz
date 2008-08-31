@@ -803,6 +803,8 @@ struct _CompWindow {
     CompObject base;
 
     CompScreen *screen;
+
+    CompWindow *parent;
     CompWindow *next;
     CompWindow *prev;
 

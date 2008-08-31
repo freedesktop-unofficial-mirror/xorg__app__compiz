@@ -1923,6 +1923,8 @@ addWindow (CompScreen *screen,
     if (!w)
 	return;
 
+    w->parent = &screen->root;
+
     w->windows        = 0;
     w->reverseWindows = 0;
 
