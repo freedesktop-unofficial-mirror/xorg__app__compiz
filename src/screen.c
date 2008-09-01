@@ -2425,6 +2425,7 @@ addScreen (CompDisplay *display,
     updateScreenEdges (s);
 
     s->supportingWmCheckWindow = None;
+    s->syncStateSupport        = FALSE;
 
     s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
     s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
