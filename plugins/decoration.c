@@ -189,6 +189,9 @@ decorDrawWindow (CompWindow	      *w,
     status = (*w->screen->drawWindow) (w, transform, attrib, region, mask);
     WRAP (ds, w->screen, drawWindow, decorDrawWindow);
 
+    if (!status)
+	return FALSE;
+
     if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
 	region = &infiniteRegion;
 
@@ -225,7 +228,7 @@ decorDrawWindow (CompWindow	      *w,
 					     attrib, mask);
     }
 
-    return status;
+    return TRUE;
 }
 
 static DecorTexture *
