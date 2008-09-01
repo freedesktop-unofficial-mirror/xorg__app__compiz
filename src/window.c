@@ -1459,9 +1459,6 @@ damageTransformedWindowRect (CompWindow *w,
 {
     REGION reg;
 
-    reg.rects    = &reg.extents;
-    reg.numRects = 1;
-
     reg.extents.x1 = (rect->x1 * xScale) - 1;
     reg.extents.y1 = (rect->y1 * yScale) - 1;
     reg.extents.x2 = (rect->x2 * xScale + 0.5f) + 1;
@@ -1474,10 +1471,17 @@ damageTransformedWindowRect (CompWindow *w,
 
     if (reg.extents.x2 > reg.extents.x1 && reg.extents.y2 > reg.extents.y1)
     {
-	reg.extents.x1 += w->attrib.x + w->attrib.border_width;
-	reg.extents.y1 += w->attrib.y + w->attrib.border_width;
-	reg.extents.x2 += w->attrib.x + w->attrib.border_width;
-	reg.extents.y2 += w->attrib.y + w->attrib.border_width;
+	CompWindow *p = w;
+
+	do {
+	    reg.extents.x1 += p->attrib.x + p->attrib.border_width;
+	    reg.extents.y1 += p->attrib.y + p->attrib.border_width;
+	    reg.extents.x2 += p->attrib.x + p->attrib.border_width;
+	    reg.extents.y2 += p->attrib.y + p->attrib.border_width;
+	} while ((p = p->parent));
+
+	reg.rects    = &reg.extents;
+	reg.numRects = reg.size = 1;
 
 	damageScreenRegion (w->screen, &reg);
     }
@@ -1548,10 +1552,14 @@ addWindowDamageRect (CompWindow *w,
 
     if (!(*w->screen->damageWindowRect) (w, FALSE, &region.extents))
     {
-	region.extents.x1 += w->attrib.x + w->attrib.border_width;
-	region.extents.y1 += w->attrib.y + w->attrib.border_width;
-	region.extents.x2 += w->attrib.x + w->attrib.border_width;
-	region.extents.y2 += w->attrib.y + w->attrib.border_width;
+	CompWindow *p = w;
+
+	do {
+	    region.extents.x1 += p->attrib.x + p->attrib.border_width;
+	    region.extents.y1 += p->attrib.y + p->attrib.border_width;
+	    region.extents.x2 += p->attrib.x + p->attrib.border_width;
+	    region.extents.y2 += p->attrib.y + p->attrib.border_width;
+	} while ((p = p->parent));
 
 	region.rects = &region.extents;
 	region.numRects = region.size = 1;

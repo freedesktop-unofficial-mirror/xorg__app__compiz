@@ -63,10 +63,14 @@ handleWindowDamageRect (CompWindow *w,
 
     if (!(*w->screen->damageWindowRect) (w, initial, &region.extents))
     {
-	region.extents.x1 += w->attrib.x + w->attrib.border_width;
-	region.extents.y1 += w->attrib.y + w->attrib.border_width;
-	region.extents.x2 += w->attrib.x + w->attrib.border_width;
-	region.extents.y2 += w->attrib.y + w->attrib.border_width;
+	CompWindow *p = w;
+
+	do {
+	    region.extents.x1 += p->attrib.x + p->attrib.border_width;
+	    region.extents.y1 += p->attrib.y + p->attrib.border_width;
+	    region.extents.x2 += p->attrib.x + p->attrib.border_width;
+	    region.extents.y2 += p->attrib.y + p->attrib.border_width;
+	} while ((p = p->parent));
 
 	region.rects = &region.extents;
 	region.numRects = region.size = 1;
