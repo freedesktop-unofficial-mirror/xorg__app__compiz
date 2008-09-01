@@ -2186,7 +2186,7 @@ addWindow (CompWindow *parent,
 		      EnterWindowMask    |
 		      FocusChangeMask);
     }
-    else
+    else if (w->parent->redirectSubwindows)
     {
 	XSelectInput (d->display, id, PropertyChangeMask);
 
