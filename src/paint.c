@@ -1143,22 +1143,23 @@ paintWindow (CompWindow		     *w,
 	c = (*walk.last) (w);
 	if (c)
 	{
-	    CompTransform cTransform = *transform;
+	    CompTransform wTransform = *transform;
 	    int		  count = 0;
 	    CompWindow	  *fullscreenWindow = NULL;
 
 	    if (w->attrib.x || w->attrib.y)
 	    {
-		matrixTranslate (&cTransform, w->attrib.x, w->attrib.y, 0);
+		matrixTranslate (&wTransform, w->attrib.x, w->attrib.y, 0);
 		XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
 		mask |= PAINT_WINDOW_WITH_OFFSET_MASK;
 	    }
 	
 	    for (; c; c = (*walk.prev) (c))
 	    {
-		int viewportOffsetX = 0;
-		int viewportOffsetY = 0;
-		int offsetMask = 0;
+		CompTransform cTransform = wTransform;
+		int           viewportOffsetX = 0;
+		int           viewportOffsetY = 0;
+		int           offsetMask = 0;
 		
 		if (c->destroyed)
 		    continue;
@@ -1274,12 +1275,12 @@ paintWindow (CompWindow		     *w,
     c = (*walk.first) (w);
     if (c)
     {
-	CompTransform cTransform = *transform;
+	CompTransform wTransform = *transform;
 	Region        clip = region;
 
 	if (w->attrib.x || w->attrib.y)
 	{
-	    matrixTranslate (&cTransform, w->attrib.x, w->attrib.y, 0);
+	    matrixTranslate (&wTransform, w->attrib.x, w->attrib.y, 0);
 
 	    mask |= PAINT_WINDOW_WITH_OFFSET_MASK;
 
@@ -1290,9 +1291,10 @@ paintWindow (CompWindow		     *w,
 	/* paint all sub-windows from bottom to top */
 	for (; c; c = (*walk.next) (c))
 	{
-	    int viewportOffsetX = 0;
-	    int viewportOffsetY = 0;
-	    int offsetMask = 0;
+	    CompTransform cTransform = wTransform;
+	    int           viewportOffsetX = 0;
+	    int           viewportOffsetY = 0;
+	    int           offsetMask = 0;
 
 	    if (c->destroyed)
 		continue;
