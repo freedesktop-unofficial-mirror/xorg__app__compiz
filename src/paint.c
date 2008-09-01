@@ -1254,8 +1254,7 @@ paintWindow (CompWindow		     *w,
 
     initFragmentAttrib (&fragment, attrib);
 
-    if (mask & PAINT_WINDOW_TRANSFORMED_MASK ||
-        mask & PAINT_WINDOW_WITH_OFFSET_MASK)
+    if (mask & (PAINT_WINDOW_TRANSFORMED_MASK | PAINT_WINDOW_WITH_OFFSET_MASK))
     {
 	glPushMatrix ();
 	glLoadMatrixf (transform->m);
@@ -1263,8 +1262,7 @@ paintWindow (CompWindow		     *w,
 
     status = (*w->screen->drawWindow) (w, transform, &fragment, region, mask);
 
-    if (mask & PAINT_WINDOW_TRANSFORMED_MASK ||
-        mask & PAINT_WINDOW_WITH_OFFSET_MASK)
+    if (mask & (PAINT_WINDOW_TRANSFORMED_MASK | PAINT_WINDOW_WITH_OFFSET_MASK))
 	glPopMatrix ();
 
     (*w->screen->initWindowWalker) (w->screen, w, &walk);
