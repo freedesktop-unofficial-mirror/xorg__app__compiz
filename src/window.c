@@ -1908,8 +1908,8 @@ initRootWindow (CompScreen *s,
     w->id     = XRootWindow (d->display, s->screenNum);
     w->screen = s;
 
-    w->redirected = FALSE;
     w->bindFailed = TRUE;
+    w->alive      = TRUE;
 
     w->paint.opacity    = OPAQUE;
     w->paint.brightness = BRIGHT;

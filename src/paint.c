@@ -252,6 +252,7 @@ paintOutputRegion (CompScreen	       *screen,
 		   unsigned int	       mask)
 {
     static Region tmpRegion = NULL;
+    CompPainter   painter;
     CompCursor	  *c;
     int		  windowMask = 0;
     Region        clip;
@@ -263,6 +264,8 @@ paintOutputRegion (CompScreen	       *screen,
 	    return;
     }
 
+    (*screen->initObjectPainter) (screen, &painter);
+
     if (mask & PAINT_SCREEN_TRANSFORMED_MASK)
     	windowMask = PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK;
 
@@ -272,7 +275,7 @@ paintOutputRegion (CompScreen	       *screen,
     
     if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
     {
-	if ((*screen->paintWindow) (&screen->root,
+	if ((*painter.paintObject) (&screen->root,
 				    &screen->root.paint,
 				    transform,
 				    tmpRegion,
@@ -287,11 +290,14 @@ paintOutputRegion (CompScreen	       *screen,
 	paintBackground (screen, tmpRegion,
 			 (mask & PAINT_SCREEN_TRANSFORMED_MASK));
 
-    (*screen->paintWindow) (&screen->root,
+    (*painter.paintObject) (&screen->root,
 			    &screen->root.paint,
 			    transform,
 			    clip,
 			    windowMask);
+
+    if (painter.fini)
+	(*painter.fini) (screen, &painter);
 
     /* paint cursors */
     for (c = screen->cursors; c; c = c->next)
@@ -1104,6 +1110,7 @@ paintWindow (CompWindow		     *w,
     FragmentAttrib fragment;
     CompWindow     *c;
     CompWalker     walk;
+    CompPainter    painter;
     Bool	   status;
 
     w->lastPaint = *attrib;
@@ -1128,6 +1135,7 @@ paintWindow (CompWindow		     *w,
 	    return FALSE;
 
 	(*w->screen->initWindowWalker) (w->screen, w, &walk);
+	(*w->screen->initObjectPainter) (w->screen, &painter);
 
 	c = (*walk.last) (w);
 	if (c)
@@ -1184,11 +1192,11 @@ paintWindow (CompWindow		     *w,
 		/* copy region */
 		XSubtractRegion (region, &emptyRegion, c->clip);
 
-		if ((*w->screen->paintWindow) (c,
-					       &c->paint,
-					       &cTransform,
-					       region,
-					       mask | offsetMask))
+		if ((*painter.paintObject) (c,
+					    &c->paint,
+					    &cTransform,
+					    region,
+					    mask | offsetMask))
 		    XSubtractRegion (region, c->region, region);
 
 		if (viewportOffsetX || viewportOffsetY)
@@ -1227,6 +1235,8 @@ paintWindow (CompWindow		     *w,
 		unredirectWindow (fullscreenWindow);
 	}
 
+	if (painter.fini)
+	    (*painter.fini) (w->screen, &painter);
 	if (walk.fini)
 	    (*walk.fini) (w->screen, &walk);
 
@@ -1255,6 +1265,7 @@ paintWindow (CompWindow		     *w,
 	glPopMatrix ();
 
     (*w->screen->initWindowWalker) (w->screen, w, &walk);
+    (*w->screen->initObjectPainter) (w->screen, &painter);
 
     c = (*walk.first) (w);
     if (c)
@@ -1315,11 +1326,11 @@ paintWindow (CompWindow		     *w,
 		}
 	    }
 
-	    (*w->screen->paintWindow) (c,
-				       &c->paint,
-				       &cTransform,
-				       clip,
-				       mask | offsetMask);
+	    (*painter.paintObject) (c,
+				    &c->paint,
+				    &cTransform,
+				    clip,
+				    mask | offsetMask);
 
 	    if (clip == region && (viewportOffsetX || viewportOffsetY))
 		XOffsetRegion (region,
@@ -1334,6 +1345,8 @@ paintWindow (CompWindow		     *w,
 	}
     }
 
+    if (painter.fini)
+	(*painter.fini) (w->screen, &painter);
     if (walk.fini)
 	(*walk.fini) (w->screen, &walk);
 

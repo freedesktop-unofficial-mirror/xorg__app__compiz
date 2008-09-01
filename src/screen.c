@@ -1605,6 +1605,36 @@ initWindowWalker (CompScreen *screen,
     walker->prev  = walkPrev;
 }
 
+static Bool
+paintObject (CompWindow		     *w,
+	     const WindowPaintAttrib *attrib,
+	     const CompTransform     *transform,
+	     Region		     region,
+	     unsigned int	     mask)
+{
+    PaintWindowProc paint = w->screen->paintWindow;
+    Bool            status;
+
+    if (w->parent)
+	w->paintWindowStack = w->parent->paintWindowStack;
+    else
+	w->paintWindowStack = paint;
+
+    status = (*w->paintWindowStack) (w, attrib, transform, region, mask);
+
+    w->screen->paintWindow = paint;
+
+    return status;
+}
+
+static void
+initObjectPainter (CompScreen  *screen,
+		   CompPainter *painter)
+{
+    painter->fini        = NULL;
+    painter->paintObject = paintObject;
+}
+
 static FuncPtr
 dummyGetProcAddress (const GLubyte *procName)
 {
@@ -1857,7 +1887,8 @@ addScreen (CompDisplay *display,
 
     s->outputChangeNotify = outputChangeNotify;
 
-    s->initWindowWalker = initWindowWalker;
+    s->initWindowWalker  = initWindowWalker;
+    s->initObjectPainter = initObjectPainter;
 
     s->getProcAddress = dummyGetProcAddress;
 

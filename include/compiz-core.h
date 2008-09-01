@@ -84,6 +84,8 @@ typedef struct _CompCursor	  CompCursor;
 typedef struct _CompMatch	  CompMatch;
 typedef struct _CompOutput        CompOutput;
 typedef struct _CompWalker        CompWalker;
+typedef struct _CompPainter       CompPainter;
+typedef struct _CompTransform     CompTransform;
 
 /* virtual modifiers */
 
@@ -769,6 +771,12 @@ typedef struct _WindowPaintAttrib {
 
 typedef void (*DrawWindowGeometryProc) (CompWindow *window);
 
+typedef Bool (*PaintWindowProc) (CompWindow		 *window,
+				 const WindowPaintAttrib *attrib,
+				 const CompTransform     *transform,
+				 Region			 region,
+				 unsigned int		 mask);
+
 #define WINDOW_INVISIBLE(w)				       \
     ((w)->attrib.map_state != IsViewable		    || \
      (!(w)->damaged)					    || \
@@ -936,6 +944,8 @@ struct _CompWindow {
 
     /* must be set by addWindowGeometry */
     DrawWindowGeometryProc drawWindowGeometry;
+
+    PaintWindowProc paintWindowStack;
 };
 
 #define GET_CORE_WINDOW(object) ((CompWindow *) (object))
@@ -1955,9 +1965,9 @@ clearTargetOutput (CompDisplay	*display,
 
 #define DEG2RAD (M_PI / 180.0f)
 
-typedef struct _CompTransform {
+struct _CompTransform {
     float m[16];
-} CompTransform;
+};
 
 typedef union _CompVector {
     float v[4];
@@ -2053,6 +2063,16 @@ struct _CompWalker {
     WalkStepProc prev;
 };
 
+typedef void (*PainterFiniProc) (CompScreen  *screen,
+				 CompPainter *painter);
+
+struct _CompPainter {
+    PainterFiniProc fini;
+    CompPrivate	    priv;
+
+    PaintWindowProc paintObject;
+};
+
 /*
   window paint flags
 
@@ -2109,12 +2129,6 @@ struct _CompWalker {
 */
 #define PAINT_WINDOW_BLEND_MASK			(1 << 19)
 
-
-typedef Bool (*PaintWindowProc) (CompWindow		 *window,
-				 const WindowPaintAttrib *attrib,
-				 const CompTransform     *transform,
-				 Region			 region,
-				 unsigned int		 mask);
 
 typedef Bool (*DrawWindowProc) (CompWindow	     *window,
 				const CompTransform  *transform,
@@ -2538,8 +2552,11 @@ typedef void (*WindowStateChangeNotifyProc) (CompWindow   *window,
 typedef void (*OutputChangeNotifyProc) (CompScreen *screen);
 
 typedef void (*InitWindowWalkerProc) (CompScreen *screen,
-				      CompWindow *window,
+				      CompWindow *parent,
 				      CompWalker *walker);
+
+typedef void (*InitObjectPainterProc) (CompScreen  *screen,
+				       CompPainter *painter);
 
 #define COMP_SCREEN_DAMAGE_PENDING_MASK (1 << 0)
 #define COMP_SCREEN_DAMAGE_REGION_MASK  (1 << 1)
@@ -2851,7 +2868,8 @@ struct _CompScreen {
 
     OutputChangeNotifyProc outputChangeNotify;
 
-    InitWindowWalkerProc initWindowWalker;
+    InitWindowWalkerProc  initWindowWalker;
+    InitObjectPainterProc initObjectPainter;
 };
 
 #define GET_CORE_SCREEN(object) ((CompScreen *) (object))
