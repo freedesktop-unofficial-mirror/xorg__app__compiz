@@ -1901,6 +1901,7 @@ initRootWindow (CompScreen *s,
     CompWindow  *w = root;
     CompPrivate	*privates;
     CompDisplay *d = s->display;
+    REGION      rect;
 
     memset (w, 0, sizeof (*w));
 
@@ -1961,6 +1962,16 @@ initRootWindow (CompScreen *s,
     w->type  = CompWindowTypeUnknownMask;
 
     w->invisible = TRUE;
+
+    rect.rects = &rect.extents;
+    rect.numRects = rect.size = 1;
+
+    rect.extents.x1 = w->attrib.x;
+    rect.extents.y1 = w->attrib.y;
+    rect.extents.x2 = w->attrib.x + w->width;
+    rect.extents.y2 = w->attrib.y + w->height;
+
+    XUnionRegion (&rect, w->region, w->region);
 }
 
 void
@@ -2708,7 +2719,7 @@ resizeWindow (CompWindow *w,
 
 	w->invisible = WINDOW_INVISIBLE (w);
 
-	if (w->parent->substructureRedirect)
+	if (w->parent && w->parent->substructureRedirect)
 	    updateFrameWindow (w);
     }
     else if (w->attrib.x != x || w->attrib.y != y)
@@ -2902,6 +2913,9 @@ configureWindow (CompWindow	 *w,
 
     if (restackWindow (w, ce->above))
 	addWindowDamage (w);
+
+    if (!w->parent)
+	configureScreen (w->screen, ce);
 }
 
 void

@@ -2633,14 +2633,30 @@ findWindowAtScreen (CompScreen *s,
     }
     else
     {
-	CompWindow *w;
+	CompWindow *w = &s->root;
 
-	for (w = s->root.windows; w; w = w->next)
+	for (;;)
+	{
 	    if (w->id == id)
 		return (lastFoundWindow = w);
+
+	    if (w->windows)
+	    {
+		w = w->windows;
+		continue;
+	    }
+
+	    while (!w->next && (w != &s->root))
+	    	w = w->parent;
+	    
+	    if (w == &s->root)
+		break;
+
+	    w = w->next;
+	}
     }
 
-    return 0;
+    return NULL;
 }
 
 CompWindow *
@@ -2655,11 +2671,11 @@ findTopLevelWindowAtScreen (CompScreen *s,
 
     if (w->attrib.override_redirect)
     {
-	if (w->attrib.class != InputOnly)
+	if (!w->parent || w->attrib.class != InputOnly)
 	    return NULL;
 
 	/* likely a frame window */
-	for (w = s->root.windows; w; w = w->next)
+	for (w = w->parent->windows; w; w = w->next)
 	    if (w->frame == id)
 		break;
     }

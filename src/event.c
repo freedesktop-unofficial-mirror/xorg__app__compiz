@@ -1310,28 +1310,20 @@ handleEvent (CompDisplay *d,
     case ConfigureNotify:
 	w = findWindowAtDisplay (d, event->xconfigure.window);
 	if (w)
-	{
 	    configureWindow (w, &event->xconfigure);
-	}
-	else
-	{
-	    s = findScreenAtDisplay (d, event->xconfigure.window);
-	    if (s)
-		configureScreen (s, &event->xconfigure);
-	}
 	break;
     case CreateNotify:
-	s = findScreenAtDisplay (d, event->xcreatewindow.parent);
-	if (s)
+	w = findWindowAtDisplay (d, event->xcreatewindow.parent);
+	if (w)
 	{
 	    /* The first time some client asks for the composite
 	     * overlay window, the X server creates it, which causes
 	     * an errorneous CreateNotify event.  We catch it and
 	     * ignore it. */
-	    if (s->overlay != event->xcreatewindow.window)
-		addWindow (&s->root,
+	    if (w->screen->overlay != event->xcreatewindow.window)
+		addWindow (w,
 			   event->xcreatewindow.window,
-			   getTopWindow (&s->root));
+			   getTopWindow (w));
 	}
 	break;
     case DestroyNotify:
@@ -1397,14 +1389,7 @@ handleEvent (CompDisplay *d,
 	break;
     case ReparentNotify:
 	w = findWindowAtDisplay (d, event->xreparent.window);
-	s = findScreenAtDisplay (d, event->xreparent.parent);
-	if (s && !w)
-	{
-	    addWindow (&s->root,
-		       event->xreparent.window,
-		       getTopWindow (&s->root));
-	}
-	else if (w)
+	if (w)
 	{
 	    /* This is the only case where a window is removed but not
 	       destroyed. We must remove our event mask and all passive
@@ -1417,6 +1402,11 @@ handleEvent (CompDisplay *d,
 
 	    destroyWindow (w);
 	}
+
+	w = findWindowAtDisplay (d, event->xreparent.parent);
+	if (w)
+	    addWindow (w, event->xreparent.window, getTopWindow (w));
+
 	break;
     case CirculateNotify:
 	w = findWindowAtDisplay (d, event->xcirculate.window);
