@@ -1162,7 +1162,10 @@ paintWindow (CompWindow		     *w,
 
 		if (!c->shaded)
 		{
-		    if (c->attrib.map_state != IsViewable || !c->damaged)
+		    if (c->attrib.map_state != IsViewable)
+			continue;
+
+		    if (w->redirectSubwindows && !c->damaged)
 			continue;
 		}
 
@@ -1295,7 +1298,10 @@ paintWindow (CompWindow		     *w,
 
 	    if (!c->shaded)
 	    {
-		if (c->attrib.map_state != IsViewable || !c->damaged)
+		if (c->attrib.map_state != IsViewable)
+		    continue;
+
+		if (w->redirectSubwindows && !c->damaged)
 		    continue;
 	    }
 
