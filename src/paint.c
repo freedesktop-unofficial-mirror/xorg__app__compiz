@@ -1084,7 +1084,10 @@ drawWindow (CompWindow		 *w,
 	return TRUE;
 
     if (w->attrib.map_state != IsViewable)
-	return TRUE;
+	return FALSE;
+
+    if (!w->parent || !w->parent->redirectSubwindows)
+	return FALSE;
 
     if (!w->texture->pixmap && !bindWindow (w))
 	return FALSE;
