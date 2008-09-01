@@ -2396,6 +2396,9 @@ addWindow (CompWindow *parent,
 void
 removeWindow (CompWindow *w)
 {
+    while (w->windows)
+	removeWindow (w->windows);
+
     unhookWindow (w->parent, w);
 
     if (!w->destroyed)
