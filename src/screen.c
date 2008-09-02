@@ -1088,7 +1088,7 @@ setSupportingWmCheck (CompScreen *s)
 {
     CompDisplay *d = s->display;
 
-    s->supportingWmCheckWindow = s->grabWindow;
+    s->root.supportingWmCheckWindow = s->grabWindow;
 
     XChangeProperty (d->display, s->grabWindow, d->supportingWmCheckAtom,
 		     XA_WINDOW, 32, PropModeReplace,
@@ -1215,18 +1215,18 @@ setSupported (CompScreen *s)
 }
 
 void
-getSupportingWmCheck (CompScreen *s)
+getSupportingWmCheck (CompWindow *w)
 {
-    CompDisplay   *d = s->display;
+    CompDisplay   *d = w->screen->display;
     Atom	  actual;
     int		  result, format;
     unsigned long n, left;
     unsigned char *propData;
 
-    s->supportingWmCheckWindow = None;
-    s->syncStateSupport        = FALSE;
+    w->supportingWmCheckWindow = None;
+    w->syncStateSupport        = FALSE;
 
-    result = XGetWindowProperty (d->display, s->root.id,
+    result = XGetWindowProperty (d->display, w->id,
 				 d->supportingWmCheckAtom, 0L, 1L, FALSE,
 				 XA_WINDOW, &actual, &format,
 				 &n, &left, &propData);
@@ -1245,10 +1245,10 @@ getSupportingWmCheck (CompScreen *s)
 	{
 	    XFree (propData);
 
-	    s->supportingWmCheckWindow = wmCheckWindow;
+	    w->supportingWmCheckWindow = wmCheckWindow;
 
 	    result = XGetWindowProperty (d->display,
-					 s->root.id,
+					 w->id,
 					 d->supportedAtom, 0L, 4096L,
 					 FALSE, XA_ATOM, &actual, &format,
 					 &n, &left, &propData);
@@ -1259,7 +1259,7 @@ getSupportingWmCheck (CompScreen *s)
 
 		for (i = 0; i < n; i++)
 		    if ((Atom) data[i] == d->syncStateAtom)
-			s->syncStateSupport = TRUE;
+			w->syncStateSupport = TRUE;
 
 		XFree (propData);
 	    }
@@ -2424,9 +2424,6 @@ addScreen (CompDisplay *display,
 
     updateScreenEdges (s);
 
-    s->supportingWmCheckWindow = None;
-    s->syncStateSupport        = FALSE;
-
     s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
     s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
 
@@ -2440,7 +2437,7 @@ addScreen (CompDisplay *display,
     }
     else
     {
-	getSupportingWmCheck (s);
+	getSupportingWmCheck (&s->root);
     }
 
     s->filter[NOTHING_TRANS_FILTER] = COMP_TEXTURE_FILTER_FAST;

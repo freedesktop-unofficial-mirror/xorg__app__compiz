@@ -890,7 +890,7 @@ decorCheckForDmOnScreen (CompScreen *s,
     unsigned long n, left;
     unsigned char *data;
     Window	  dmWin = None;
-    Window	  wmWin = s->supportingWmCheckWindow;
+    Window	  wmWin = s->root.supportingWmCheckWindow;
 
     DECOR_DISPLAY (s->display);
     DECOR_SCREEN (s);
@@ -984,8 +984,8 @@ decorHandleEvent (CompDisplay *d,
 	{
 	    DECOR_SCREEN (w->screen);
 
-	    if (w->screen->supportingWmCheckWindow == w->id)
-		getSupportingWmCheck (w->screen);
+	    if (w->parent->supportingWmCheckWindow == w->id)
+		getSupportingWmCheck (w->parent);
 
 	    if (w->id == ds->wmWin || w->id == ds->dmWin)
 		decorCheckForDmOnScreen (w->screen, TRUE);

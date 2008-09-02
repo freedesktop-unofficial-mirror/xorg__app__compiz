@@ -1334,8 +1334,8 @@ handleEvent (CompDisplay *d,
 	w = findWindowAtDisplay (d, event->xdestroywindow.window);
 	if (w)
 	{
-	    if (w->screen->supportingWmCheckWindow == w->id)
-		getSupportingWmCheck (w->screen);
+	    if (w->parent->supportingWmCheckWindow == w->id)
+		getSupportingWmCheck (w->parent);
 
 	    moveInputFocusToOtherWindow (w);
 	    destroyWindow (w);
@@ -1685,17 +1685,9 @@ handleEvent (CompDisplay *d,
 	else if (event->xproperty.atom == d->supportingWmCheckAtom ||
 		 event->xproperty.atom == d->supportedAtom)
 	{
-	    s = findScreenAtDisplay (d, event->xproperty.window);
-	    if (s)
-	    {
-		getSupportingWmCheck (s);
-	    }
-	    else
-	    {
-		w = findWindowAtDisplay (d, event->xproperty.window);
-		if (w)
-		    getSupportingWmCheck (w->screen);
-	    }
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w && w->redirectSubwindows)
+		getSupportingWmCheck (w);
 	}
 	else if (event->xproperty.atom == d->syncStateAtom)
 	{
@@ -1706,7 +1698,7 @@ handleEvent (CompDisplay *d,
 		{
 		    if (event->xproperty.state == PropertyDelete)
 		    {
-			if (w->screen->syncStateSupport)
+			if (w->parent->syncStateSupport)
 			    syncWait (w);
 		    }
 		    else

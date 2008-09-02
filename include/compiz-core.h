@@ -925,6 +925,9 @@ struct _CompWindow {
     int	 syncHeight;
     int	 syncBorderWidth;
 
+    Bool   syncStateSupport;
+    Window supportingWmCheckWindow;
+
     Bool closeRequests;
     Time lastCloseRequestTime;
 
@@ -2796,9 +2799,6 @@ struct _CompScreen {
     CompCursor      *cursors;
     CompCursorImage *cursorImages;
 
-    Bool   syncStateSupport;
-    Window supportingWmCheckWindow;
-
     GLXGetProcAddressProc    getProcAddress;
     GLXBindTexImageProc      bindTexImage;
     GLXReleaseTexImageProc   releaseTexImage;
@@ -2932,7 +2932,7 @@ void
 detectRefreshRateOfScreen (CompScreen *s);
 
 void
-getSupportingWmCheck (CompScreen *s);
+getSupportingWmCheck (CompWindow *w);
 
 void
 getDesktopHints (CompScreen *s);

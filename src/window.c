@@ -2007,6 +2007,9 @@ addWindow (CompWindow *parent,
     w->substructureRedirect = FALSE;
     w->redirectSubwindows   = FALSE;
 
+    w->supportingWmCheckWindow = None;
+    w->syncStateSupport        = FALSE;
+
     w->viewportOffsetX = 0;
     w->viewportOffsetY = 0;
     
@@ -2198,7 +2201,7 @@ addWindow (CompWindow *parent,
     {
 	XSelectInput (d->display, id, PropertyChangeMask);
 
-	if (w->screen->syncStateSupport)
+	if (w->parent->syncStateSupport)
 	{
 	    if (!getWindowProp (d, w->id, d->syncStateAtom, 0))
 		syncWait (w);
