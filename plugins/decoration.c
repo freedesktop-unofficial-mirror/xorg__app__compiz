@@ -121,11 +121,6 @@ typedef struct _DecorDisplay {
 typedef struct _DecorScreen {
     int	windowPrivateIndex;
 
-    Window dmWin;
-    Window wmWin;
-
-    Decoration *decor[DECOR_NUM];
-
     DrawWindowProc		  drawWindow;
     DamageWindowRectProc	  damageWindowRect;
     GetOutputExtentsForWindowProc getOutputExtentsForWindow;
@@ -140,7 +135,11 @@ typedef struct _DecorScreen {
 
 typedef struct _DecorWindow {
     WindowDecoration *wd;
-    Decoration	     *decor[DECOR_NUM];
+
+    Window dmWin;
+    Window wmWin;
+
+    Decoration *decor[DECOR_NUM];
 
     CompTimeoutHandle resizeUpdateHandle;
 } DecorWindow;
@@ -744,6 +743,9 @@ decorWindowUpdate (CompWindow *w,
     DECOR_SCREEN (w->screen);
     DECOR_WINDOW (w);
 
+    if (!w->parent)
+	return FALSE;
+
     wd = dw->wd;
     old = (wd) ? wd->decor : NULL;
 
@@ -759,7 +761,7 @@ decorWindowUpdate (CompWindow *w,
 	break;
     }
 
-    if (!ds->wmWin)
+    if (!GET_DECOR_WINDOW (w->parent, ds)->wmWin)
 	decorate = FALSE;
 
     if (w->attrib.override_redirect)
@@ -782,9 +784,9 @@ decorWindowUpdate (CompWindow *w,
 	if (!decor || !decorCheckSize (w, decor))
 	{
 	    if (w->id == w->screen->display->activeWindow)
-		decor = ds->decor[DECOR_ACTIVE];
+		decor = GET_DECOR_WINDOW (w->parent, ds)->decor[DECOR_ACTIVE];
 	    else
-		decor = ds->decor[DECOR_NORMAL];
+		decor = GET_DECOR_WINDOW (w->parent, ds)->decor[DECOR_NORMAL];
 	}
     }
     else
@@ -793,7 +795,7 @@ decorWindowUpdate (CompWindow *w,
 	if (matchEval (match, w))
 	{
 	    if (w->region->numRects == 1)
-		decor = ds->decor[DECOR_BARE];
+		decor = GET_DECOR_WINDOW (w->parent, ds)->decor[DECOR_BARE];
 
 	    if (decor)
 	    {
@@ -803,7 +805,7 @@ decorWindowUpdate (CompWindow *w,
 	}
     }
 
-    if (!ds->dmWin || !allowDecoration)
+    if (!GET_DECOR_WINDOW (w->parent, ds)->dmWin || !allowDecoration)
 	decor = NULL;
 
     if (decor == old)
@@ -881,21 +883,22 @@ decorWindowUpdate (CompWindow *w,
 }
 
 static void
-decorCheckForDmOnScreen (CompScreen *s,
-			 Bool	    updateWindows)
+decorCheckForDm (CompWindow *w,
+		 Bool	    updateWindows)
 {
+    CompScreen    *s = w->screen;
     CompDisplay   *d = s->display;
     Atom	  actual;
     int		  result, format;
     unsigned long n, left;
     unsigned char *data;
     Window	  dmWin = None;
-    Window	  wmWin = s->root.supportingWmCheckWindow;
+    Window	  wmWin = w->supportingWmCheckWindow;
 
     DECOR_DISPLAY (s->display);
-    DECOR_SCREEN (s);
+    DECOR_WINDOW (w);
 
-    result = XGetWindowProperty (d->display, s->root.id,
+    result = XGetWindowProperty (d->display, w->id,
 				 dd->supportingDmCheckAtom, 0L, 1L, FALSE,
 				 XA_WINDOW, &actual, &format,
 				 &n, &left, &data);
@@ -915,55 +918,62 @@ decorCheckForDmOnScreen (CompScreen *s,
 	    dmWin = None;
     }
 
-    if (dmWin != ds->dmWin)
+    /* don't allow dm's on redirected windows */
+    if (w->parent && w->parent->redirectSubwindows)
+	dmWin = None;
+
+    if (dmWin != dw->dmWin)
     {
-	CompWindow *w;
+	CompWindow *c;
 	int	   i;
 
 	if (dmWin)
 	{
 	    for (i = 0; i < DECOR_NUM; i++)
-		ds->decor[i] =
-		    decorCreateDecoration (s, s->root.id, dd->decorAtom[i]);
+		dw->decor[i] = decorCreateDecoration (s,
+						      w->id,
+						      dd->decorAtom[i]);
 	}
 	else
 	{
+	    DECOR_SCREEN (w->screen);
+
 	    for (i = 0; i < DECOR_NUM; i++)
 	    {
-		if (ds->decor[i])
+		if (dw->decor[i])
 		{
-		    decorReleaseDecoration (s, ds->decor[i]);
-		    ds->decor[i] = 0;
+		    decorReleaseDecoration (s, dw->decor[i]);
+		    dw->decor[i] = 0;
 		}
 	    }
 
-	    for (w = s->root.windows; w; w = w->next)
+	    for (c = w->windows; c; c = c->next)
 	    {
-		DECOR_WINDOW (w);
+		DecorWindow *dc = GET_DECOR_WINDOW (c, ds);
 
 		for (i = 0; i < DECOR_NUM; i++)
 		{
-		    if (dw->decor[i])
+		    if (dc->decor[i])
 		    {
-			decorReleaseDecoration (s, dw->decor[i]);
-			dw->decor[i] = 0;
+			decorReleaseDecoration (s, dc->decor[i]);
+			dc->decor[i] = 0;
 		    }
 		}
 	    }
 	}
     }
 
-    if ((wmWin != ds->wmWin) || (dmWin != ds->dmWin))
+    if ((wmWin != dw->wmWin) || (dmWin != dw->dmWin))
     {
-	ds->wmWin = wmWin;
-	ds->dmWin = dmWin;
+	dw->wmWin = wmWin;
+	dw->dmWin = dmWin;
 
 	if (updateWindows)
 	{
-	    CompWindow *w;
+	    CompWindow *c;
 
-	    for (w = s->root.windows; w; w = w->next)
-		decorWindowUpdate (w, TRUE);
+	    for (c = w->windows; c; c = c->next)
+		decorWindowUpdate (c, TRUE);
 	}
     }
 }
@@ -980,15 +990,16 @@ decorHandleEvent (CompDisplay *d,
     switch (event->type) {
     case DestroyNotify:
 	w = findWindowAtDisplay (d, event->xdestroywindow.window);
-	if (w)
+	if (w && (w = w->parent))
 	{
-	    DECOR_SCREEN (w->screen);
+	    DECOR_WINDOW (w);
 
-	    if (w->parent->supportingWmCheckWindow == w->id)
-		getSupportingWmCheck (w->parent);
+	    if (w->supportingWmCheckWindow == event->xdestroywindow.window)
+		getSupportingWmCheck (w);
 
-	    if (w->id == ds->wmWin || w->id == ds->dmWin)
-		decorCheckForDmOnScreen (w->screen, TRUE);
+	    if (event->xdestroywindow.window == dw->wmWin ||
+		event->xdestroywindow.window == dw->dmWin)
+		decorCheckForDm (w, TRUE);
 	}
 	break;
     case MapRequest:
@@ -1016,7 +1027,8 @@ decorHandleEvent (CompDisplay *d,
 		    {
 			ds = GET_DECOR_SCREEN (s, dd);
 
-			for (w = s->root.windows; w; w = w->next)
+			w = s->root.windows;
+			for (;;)
 			{
 			    if (w->shaded || w->mapNum)
 			    {
@@ -1025,6 +1037,20 @@ decorHandleEvent (CompDisplay *d,
 				if (dw->wd && dw->wd->decor->texture == t)
 				    damageWindowOutputExtents (w);
 			    }
+
+			    if (w->windows)
+			    {
+				w = w->windows;
+				continue;
+			    }
+
+			    while (!w->next && (w != &s->root))
+				w = w->parent;
+	    
+			    if (w == &s->root)
+				break;
+
+			    w = w->next;
 			}
 		    }
 		    return;
@@ -1070,15 +1096,13 @@ decorHandleEvent (CompDisplay *d,
 	}
 	else
 	{
-	    CompScreen *s;
-
-	    s = findScreenAtDisplay (d, event->xproperty.window);
-	    if (s)
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w)
 	    {
 		if (event->xproperty.atom == d->supportingWmCheckAtom ||
 		    event->xproperty.atom == dd->supportingDmCheckAtom)
 		{
-		    decorCheckForDmOnScreen (s, TRUE);
+		    decorCheckForDm (w, TRUE);
 		}
 		else
 		{
@@ -1088,30 +1112,25 @@ decorHandleEvent (CompDisplay *d,
 		    {
 			if (event->xproperty.atom == dd->decorAtom[i])
 			{
-			    DECOR_SCREEN (s);
+			    DECOR_WINDOW (w);
 
-			    if (ds->decor[i])
-				decorReleaseDecoration (s, ds->decor[i]);
+			    decorWindowUpdateDecoration (w,
+							 dd->decorAtom[i],
+							 i);
 
-			    ds->decor[i] =
-				decorCreateDecoration (s, s->root.id,
-						       dd->decorAtom[i]);
+			    if (dw->dmWin)
+			    {
+				CompWindow *c;
 
-			    for (w = s->root.windows; w; w = w->next)
+				for (c = w->windows; c; c = c->next)
+				    decorWindowUpdate (c, TRUE);
+			    }
+			    else
+			    {
 				decorWindowUpdate (w, TRUE);
+			    }
 			}
 		    }
-		}
-	    }
-	    else if (event->xproperty.atom == dd->decorAtom[DECOR_ACTIVE])
-	    {
-		w = findWindowAtDisplay (d, event->xproperty.window);
-		if (w)
-		{
-		    decorWindowUpdateDecoration (w,
-						 dd->decorAtom[DECOR_ACTIVE],
-						 DECOR_ACTIVE);
-		    decorWindowUpdate (w, TRUE);
 		}
 	    }
 	}
@@ -1180,10 +1199,11 @@ decorStartDecorator (void *closure)
 
     DECOR_DISPLAY (s->display);
     DECOR_SCREEN (s);
+    DECOR_WINDOW ((&s->root));
 
     ds->decoratorStartHandle = 0;
 
-    if (!ds->dmWin)
+    if (!dw->dmWin)
 	runCommand (s, dd->opt[DECOR_DISPLAY_OPTION_COMMAND].value.s);
 
     return FALSE;
@@ -1223,9 +1243,9 @@ decorSetDisplayOption (CompPlugin      *plugin,
 
 	    for (s = display->screens; s; s = s->next)
 	    {
-		DECOR_SCREEN (s);
+		DECOR_WINDOW ((&s->root));
 
-		if (!ds->dmWin)
+		if (!dw->dmWin)
 		    runCommand (s, o->value.s);
 	    }
 
@@ -1272,8 +1292,27 @@ decorSetDisplayOption (CompPlugin      *plugin,
 	    CompWindow *w;
 
 	    for (s = display->screens; s; s = s->next)
-		for (w = s->root.windows; w; w = w->next)
+	    {
+		w = s->root.windows;
+		for (;;)
+		{
 		    decorWindowUpdate (w, TRUE);
+
+		    if (w->windows)
+		    {
+			w = w->windows;
+			continue;
+		    }
+
+		    while (!w->next && (w != &s->root))
+			w = w->parent;
+	    
+		    if (w == &s->root)
+			break;
+
+		    w = w->next;
+		}
+	    }
 	}
 	break;
     default:
@@ -1294,7 +1333,7 @@ decorWindowMoveNotify (CompWindow *w,
     DECOR_SCREEN (w->screen);
     DECOR_WINDOW (w);
 
-    if (dw->wd && manualCompositeManagement)
+    if (dw->wd && w->parent && w->parent->redirectSubwindows)
     {
 	WindowDecoration *wd = dw->wd;
 	int		 i;
@@ -1339,7 +1378,7 @@ decorWindowResizeNotify (CompWindow *w,
     DECOR_SCREEN (w->screen);
     DECOR_WINDOW (w);
 
-    if (manualCompositeManagement)
+    if (w->parent && w->parent->redirectSubwindows)
     {
 	/* FIXME: we should not need a timer for calling decorWindowUpdate,
 	   and only call updateWindowDecorationScale if decorWindowUpdate
@@ -1589,11 +1628,6 @@ decorInitScreen (CompPlugin *p,
 	return FALSE;
     }
 
-    memset (ds->decor, 0, sizeof (ds->decor));
-
-    ds->wmWin = None;
-    ds->dmWin = None;
-
     ds->decoratorStartHandle = 0;
 
     WRAP (ds, s, drawWindow, decorDrawWindow);
@@ -1605,12 +1639,6 @@ decorInitScreen (CompPlugin *p,
 
     s->base.privates[dd->screenPrivateIndex].ptr = ds;
 
-    decorCheckForDmOnScreen (s, FALSE);
-
-    if (!ds->dmWin)
-	ds->decoratorStartHandle = compAddTimeout (0, -1,
-						   decorStartDecorator, s);
-
     return TRUE;
 }
 
@@ -1618,13 +1646,7 @@ static void
 decorFiniScreen (CompPlugin *p,
 		 CompScreen *s)
 {
-    int	i;
-
     DECOR_SCREEN (s);
-
-    for (i = 0; i < DECOR_NUM; i++)
-	if (ds->decor[i])
-	    decorReleaseDecoration (s, ds->decor[i]);
 
     if (ds->decoratorStartHandle)
 	compRemoveTimeout (ds->decoratorStartHandle);
@@ -1654,6 +1676,9 @@ decorInitWindow (CompPlugin *p,
     if (!dw)
 	return FALSE;
 
+    dw->wmWin = None;
+    dw->dmWin = None;
+    
     dw->wd = NULL;
 
     for (i = 0; i < DECOR_NUM; i++)
@@ -1663,16 +1688,30 @@ decorInitWindow (CompPlugin *p,
 
     w->base.privates[ds->windowPrivateIndex].ptr = dw;
 
-    if (!w->attrib.override_redirect)
+    if (w->parent && w->parent->redirectSubwindows)
     {
-	DECOR_DISPLAY (w->screen->display);
+	if (!w->attrib.override_redirect)
+	{
+	    DECOR_DISPLAY (w->screen->display);
 
-	decorWindowUpdateDecoration (w,
-				     dd->winDecorAtom,
-				     DECOR_NORMAL);
-	decorWindowUpdateDecoration (w,
-				     dd->decorAtom[DECOR_ACTIVE],
-				     DECOR_ACTIVE);
+	    decorWindowUpdateDecoration (w,
+					 dd->winDecorAtom,
+					 DECOR_NORMAL);
+	    decorWindowUpdateDecoration (w,
+					 dd->decorAtom[DECOR_ACTIVE],
+					 DECOR_ACTIVE);
+	}
+    }
+    else
+    {
+	DECOR_SCREEN (w->screen);
+
+	decorCheckForDm (w, FALSE);
+
+	if (!w->parent && !dw->dmWin)
+	    ds->decoratorStartHandle = compAddTimeout (0, -1,
+						       decorStartDecorator,
+						       w->screen);
     }
 
     if (w->base.parent)
