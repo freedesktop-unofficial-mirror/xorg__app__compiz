@@ -728,6 +728,17 @@ decorWindowShiftY (CompWindow *w)
 }
 
 static Bool
+decorIsActiveWindow (CompWindow *w)
+{
+    for (; w->parent; w = w->parent)
+    	if (w->parent->redirectSubwindows || w->parent->substructureRedirect)
+	    if (w->parent->activeChild != w->id)
+		return FALSE;
+
+    return TRUE;
+}
+
+static Bool
 decorWindowUpdate (CompWindow *w,
 		   Bool	      allowDecoration)
 {
@@ -777,13 +788,12 @@ decorWindowUpdate (CompWindow *w,
     if (decorate)
     {
 	decor = dw->decor[DECOR_NORMAL];
-	if (w->id == w->screen->display->activeWindow &&
-	    dw->decor[DECOR_ACTIVE])
+	if (decorIsActiveWindow (w) && dw->decor[DECOR_ACTIVE])
 	    decor = dw->decor[DECOR_ACTIVE];
 		    
 	if (!decor || !decorCheckSize (w, decor))
 	{
-	    if (w->id == w->screen->display->activeWindow)
+	    if (decorIsActiveWindow (w))
 		decor = GET_DECOR_WINDOW (w->parent, ds)->decor[DECOR_ACTIVE];
 	    else
 		decor = GET_DECOR_WINDOW (w->parent, ds)->decor[DECOR_NORMAL];
@@ -982,7 +992,6 @@ static void
 decorHandleEvent (CompDisplay *d,
 		  XEvent      *event)
 {
-    Window     activeWindow = d->activeWindow;
     CompWindow *w;
 
     DECOR_DISPLAY (d);
@@ -1064,20 +1073,40 @@ decorHandleEvent (CompDisplay *d,
     (*d->handleEvent) (d, event);
     WRAP (dd, d, handleEvent, decorHandleEvent);
 
-    if (d->activeWindow != activeWindow)
-    {
-	w = findWindowAtDisplay (d, activeWindow);
-	if (w)
-	    decorWindowUpdate (w, TRUE);
-
-	w = findWindowAtDisplay (d, d->activeWindow);
-	if (w)
-	    decorWindowUpdate (w, TRUE);
-    }
-
     switch (event->type) {
+    case FocusIn:
+	if (event->xfocus.mode != NotifyGrab)
+	{
+	    w = findTopLevelWindowAtDisplay (d, event->xfocus.window);
+	    if (w && w->managed && (w = w->parent))
+	    {
+		CompWindow *c;
+
+		for (c = w->windows; c; c = c->next)
+		    if (c->id == w->previousActiveChild ||
+			c->id == w->activeChild)
+			decorWindowUpdate (c, TRUE);
+	    }
+	}
+	break;
     case PropertyNotify:
-	if (event->xproperty.atom == dd->winDecorAtom)
+	if (event->xproperty.atom == d->winActiveAtom)
+	{
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w)
+	    {	
+		if (!w->substructureRedirect)
+		{
+		    CompWindow *c;
+
+		    for (c = w->windows; c; c = c->next)
+			if (c->id == w->previousActiveChild ||
+			    c->id == w->activeChild)
+			    decorWindowUpdate (c, TRUE);
+		}
+	    }
+	}
+	else if (event->xproperty.atom == dd->winDecorAtom)
 	{
 	    w = findWindowAtDisplay (d, event->xproperty.window);
 	    if (w)
