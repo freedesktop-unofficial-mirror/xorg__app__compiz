@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <assert.h>
 
 #include <compiz-core.h>
 
@@ -251,49 +252,39 @@ paintOutputRegion (CompScreen	       *screen,
 		   CompOutput	       *output,
 		   unsigned int	       mask)
 {
-    static Region tmpRegion = NULL;
-    CompPainter   painter;
-    CompCursor	  *c;
-    int		  windowMask = 0;
-    Region        clip;
+    Region      r = XCreateRegion ();
+    CompPainter painter;
+    CompCursor	*c;
+    int		windowMask = 0;
 
-    if (!tmpRegion)
-    {
-	tmpRegion = XCreateRegion ();
-	if (!tmpRegion)
-	    return;
-    }
+    assert (r);
 
     (*screen->initObjectPainter) (screen, &painter);
 
     if (mask & PAINT_SCREEN_TRANSFORMED_MASK)
     	windowMask = PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK;
 
-    XSubtractRegion (region, &emptyRegion, tmpRegion);
+    XSubtractRegion (region, &emptyRegion, r);
 
-    clip = tmpRegion;
-    
     if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
     {
 	if ((*painter.paintObject) (&screen->root,
 				    &screen->root.paint,
 				    transform,
-				    tmpRegion,
+				    r,
 				    PAINT_WINDOW_OCCLUSION_DETECTION_MASK))
-	    XSubtractRegion (tmpRegion, screen->root.region, tmpRegion);
+	    XSubtractRegion (r, screen->root.region, r);
 
-	clip = screen->root.clip;
 	windowMask |= PAINT_WINDOW_CLIP_MASK;
     }
 
     if (!(mask & PAINT_SCREEN_NO_BACKGROUND_MASK))
-	paintBackground (screen, tmpRegion,
-			 (mask & PAINT_SCREEN_TRANSFORMED_MASK));
+	paintBackground (screen, r, (mask & PAINT_SCREEN_TRANSFORMED_MASK));
 
     (*painter.paintObject) (&screen->root,
 			    &screen->root.paint,
 			    transform,
-			    clip,
+			    r,
 			    windowMask);
 
     if (painter.fini)
@@ -301,7 +292,9 @@ paintOutputRegion (CompScreen	       *screen,
 
     /* paint cursors */
     for (c = screen->cursors; c; c = c->next)
-	(*screen->paintCursor) (c, transform, tmpRegion, 0);
+	(*screen->paintCursor) (c, transform, r, 0);
+
+    XDestroyRegion (r);
 }
 
 void
@@ -1143,14 +1136,19 @@ paintWindow (CompWindow		     *w,
 	c = (*walk.last) (w);
 	if (c)
 	{
+	    Region        r = XCreateRegion ();
 	    CompTransform wTransform = *transform;
 	    int		  count = 0;
 	    CompWindow	  *fullscreenWindow = NULL;
 
+	    assert (r);
+
+	    XIntersectRegion (region, w->region, r);
+
 	    if (w->attrib.x || w->attrib.y)
 	    {
 		matrixTranslate (&wTransform, w->attrib.x, w->attrib.y, 0);
-		XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
+		XOffsetRegion (r, -w->attrib.x, -w->attrib.y);
 		mask |= PAINT_WINDOW_WITH_OFFSET_MASK;
 	    }
 	
@@ -1188,7 +1186,7 @@ paintWindow (CompWindow		     *w,
 					 viewportOffsetY,
 					 0);
 
-			XOffsetRegion (region,
+			XOffsetRegion (r,
 				       -viewportOffsetX,
 				       -viewportOffsetY);
 
@@ -1197,17 +1195,17 @@ paintWindow (CompWindow		     *w,
 		}
 
 		/* copy region */
-		XSubtractRegion (region, &emptyRegion, c->clip);
+		XSubtractRegion (r, &emptyRegion, c->clip);
 
 		if ((*painter.paintObject) (c,
 					    &c->paint,
 					    &cTransform,
-					    region,
+					    r,
 					    mask | offsetMask))
-		    XSubtractRegion (region, c->region, region);
+		    XSubtractRegion (r, c->region, r);
 
 		if (viewportOffsetX || viewportOffsetY)
-		    XOffsetRegion (region,
+		    XOffsetRegion (r,
 				   viewportOffsetX,
 				   viewportOffsetY);
 
@@ -1217,7 +1215,7 @@ paintWindow (CompWindow		     *w,
 		    w->screen->opt[COMP_SCREEN_OPTION_UNREDIRECT_FS].value.b)
 		{
 		    if (XEqualRegion (c->region, &w->screen->region) &&
-			!REGION_NOT_EMPTY (region))
+			!REGION_NOT_EMPTY (r))
 		    {
 			fullscreenWindow = c;
 		    }
@@ -1235,11 +1233,10 @@ paintWindow (CompWindow		     *w,
 		count++;
 	    }
 
-	    if (w->attrib.x || w->attrib.y)
-		XOffsetRegion (region, w->attrib.x, w->attrib.y);
-
 	    if (fullscreenWindow)
 		unredirectWindow (fullscreenWindow);
+
+	    XDestroyRegion (r);
 	}
 
 	if (painter.fini)
@@ -1275,8 +1272,15 @@ paintWindow (CompWindow		     *w,
     c = (*walk.first) (w);
     if (c)
     {
+	Region        clip = NULL;
 	CompTransform wTransform = *transform;
-	Region        clip = region;
+
+	if (!(mask & PAINT_WINDOW_CLIP_MASK))
+	{
+	    clip = XCreateRegion ();
+	    assert (clip);
+	    XIntersectRegion (region, w->region, clip);
+	}
 
 	if (w->attrib.x || w->attrib.y)
 	{
@@ -1284,8 +1288,8 @@ paintWindow (CompWindow		     *w,
 
 	    mask |= PAINT_WINDOW_WITH_OFFSET_MASK;
 
-	    if (!(mask & PAINT_WINDOW_CLIP_MASK))
-		XOffsetRegion (region, -w->attrib.x, -w->attrib.y);
+	    if (clip)
+		XOffsetRegion (clip, -w->attrib.x, -w->attrib.y);
 	}
 
 	/* paint all sub-windows from bottom to top */
@@ -1326,8 +1330,8 @@ paintWindow (CompWindow		     *w,
 				     viewportOffsetY,
 				     0);
 
-		    if (clip == region)
-			XOffsetRegion (region,
+		    if (clip != c->clip)
+			XOffsetRegion (clip,
 				       -viewportOffsetX,
 				       -viewportOffsetY);
 
@@ -1341,17 +1345,14 @@ paintWindow (CompWindow		     *w,
 				    clip,
 				    mask | offsetMask);
 
-	    if (clip == region && (viewportOffsetX || viewportOffsetY))
-		XOffsetRegion (region,
+	    if (clip != c->clip && (viewportOffsetX || viewportOffsetY))
+		XOffsetRegion (clip,
 			       viewportOffsetX,
 			       viewportOffsetY);
 	}
 
-	if (w->attrib.x || w->attrib.y)
-	{
-	    if (!(mask & PAINT_WINDOW_CLIP_MASK))
-		XOffsetRegion (region, w->attrib.x, w->attrib.y);
-	}
+	if (!(mask & PAINT_WINDOW_CLIP_MASK))
+	    XDestroyRegion (clip);
     }
 
     if (painter.fini)
