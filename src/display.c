@@ -2655,7 +2655,8 @@ manageDisplay (CompDisplay *d)
     }
     else
     {
-	d->activeWindow = getActiveWindow (d, d->screens->root.id);
+	d->activeWindow = d->screens->root.activeChild =
+	    getActiveWindow (d, d->screens->root.id);
     }
 
     return TRUE;

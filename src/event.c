@@ -1709,18 +1709,30 @@ handleEvent (CompDisplay *d,
 	else if (event->xproperty.atom == d->winActiveAtom)
 	{
 	    w = findWindowAtDisplay (d, event->xproperty.window);
-	    if (w && w->parent == &w->screen->root)
+	    if (w)
 	    {	
-		if (!w->parent->substructureRedirect)
-		    d->activeWindow = getActiveWindow (d, w->parent->id);
+		if (!w->substructureRedirect)
+		{
+		    Window activeChild;
+		    
+		    activeChild = getActiveWindow (d, w->id);
+		    if (activeChild != w->activeChild)
+		    {
+			w->previousActiveChild = w->activeChild;
+			w->activeChild = activeChild;
+		    }
+
+		    if (!w->parent)
+			d->activeWindow = activeChild;
+		}
 	    }
 	}
 	else if (event->xproperty.atom == d->desktopViewportAtom)
 	{
 	    w = findWindowAtDisplay (d, event->xproperty.window);
-	    if (w && w->parent == &w->screen->root)
+	    if (w && !w->parent)
 	    {
-		if (!w->parent->substructureRedirect)
+		if (!w->substructureRedirect)
 		    getDesktopHints (w->screen);
 	    }
 	}
@@ -2231,9 +2243,14 @@ handleEvent (CompDisplay *d,
 	    {
 		unsigned int state = w->state;
 
-		if (w->id != d->activeWindow)
+		if (w->id != w->parent->activeChild)
 		{
-		    d->activeWindow = w->id;
+		    w->parent->previousActiveChild = w->parent->activeChild; 
+		    w->parent->activeChild = w->id;
+
+		    if (w->parent == &w->screen->root)
+			d->activeWindow = w->id;
+
 		    w->activeNum = w->screen->activeNum++;
 
 		    addToCurrentActiveWindowHistory (w->screen, w->id);

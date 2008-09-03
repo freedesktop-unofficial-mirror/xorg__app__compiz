@@ -2009,6 +2009,8 @@ addWindow (CompWindow *parent,
 
     w->supportingWmCheckWindow = None;
     w->syncStateSupport        = FALSE;
+    w->activeChild             = None;
+    w->previousActiveChild     = None;
 
     w->viewportOffsetX = 0;
     w->viewportOffsetY = 0;

@@ -927,6 +927,8 @@ struct _CompWindow {
 
     Bool   syncStateSupport;
     Window supportingWmCheckWindow;
+    Window activeChild;
+    Window previousActiveChild;
 
     Bool closeRequests;
     Time lastCloseRequestTime;
