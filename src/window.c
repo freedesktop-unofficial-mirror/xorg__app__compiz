@@ -2532,8 +2532,16 @@ sendConfigureNotify (CompWindow *w)
 void
 mapWindow (CompWindow *w)
 {
+    CompWindow *c;
+
     if (w->attrib.map_state == IsViewable)
 	return;
+
+    if (w->parent->attrib.map_state != IsViewable)
+    {
+	w->attrib.map_state = IsUnviewable;
+	return;
+    }
 
     if (w->pendingMaps > 0)
 	w->pendingMaps--;
@@ -2593,6 +2601,50 @@ mapWindow (CompWindow *w)
 			  w->attrib.width, ++w->attrib.height - 1,
 			  w->attrib.border_width);
     }
+
+    for (c = w->windows; c; c = c->next)
+	if (c->attrib.map_state == IsUnviewable)
+	    mapWindow (c);
+}
+
+static void
+withdrawWindowToState (CompWindow *w,
+		       int        state)
+{
+    CompWindow *c;
+
+    if (w->struts)
+	updateWorkareaForScreen (w->screen);
+
+    if (w->attrib.map_state == state)
+	return;
+
+    if (w->type == CompWindowTypeDesktopMask)
+	w->screen->desktopWindowCount--;
+
+    if (w->attrib.map_state == IsViewable)
+	addWindowDamage (w);
+
+    w->attrib.map_state = state;
+
+    w->invisible = TRUE;
+
+    releaseWindow (w);
+
+    if (w->shaded && w->height)
+	resizeWindow (w,
+		      w->attrib.x, w->attrib.y,
+		      w->attrib.width, ++w->attrib.height - 1,
+		      w->attrib.border_width);
+
+    updateClientListForScreen (w->screen);
+
+    if (!w->redirected)
+	redirectWindow (w);
+
+    for (c = w->windows; c; c = c->next)
+	if (c->attrib.map_state == IsViewable)
+	    withdrawWindowToState (c, IsUnviewable);
 }
 
 void
@@ -2613,33 +2665,7 @@ unmapWindow (CompWindow *w)
     if (w->unmapRefCnt > 0)
 	return;
 
-    if (w->struts)
-	updateWorkareaForScreen (w->screen);
-
-    if (w->attrib.map_state != IsViewable)
-	return;
-
-    if (w->type == CompWindowTypeDesktopMask)
-	w->screen->desktopWindowCount--;
-
-    addWindowDamage (w);
-
-    w->attrib.map_state = IsUnmapped;
-
-    w->invisible = TRUE;
-
-    releaseWindow (w);
-
-    if (w->shaded && w->height)
-	resizeWindow (w,
-		      w->attrib.x, w->attrib.y,
-		      w->attrib.width, ++w->attrib.height - 1,
-		      w->attrib.border_width);
-
-    updateClientListForScreen (w->screen);
-
-    if (!w->redirected)
-	redirectWindow (w);
+    withdrawWindowToState (w, IsUnmapped);
 }
 
 static int
