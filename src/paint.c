@@ -1079,6 +1079,9 @@ drawWindow (CompWindow		 *w,
     if (w->attrib.map_state != IsViewable)
 	return FALSE;
 
+    if (!w->damaged)
+	return FALSE;
+
     if (!w->parent || !w->parent->redirectSubwindows)
 	return FALSE;
 
@@ -1162,15 +1165,6 @@ paintWindow (CompWindow		     *w,
 		if (c->destroyed)
 		    continue;
 
-		if (!c->shaded)
-		{
-		    if (c->attrib.map_state != IsViewable)
-			continue;
-
-		    if (w->redirectSubwindows && !c->damaged)
-			continue;
-		}
-
 		if (!windowOnAllViewports (c))
 		{
 		    if (w->viewportOffsetX || w->viewportOffsetY)
@@ -1244,7 +1238,10 @@ paintWindow (CompWindow		     *w,
 	if (walk.fini)
 	    (*walk.fini) (w->screen, &walk);
 
-	if (!w->redirected)
+	if (w->attrib.map_state != IsViewable)
+	    return FALSE;
+
+	if (!w->redirected || !w->damaged || w->shaded)
 	    return FALSE;
 
 	return TRUE;
@@ -1302,15 +1299,6 @@ paintWindow (CompWindow		     *w,
 
 	    if (c->destroyed)
 		continue;
-
-	    if (!c->shaded)
-	    {
-		if (c->attrib.map_state != IsViewable)
-		    continue;
-
-		if (w->redirectSubwindows && !c->damaged)
-		    continue;
-	    }
 
 	    if (mask & PAINT_WINDOW_CLIP_MASK)
 		clip = c->clip;
