@@ -270,7 +270,7 @@ findNextWestEdge (CompWindow *w,
 
 	v1 = w->screen->outputDev[output].region.extents.x1;
 
-	for (p = w->screen->root.windows; p; p = p->next)
+	for (p = w->parent->windows; p; p = p->next)
 	{
 	    if (w == p)
 		continue;
@@ -375,7 +375,7 @@ findNextEastEdge (CompWindow *w,
 
 	v1 = w->screen->outputDev[output].region.extents.x2;
 
-	for (p = w->screen->root.windows; p; p = p->next)
+	for (p = w->parent->windows; p; p = p->next)
 	{
 	    if (w == p)
 		continue;
@@ -480,7 +480,7 @@ findNextNorthEdge (CompWindow *w,
 
 	v1 = w->screen->outputDev[output].region.extents.y1;
 
-	for (p = w->screen->root.windows; p; p = p->next)
+	for (p = w->parent->windows; p; p = p->next)
 	{
 	    if (w == p)
 		continue;
@@ -583,7 +583,7 @@ findNextSouthEdge (CompWindow *w,
 
 	v1 = w->screen->outputDev[output].region.extents.y2;
 
-	for (p = w->screen->root.windows; p; p = p->next)
+	for (p = w->parent->windows; p; p = p->next)
 	{
 	    if (w == p)
 		continue;
@@ -1656,7 +1656,8 @@ wobblyPreparePaintScreen (CompScreen *s,
 	springK  = ws->opt[WOBBLY_SCREEN_OPTION_SPRING_K].value.f;
 
 	ws->wobblyWindows = 0;
-	for (w = s->root.windows; w; w = w->next)
+	w = s->root.windows;
+	for (;;)
 	{
 	    ww = GET_WOBBLY_WINDOW (w, ws);
 
@@ -1738,6 +1739,20 @@ wobblyPreparePaintScreen (CompScreen *s,
 
 		ws->wobblyWindows |= ww->wobbly;
 	    }
+
+	    if (w->windows)
+	    {
+		w = w->windows;
+		continue;
+	    }
+
+	    while (!w->next && (w != &s->root))
+		w = w->parent;
+
+	    if (w == &s->root)
+		break;
+
+	    w = w->next;
 	}
     }
 
@@ -2000,12 +2015,27 @@ wobblyEnableSnapping (CompDisplay     *d,
 
     for (s = d->screens; s; s = s->next)
     {
-	for (w = s->root.windows; w; w = w->next)
+	w = s->root.windows;
+	for (;;)
 	{
 	    WOBBLY_WINDOW (w);
 
 	    if (ww->grabbed && ww->model)
 		modelUpdateSnapping (w, ww->model);
+
+	    if (w->windows)
+	    {
+		w = w->windows;
+		continue;
+	    }
+
+	    while (!w->next && (w != &s->root))
+		w = w->parent;
+
+	    if (w == &s->root)
+		break;
+
+	    w = w->next;
 	}
     }
 
@@ -2031,7 +2061,8 @@ wobblyDisableSnapping (CompDisplay     *d,
 
     for (s = d->screens; s; s = s->next)
     {
-	for (w = s->root.windows; w; w = w->next)
+	w = s->root.windows;
+	for (;;)
 	{
 	    WOBBLY_WINDOW (w);
 
@@ -2047,6 +2078,20 @@ wobblyDisableSnapping (CompDisplay     *d,
 		    damagePendingOnScreen (w->screen);
 		}
 	    }
+
+	    if (w->windows)
+	    {
+		w = w->windows;
+		continue;
+	    }
+
+	    while (!w->next && (w != &s->root))
+		w = w->parent;
+
+	    if (w == &s->root)
+		break;
+
+	    w = w->next;
 	}
     }
 
