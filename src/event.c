@@ -1686,7 +1686,7 @@ handleEvent (CompDisplay *d,
 		 event->xproperty.atom == d->supportedAtom)
 	{
 	    w = findWindowAtDisplay (d, event->xproperty.window);
-	    if (w && w->redirectSubwindows)
+	    if (w && !w->substructureRedirect)
 		getSupportingWmCheck (w);
 	}
 	else if (event->xproperty.atom == d->syncStateAtom)
