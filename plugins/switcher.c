@@ -1322,8 +1322,9 @@ switchPaintOutput (CompScreen		   *s,
 		for (w = zoomed->prev; w && w->id <= 1; w = w->prev);
 		zoomedAbove = (w) ? w->id : None;
 
-		unhookWindow (&s->root, zoomed);
-		insertWindow (&s->root, zoomed, s->root.reverseWindows->id);
+		unhookWindow (zoomed->parent, zoomed);
+		insertWindow (zoomed->parent, zoomed,
+			      zoomed->parent->reverseWindows->id);
 	    }
 	}
 	else
@@ -1356,8 +1357,8 @@ switchPaintOutput (CompScreen		   *s,
 
 	if (zoomed)
 	{
-	    unhookWindow (&s->root, zoomed);
-	    insertWindow (&s->root, zoomed, zoomedAbove);
+	    unhookWindow (zoomed->parent, zoomed);
+	    insertWindow (zoomed->parent, zoomed, zoomedAbove);
 	}
 
 	if (switcher)
