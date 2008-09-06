@@ -188,8 +188,14 @@ decorDrawWindow (CompWindow	      *w,
     status = (*w->screen->drawWindow) (w, transform, attrib, region, mask);
     WRAP (ds, w->screen, drawWindow, decorDrawWindow);
 
-    if (!status)
-	return FALSE;
+    if (!w->shaded)
+    {
+	if (w->attrib.map_state != IsViewable)
+	    return status;
+
+	if (!w->damaged)
+	    return status;
+    }
 
     if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
 	region = &infiniteRegion;
