@@ -178,7 +178,7 @@ initSvgTexture (CompWindow *w,
 	XGetWindowAttributes (s->display->display, w->id, &attr);
 
 	depth = attr.depth;
-	texture->pixmap = XCreatePixmap (s->display->display, s->root,
+	texture->pixmap = XCreatePixmap (s->display->display, s->root.id,
 					 width, height, depth);
 
 	if (!bindPixmapToTexture (s,
