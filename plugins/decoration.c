@@ -899,6 +899,33 @@ decorWindowUpdate (CompWindow *w,
 }
 
 static void
+decorWindowUpdateTree (CompWindow *ancestor,
+		       Bool       allowDecoration)
+{
+    CompWindow *w;
+
+    w = ancestor;
+    for (;;)
+    {
+	decorWindowUpdate (w, allowDecoration);
+
+	if (w->windows)
+	{
+	    w = w->windows;
+	    continue;
+	}
+
+	while (!w->next && (w != ancestor))
+	    w = w->parent;
+	    
+	if (w == ancestor)
+	    break;
+
+	w = w->next;
+    }
+}
+
+static void
 decorCheckForDm (CompWindow *w,
 		 Bool	    updateWindows)
 {
@@ -1087,7 +1114,7 @@ decorHandleEvent (CompDisplay *d,
 		for (c = w->windows; c; c = c->next)
 		    if (c->id == w->previousActiveChild ||
 			c->id == w->activeChild)
-			decorWindowUpdate (c, TRUE);
+			decorWindowUpdateTree (c, TRUE);
 	    }
 	}
 	break;
@@ -1104,7 +1131,7 @@ decorHandleEvent (CompDisplay *d,
 		    for (c = w->windows; c; c = c->next)
 			if (c->id == w->previousActiveChild ||
 			    c->id == w->activeChild)
-			    decorWindowUpdate (c, TRUE);
+			    decorWindowUpdateTree (c, TRUE);
 		}
 	    }
 	}
@@ -1320,30 +1347,9 @@ decorSetDisplayOption (CompPlugin      *plugin,
 	if (compSetMatchOption (o, value))
 	{
 	    CompScreen *s;
-	    CompWindow *w;
 
 	    for (s = display->screens; s; s = s->next)
-	    {
-		w = s->root.windows;
-		for (;;)
-		{
-		    decorWindowUpdate (w, TRUE);
-
-		    if (w->windows)
-		    {
-			w = w->windows;
-			continue;
-		    }
-
-		    while (!w->next && (w != &s->root))
-			w = w->parent;
-	    
-		    if (w == &s->root)
-			break;
-
-		    w = w->next;
-		}
-	    }
+		decorWindowUpdateTree (&s->root, TRUE);
 	}
 	break;
     default:
