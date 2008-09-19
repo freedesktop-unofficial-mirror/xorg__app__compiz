@@ -47,7 +47,7 @@ glxInitDisplay (CompPlugin  *p,
 
     if (!glXQueryExtension (d->display, &error, &event))
     {
-	compLogMessage (d, p->vTable->name, CompLogLevelError,
+	compLogMessage (p->vTable->name, CompLogLevelError,
 			"GLX extension is not available");
 	return FALSE;
     }
