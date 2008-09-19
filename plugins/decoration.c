@@ -934,10 +934,6 @@ decorCheckForDm (CompWindow *w,
 	    dmWin = None;
     }
 
-    /* don't allow dm's on redirected windows */
-    if (w->parent && w->parent->redirectSubwindows)
-	dmWin = None;
-
     if (dmWin != dw->dmWin)
     {
 	CompWindow *c;
@@ -1723,7 +1719,9 @@ decorInitWindow (CompPlugin *p,
 
     w->base.privates[ds->windowPrivateIndex].ptr = dw;
 
-    if (w->parent && w->parent->redirectSubwindows)
+    decorCheckForDm (w, FALSE);
+
+    if (w->parent)
     {
 	if (!w->attrib.override_redirect)
 	{
@@ -1740,8 +1738,6 @@ decorInitWindow (CompPlugin *p,
     else
     {
 	DECOR_SCREEN (w->screen);
-
-	decorCheckForDm (w, FALSE);
 
 	if (!w->parent && !dw->dmWin)
 	    ds->decoratorStartHandle = compAddTimeout (0, -1,
