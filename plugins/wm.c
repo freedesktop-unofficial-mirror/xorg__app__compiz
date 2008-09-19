@@ -45,7 +45,7 @@ wmInitDisplay (CompPlugin  *p,
 
     if (d->screens)
     {
-	compLogMessage (d, p->vTable->name, CompLogLevelError,
+	compLogMessage (p->vTable->name, CompLogLevelError,
 			"%s plugin must be loaded before screens are "
 			"initialize", p->vTable->name);
 	return FALSE;
