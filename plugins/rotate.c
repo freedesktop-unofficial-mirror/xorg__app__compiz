@@ -1494,6 +1494,7 @@ rotateHandleEvent (CompDisplay *d,
 		   XEvent      *event)
 {
     CompScreen *s;
+    int        dx = 0;
 
     ROTATE_DISPLAY (d);
 
@@ -1550,8 +1551,6 @@ rotateHandleEvent (CompDisplay *d,
 	    s = findScreenAtDisplay (d, event->xclient.window);
 	    if (s)
 	    {
-		int dx;
-
 		ROTATE_SCREEN (s);
 
 		if (otherScreenGrabExist (s, "rotate", "switcher", "cube", 0))
@@ -1603,6 +1602,29 @@ rotateHandleEvent (CompDisplay *d,
     UNWRAP (rd, d, handleEvent);
     (*d->handleEvent) (d, event);
     WRAP (rd, d, handleEvent, rotateHandleEvent);
+
+    switch (event->type) {
+    case ClientMessage:
+	if (!dx)
+	    break;
+
+	if (event->xclient.message_type == d->desktopViewportAtom)
+	{
+	    s = findScreenAtDisplay (d, event->xclient.window);
+	    if (s)
+	    {
+		ROTATE_SCREEN (s);
+
+		if (rs->moving)
+		{
+		    rs->moveTo   += (360.0f / s->hsize) * -dx;
+		    rs->baseXrot += (360.0f / s->hsize) * dx;
+		}
+	    }
+	}
+    default:
+	break;
+    }
 }
 
 static void
