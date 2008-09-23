@@ -1980,6 +1980,9 @@ initRootWindow (CompScreen *s,
     rect.extents.y2 = w->attrib.y + w->height;
 
     XUnionRegion (&rect, w->region, w->region);
+
+    w->substructureRedirect = windowManagement;
+    w->redirectSubwindows   = manualCompositeManagement;
 }
 
 void

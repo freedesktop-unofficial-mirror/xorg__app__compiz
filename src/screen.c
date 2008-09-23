@@ -1946,7 +1946,7 @@ addScreen (CompDisplay *display,
     XFreePixmap (dpy, bitmap);
     XFreeColors (dpy, s->colormap, &black.pixel, 1, 0);
 
-    if ((s->root.redirectSubwindows = manualCompositeManagement))
+    if (s->root.redirectSubwindows)
     {
 	glXGetConfig (dpy, visinfo, GLX_USE_GL, &value);
 	if (!value)
@@ -2427,7 +2427,7 @@ addScreen (CompDisplay *display,
     s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
     s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
 
-    if ((s->root.substructureRedirect = windowManagement))
+    if (s->root.substructureRedirect)
     {
 	setDesktopHints (s);
 	setSupportingWmCheck (s);
