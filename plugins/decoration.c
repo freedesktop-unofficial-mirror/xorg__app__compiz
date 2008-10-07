@@ -1472,7 +1472,7 @@ decorMatchPropertyChanged (CompDisplay *d,
 }
 
 static void
-decorWindowAdd (CompScreen *s,
+decorWindowAdd (CompObject *parent,
 		CompWindow *w)
 {
     if (w->shaded || w->attrib.map_state == IsViewable)
@@ -1480,7 +1480,7 @@ decorWindowAdd (CompScreen *s,
 }
 
 static void
-decorWindowRemove (CompScreen *s,
+decorWindowRemove (CompObject *parent,
 		   CompWindow *w)
 {
     if (!w->destroyed)
@@ -1752,7 +1752,7 @@ decorInitWindow (CompPlugin *p,
     }
 
     if (w->base.parent)
-	decorWindowAdd (w->screen, w);
+	decorWindowAdd (w->base.parent, w);
 
     return TRUE;
 }
@@ -1769,7 +1769,7 @@ decorFiniWindow (CompPlugin *p,
 	compRemoveTimeout (dw->resizeUpdateHandle);
 
     if (w->base.parent)
-	decorWindowRemove (w->screen, w);
+	decorWindowRemove (w->base.parent, w);
 
     if (dw->wd)
 	destroyWindowDecoration (w->screen, dw->wd);
