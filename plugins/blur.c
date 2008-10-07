@@ -2735,10 +2735,10 @@ blurMatchPropertyChanged (CompDisplay *d,
 }
 
 static void
-blurWindowAdd (CompScreen *s,
+blurWindowAdd (CompObject *parent,
 	       CompWindow *w)
 {
-    BLUR_SCREEN (s);
+    BLUR_SCREEN (w->screen);
 
     blurWindowUpdate (w, BLUR_STATE_CLIENT);
     blurWindowUpdate (w, BLUR_STATE_DECOR);
@@ -3113,7 +3113,7 @@ blurInitWindow (CompPlugin *p,
     w->base.privates[bs->windowPrivateIndex].ptr = bw;
 
     if (w->base.parent)
-	blurWindowAdd (w->screen, w);
+	blurWindowAdd (w->base.parent, w);
 
     return TRUE;
 }
