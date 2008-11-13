@@ -264,6 +264,9 @@ paintOutputRegion (CompScreen	       *screen,
     if (mask & PAINT_SCREEN_TRANSFORMED_MASK)
     	windowMask = PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK;
 
+    if (mask & PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS_MASK)
+    	windowMask |= PAINT_WINDOW_WITH_TRANSFORMED_CHILD_MASK;
+
     XSubtractRegion (region, &emptyRegion, r);
 
     if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
@@ -338,9 +341,6 @@ disableOutputClipping (CompScreen *screen)
     glDisable (GL_CLIP_PLANE3);
 }
 
-#define CLIP_PLANE_MASK (PAINT_SCREEN_TRANSFORMED_MASK | \
-			 PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS_MASK)
-
 void
 paintTransformedOutput (CompScreen		*screen,
 			const ScreenPaintAttrib *sAttrib,
@@ -358,34 +358,14 @@ paintTransformedOutput (CompScreen		*screen,
 
     (*screen->applyScreenTransform) (screen, sAttrib, output, &sTransform);
 
-    if ((mask & CLIP_PLANE_MASK) == CLIP_PLANE_MASK)
-    {
-	transformToScreenSpace (screen, output, -sAttrib->zTranslate,
-				&sTransform);
+    transformToScreenSpace (screen, output, -sAttrib->zTranslate, &sTransform);
 
-	screen->enableOutputClipping (screen, &sTransform, region, output);
+    glPushMatrix ();
+    glLoadMatrixf (sTransform.m);
 
-	glPushMatrix ();
-	glLoadMatrixf (sTransform.m);
+    paintOutputRegion (screen, &sTransform, region, output, mask);
 
-	paintOutputRegion (screen, &sTransform, region, output, mask);
-
-	glPopMatrix ();
-
-	screen->disableOutputClipping (screen);
-    }
-    else
-    {
-	transformToScreenSpace (screen, output, -sAttrib->zTranslate,
-				&sTransform);
-
-	glPushMatrix ();
-	glLoadMatrixf (sTransform.m);
-
-	paintOutputRegion (screen, &sTransform, region, output, mask);
-
-	glPopMatrix ();
-    }
+    glPopMatrix ();
 }
 
 Bool
@@ -1265,6 +1245,7 @@ paintWindow (CompWindow		     *w,
     {
 	Region        clip = NULL;
 	CompTransform wTransform = *transform;
+	unsigned int  clipMask = PAINT_WINDOW_WITH_TRANSFORMED_CHILD_MASK;
 
 	if (!(mask & PAINT_WINDOW_CLIP_MASK))
 	{
@@ -1281,6 +1262,22 @@ paintWindow (CompWindow		     *w,
 
 	    if (clip)
 		XOffsetRegion (clip, -w->attrib.x, -w->attrib.y);
+	}
+
+	if (w->redirectSubwindows)
+	{
+	    /* root only need clip planes when transformed */
+	    if (!w->parent)
+		clipMask |= PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK;
+
+	    if ((mask & clipMask) == clipMask)
+	    {
+		glPushAttrib (GL_TRANSFORM_BIT);
+		(*w->screen->enableOutputClipping) (w->screen,
+						    &wTransform,
+						    w->region,
+						    0);
+	    }
 	}
 
 	/* paint all sub-windows from bottom to top */
@@ -1331,6 +1328,12 @@ paintWindow (CompWindow		     *w,
 		XOffsetRegion (clip,
 			       viewportOffsetX,
 			       viewportOffsetY);
+	}
+
+	if (w->redirectSubwindows)
+	{
+	    if ((mask & clipMask) == clipMask)
+		glPopAttrib ();
 	}
 
 	if (!(mask & PAINT_WINDOW_CLIP_MASK))

@@ -2134,6 +2134,11 @@ struct _CompPainter {
 */
 #define PAINT_WINDOW_BLEND_MASK			(1 << 19)
 
+/*
+  flag indicate that there might be transformed child windows.
+*/
+#define PAINT_WINDOW_WITH_TRANSFORMED_CHILD_MASK (1 << 20)
+
 
 typedef Bool (*DrawWindowProc) (CompWindow	     *window,
 				const CompTransform  *transform,
