@@ -303,21 +303,15 @@ enableOutputClipping (CompScreen 	  *screen,
 		      Region		  region,
 		      CompOutput 	  *output)
 {
-    GLdouble h = screen->height;
+    GLdouble x1 = region->extents.x1 > 0 ? 1.0 / region->extents.x1 : MAXSHORT;
+    GLdouble y1 = region->extents.y1 > 0 ? 1.0 / region->extents.y1 : MAXSHORT;
+    GLdouble x2 = region->extents.x2 > 0 ? 1.0 / region->extents.x2 : MAXSHORT;
+    GLdouble y2 = region->extents.y2 > 0 ? 1.0 / region->extents.y2 : MAXSHORT;
 
-    GLdouble p1[2] = { region->extents.x1, h - region->extents.y2 };
-    GLdouble p2[2] = { region->extents.x2, h - region->extents.y1 };
-
-    GLdouble halfW = output->width / 2.0;
-    GLdouble halfH = output->height / 2.0;
-
-    GLdouble cx = output->region.extents.x1 + halfW;
-    GLdouble cy = (h - output->region.extents.y2) + halfH;
-
-    GLdouble top[4]    = { 0.0, halfH / (cy - p1[1]), 0.0, 0.5 };
-    GLdouble bottom[4] = { 0.0, halfH / (cy - p2[1]), 0.0, 0.5 };
-    GLdouble left[4]   = { halfW / (cx - p1[0]), 0.0, 0.0, 0.5 };
-    GLdouble right[4]  = { halfW / (cx - p2[0]), 0.0, 0.0, 0.5 };
+    GLdouble top[4]    = { 0.0,  y1, 0.0, -1.0 };
+    GLdouble bottom[4] = { 0.0, -y2, 0.0,  1.0 };
+    GLdouble left[4]   = {  x1, 0.0, 0.0, -1.0 };
+    GLdouble right[4]  = { -x2, 0.0, 0.0,  1.0 };
 
     glPushMatrix ();
     glLoadMatrixf (transform->m);
@@ -366,10 +360,10 @@ paintTransformedOutput (CompScreen		*screen,
 
     if ((mask & CLIP_PLANE_MASK) == CLIP_PLANE_MASK)
     {
-	screen->enableOutputClipping (screen, &sTransform, region, output);
-
 	transformToScreenSpace (screen, output, -sAttrib->zTranslate,
 				&sTransform);
+
+	screen->enableOutputClipping (screen, &sTransform, region, output);
 
 	glPushMatrix ();
 	glLoadMatrixf (sTransform.m);
