@@ -161,6 +161,12 @@ typedef struct _WobblyScreen {
     unsigned int grabMask;
     CompWindow	 *grabWindow;
     Bool         moveWindow;
+
+    Model *model;
+    int   x;
+    int   y;
+    float width;
+    float height;
 } WobblyScreen;
 
 #define WobblyInitial  (1L << 0)
@@ -1821,19 +1827,17 @@ wobblyAddWindowGeometry (CompWindow *w,
 			 Region     region,
 			 Region     clip)
 {
-    WOBBLY_WINDOW (w);
     WOBBLY_SCREEN (w->screen);
 
-    if (ww->wobbly)
+    if (ws->model)
     {
-	BoxPtr   pClip;
-	int      nClip, nVertices, nIndices;
+	BoxPtr   pClip, pBox;
+	int      nClip, nBox, nVertices, nIndices;
 	GLushort *i;
 	GLfloat  *v;
 	int      x1, y1, x2, y2;
-	float    width, height;
 	float    deformedX, deformedY;
-	int      x, y, iw, ih, wx, wy;
+	int      x, y, iw, ih;
 	int      vSize, it;
 	int      gridW, gridH;
 	Bool     rect = TRUE;
@@ -1847,21 +1851,19 @@ wobblyAddWindowGeometry (CompWindow *w,
 	    }
 	}
 
-	wx     = WIN_X (w);
-	wy     = WIN_Y (w);
-	width  = WIN_W (w);
-	height = WIN_H (w);
-
-	gridW = width / ws->opt[WOBBLY_SCREEN_OPTION_GRID_RESOLUTION].value.i;
+	gridW = ws->width / ws->opt[WOBBLY_SCREEN_OPTION_GRID_RESOLUTION].value.i;
 	if (gridW < ws->opt[WOBBLY_SCREEN_OPTION_MIN_GRID_SIZE].value.i)
 	    gridW = ws->opt[WOBBLY_SCREEN_OPTION_MIN_GRID_SIZE].value.i;
 
-	gridH = height / ws->opt[WOBBLY_SCREEN_OPTION_GRID_RESOLUTION].value.i;
+	gridH = ws->height / ws->opt[WOBBLY_SCREEN_OPTION_GRID_RESOLUTION].value.i;
 	if (gridH < ws->opt[WOBBLY_SCREEN_OPTION_MIN_GRID_SIZE].value.i)
 	    gridH = ws->opt[WOBBLY_SCREEN_OPTION_MIN_GRID_SIZE].value.i;
 
-	nClip = region->numRects;
-	pClip = region->rects;
+	nClip = clip->numRects;
+	pClip = clip->rects;
+
+	nBox = region->numRects;
+	pBox = region->rects;
 
 	w->texUnits = nMatrix;
 
@@ -1873,96 +1875,114 @@ wobblyAddWindowGeometry (CompWindow *w,
 	v = w->vertices + (nVertices * vSize);
 	i = w->indices  + nIndices;
 
-	while (nClip--)
+	while (nBox--)
 	{
-	    x1 = pClip->x1;
-	    y1 = pClip->y1;
-	    x2 = pClip->x2;
-	    y2 = pClip->y2;
-
-	    iw = ((x2 - x1 - 1) / gridW) + 1;
-	    ih = ((y2 - y1 - 1) / gridH) + 1;
-
-	    if (nIndices + (iw * ih * 4) > w->indexSize)
+	    while (nClip--)
 	    {
-		if (!moreWindowIndices (w, nIndices + (iw * ih * 4)))
-		    return;
+		x1 = pClip->x1;
+		y1 = pClip->y1;
+		x2 = pClip->x2;
+		y2 = pClip->y2;
 
-		i = w->indices + nIndices;
-	    }
+		if (x1 < pBox->x1)
+		    x1 = pBox->x1;
+		if (y1 < pBox->y1)
+		    y1 = pBox->y1;
+		if (x2 > pBox->x2)
+		    x2 = pBox->x2;
+		if (y2 > pBox->y2)
+		    y2 = pBox->y2;
 
-	    iw++;
-	    ih++;
-
-	    for (y = 0; y < ih - 1; y++)
-	    {
-		for (x = 0; x < iw - 1; x++)
+		if (x1 < x2 && y1 < y2)
 		{
-		    *i++ = nVertices + iw * (y + 1) + x;
-		    *i++ = nVertices + iw * (y + 1) + x + 1;
-		    *i++ = nVertices + iw * y + x + 1;
-		    *i++ = nVertices + iw * y + x;
+		    iw = ((x2 - x1 - 1) / gridW) + 1;
+		    ih = ((y2 - y1 - 1) / gridH) + 1;
 
-		    nIndices += 4;
-		}
-	    }
-
-	    if (((nVertices + iw * ih) * vSize) > w->vertexSize)
-	    {
-		if (!moreWindowVertices (w, (nVertices + iw * ih) * vSize))
-		    return;
-
-		v = w->vertices + (nVertices * vSize);
-	    }
-
-	    for (y = y1;; y += gridH)
-	    {
-		if (y > y2)
-		    y = y2;
-
-		for (x = x1;; x += gridW)
-		{
-		    if (x > x2)
-			x = x2;
-
-		    bezierPatchEvaluate (ww->model,
-					 (x - wx) / width,
-					 (y - wy) / height,
-					 &deformedX,
-					 &deformedY);
-
-		    if (rect)
+		    if (nIndices + (iw * ih * 4) > w->indexSize)
 		    {
-			for (it = 0; it < nMatrix; it++)
-			{
-			    *v++ = COMP_TEX_COORD_X (&matrix[it], x);
-			    *v++ = COMP_TEX_COORD_Y (&matrix[it], y);
-			}
+			if (!moreWindowIndices (w, nIndices + (iw * ih * 4)))
+			    return;
+
+			i = w->indices + nIndices;
 		    }
-		    else
+
+		    iw++;
+		    ih++;
+
+		    for (y = 0; y < ih - 1; y++)
 		    {
-			for (it = 0; it < nMatrix; it++)
+			for (x = 0; x < iw - 1; x++)
 			{
-			    *v++ = COMP_TEX_COORD_XY (&matrix[it], x, y);
-			    *v++ = COMP_TEX_COORD_YX (&matrix[it], x, y);
+			    *i++ = nVertices + iw * (y + 1) + x;
+			    *i++ = nVertices + iw * (y + 1) + x + 1;
+			    *i++ = nVertices + iw * y + x + 1;
+			    *i++ = nVertices + iw * y + x;
+
+			    nIndices += 4;
 			}
 		    }
 
-		    *v++ = deformedX;
-		    *v++ = deformedY;
-		    *v++ = 0.0;
+		    if (((nVertices + iw * ih) * vSize) > w->vertexSize)
+		    {
+			if (!moreWindowVertices (w,
+						 (nVertices + iw * ih) * vSize))
+			    return;
 
-		    nVertices++;
+			v = w->vertices + (nVertices * vSize);
+		    }
 
-		    if (x == x2)
-			break;
+		    for (y = y1;; y += gridH)
+		    {
+			if (y > y2)
+			    y = y2;
+
+			for (x = x1;; x += gridW)
+			{
+			    if (x > x2)
+				x = x2;
+
+			    bezierPatchEvaluate (ws->model,
+						 (x - ws->x) / ws->width,
+						 (y - ws->y) / ws->height,
+						 &deformedX,
+						 &deformedY);
+
+			    if (rect)
+			    {
+				for (it = 0; it < nMatrix; it++)
+				{
+				    *v++ = COMP_TEX_COORD_X (&matrix[it], x);
+				    *v++ = COMP_TEX_COORD_Y (&matrix[it], y);
+				}
+			    }
+			    else
+			    {
+				for (it = 0; it < nMatrix; it++)
+				{
+				    *v++ = COMP_TEX_COORD_XY (&matrix[it], x, y);
+				    *v++ = COMP_TEX_COORD_YX (&matrix[it], x, y);
+				}
+			    }
+
+			    *v++ = deformedX;
+			    *v++ = deformedY;
+			    *v++ = 0.0;
+
+			    nVertices++;
+
+			    if (x == x2)
+				break;
+			}
+
+			if (y == y2)
+			    break;
+		    }
 		}
-
-		if (y == y2)
-		    break;
+		
+		pClip++;
 	    }
 
-	    pClip++;
+	    pBox++;
 	}
 
 	w->vCount	      = nVertices;
@@ -1976,6 +1996,53 @@ wobblyAddWindowGeometry (CompWindow *w,
 	UNWRAP (ws, w->screen, addWindowGeometry);
 	(*w->screen->addWindowGeometry) (w, matrix, nMatrix, region, clip);
 	WRAP (ws, w->screen, addWindowGeometry, wobblyAddWindowGeometry);
+    }
+}
+
+static void
+wobblyDrawSubWindows (CompWindow          *w,
+		      const CompTransform *transform,
+		      Region              region,
+		      int                 mask)
+{
+    CompWindow *c;
+
+    for (c = w->windows; c; c = c->next)
+    {
+	FragmentAttrib fragment;
+	unsigned int   wMask = mask;
+
+	initFragmentAttrib (&fragment, &c->lastPaint);
+
+	if (c->alpha || fragment.opacity != OPAQUE)
+	    wMask |= PAINT_WINDOW_TRANSLUCENT_MASK;
+
+	(*w->screen->drawWindow) (c, transform, &fragment, region, wMask);
+
+	if (c->windows)
+	{
+	    Region r;
+
+	    r = XCreateRegion ();
+	    if (r)
+	    {
+		WOBBLY_SCREEN (w->screen);
+
+		XSubtractRegion (region, &emptyRegion, r);
+		XIntersectRegion (r, c->region, r);
+		XOffsetRegion (r, -c->attrib.x, -c->attrib.y);
+
+		ws->x -= c->attrib.x;
+		ws->y -= c->attrib.y;
+
+		wobblyDrawSubWindows (c, transform, r, mask);
+
+		ws->x += c->attrib.x;
+		ws->y += c->attrib.y;
+
+		XDestroyRegion (r);
+	    }
+	}
     }
 }
 
@@ -2004,16 +2071,42 @@ wobblyPaintWindow (CompWindow		   *w,
 				    mask | PAINT_WINDOW_NO_CORE_INSTANCE_MASK);
 	WRAP (ws, s, paintWindow, wobblyPaintWindow);
 
+	glPushMatrix ();
+	glLoadMatrixf (transform->m);
+
+	ws->model  = ww->model;
+	ws->x      = WIN_X (w);
+	ws->y      = WIN_Y (w);
+	ws->width  = WIN_W (w);
+	ws->height = WIN_H (w);
+
 	initFragmentAttrib (&fragment, &w->lastPaint);
 
 	if (w->alpha || fragment.opacity != OPAQUE)
 	    mask |= PAINT_WINDOW_TRANSLUCENT_MASK;
 
-	glPushMatrix ();
-	glLoadMatrixf (transform->m);
-
-	(*s->drawWindow) (w, transform, &fragment, region,
+	(*s->drawWindow) (w,
+			  transform,
+			  &fragment,
+			  region,
 			  mask | PAINT_WINDOW_TRANSFORMED_MASK);
+
+	if (w->windows)
+	{
+	    XOffsetRegion (w->region, -w->attrib.x, -w->attrib.y);
+
+	    ws->x -= w->attrib.x;
+	    ws->y -= w->attrib.y;
+	    
+	    wobblyDrawSubWindows (w,
+				  transform,
+				  w->region,
+				  PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK);
+
+	    XOffsetRegion (w->region, w->attrib.x, w->attrib.y);
+	}
+
+	ws->model = NULL;
 
 	glPopMatrix ();
     }
@@ -2834,6 +2927,8 @@ wobblyInitScreen (CompPlugin *p,
     ws->grabMask   = 0;
     ws->grabWindow = NULL;
     ws->moveWindow = FALSE;
+
+    ws->model = NULL;
 
     WRAP (ws, s, preparePaintScreen, wobblyPreparePaintScreen);
     WRAP (ws, s, donePaintScreen, wobblyDonePaintScreen);
