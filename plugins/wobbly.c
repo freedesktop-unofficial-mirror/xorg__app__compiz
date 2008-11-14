@@ -1986,17 +1986,43 @@ wobblyPaintWindow (CompWindow		   *w,
 		   Region		   region,
 		   unsigned int		   mask)
 {
-    Bool status;
+    CompScreen *s = w->screen;
+    Bool       status;
 
-    WOBBLY_SCREEN (w->screen);
+    WOBBLY_SCREEN (s);
     WOBBLY_WINDOW (w);
 
     if (ww->wobbly)
-	mask |= PAINT_WINDOW_TRANSFORMED_MASK;
+    {
+	FragmentAttrib fragment;
 
-    UNWRAP (ws, w->screen, paintWindow);
-    status = (*w->screen->paintWindow) (w, attrib, transform, region, mask);
-    WRAP (ws, w->screen, paintWindow, wobblyPaintWindow);
+	if (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK)
+	    return FALSE;
+
+	UNWRAP (ws, s, paintWindow);
+	status = (*s->paintWindow) (w, attrib, transform, region,
+				    mask | PAINT_WINDOW_NO_CORE_INSTANCE_MASK);
+	WRAP (ws, s, paintWindow, wobblyPaintWindow);
+
+	initFragmentAttrib (&fragment, &w->lastPaint);
+
+	if (w->alpha || fragment.opacity != OPAQUE)
+	    mask |= PAINT_WINDOW_TRANSLUCENT_MASK;
+
+	glPushMatrix ();
+	glLoadMatrixf (transform->m);
+
+	(*s->drawWindow) (w, transform, &fragment, region,
+			  mask | PAINT_WINDOW_TRANSFORMED_MASK);
+
+	glPopMatrix ();
+    }
+    else
+    {
+	UNWRAP (ws, s, paintWindow);
+	status = (*s->paintWindow) (w, attrib, transform, region, mask);
+	WRAP (ws, s, paintWindow, wobblyPaintWindow);
+    }
 
     return status;
 }
