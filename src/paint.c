@@ -1080,11 +1080,10 @@ paintWindow (CompWindow		     *w,
 	     Region		     region,
 	     unsigned int	     mask)
 {
-    FragmentAttrib fragment;
-    CompWindow     *c;
-    CompWalker     walk;
-    CompPainter    painter;
-    Bool	   status;
+    CompWindow  *c;
+    CompWalker  walk;
+    CompPainter painter;
+    Bool	status;
 
     w->lastPaint = *attrib;
 
@@ -1098,10 +1097,10 @@ paintWindow (CompWindow		     *w,
 	Bool occlude = TRUE;
 
 	if (mask & PAINT_WINDOW_NO_CORE_INSTANCE_MASK)
-	    return FALSE;
+	    occlude = FALSE;
 
 	if (w->shaded)
-	    return FALSE;
+	    occlude = FALSE;
 
 	if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
 	    occlude = FALSE;
@@ -1253,20 +1252,28 @@ paintWindow (CompWindow		     *w,
     }
 
     if (mask & PAINT_WINDOW_NO_CORE_INSTANCE_MASK)
-	return TRUE;
-
-    initFragmentAttrib (&fragment, attrib);
-
-    if (mask & (PAINT_WINDOW_TRANSFORMED_MASK | PAINT_WINDOW_WITH_OFFSET_MASK))
     {
-	glPushMatrix ();
-	glLoadMatrixf (transform->m);
+	status = TRUE;
     }
+    else
+    {
+	FragmentAttrib fragment;
 
-    status = (*w->screen->drawWindow) (w, transform, &fragment, region, mask);
+	initFragmentAttrib (&fragment, attrib);
 
-    if (mask & (PAINT_WINDOW_TRANSFORMED_MASK | PAINT_WINDOW_WITH_OFFSET_MASK))
-	glPopMatrix ();
+	if (mask & (PAINT_WINDOW_TRANSFORMED_MASK |
+		    PAINT_WINDOW_WITH_OFFSET_MASK))
+	{
+	    glPushMatrix ();
+	    glLoadMatrixf (transform->m);
+	}
+
+	status = (*w->screen->drawWindow) (w, transform, &fragment, region, mask);
+
+	if (mask & (PAINT_WINDOW_TRANSFORMED_MASK |
+		    PAINT_WINDOW_WITH_OFFSET_MASK))
+	    glPopMatrix ();
+    }
 
     (*w->screen->initWindowWalker) (w->screen, w, &walk);
     (*w->screen->initObjectPainter) (w->screen, &painter);
