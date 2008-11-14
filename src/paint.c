@@ -1095,17 +1095,25 @@ paintWindow (CompWindow		     *w,
 
     if (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK)
     {
-	if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
-	    return FALSE;
+	Bool occlude = TRUE;
 
 	if (mask & PAINT_WINDOW_NO_CORE_INSTANCE_MASK)
 	    return FALSE;
 
-	if (mask & PAINT_WINDOW_TRANSLUCENT_MASK)
-	    return FALSE;
-
 	if (w->shaded)
 	    return FALSE;
+
+	if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
+	    occlude = FALSE;
+
+	if (mask & PAINT_WINDOW_TRANSLUCENT_MASK)
+	    occlude = FALSE;
+
+	if (w->attrib.map_state != IsViewable)
+	    occlude = FALSE;
+
+	if (!w->redirected || !w->damaged)
+	    occlude = FALSE;
 
 	(*w->screen->initWindowWalker) (w->screen, w, &walk);
 	(*w->screen->initObjectPainter) (w->screen, &painter);
@@ -1131,13 +1139,21 @@ paintWindow (CompWindow		     *w,
 	
 	    for (; c; c = (*walk.prev) (c))
 	    {
-		CompTransform cTransform = wTransform;
-		int           viewportOffsetX = 0;
-		int           viewportOffsetY = 0;
-		int           offsetMask = 0;
+		CompTransform     cTransform = wTransform;
+		WindowPaintAttrib cPaint = c->paint;
+		int               viewportOffsetX = 0;
+		int               viewportOffsetY = 0;
+		int               offsetMask = 0;
 		
 		if (c->destroyed)
 		    continue;
+
+		cPaint.opacity = MULTIPLY_USHORT (cPaint.opacity,
+						  attrib->opacity);
+		cPaint.brightness = MULTIPLY_USHORT (cPaint.brightness,
+						     attrib->brightness);
+		cPaint.saturation = MULTIPLY_USHORT (cPaint.saturation,
+						     attrib->saturation);
 
 		if (!windowOnAllViewports (c))
 		{
@@ -1166,10 +1182,10 @@ paintWindow (CompWindow		     *w,
 		XSubtractRegion (r, &emptyRegion, c->clip);
 
 		if ((*painter.paintObject) (c,
-					    &c->paint,
+					    &cPaint,
 					    &cTransform,
 					    r,
-					    mask | offsetMask))
+					    mask | offsetMask) && !occlude)
 		    XSubtractRegion (r, c->region, r);
 
 		if (viewportOffsetX || viewportOffsetY)
@@ -1204,6 +1220,15 @@ paintWindow (CompWindow		     *w,
 	    if (fullscreenWindow)
 		unredirectWindow (fullscreenWindow);
 
+	    if (!occlude)
+	    {
+		if (w->attrib.x || w->attrib.y)
+		    XOffsetRegion (r, w->attrib.x, w->attrib.y);
+
+		XSubtractRegion (region, w->region, region);
+		XUnionRegion (region, r, region);
+	    }
+
 	    XDestroyRegion (r);
 	}
 
@@ -1212,10 +1237,16 @@ paintWindow (CompWindow		     *w,
 	if (walk.fini)
 	    (*walk.fini) (w->screen, &walk);
 
+	if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
+	    return FALSE;
+
+	if (mask & PAINT_WINDOW_TRANSLUCENT_MASK)
+	    return FALSE;
+
 	if (w->attrib.map_state != IsViewable)
 	    return FALSE;
 
-	if (!w->redirected || !w->damaged || w->shaded)
+	if (!w->redirected || !w->damaged)
 	    return FALSE;
 
 	return TRUE;
@@ -1283,13 +1314,21 @@ paintWindow (CompWindow		     *w,
 	/* paint all sub-windows from bottom to top */
 	for (; c; c = (*walk.next) (c))
 	{
-	    CompTransform cTransform = wTransform;
-	    int           viewportOffsetX = 0;
-	    int           viewportOffsetY = 0;
-	    int           offsetMask = 0;
+	    CompTransform     cTransform = wTransform;
+	    WindowPaintAttrib cPaint = c->paint;
+	    int               viewportOffsetX = 0;
+	    int               viewportOffsetY = 0;
+	    int               offsetMask = 0;
 
 	    if (c->destroyed)
 		continue;
+
+	    cPaint.opacity = MULTIPLY_USHORT (cPaint.opacity,
+					      attrib->opacity);
+	    cPaint.brightness = MULTIPLY_USHORT (cPaint.brightness,
+						 attrib->brightness);
+	    cPaint.saturation = MULTIPLY_USHORT (cPaint.saturation,
+						 attrib->saturation);
 
 	    if (mask & PAINT_WINDOW_CLIP_MASK)
 		clip = c->clip;
@@ -1319,7 +1358,7 @@ paintWindow (CompWindow		     *w,
 	    }
 
 	    (*painter.paintObject) (c,
-				    &c->paint,
+				    &cPaint,
 				    &cTransform,
 				    clip,
 				    mask | offsetMask);
