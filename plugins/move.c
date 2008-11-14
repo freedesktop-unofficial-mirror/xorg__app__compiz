@@ -125,18 +125,25 @@ moveInitiate (CompDisplay     *d,
     w = findWindowAtDisplay (d, xid);
     if (w && (w->actions & CompWindowActionMoveMask))
     {
+	CompWindow   *p;
 	XRectangle   workArea;
 	unsigned int mods;
 	int          x, y, button;
 
 	MOVE_SCREEN (w->screen);
 
+	x = w->width / 2;
+	y = w->height / 2;
+	for (p = w; p; p = p->parent)
+	{
+	    x += p->attrib.x;
+	    y += p->attrib.y;
+	}
+
 	mods = getIntOptionNamed (option, nOption, "modifiers", 0);
 
-	x = getIntOptionNamed (option, nOption, "x",
-			       w->attrib.x + (w->width / 2));
-	y = getIntOptionNamed (option, nOption, "y",
-			       w->attrib.y + (w->height / 2));
+	x = getIntOptionNamed (option, nOption, "x", x);
+	y = getIntOptionNamed (option, nOption, "y", y);
 
 	button = getIntOptionNamed (option, nOption, "button", -1);
 
@@ -191,6 +198,12 @@ moveInitiate (CompDisplay     *d,
 	    md->w = w;
 
 	    md->releaseButton = button;
+
+	    for (p = w->parent; p; p = p->parent)
+	    {
+		x -= p->attrib.x;
+		y -= p->attrib.y;
+	    }
 
 	    (w->screen->windowGrabNotify) (w, x, y, mods,
 					   CompWindowGrabMoveMask |
