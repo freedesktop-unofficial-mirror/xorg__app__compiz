@@ -45,41 +45,46 @@ handleWindowDamageRect (CompWindow *w,
 			int	   height)
 {
     REGION region;
-    Bool   initial = FALSE;
+    Bool   status = TRUE;
 
     if (!w->redirected || w->bindFailed)
 	return;
-
-    if (!w->damaged)
-    {
-	w->damaged = initial = TRUE;
-	w->invisible = WINDOW_INVISIBLE (w);
-    }
 
     region.extents.x1 = x;
     region.extents.y1 = y;
     region.extents.x2 = region.extents.x1 + width;
     region.extents.y2 = region.extents.y1 + height;
 
-    if (!(*w->screen->damageWindowRect) (w, initial, &region.extents))
+    while (w != &w->screen->root)
     {
-	CompWindow *p = w;
+	Bool initial = FALSE;
 
-	do {
-	    region.extents.x1 += p->attrib.x + p->attrib.border_width;
-	    region.extents.y1 += p->attrib.y + p->attrib.border_width;
-	    region.extents.x2 += p->attrib.x + p->attrib.border_width;
-	    region.extents.y2 += p->attrib.y + p->attrib.border_width;
-	} while ((p = p->parent));
+	if (!w->damaged)
+	{
+	    w->damaged = initial = TRUE;
+	    w->invisible = WINDOW_INVISIBLE (w);
+	}
 
+	status &= (*w->screen->damageWindowRect) (w, initial, &region.extents);
+
+	if (initial)
+	    damageWindowOutputExtents (w);
+
+	region.extents.x1 += w->attrib.x + w->attrib.border_width;
+	region.extents.y1 += w->attrib.y + w->attrib.border_width;
+	region.extents.x2 += w->attrib.x + w->attrib.border_width;
+	region.extents.y2 += w->attrib.y + w->attrib.border_width;
+
+	w = w->parent;
+    }
+
+    if (!status)
+    {
 	region.rects = &region.extents;
 	region.numRects = region.size = 1;
 
 	damageScreenRegion (w->screen, &region);
     }
-
-    if (initial)
-	damageWindowOutputExtents (w);
 }
 
 void

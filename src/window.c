@@ -1544,23 +1544,27 @@ addWindowDamageRect (CompWindow *w,
 		     BoxPtr     rect)
 {
     REGION region;
+    Bool   status = TRUE;
 
     if (w->screen->damageMask & COMP_SCREEN_DAMAGE_ALL_MASK)
 	return;
 
     region.extents = *rect;
 
-    if (!(*w->screen->damageWindowRect) (w, FALSE, &region.extents))
+    while (w != &w->screen->root)
     {
-	CompWindow *p = w;
+	status &= (*w->screen->damageWindowRect) (w, FALSE, &region.extents);
 
-	do {
-	    region.extents.x1 += p->attrib.x + p->attrib.border_width;
-	    region.extents.y1 += p->attrib.y + p->attrib.border_width;
-	    region.extents.x2 += p->attrib.x + p->attrib.border_width;
-	    region.extents.y2 += p->attrib.y + p->attrib.border_width;
-	} while ((p = p->parent));
+	region.extents.x1 += w->attrib.x + w->attrib.border_width;
+	region.extents.y1 += w->attrib.y + w->attrib.border_width;
+	region.extents.x2 += w->attrib.x + w->attrib.border_width;
+	region.extents.y2 += w->attrib.y + w->attrib.border_width;
 
+	w = w->parent;
+    }
+
+    if (!status)
+    {
 	region.rects = &region.extents;
 	region.numRects = region.size = 1;
 
