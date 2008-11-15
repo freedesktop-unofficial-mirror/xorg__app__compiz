@@ -75,7 +75,6 @@ typedef struct _ObsScreen
     int windowPrivateIndex;
 
     PaintWindowProc paintWindow;
-    DrawWindowProc  drawWindow;
 
     CompOption *stepOptions[MODIFIER_COUNT];
     CompOption *matchOptions[MODIFIER_COUNT];
@@ -210,76 +209,32 @@ obsPaintWindow (CompWindow              *w,
 		Region                  region,
 		unsigned int            mask)
 {
-    CompScreen *s = w->screen;
-    Bool       status;
+    WindowPaintAttrib wAttrib = *attrib;
+    CompScreen        *s = w->screen;
+    int               factor;
+    Bool              status;
 
     OBS_SCREEN (s);
     OBS_WINDOW (w);
 
-    if (ow->customFactor[MODIFIER_OPACITY] != 100)
+    factor = ow->customFactor[MODIFIER_OPACITY];
+    if (factor != 100)
+    {
+	wAttrib.opacity = (int) wAttrib.opacity * factor / 100;
 	mask |= PAINT_WINDOW_TRANSLUCENT_MASK;
+    }
+
+    factor = ow->customFactor[MODIFIER_BRIGHTNESS];
+    if (factor != 100)
+	wAttrib.brightness = (int) wAttrib.brightness * factor / 100;
+
+    factor = ow->customFactor[MODIFIER_SATURATION];
+    if (factor != 100)
+	wAttrib.saturation = (int) wAttrib.saturation * factor / 100;
 
     UNWRAP (os, s, paintWindow);
-    status = (*s->paintWindow) (w, attrib, transform, region, mask);
+    status = (*s->paintWindow) (w, &wAttrib, transform, region, mask);
     WRAP (os, s, paintWindow, obsPaintWindow);
-
-    return status;
-}
-
-/* Note: Normally plugins should wrap into PaintWindow to modify opacity,
-	 brightness and saturation. As some plugins bypass paintWindow when
-	 they draw windows and our custom values always need to be applied,
-	 we wrap into DrawWindow here */
-
-static Bool
-obsDrawWindow (CompWindow           *w,
-	       const CompTransform  *transform,
-	       const FragmentAttrib *attrib,
-	       Region               region,
-	       unsigned int         mask)
-{
-    CompScreen *s = w->screen;
-    Bool       hasCustomFactor = FALSE;
-    Bool       status;
-    int        i;
-
-    OBS_SCREEN (s);
-    OBS_WINDOW (w);
-
-    for (i = 0; i < MODIFIER_COUNT; i++)
-	if (ow->customFactor[i] != 100)
-	{
-	    hasCustomFactor = TRUE;
-	    break;
-	}
-
-    if (hasCustomFactor)
-    {
-	FragmentAttrib fragment = *attrib;
-	int            factor;
-
-	factor = ow->customFactor[MODIFIER_OPACITY];
-	if (factor != 100)
-	    fragment.opacity = (int) fragment.opacity * factor / 100;
-
-	factor = ow->customFactor[MODIFIER_BRIGHTNESS];
-	if (factor != 100)
-	    fragment.brightness = (int) fragment.brightness * factor / 100;
-
-	factor = ow->customFactor[MODIFIER_SATURATION];
-	if (factor != 100)
-	    fragment.saturation = (int) fragment.saturation * factor / 100;
-
-	UNWRAP (os, s, drawWindow);
-	status = (*s->drawWindow) (w, transform, &fragment, region, mask);
-	WRAP (os, s, drawWindow, obsDrawWindow);
-    }
-    else
-    {
-	UNWRAP (os, s, drawWindow);
-	status = (*s->drawWindow) (w, transform, attrib, region, mask);
-	WRAP (os, s, drawWindow, obsDrawWindow);
-    }
 
     return status;
 }
@@ -599,7 +554,6 @@ obsInitScreen (CompPlugin *p,
     s->base.privates[od->screenPrivateIndex].ptr = os;
 
     WRAP (os, s, paintWindow, obsPaintWindow);
-    WRAP (os, s, drawWindow, obsDrawWindow);
 
     return TRUE;
 }
@@ -611,7 +565,6 @@ obsFiniScreen (CompPlugin *p,
     OBS_SCREEN (s);
 
     UNWRAP (os, s, paintWindow);
-    UNWRAP (os, s, drawWindow);
 
     damageScreen (s);
     
