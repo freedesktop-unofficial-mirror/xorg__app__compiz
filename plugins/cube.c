@@ -1527,7 +1527,8 @@ cubePaintWindow (CompWindow		  *w,
     CompScreen *s = w->screen;
     CUBE_SCREEN (s);
 
-    if ((w->type & CompWindowTypeDesktopMask) &&
+    if (w->parent == &s->root &&
+	(w->type & CompWindowTypeDesktopMask) &&
 	(attrib->opacity != cs->desktopOpacity))
     {
 	WindowPaintAttrib wAttrib = *attrib;
