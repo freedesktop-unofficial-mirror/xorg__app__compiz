@@ -313,6 +313,9 @@ setScaledPaintAttributes (CompWindow        *w,
     SCALE_SCREEN (w->screen);
     SCALE_WINDOW (w);
 
+    if (w->parent != &w->screen->root)
+	return FALSE;
+
     if (sw->adjust || sw->slot)
     {
 	SCALE_DISPLAY (w->screen->display);
@@ -379,7 +382,12 @@ scalePaintWindow (CompWindow		  *w,
 	scaled = (*ss->setScaledPaintAttributes) (w, &sAttrib);
 
 	if (sw->adjust || sw->slot)
+	{
+	    if (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK)
+		return FALSE;
+
 	    mask |= PAINT_WINDOW_NO_CORE_INSTANCE_MASK;
+	}
 
 	UNWRAP (ss, s, paintWindow);
 	status = (*s->paintWindow) (w, &sAttrib, transform, region, mask);
@@ -387,16 +395,7 @@ scalePaintWindow (CompWindow		  *w,
 
 	if (scaled)
 	{
-	    FragmentAttrib fragment;
-	    CompTransform  wTransform = *transform;
-
-	    if (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK)
-		return FALSE;
-
-	    initFragmentAttrib (&fragment, &w->lastPaint);
-
-	    if (w->alpha || fragment.opacity != OPAQUE)
-		mask |= PAINT_WINDOW_TRANSLUCENT_MASK;
+	    CompTransform wTransform = *transform;
 
 	    matrixTranslate (&wTransform, w->attrib.x, w->attrib.y, 0.0f);
 	    matrixScale (&wTransform, sw->scale, sw->scale, 1.0f);
@@ -405,13 +404,7 @@ scalePaintWindow (CompWindow		  *w,
 			     sw->ty / sw->scale - w->attrib.y,
 			     0.0f);
 
-	    glPushMatrix ();
-	    glLoadMatrixf (wTransform.m);
-
-	    (*s->drawWindow) (w, &wTransform, &fragment, region,
-			      mask | PAINT_WINDOW_TRANSFORMED_MASK);
-
-	    glPopMatrix ();
+	    drawTransformedWindowWithChildren (w, &wTransform);
 
 	    (*ss->scalePaintDecoration) (w, &sAttrib, transform, region, mask);
 	}
