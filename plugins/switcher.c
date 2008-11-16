@@ -1446,7 +1446,6 @@ switchPaintThumb (CompWindow		  *w,
     if (w->texture->pixmap)
     {
 	AddWindowGeometryProc oldAddWindowGeometry;
-	FragmentAttrib	      fragment;
 	CompTransform	      wTransform = *transform;
 	int		      ww, wh;
 
@@ -1482,11 +1481,6 @@ switchPaintThumb (CompWindow		  *w,
 	sAttrib.xTranslate = wx - w->attrib.x + w->input.left * sAttrib.xScale;
 	sAttrib.yTranslate = wy - w->attrib.y + w->input.top  * sAttrib.yScale;
 
-	initFragmentAttrib (&fragment, &sAttrib);
-
-	if (w->alpha || fragment.opacity != OPAQUE)
-	    mask |= PAINT_WINDOW_TRANSLUCENT_MASK;
-
 	matrixTranslate (&wTransform, w->attrib.x, w->attrib.y, 0.0f);
 	matrixScale (&wTransform, sAttrib.xScale, sAttrib.yScale, 1.0f);
 	matrixTranslate (&wTransform,
@@ -1494,19 +1488,13 @@ switchPaintThumb (CompWindow		  *w,
 			 sAttrib.yTranslate / sAttrib.yScale - w->attrib.y,
 			 0.0f);
 
-	glPushMatrix ();
-	glLoadMatrixf (wTransform.m);
-
 	/* XXX: replacing the addWindowGeometry function like this is
 	   very ugly but necessary until the vertex stage has been made
 	   fully pluggable. */
 	oldAddWindowGeometry = w->screen->addWindowGeometry;
 	w->screen->addWindowGeometry = addWindowGeometry;
-	(w->screen->drawWindow) (w, &wTransform, &fragment, &infiniteRegion,
-				 mask);
+	drawTransformedWindowWithChildren (w, &sAttrib, &wTransform);
 	w->screen->addWindowGeometry = oldAddWindowGeometry;
-
-	glPopMatrix ();
 
 	if (ss->opt[SWITCH_SCREEN_OPTION_ICON].value.b)
 	{
@@ -1715,44 +1703,53 @@ switchPaintWindow (CompWindow		   *w,
 	status = (*s->paintWindow) (w, attrib, transform, region, mask);
 	WRAP (ss, s, paintWindow, switchPaintWindow);
     }
-    else if (ss->switching)
+    else if (w->parent == &s->root)
     {
-	WindowPaintAttrib sAttrib = *attrib;
-	GLuint            value;
-
-	value = ss->opt[SWITCH_SCREEN_OPTION_SATURATION].value.i;
-	if (value != 100)
-	    sAttrib.saturation = sAttrib.saturation * value / 100;
-
-	value = ss->opt[SWITCH_SCREEN_OPTION_BRIGHTNESS].value.i;
-	if (value != 100)
-	    sAttrib.brightness = sAttrib.brightness * value / 100;
-
-	if (w->wmType & ~(CompWindowTypeDockMask | CompWindowTypeDesktopMask))
+	if (ss->switching)
 	{
-	    value = ss->opt[SWITCH_SCREEN_OPTION_OPACITY].value.i;
+	    WindowPaintAttrib sAttrib = *attrib;
+	    GLuint            value;
+
+	    value = ss->opt[SWITCH_SCREEN_OPTION_SATURATION].value.i;
 	    if (value != 100)
-		sAttrib.opacity = sAttrib.opacity * value / 100;
+		sAttrib.saturation = sAttrib.saturation * value / 100;
+
+	    value = ss->opt[SWITCH_SCREEN_OPTION_BRIGHTNESS].value.i;
+	    if (value != 100)
+		sAttrib.brightness = sAttrib.brightness * value / 100;
+
+	    if (w->wmType & ~(CompWindowTypeDockMask | CompWindowTypeDesktopMask))
+	    {
+		value = ss->opt[SWITCH_SCREEN_OPTION_OPACITY].value.i;
+		if (value != 100)
+		    sAttrib.opacity = sAttrib.opacity * value / 100;
+	    }
+
+	    if (ss->opt[SWITCH_SCREEN_OPTION_BRINGTOFRONT].value.b &&
+		w->id == ss->zoomedWindow)
+		zoomType = ZOOMED_WINDOW_MASK;
+
+	    if (!(ss->zoomMask & zoomType))
+		return (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK) ?
+		    FALSE : TRUE;
+
+	    UNWRAP (ss, s, paintWindow);
+	    status = (*s->paintWindow) (w, &sAttrib, transform, region, mask);
+	    WRAP (ss, s, paintWindow, switchPaintWindow);
 	}
+	else
+	{
+	    if (!(ss->zoomMask & zoomType))
+		return (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK) ?
+		    FALSE : TRUE;
 
-	if (ss->opt[SWITCH_SCREEN_OPTION_BRINGTOFRONT].value.b &&
-	    w->id == ss->zoomedWindow)
-	    zoomType = ZOOMED_WINDOW_MASK;
-
-	if (!(ss->zoomMask & zoomType))
-	    return (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK) ?
-		FALSE : TRUE;
-
-	UNWRAP (ss, s, paintWindow);
-	status = (*s->paintWindow) (w, &sAttrib, transform, region, mask);
-	WRAP (ss, s, paintWindow, switchPaintWindow);
+	    UNWRAP (ss, s, paintWindow);
+	    status = (*s->paintWindow) (w, attrib, transform, region, mask);
+	    WRAP (ss, s, paintWindow, switchPaintWindow);
+	}
     }
     else
     {
-	if (!(ss->zoomMask & zoomType))
-	    return (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK) ?
-		FALSE : TRUE;
-
 	UNWRAP (ss, s, paintWindow);
 	status = (*s->paintWindow) (w, attrib, transform, region, mask);
 	WRAP (ss, s, paintWindow, switchPaintWindow);
