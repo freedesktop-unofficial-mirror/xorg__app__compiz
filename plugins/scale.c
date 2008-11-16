@@ -404,7 +404,7 @@ scalePaintWindow (CompWindow		  *w,
 			     sw->ty / sw->scale - w->attrib.y,
 			     0.0f);
 
-	    drawTransformedWindowWithChildren (w, &wTransform);
+	    drawTransformedWindowWithChildren (w, NULL, &wTransform);
 
 	    (*ss->scalePaintDecoration) (w, &sAttrib, transform, region, mask);
 	}

@@ -1395,14 +1395,18 @@ paintWindow (CompWindow		     *w,
 }
 
 static void
-drawWindowAndChildren (CompWindow          *w,
-		       const CompTransform *transform,
-		       Region              region)
+drawWindowAndChildren (CompWindow              *w,
+		       const WindowPaintAttrib *attrib,
+		       const CompTransform     *transform,
+		       Region                  region)
 {
     FragmentAttrib fragment;
     unsigned int   wMask = PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK;
 
-    initFragmentAttrib (&fragment, &w->lastPaint);
+    if (attrib)
+	initFragmentAttrib (&fragment, attrib);
+    else
+	initFragmentAttrib (&fragment, &w->lastPaint);
 
     if (w->alpha || fragment.opacity != OPAQUE)
 	wMask |= PAINT_WINDOW_TRANSLUCENT_MASK;
@@ -1425,7 +1429,7 @@ drawWindowAndChildren (CompWindow          *w,
 	    glTranslatef (w->attrib.x, w->attrib.y, 0);
 
 	    for (c = w->windows; c; c = c->next)
-		drawWindowAndChildren (c, transform, r);
+		drawWindowAndChildren (c, attrib, transform, r);
 
 	    glTranslatef (-w->attrib.x, -w->attrib.y, 0);
 
@@ -1435,13 +1439,17 @@ drawWindowAndChildren (CompWindow          *w,
 }
 
 void
-drawTransformedWindowWithChildren (CompWindow          *w,
-				   const CompTransform *transform)
+drawTransformedWindowWithChildren (CompWindow              *w,
+				   const WindowPaintAttrib *attrib,
+				   const CompTransform     *transform)
 {
     FragmentAttrib fragment;
     unsigned int   wMask = PAINT_WINDOW_TRANSFORMED_MASK;
 
-    initFragmentAttrib (&fragment, &w->lastPaint);
+    if (attrib)
+	initFragmentAttrib (&fragment, attrib);
+    else
+	initFragmentAttrib (&fragment, &w->lastPaint);
 
     if (w->alpha || fragment.opacity != OPAQUE)
 	wMask |= PAINT_WINDOW_TRANSLUCENT_MASK;
@@ -1459,7 +1467,7 @@ drawTransformedWindowWithChildren (CompWindow          *w,
 	glTranslatef (w->attrib.x, w->attrib.y, 0);
 
 	for (c = w->windows; c; c = c->next)
-	    drawWindowAndChildren (c, transform, w->region);
+	    drawWindowAndChildren (c, attrib, transform, w->region);
 
 	glTranslatef (-w->attrib.x, -w->attrib.y, 0);
 	XOffsetRegion (w->region, w->attrib.x, w->attrib.y);

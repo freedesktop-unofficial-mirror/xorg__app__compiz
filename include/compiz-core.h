@@ -2255,8 +2255,9 @@ paintWindow (CompWindow		     *w,
 	     unsigned int	     mask);
 
 void
-drawTransformedWindowWithChildren (CompWindow          *w,
-				   const CompTransform *transform);
+drawTransformedWindowWithChildren (CompWindow              *w,
+				   const WindowPaintAttrib *attrib,
+				   const CompTransform     *transform);
 
 void
 paintCursor (CompCursor		 *cursor,
