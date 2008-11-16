@@ -1635,6 +1635,12 @@ switchPaintWindow (CompWindow		   *w,
 	status = (*s->paintWindow) (w, attrib, transform, region, mask);
 	WRAP (ss, s, paintWindow, switchPaintWindow);
 
+	if (w->attrib.map_state != IsViewable)
+	    return status;
+
+	if (!w->damaged)
+	    return status;
+
 	if (!(mask & PAINT_WINDOW_TRANSFORMED_MASK) && region->numRects == 0)
 	    return TRUE;
 
