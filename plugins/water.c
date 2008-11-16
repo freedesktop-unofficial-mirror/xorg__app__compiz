@@ -1040,6 +1040,7 @@ waterDrawWindowTexture (CompWindow	     *w,
 	Bool	       lighting = w->screen->lighting;
 	int	       param, function, unit;
 	GLfloat	       plane[4];
+	CompWindow     *p;
 
 	WATER_DISPLAY (w->screen->display);
 
@@ -1049,6 +1050,17 @@ waterDrawWindowTexture (CompWindow	     *w,
 	function = getBumpMapFragmentFunction (w->screen, texture, unit, param);
 	if (function)
 	{
+	    float dx = ws->tx / (GLfloat) w->screen->width;
+	    float dy = ws->ty / (GLfloat) w->screen->height;
+	    int   wx = 0;
+	    int   wy = 0;
+
+	    for (p = w->parent; p; p = p->parent)
+	    {
+		wx += p->attrib.x;
+		wy += p->attrib.y;
+	    }
+
 	    addFragmentFunction (&fa, function);
 
 	    screenLighting (w->screen, TRUE);
@@ -1058,16 +1070,16 @@ waterDrawWindowTexture (CompWindow	     *w,
 	    glBindTexture (ws->target, ws->texture[TINDEX (ws, 0)]);
 
 	    plane[1] = plane[2] = 0.0f;
-	    plane[0] = ws->tx / (GLfloat) w->screen->width;
-	    plane[3] = 0.0f;
+	    plane[0] = dx;
+	    plane[3] = dx * wx;
 
 	    glTexGeni (GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
 	    glTexGenfv (GL_S, GL_EYE_PLANE, plane);
 	    glEnable (GL_TEXTURE_GEN_S);
 
 	    plane[0] = plane[2] = 0.0f;
-	    plane[1] = ws->ty / (GLfloat) w->screen->height;
-	    plane[3] = 0.0f;
+	    plane[1] = dy;
+	    plane[3] = dy * wy;
 
 	    glTexGeni (GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
 	    glTexGenfv (GL_T, GL_EYE_PLANE, plane);
