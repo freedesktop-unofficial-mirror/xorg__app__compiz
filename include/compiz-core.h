@@ -2255,6 +2255,10 @@ paintWindow (CompWindow		     *w,
 	     unsigned int	     mask);
 
 void
+drawTransformedWindowWithChildren (CompWindow          *w,
+				   const CompTransform *transform);
+
+void
 paintCursor (CompCursor		 *cursor,
 	     const CompTransform *transform,
 	     Region		 region,

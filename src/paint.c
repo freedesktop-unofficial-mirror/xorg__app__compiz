@@ -1393,3 +1393,77 @@ paintWindow (CompWindow		     *w,
 
     return status;
 }
+
+static void
+drawWindowAndChildren (CompWindow          *w,
+		       const CompTransform *transform,
+		       Region              region)
+{
+    FragmentAttrib fragment;
+    unsigned int   wMask = PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK;
+
+    initFragmentAttrib (&fragment, &w->lastPaint);
+
+    if (w->alpha || fragment.opacity != OPAQUE)
+	wMask |= PAINT_WINDOW_TRANSLUCENT_MASK;
+
+    (*w->screen->drawWindow) (w, transform, &fragment, region, wMask);
+
+    if (w->windows)
+    {
+	Region r;
+
+	r = XCreateRegion ();
+	if (r)
+	{
+	    CompWindow *c;
+
+	    XSubtractRegion (region, &emptyRegion, r);
+	    XIntersectRegion (r, w->region, r);
+	    XOffsetRegion (r, -w->attrib.x, -w->attrib.y);
+
+	    glTranslatef (w->attrib.x, w->attrib.y, 0);
+
+	    for (c = w->windows; c; c = c->next)
+		drawWindowAndChildren (c, transform, r);
+
+	    glTranslatef (-w->attrib.x, -w->attrib.y, 0);
+
+	    XDestroyRegion (r);
+	}
+    }
+}
+
+void
+drawTransformedWindowWithChildren (CompWindow          *w,
+				   const CompTransform *transform)
+{
+    FragmentAttrib fragment;
+    unsigned int   wMask = PAINT_WINDOW_TRANSFORMED_MASK;
+
+    initFragmentAttrib (&fragment, &w->lastPaint);
+
+    if (w->alpha || fragment.opacity != OPAQUE)
+	wMask |= PAINT_WINDOW_TRANSLUCENT_MASK;
+
+    glPushMatrix ();
+    glLoadMatrixf (transform->m);
+
+    (*w->screen->drawWindow) (w, transform, &fragment, &infiniteRegion, wMask);
+
+    if (w->windows)
+    {
+	CompWindow *c;
+
+	XOffsetRegion (w->region, -w->attrib.x, -w->attrib.y);
+	glTranslatef (w->attrib.x, w->attrib.y, 0);
+
+	for (c = w->windows; c; c = c->next)
+	    drawWindowAndChildren (c, transform, w->region);
+
+	glTranslatef (-w->attrib.x, -w->attrib.y, 0);
+	XOffsetRegion (w->region, w->attrib.x, w->attrib.y);
+    }
+
+    glPopMatrix ();
+}
