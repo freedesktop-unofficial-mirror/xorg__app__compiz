@@ -1236,19 +1236,7 @@ paintWindow (CompWindow		     *w,
 	if (walk.fini)
 	    (*walk.fini) (w->screen, &walk);
 
-	if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
-	    return FALSE;
-
-	if (mask & PAINT_WINDOW_TRANSLUCENT_MASK)
-	    return FALSE;
-
-	if (w->attrib.map_state != IsViewable)
-	    return FALSE;
-
-	if (!w->redirected || !w->damaged)
-	    return FALSE;
-
-	return TRUE;
+	return occlude;
     }
 
     if (mask & PAINT_WINDOW_NO_CORE_INSTANCE_MASK)
