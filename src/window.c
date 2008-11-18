@@ -2265,7 +2265,6 @@ addWindow (CompWindow *parent,
     else
     {
 	w->damage = None;
-	w->attrib.map_state = IsUnmapped;
     }
 
     w->invisible = TRUE;
