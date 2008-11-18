@@ -1462,9 +1462,9 @@ handleEvent (CompDisplay *d,
 		    if (w->attrib.map_state == IsViewable)
 		    {
 			if (w->type == CompWindowTypeDesktopMask)
-			    w->screen->desktopWindowCount--;
+			    w->parent->desktopWindowCount--;
 			else if (type == CompWindowTypeDesktopMask)
-			    w->screen->desktopWindowCount++;
+			    w->parent->desktopWindowCount++;
 		    }
 
 		    w->wmType = type;

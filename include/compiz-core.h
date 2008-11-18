@@ -937,6 +937,8 @@ struct _CompWindow {
     int	       sizeDamage;
     int	       nDamage;
 
+    int desktopWindowCount;
+
     GLfloat  *vertices;
     int      vertexSize;
     int      vertexStride;
@@ -2724,7 +2726,6 @@ struct _CompScreen {
     CompTexture       backgroundTexture;
     Bool	      backgroundLoaded;
     unsigned int      pendingDestroys;
-    int		      desktopWindowCount;
     unsigned int      mapNum;
     unsigned int      activeNum;
 

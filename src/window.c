@@ -2137,6 +2137,8 @@ addWindow (CompWindow *parent,
 
     w->overlayWindow = FALSE;
 
+    w->desktopWindowCount = 0;
+
     if (screen->windowPrivateLen)
     {
 	privates = malloc (screen->windowPrivateLen * sizeof (CompPrivate));
@@ -2443,7 +2445,7 @@ removeWindow (CompWindow *w)
     if (w->attrib.map_state == IsViewable && w->damaged)
     {
 	if (w->type == CompWindowTypeDesktopMask)
-	    w->screen->desktopWindowCount--;
+	    w->parent->desktopWindowCount--;
 
 	if (w->destroyed && w->struts)
 	    updateWorkareaForScreen (w->screen);
@@ -2585,7 +2587,7 @@ mapWindow (CompWindow *w)
     updateClientListForScreen (w->screen);
 
     if (w->type & CompWindowTypeDesktopMask)
-	w->screen->desktopWindowCount++;
+	w->parent->desktopWindowCount++;
 
     if (w->parent->substructureRedirect)
     {
@@ -2628,7 +2630,7 @@ withdrawWindowToState (CompWindow *w,
 	return;
 
     if (w->type == CompWindowTypeDesktopMask)
-	w->screen->desktopWindowCount--;
+	w->parent->desktopWindowCount--;
 
     if (w->attrib.map_state == IsViewable)
 	addWindowDamage (w);

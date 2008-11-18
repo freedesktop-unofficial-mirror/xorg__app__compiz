@@ -158,7 +158,7 @@ paintBackground (CompScreen   *s,
     if (!nBox)
 	return;
 
-    if (s->desktopWindowCount)
+    if (s->root.desktopWindowCount)
     {
 	if (bg->name)
 	{

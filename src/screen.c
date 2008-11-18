@@ -2370,8 +2370,6 @@ addScreen (CompDisplay *display,
 
     s->defaultIcon = NULL;
 
-    s->desktopWindowCount = 0;
-
     s->redrawTime = 1000 / defaultRefreshRate;
     s->optimalRedrawTime = s->redrawTime;
 
