@@ -1859,9 +1859,6 @@ wobblyAddWindowGeometry (CompWindow *w,
 	if (gridH < ws->opt[WOBBLY_SCREEN_OPTION_MIN_GRID_SIZE].value.i)
 	    gridH = ws->opt[WOBBLY_SCREEN_OPTION_MIN_GRID_SIZE].value.i;
 
-	nClip = clip->numRects;
-	pClip = clip->rects;
-
 	nBox = region->numRects;
 	pBox = region->rects;
 
@@ -1877,6 +1874,9 @@ wobblyAddWindowGeometry (CompWindow *w,
 
 	while (nBox--)
 	{
+	    nClip = clip->numRects;
+	    pClip = clip->rects;
+
 	    while (nClip--)
 	    {
 		x1 = pClip->x1;
