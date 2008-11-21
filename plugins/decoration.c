@@ -1302,9 +1302,13 @@ decorSetDisplayOption (CompPlugin      *plugin,
 	    for (s = display->screens; s; s = s->next)
 	    {
 		DECOR_WINDOW ((&s->root));
+		DECOR_SCREEN (s);
 
-		if (!dw->dmWin)
-		    runCommand (s, o->value.s);
+		if (!dw->dmWin && !ds->decoratorStartHandle)
+		    ds->decoratorStartHandle =
+			compAddTimeout (0, -1,
+					decorStartDecorator,
+					s);
 	    }
 
 	    return TRUE;
@@ -1745,7 +1749,7 @@ decorInitWindow (CompPlugin *p,
     {
 	DECOR_SCREEN (w->screen);
 
-	if (!w->parent && !dw->dmWin)
+	if (!dw->dmWin && !ds->decoratorStartHandle)
 	    ds->decoratorStartHandle = compAddTimeout (0, -1,
 						       decorStartDecorator,
 						       w->screen);
