@@ -480,31 +480,24 @@ static Window    switcher_selected_window = None;
 static XRenderPictFormat *xformat;
 
 static void
-decor_update_blur_property (decor_t *d,
-			    int     width,
-			    int     height,
-			    Region  top_region,
-			    int     top_offset,
-			    Region  bottom_region,
-			    int     bottom_offset,
-			    Region  left_region,
-			    int     left_offset,
-			    Region  right_region,
-			    int     right_offset)
+decor_update_box_property (decor_t *d,
+			   Atom    property,
+			   int     value0,
+			   int     value1,
+			   int     width,
+			   int     height,
+			   Region  top_region,
+			   int     top_offset,
+			   Region  bottom_region,
+			   int     bottom_offset,
+			   Region  left_region,
+			   int     left_offset,
+			   Region  right_region,
+			   int     right_offset)
 {
     Display *xdisplay = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
     long    *data = NULL;
     int     size = 0;
-
-    if (blur_type != BLUR_TYPE_ALL)
-    {
-	bottom_region = NULL;
-	left_region   = NULL;
-	right_region  = NULL;
-
-	if (blur_type != BLUR_TYPE_TITLEBAR)
-	    top_region = NULL;
-    }
 
     if (top_region)
 	size += top_region->numRects;
@@ -520,8 +513,8 @@ decor_update_blur_property (decor_t *d,
 
     if (data)
     {
-	data[0] = 4;
-	data[1] = 0;
+	data[0] = value0;
+	data[1] = value1;
 
 	decor_region_to_box_property (data + 2, width, height,
 				      top_region, top_offset,
@@ -531,7 +524,7 @@ decor_update_blur_property (decor_t *d,
 
 	gdk_error_trap_push ();
 	XChangeProperty (xdisplay, d->prop_xid,
-			 win_blur_decor_atom,
+			 property,
 			 XA_INTEGER,
 			 32, PropModeReplace, (guchar *) data,
 			 2 + size * 6);
@@ -543,10 +536,48 @@ decor_update_blur_property (decor_t *d,
     else
     {
 	gdk_error_trap_push ();
-	XDeleteProperty (xdisplay, d->prop_xid, win_blur_decor_atom);
+	XDeleteProperty (xdisplay, d->prop_xid, property);
 	gdk_display_sync (gdk_display_get_default ());
 	gdk_error_trap_pop ();
     }
+}
+
+static void
+decor_update_blur_property (decor_t *d,
+			    int     width,
+			    int     height,
+			    Region  top_region,
+			    int     top_offset,
+			    Region  bottom_region,
+			    int     bottom_offset,
+			    Region  left_region,
+			    int     left_offset,
+			    Region  right_region,
+			    int     right_offset)
+{
+    if (blur_type != BLUR_TYPE_ALL)
+    {
+	bottom_region = NULL;
+	left_region   = NULL;
+	right_region  = NULL;
+
+	if (blur_type != BLUR_TYPE_TITLEBAR)
+	    top_region = NULL;
+    }
+
+    decor_update_box_property (d,
+			       win_blur_decor_atom,
+			       4, 0,
+			       width,
+			       height,
+			       top_region,
+			       top_offset,
+			       bottom_region,
+			       bottom_offset,
+			       left_region,
+			       left_offset,
+			       right_region,
+			       right_offset);
 }
 
 static void
