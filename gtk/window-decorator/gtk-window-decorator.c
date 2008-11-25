@@ -520,11 +520,14 @@ decor_update_blur_property (decor_t *d,
 
     if (data)
     {
-	decor_region_to_blur_property (data, 4, 0, width, height,
-				       top_region, top_offset,
-				       bottom_region, bottom_offset,
-				       left_region, left_offset,
-				       right_region, right_offset);
+	data[0] = 4;
+	data[1] = 0;
+
+	decor_region_to_box_property (data + 2, width, height,
+				      top_region, top_offset,
+				      bottom_region, bottom_offset,
+				      left_region, left_offset,
+				      right_region, right_offset);
 
 	gdk_error_trap_push ();
 	XChangeProperty (xdisplay, d->prop_xid,

@@ -205,13 +205,13 @@ decor_property_to_quads (long		 *data,
 }
 
 static int
-add_blur_boxes (long   *data,
-		BoxPtr box,
-		int    n_box,
-		int    width,
-		int    height,
-		int    gravity,
-		int    offset)
+add_boxes (long   *data,
+	   BoxPtr box,
+	   int    n_box,
+	   int    width,
+	   int    height,
+	   int    gravity,
+	   int    offset)
 {
     int x1, y1, x2, y2;
     int more_gravity;
@@ -289,54 +289,49 @@ add_blur_boxes (long   *data,
 }
 
 void
-decor_region_to_blur_property (long   *data,
-			       int    threshold,
-			       int    filter,
-			       int    width,
-			       int    height,
-			       Region top_region,
-			       int    top_offset,
-			       Region bottom_region,
-			       int    bottom_offset,
-			       Region left_region,
-			       int    left_offset,
-			       Region right_region,
-			       int    right_offset)
+decor_region_to_box_property (long   *data,
+			      int    width,
+			      int    height,
+			      Region top_region,
+			      int    top_offset,
+			      Region bottom_region,
+			      int    bottom_offset,
+			      Region left_region,
+			      int    left_offset,
+			      Region right_region,
+			      int    right_offset)
 {
-    *data++ = threshold;
-    *data++ = filter;
-
     if (top_region)
-	data += add_blur_boxes (data,
-				top_region->rects,
-				top_region->numRects,
-				width, height,
-				GRAVITY_NORTH,
-				top_offset);
+	data += add_boxes (data,
+			   top_region->rects,
+			   top_region->numRects,
+			   width, height,
+			   GRAVITY_NORTH,
+			   top_offset);
 
     if (bottom_region)
-	data += add_blur_boxes (data,
-				bottom_region->rects,
-				bottom_region->numRects,
-				width, height,
-				GRAVITY_SOUTH,
-				bottom_offset);
+	data += add_boxes (data,
+			   bottom_region->rects,
+			   bottom_region->numRects,
+			   width, height,
+			   GRAVITY_SOUTH,
+			   bottom_offset);
 
     if (left_region)
-	data += add_blur_boxes (data,
-				left_region->rects,
-				left_region->numRects,
-				width, height,
-				GRAVITY_WEST,
-				left_offset);
+	data += add_boxes (data,
+			   left_region->rects,
+			   left_region->numRects,
+			   width, height,
+			   GRAVITY_WEST,
+			   left_offset);
 
     if (right_region)
-	data += add_blur_boxes (data,
-				right_region->rects,
-				right_region->numRects,
-				width, height,
-				GRAVITY_EAST,
-				right_offset);
+	data += add_boxes (data,
+			   right_region->rects,
+			   right_region->numRects,
+			   width, height,
+			   GRAVITY_EAST,
+			   right_offset);
 }
 
 void
