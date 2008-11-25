@@ -25,7 +25,9 @@ libwobbly_la_SOURCES = wobbly.c
 libminimize_la_LDFLAGS = -module -avoid-version -no-undefined
 libminimize_la_SOURCES = minimize.c
 
+libmove_la_DEPENDENCIES = $(top_builddir)/libdecoration/libdecoration.la
 libmove_la_LDFLAGS = -module -avoid-version -no-undefined
+libmove_la_LIBADD = $(top_builddir)/libdecoration/libdecoration.la
 libmove_la_SOURCES = move.c
 
 libresize_la_LDFLAGS = -module -avoid-version -no-undefined

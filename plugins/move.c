@@ -28,8 +28,10 @@
 #include <string.h>
 
 #include <X11/cursorfont.h>
+#include <X11/Xatom.h>
 
 #include <compiz-core.h>
+#include <decoration.h>
 
 static CompMetadata moveMetadata;
 
@@ -50,6 +52,11 @@ struct _MoveKeys {
 
 #define SNAP_BACK 20
 #define SNAP_OFF  100
+
+typedef struct _MoveBox {
+    decor_point_t p1;
+    decor_point_t p2;
+} MoveBox;
 
 static int displayPrivateIndex;
 
@@ -76,12 +83,16 @@ typedef struct _MoveDisplay {
     int        status;
     KeyCode    key[NUM_KEYS];
 
+    Atom moveAtom;
+
     int releaseButton;
 
     GLushort moveOpacity;
 } MoveDisplay;
 
 typedef struct _MoveScreen {
+    int windowPrivateIndex;
+
     PaintWindowProc paintWindow;
 
     int grabIndex;
@@ -93,6 +104,12 @@ typedef struct _MoveScreen {
     int	snapOffY;
     int	snapBackY;
 } MoveScreen;
+
+typedef struct _MoveWindow {
+    int     button;
+    MoveBox *box;
+    int     nBox;
+} MoveWindow;
 
 #define GET_MOVE_DISPLAY(d)					  \
     ((MoveDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
@@ -106,7 +123,105 @@ typedef struct _MoveScreen {
 #define MOVE_SCREEN(s)						        \
     MoveScreen *ms = GET_MOVE_SCREEN (s, GET_MOVE_DISPLAY (s->display))
 
+#define GET_MOVE_WINDOW(w, ms)					      \
+    ((MoveWindow *) (w)->base.privates[(ms)->windowPrivateIndex].ptr)
+
+#define MOVE_WINDOW(w)					     \
+    MoveWindow *mw = GET_MOVE_WINDOW  (w,		     \
+		     GET_MOVE_SCREEN  (w->screen,	     \
+		     GET_MOVE_DISPLAY (w->screen->display)))
+
+
 #define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
+
+
+static Bool
+movePointInBoxes (int     x,
+		  int     y,
+		  MoveBox *box,
+		  int	  nBox,
+		  int	  width,
+		  int	  height)
+{
+    int x0, y0, x1, y1;
+
+    while (nBox--)
+    {
+	decor_apply_gravity (box->p1.gravity, box->p1.x, box->p1.y,
+			     width, height,
+			     &x0, &y0);
+
+	decor_apply_gravity (box->p2.gravity, box->p2.x, box->p2.y,
+			     width, height,
+			     &x1, &y1);
+
+	if (x >= x0 && x < x1 && y >= y0 && y < y1)
+	    return TRUE;
+
+	box++;
+    }
+
+    return FALSE;
+}
+
+static void
+moveWindowUpdate (CompWindow *w)
+{
+    Atom	  actual;
+    int		  result, format;
+    unsigned long n, left;
+    unsigned char *propData;
+    MoveBox	  *box = NULL;
+    int		  nBox = 0;
+
+    MOVE_DISPLAY (w->screen->display);
+    MOVE_WINDOW (w);
+
+    result = XGetWindowProperty (w->screen->display->display, w->id,
+				 md->moveAtom, 0L, 8192L, FALSE,
+				 XA_INTEGER, &actual, &format,
+				 &n, &left, &propData);
+
+    if (result == Success && n && propData)
+    {
+	if (n >= 2)
+	{
+	    long *data = (long *) propData;
+
+	    mw->button = data[1];
+
+	    nBox = (n - 2) / 6;
+	    if (nBox)
+	    {
+		box = malloc (sizeof (MoveBox) * nBox);
+		if (box)
+		{
+		    int i;
+
+		    data += 2;
+
+		    for (i = 0; i < nBox; i++)
+		    {
+			box[i].p1.gravity = *data++;
+			box[i].p1.x       = *data++;
+			box[i].p1.y       = *data++;
+			box[i].p2.gravity = *data++;
+			box[i].p2.x       = *data++;
+			box[i].p2.y       = *data++;
+		    }
+		}
+	    }
+	}
+
+	XFree (propData);
+    }
+
+    if (mw->box)
+	free (mw->box);
+
+    mw->box  = box;
+    mw->nBox = nBox;
+}
 
 static Bool
 moveInitiate (CompDisplay     *d,
@@ -582,11 +697,67 @@ moveHandleEvent (CompDisplay *d,
 		 XEvent      *event)
 {
     CompScreen *s;
+    CompWindow *w;
 
     MOVE_DISPLAY (d);
 
     switch (event->type) {
     case ButtonPress:
+	w = findTopLevelWindowAtDisplay (d, event->xbutton.window);
+	if (w)
+	{
+	    MOVE_SCREEN (w->screen);
+
+	    if (!ms->grabIndex)
+	    {
+		CompWindow *p;
+		int        option = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
+		int        x = event->xbutton.x_root;
+		int        y = event->xbutton.y_root;
+
+		MOVE_WINDOW (w);
+
+		for (p = w; p; p = p->parent)
+		{
+		    x -= p->attrib.x;
+		    y -= p->attrib.y;
+		}
+
+		if (event->xbutton.button == mw->button &&
+		    movePointInBoxes (x, y,
+				      mw->box, mw->nBox,
+				      w->width, w->height))
+		{
+		    CompOption o[5];
+
+		    o[0].type    = CompOptionTypeInt;
+		    o[0].name    = "window";
+		    o[0].value.i = w->id;
+
+		    o[1].type	 = CompOptionTypeInt;
+		    o[1].name	 = "modifiers";
+		    o[1].value.i = event->xbutton.state;
+
+		    o[2].type	 = CompOptionTypeInt;
+		    o[2].name	 = "x";
+		    o[2].value.i = event->xbutton.x_root;
+
+		    o[3].type	 = CompOptionTypeInt;
+		    o[3].name	 = "y";
+		    o[3].value.i = event->xbutton.y_root;
+
+		    o[4].type    = CompOptionTypeInt;
+		    o[4].name    = "button";
+		    o[4].value.i = event->xbutton.button;
+
+		    moveInitiate (d,
+				  &md->opt[option].value.action,
+				  CompActionStateInitButton,
+				  o, 5);
+		}
+	    }
+	}
+	break;
     case ButtonRelease:
 	s = findScreenAtDisplay (d, event->xbutton.root);
 	if (s)
@@ -645,8 +816,6 @@ moveHandleEvent (CompDisplay *d,
     case ClientMessage:
 	if (event->xclient.message_type == d->wmMoveResizeAtom)
 	{
-	    CompWindow *w;
-
 	    if (event->xclient.data.l[2] == WmMoveResizeMove ||
 		event->xclient.data.l[2] == WmMoveResizeMoveKeyboard)
 	    {
@@ -765,6 +934,18 @@ moveHandleEvent (CompDisplay *d,
     UNWRAP (md, d, handleEvent);
     (*d->handleEvent) (d, event);
     WRAP (md, d, handleEvent, moveHandleEvent);
+
+    if (event->type == PropertyNotify)
+    {
+	if (event->xproperty.atom == md->moveAtom)
+	{
+	    CompWindow *w;
+
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w)
+		moveWindowUpdate (w);
+	}
+    }
 }
 
 static Bool
@@ -895,6 +1076,8 @@ moveInitDisplay (CompPlugin  *p,
 	md->key[i] = XKeysymToKeycode (d->display,
 				       XStringToKeysym (mKeys[i].name));
 
+    md->moveAtom = XInternAtom (d->display, "_COMPIZ_WM_WINDOW_MOVE_DECOR", 0);
+
     WRAP (md, d, handleEvent, moveHandleEvent);
 
     d->base.privates[displayPrivateIndex].ptr = md;
@@ -929,6 +1112,13 @@ moveInitScreen (CompPlugin *p,
     if (!ms)
 	return FALSE;
 
+    ms->windowPrivateIndex = allocateWindowPrivateIndex (s);
+    if (ms->windowPrivateIndex < 0)
+    {
+	free (ms);
+	return FALSE;
+    }
+
     ms->grabIndex = 0;
 
     ms->moveCursor = XCreateFontCursor (s->display->display, XC_fleur);
@@ -951,7 +1141,44 @@ moveFiniScreen (CompPlugin *p,
     if (ms->moveCursor)
 	XFreeCursor (s->display->display, ms->moveCursor);
 
+    freeWindowPrivateIndex (s, ms->windowPrivateIndex);
+
     free (ms);
+}
+
+static Bool
+moveInitWindow (CompPlugin *p,
+		CompWindow *w)
+{
+    MoveWindow *mw;
+
+    MOVE_SCREEN (w->screen);
+
+    mw = malloc (sizeof (MoveWindow));
+    if (!mw)
+	return FALSE;
+
+    mw->button = 0;
+    mw->box    = NULL;
+    mw->nBox   = 0;
+
+    w->base.privates[ms->windowPrivateIndex].ptr = mw;
+
+    moveWindowUpdate (w);
+
+    return TRUE;
+}
+
+static void
+moveFiniWindow (CompPlugin *p,
+		CompWindow *w)
+{
+    MOVE_WINDOW (w);
+
+    if (mw->box)
+	free (mw->box);
+
+    free (mw);
 }
 
 static CompBool
@@ -961,7 +1188,8 @@ moveInitObject (CompPlugin *p,
     static InitPluginObjectProc dispTab[] = {
 	(InitPluginObjectProc) 0, /* InitCore */
 	(InitPluginObjectProc) moveInitDisplay,
-	(InitPluginObjectProc) moveInitScreen
+	(InitPluginObjectProc) moveInitScreen,
+	(InitPluginObjectProc) moveInitWindow
     };
 
     RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
@@ -974,7 +1202,8 @@ moveFiniObject (CompPlugin *p,
     static FiniPluginObjectProc dispTab[] = {
 	(FiniPluginObjectProc) 0, /* FiniCore */
 	(FiniPluginObjectProc) moveFiniDisplay,
-	(FiniPluginObjectProc) moveFiniScreen
+	(FiniPluginObjectProc) moveFiniScreen,
+	(FiniPluginObjectProc) moveFiniWindow
     };
 
     DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
