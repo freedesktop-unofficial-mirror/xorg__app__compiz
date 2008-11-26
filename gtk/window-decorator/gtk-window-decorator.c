@@ -373,6 +373,23 @@ static struct _pos {
     { 6, 2, 16, 16,   0, 0, 0, 0, 0, 0 }
 };
 
+static char *wm_action_name[3][3] = {
+    {
+	"_COMPIZ_WM_WINDOW_SIZE_TOPLEFT_DECOR",
+	"_COMPIZ_WM_WINDOW_SIZE_TOP_DECOR",
+	"_COMPIZ_WM_WINDOW_SIZE_TOPRIGHT_DECOR"
+    }, {
+	"_COMPIZ_WM_WINDOW_SIZE_LEFT_DECOR",
+	"_COMPIZ_WM_WINDOW_MOVE_DECOR",
+	"_COMPIZ_WM_WINDOW_SIZE_RIGHT_DECOR"
+    }, {
+	"_COMPIZ_WM_WINDOW_SIZE_BOTTOMLEFT_DECOR",
+	"_COMPIZ_WM_WINDOW_SIZE_BOTTOM_DECOR",
+	"_COMPIZ_WM_WINDOW_SIZE_BOTTOMRIGHT_DECOR"
+    }
+};
+static Atom wm_action_atom[3][3];
+
 typedef struct _decor_color {
     double r;
     double g;
@@ -481,6 +498,7 @@ static XRenderPictFormat *xformat;
 
 static void
 decor_update_box_property (decor_t *d,
+			   XID     xid,
 			   Atom    property,
 			   int     value0,
 			   int     value1,
@@ -523,7 +541,7 @@ decor_update_box_property (decor_t *d,
 				      right_region, right_offset);
 
 	gdk_error_trap_push ();
-	XChangeProperty (xdisplay, d->prop_xid,
+	XChangeProperty (xdisplay, xid,
 			 property,
 			 XA_INTEGER,
 			 32, PropModeReplace, (guchar *) data,
@@ -536,7 +554,7 @@ decor_update_box_property (decor_t *d,
     else
     {
 	gdk_error_trap_push ();
-	XDeleteProperty (xdisplay, d->prop_xid, property);
+	XDeleteProperty (xdisplay, xid, property);
 	gdk_display_sync (gdk_display_get_default ());
 	gdk_error_trap_pop ();
     }
@@ -566,6 +584,7 @@ decor_update_blur_property (decor_t *d,
     }
 
     decor_update_box_property (d,
+			       d->prop_xid,
 			       win_blur_decor_atom,
 			       4, 0,
 			       width,
@@ -3277,13 +3296,21 @@ update_event_windows (WnckWindow *win)
 {
     Display *xdisplay;
     decor_t *d = g_object_get_data (G_OBJECT (win), "decor");
-    gint    x0, y0, width, height, x, y, w, h;
+    Region  move_xregion;
+    REGION  xregion;
+    gint    x0, y0, x1, y1, width, height, x, y, w, h;
     gint    i, j, k, l;
     gint    actions = d->actions;
 
     xdisplay = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
 
-    wnck_window_get_client_window_geometry (win, &x0, &y0, &width, &height);
+    wnck_window_get_geometry (win, &x0, &y0, &width, &height);
+    wnck_window_get_client_window_geometry (win, &x1, &y1, &width, &height);
+
+    move_xregion = XCreateRegion ();
+
+    xregion.rects = &xregion.extents;
+    xregion.numRects = xregion.size = 1;
 
     if (d->state & WNCK_WINDOW_STATE_SHADED)
     {
@@ -3330,6 +3357,16 @@ update_event_windows (WnckWindow *win)
 		XMapWindow (xdisplay, d->event_windows[i][j]);
 		XMoveResizeWindow (xdisplay, d->event_windows[i][j],
 				   x, y, w, h);
+
+		xregion.extents.x1 = x;
+		xregion.extents.y1 = y;
+		xregion.extents.x2 = x + w;
+		xregion.extents.y2 = y + h;
+
+		if (i == 1 && j == 1)
+		    XUnionRegion (move_xregion, &xregion, move_xregion);
+		else
+		    XSubtractRegion (move_xregion, &xregion, move_xregion);
 	    }
 	    else
 	    {
@@ -3377,12 +3414,41 @@ update_event_windows (WnckWindow *win)
 	{
 	    XMapWindow (xdisplay, d->button_windows[i]);
 	    XMoveResizeWindow (xdisplay, d->button_windows[i], x, y, w, h);
+
+	    xregion.extents.x1 = x;
+	    xregion.extents.y1 = y;
+	    xregion.extents.x2 = x + w;
+	    xregion.extents.y2 = y + h;
+
+	    XSubtractRegion (move_xregion, &xregion, move_xregion);
 	}
 	else
 	{
 	    XUnmapWindow (xdisplay, d->button_windows[i]);
 	}
     }
+
+    XOffsetRegion (move_xregion, x0 - x1, y0 - y1);
+
+    xregion.extents.x1 = 0;
+    xregion.extents.y1 = 0;
+    xregion.extents.x2 = width;
+    xregion.extents.y2 = height;
+
+    XSubtractRegion (move_xregion, &xregion, move_xregion);
+
+    decor_update_box_property (d,
+			       wnck_window_get_xid (win),
+			       wm_action_atom[1][1],
+			       0,
+			       1,
+			       width, height,
+			       move_xregion, width / 2,
+			       NULL, 0,
+			       NULL, 0,
+			       NULL, 0);
+
+    XDestroyRegion (move_xregion);
 
     gdk_display_sync (gdk_display_get_default ());
     gdk_error_trap_pop ();
@@ -7255,6 +7321,12 @@ main (int argc, char *argv[])
 	XInternAtom (xdisplay, "_GNOME_PANEL_ACTION_MAIN_MENU", FALSE);
     panel_action_run_dialog_atom =
 	XInternAtom (xdisplay, "_GNOME_PANEL_ACTION_RUN_DIALOG", FALSE);
+
+    for (i = 0; i < 3; i++)
+	for (j = 0; j < 3; j++)
+	    wm_action_atom[i][j] = XInternAtom (xdisplay,
+						wm_action_name[i][j],
+						FALSE);
 
     status = decor_acquire_dm_session (xdisplay,
 				       gdk_screen_get_number (gdkscreen),
