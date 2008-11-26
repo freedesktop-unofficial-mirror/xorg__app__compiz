@@ -1299,10 +1299,17 @@ paintWindow (CompWindow		     *w,
 	    if ((mask & clipMask) == clipMask)
 	    {
 		glPushAttrib (GL_TRANSFORM_BIT);
-		(*w->screen->enableOutputClipping) (w->screen,
-						    &wTransform,
-						    w->region,
-						    0);
+
+		if (mask & PAINT_WINDOW_CLIP_MASK)
+		    (*w->screen->enableOutputClipping) (w->screen,
+							&wTransform,
+							w->clip,
+							0);
+		else
+		    (*w->screen->enableOutputClipping) (w->screen,
+							&wTransform,
+							clip,
+							0);
 	    }
 	}
 
