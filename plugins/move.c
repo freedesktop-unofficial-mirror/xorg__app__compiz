@@ -703,58 +703,53 @@ moveHandleEvent (CompDisplay *d,
 
     switch (event->type) {
     case ButtonPress:
-	w = findTopLevelWindowAtDisplay (d, event->xbutton.window);
+	w = findClientWindowAtDisplay (d, event->xbutton.window);
 	if (w)
 	{
-	    MOVE_SCREEN (w->screen);
+	    CompWindow *p;
+	    int        option = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
+	    int        x = event->xbutton.x_root;
+	    int        y = event->xbutton.y_root;
 
-	    if (!ms->grabIndex)
+	    MOVE_WINDOW (w);
+
+	    for (p = w; p; p = p->parent)
 	    {
-		CompWindow *p;
-		int        option = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
-		int        x = event->xbutton.x_root;
-		int        y = event->xbutton.y_root;
+		x -= p->attrib.x;
+		y -= p->attrib.y;
+	    }
 
-		MOVE_WINDOW (w);
+	    if (event->xbutton.button == mw->button &&
+		movePointInBoxes (x, y,
+				  mw->box, mw->nBox,
+				  w->width, w->height))
+	    {
+		CompOption o[5];
 
-		for (p = w; p; p = p->parent)
-		{
-		    x -= p->attrib.x;
-		    y -= p->attrib.y;
-		}
+		o[0].type    = CompOptionTypeInt;
+		o[0].name    = "window";
+		o[0].value.i = w->id;
 
-		if (event->xbutton.button == mw->button &&
-		    movePointInBoxes (x, y,
-				      mw->box, mw->nBox,
-				      w->width, w->height))
-		{
-		    CompOption o[5];
+		o[1].type    = CompOptionTypeInt;
+		o[1].name    = "modifiers";
+		o[1].value.i = event->xbutton.state;
 
-		    o[0].type    = CompOptionTypeInt;
-		    o[0].name    = "window";
-		    o[0].value.i = w->id;
+		o[2].type    = CompOptionTypeInt;
+		o[2].name    = "x";
+		o[2].value.i = event->xbutton.x_root;
 
-		    o[1].type	 = CompOptionTypeInt;
-		    o[1].name	 = "modifiers";
-		    o[1].value.i = event->xbutton.state;
+		o[3].type    = CompOptionTypeInt;
+		o[3].name    = "y";
+		o[3].value.i = event->xbutton.y_root;
 
-		    o[2].type	 = CompOptionTypeInt;
-		    o[2].name	 = "x";
-		    o[2].value.i = event->xbutton.x_root;
+		o[4].type    = CompOptionTypeInt;
+		o[4].name    = "button";
+		o[4].value.i = event->xbutton.button;
 
-		    o[3].type	 = CompOptionTypeInt;
-		    o[3].name	 = "y";
-		    o[3].value.i = event->xbutton.y_root;
-
-		    o[4].type    = CompOptionTypeInt;
-		    o[4].name    = "button";
-		    o[4].value.i = event->xbutton.button;
-
-		    moveInitiate (d,
-				  &md->opt[option].value.action,
-				  CompActionStateInitButton,
-				  o, 5);
-		}
+		moveInitiate (d,
+			      &md->opt[option].value.action,
+			      CompActionStateInitButton,
+			      o, 5);
 	    }
 	}
 	break;
