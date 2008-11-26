@@ -1163,6 +1163,33 @@ setWindowProp32 (CompDisplay    *display,
 		     (unsigned char *) &value32, 1);
 }
 
+Window
+getFrameWindow (CompWindow *w)
+{
+    Atom	  actual;
+    int		  result, format;
+    unsigned long n, left;
+    unsigned char *data;
+
+    result = XGetWindowProperty (w->screen->display->display, w->id,
+				 w->screen->display->frameWindowAtom,
+				 0L, 1L, False, XA_WINDOW, &actual, &format,
+				 &n, &left, &data);
+
+    if (result == Success && n && data)
+    {
+	Window win;
+
+	memcpy (&win, data, sizeof (Window));
+	XFree ((void *) data);
+
+	if (win)
+	    return win;
+    }
+
+    return None;
+}
+
 static void
 updateFrameWindow (CompWindow *w)
 {
@@ -1410,7 +1437,7 @@ freeWindow (CompWindow *w)
 
     destroyTexture (w->screen, w->texture);
 
-    if (w->frame)
+    if (w->frame && w->parent->substructureRedirect)
 	XDestroyWindow (w->screen->display->display, w->frame);
 
     if (w->clip)
@@ -2285,6 +2312,9 @@ addWindow (CompWindow *parent,
 	if (!w->clientLeader)
 	    w->startupId = getStartupId (w);
 
+	if (w->parent && !w->parent->substructureRedirect)
+	    w->frame = getFrameWindow (w);
+
 	recalcWindowType (w);
 
 	getMwmHints (d, w->id, &w->mwmFunc, &w->mwmDecor);
@@ -2581,7 +2611,7 @@ mapWindow (CompWindow *w)
     updateWindowRegion (w);
     updateWindowSize (w);
 
-    if (w->frame)
+    if (w->frame && w->parent->substructureRedirect)
 	XMapWindow (w->screen->display->display, w->frame);
 
     updateClientListForScreen (w->screen);
@@ -2662,7 +2692,7 @@ unmapWindow (CompWindow *w)
 {
     if (w->mapNum)
     {
-	if (w->frame && !w->shaded)
+	if (w->frame && w->parent->substructureRedirect && !w->shaded)
 	    XUnmapWindow (w->screen->display->display, w->frame);
 
 	if (w->parent->substructureRedirect)
@@ -2781,7 +2811,7 @@ resizeWindow (CompWindow *w,
 
 	moveWindow (w, dx, dy, TRUE, TRUE);
 
-	if (w->frame)
+	if (w->frame && w->parent->substructureRedirect)
 	    XMoveWindow (w->screen->display->display, w->frame,
 			 w->attrib.x - w->input.left,
 			 w->attrib.y - w->input.top);
@@ -3576,7 +3606,8 @@ reconfigureXWindow (CompWindow	   *w,
 
     XConfigureWindow (w->screen->display->display, w->id, valueMask, xwc);
 
-    if (w->frame && (valueMask & (CWSibling | CWStackMode | CWX | CWY)))
+    if (w->frame && w->parent->substructureRedirect &&
+	(valueMask & (CWSibling | CWStackMode | CWX | CWY)))
     {
 	XWindowChanges wc = *xwc;
 
@@ -4206,7 +4237,7 @@ addWindowStackChanges (CompWindow     *w,
 	    if (!sibling)
 	    {
 		XLowerWindow (w->screen->display->display, w->id);
-		if (w->frame)
+		if (w->frame && w->parent->substructureRedirect)
 		    XLowerWindow (w->screen->display->display, w->frame);
 	    }
 	    else if (sibling->id != w->prev->id)
@@ -4766,7 +4797,8 @@ hideWindow (CompWindow *w)
 
 	w->shaded = FALSE;
 
-	if ((w->state & CompWindowStateShadedMask) && w->frame)
+	if ((w->state & CompWindowStateShadedMask) &&
+	    w->frame && w->parent->substructureRedirect)
 	    XUnmapWindow (w->screen->display->display, w->frame);
     }
 
@@ -4806,7 +4838,7 @@ showWindow (CompWindow *w)
     {
 	w->shaded = TRUE;
 
-	if (w->frame)
+	if (w->frame && w->parent->substructureRedirect)
 	    XMapWindow (w->screen->display->display, w->frame);
 
 	if (w->height)

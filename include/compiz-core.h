@@ -1083,6 +1083,9 @@ updateIconGeometry (CompWindow *w);
 Window
 getClientLeader (CompWindow *w);
 
+Window
+getFrameWindow (CompWindow *w);
+
 char *
 getStartupId (CompWindow *w);
 
@@ -1842,6 +1845,10 @@ findScreenAtDisplay (CompDisplay *d,
 CompWindow *
 findWindowAtDisplay (CompDisplay *display,
 		     Window      id);
+
+CompWindow *
+findClientWindowAtDisplay (CompDisplay *d,
+			   Window      id);
 
 CompWindow *
 findTopLevelWindowAtDisplay (CompDisplay *d,
@@ -2987,6 +2994,10 @@ forEachWindowOnScreen (CompScreen	 *screen,
 CompWindow *
 findWindowAtScreen (CompScreen *s,
 		    Window     id);
+
+CompWindow *
+findClientWindowAtScreen (CompScreen *s,
+			  Window      id);
 
 CompWindow *
 findTopLevelWindowAtScreen (CompScreen *s,

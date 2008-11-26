@@ -2736,6 +2736,23 @@ findWindowAtDisplay (CompDisplay *d,
 }
 
 CompWindow *
+findClientWindowAtDisplay (CompDisplay *d,
+			   Window      id)
+{
+    CompScreen *s;
+    CompWindow *w;
+
+    for (s = d->screens; s; s = s->next)
+    {
+	w = findClientWindowAtScreen (s, id);
+	if (w)
+	    return w;
+    }
+
+    return 0;
+}
+
+CompWindow *
 findTopLevelWindowAtDisplay (CompDisplay *d,
 			     Window      id)
 {

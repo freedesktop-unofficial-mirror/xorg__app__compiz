@@ -2687,8 +2687,8 @@ findWindowAtScreen (CompScreen *s,
 }
 
 CompWindow *
-findTopLevelWindowAtScreen (CompScreen *s,
-			    Window     id)
+findClientWindowAtScreen (CompScreen *s,
+			  Window     id)
 {
     CompWindow *w;
 
@@ -2707,6 +2707,16 @@ findTopLevelWindowAtScreen (CompScreen *s,
 		break;
     }
 
+    return w;
+}
+
+CompWindow *
+findTopLevelWindowAtScreen (CompScreen *s,
+			    Window     id)
+{
+    CompWindow *w;
+
+    w = findClientWindowAtScreen (s, id);
     if (w && w->managed)
 	return w;
 

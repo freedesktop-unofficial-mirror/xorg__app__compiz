@@ -1539,6 +1539,12 @@ handleEvent (CompDisplay *d,
 	    if (w)
 		w->clientLeader = getClientLeader (w);
 	}
+	else if (event->xproperty.atom == d->frameWindowAtom)
+	{
+	    w = findWindowAtDisplay (d, event->xproperty.window);
+	    if (w && w->parent && !w->parent->substructureRedirect)
+		w->frame = getFrameWindow (w);
+	}
 	else if (event->xproperty.atom == d->wmIconGeometryAtom)
 	{
 	    w = findWindowAtDisplay (d, event->xproperty.window);
