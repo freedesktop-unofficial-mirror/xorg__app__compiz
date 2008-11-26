@@ -261,15 +261,18 @@ KWD::Switcher::updateBlurProperty (int topOffset,
 
     if (size)
     {
-	long data[size * 6 + 2];
+      	long data[size * 6 + 2];
 
-	decor_region_to_blur_property (data, 4, 0,
-				       mGeometry.width (),
-				       mGeometry.height (),
-				       topRegion, topOffset,
-				       bottomRegion, bottomOffset,
-				       leftRegion, leftOffset,
-				       rightRegion, rightOffset);
+        data[0] = 4;
+	data[1] = 0;
+
+	decor_region_to_box_property (data + 2,
+                                      mGeometry.width (),
+                                      mGeometry.height (),
+                                      topRegion, topOffset,
+                                      bottomRegion, bottomOffset,
+                                      leftRegion, leftOffset,
+                                      rightRegion, rightOffset);
 
 	KWD::trapXError ();
 	XChangeProperty (QX11Info::display (), mId, atom, XA_INTEGER,
