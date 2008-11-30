@@ -1301,10 +1301,32 @@ paintWindow (CompWindow		     *w,
 		glPushAttrib (GL_TRANSFORM_BIT);
 
 		if (mask & PAINT_WINDOW_CLIP_MASK)
+		{
+		    REGION reg;
+
+		    reg.rects    = &reg.extents;
+		    reg.numRects = reg.size = 1;
+		    reg.extents  = w->clip->extents;
+
+		    if (reg.extents.x1 < w->region->extents.x1)
+			reg.extents.x1 = w->region->extents.x1;
+		    if (reg.extents.y1 < w->region->extents.y1)
+			reg.extents.y1 = w->region->extents.y1;
+		    if (reg.extents.x2 > w->region->extents.x2)
+			reg.extents.x2 = w->region->extents.x2;
+		    if (reg.extents.y2 > w->region->extents.y2)
+			reg.extents.y2 = w->region->extents.y2;
+
+		    reg.extents.x1 -= w->attrib.x;
+		    reg.extents.y1 -= w->attrib.y;
+		    reg.extents.x2 -= w->attrib.x;
+		    reg.extents.y2 -= w->attrib.y;
+
 		    (*w->screen->enableOutputClipping) (w->screen,
 							&wTransform,
-							w->clip,
+							&reg,
 							0);
+		}
 		else
 		    (*w->screen->enableOutputClipping) (w->screen,
 							&wTransform,
