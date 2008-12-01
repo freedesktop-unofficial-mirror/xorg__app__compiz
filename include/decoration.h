@@ -209,6 +209,21 @@ decor_region_to_box_property (long   *data,
 			      int    rightOffset);
 
 void
+decor_region_to_blur_property (long   *data,
+			       int    threshold,
+			       int    filter,
+			       int    width,
+			       int    height,
+			       Region top_region,
+			       int    top_offset,
+			       Region bottom_region,
+			       int    bottom_offset,
+			       Region left_region,
+			       int    left_offset,
+			       Region right_region,
+			       int    right_offset);
+
+void
 decor_apply_gravity (int gravity,
 		     int x,
 		     int y,
