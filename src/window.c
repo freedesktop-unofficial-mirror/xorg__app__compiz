@@ -4524,6 +4524,7 @@ activateWindow (CompWindow *w)
     if (!w->parent->substructureRedirect)
     {
 	XEvent xev;
+	int    mask = 0;
 
 	xev.xclient.type    = ClientMessage;
 	xev.xclient.display = w->screen->display->display;
@@ -4538,8 +4539,11 @@ activateWindow (CompWindow *w)
 	xev.xclient.data.l[3] = 0;
 	xev.xclient.data.l[4] = 0;
 
+	if (w->parent == &w->screen->root)
+	    mask = SubstructureRedirectMask | SubstructureNotifyMask;
+
 	XSendEvent (w->screen->display->display, w->parent->id, FALSE,
-		    SubstructureRedirectMask | SubstructureNotifyMask,
+		    mask,
 		    &xev);
 
 	return;
