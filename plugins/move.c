@@ -336,6 +336,8 @@ moveInitiate (CompDisplay     *d,
 
 	    if (md->moveOpacity != OPAQUE)
 		addWindowDamage (w);
+
+	    return TRUE;
 	}
     }
 
@@ -746,10 +748,14 @@ moveHandleEvent (CompDisplay *d,
 		o[4].name    = "button";
 		o[4].value.i = event->xbutton.button;
 
-		moveInitiate (d,
-			      &md->opt[option].value.action,
-			      CompActionStateInitButton,
-			      o, 5);
+		if (moveInitiate (d,
+				  &md->opt[option].value.action,
+				  CompActionStateInitButton,
+				  o, 5))
+		{
+		    if (!w->parent->substructureRedirect)
+			activateWindow (w);
+		}
 	    }
 	}
 	break;
