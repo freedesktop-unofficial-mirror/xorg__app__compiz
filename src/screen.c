@@ -3761,7 +3761,7 @@ applyStartupProperties (CompScreen *screen,
     {
 	CompWindow *leader;
 
-	leader = findWindowAtScreen (screen, window->clientLeader);
+	leader = findSibling (window, window->clientLeader);
 	if (leader)
 	    startupId = leader->startupId;
 

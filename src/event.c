@@ -144,7 +144,7 @@ moveInputFocusToOtherWindow (CompWindow *w)
 
 	if (w->transientFor && w->transientFor != w->screen->root.id)
 	{
-	    ancestor = findWindowAtDisplay (display, w->transientFor);
+	    ancestor = findSibling (w, w->transientFor);
 	    if (ancestor && !(ancestor->type & (CompWindowTypeDesktopMask |
 						CompWindowTypeDockMask)))
 	    {

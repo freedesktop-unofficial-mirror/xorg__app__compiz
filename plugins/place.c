@@ -1016,7 +1016,7 @@ placeGetPlacementOutput (CompWindow        *w,
 	{
 	    CompWindow *parent;
 
-	    parent = findWindowAtScreen (s, w->transientFor);
+	    parent = findSibling (w, w->transientFor);
 	    if (parent)
 		output = outputDeviceForWindow (parent);
 	}
@@ -1138,7 +1138,7 @@ placeDoWindowPlacement (CompWindow *w,
     {
 	CompWindow *parent;
 
-	parent = findWindowAtScreen (s, w->transientFor);
+	parent = findSibling (w, w->transientFor);
 	if (parent)
 	{
 	    /* center over parent horizontally */

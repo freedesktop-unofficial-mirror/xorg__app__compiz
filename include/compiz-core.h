@@ -1394,6 +1394,10 @@ void
 unhookWindow (CompWindow *parent,
 	      CompWindow *w);
 
+CompWindow *
+findSibling (CompWindow *w,
+	     Window     id);
+
 
 /* display.c */
 

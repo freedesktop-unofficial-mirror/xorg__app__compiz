@@ -178,8 +178,7 @@ isAncestorTo (CompWindow *transient,
 	if (transient->transientFor == ancestor->id)
 	    return TRUE;
 
-	transient = findWindowAtScreen (transient->screen,
-					transient->transientFor);
+	transient = findSibling (transient, transient->transientFor);
 	if (transient)
 	    return isAncestorTo (transient, ancestor);
     }
@@ -386,7 +385,7 @@ updateTransientHint (CompWindow *w)
     {
 	CompWindow *ancestor;
 
-	ancestor = findWindowAtScreen (w->screen, transientFor);
+	ancestor = findSibling (w, transientFor);
 	if (!ancestor)
 	    return;
 
@@ -436,7 +435,7 @@ getClientLeaderOfAncestor (CompWindow *w)
 {
     if (w->transientFor)
     {
-	w = findWindowAtScreen (w->screen, w->transientFor);
+	w = findSibling (w, w->transientFor);
 	if (w)
 	{
 	    if (w->clientLeader)
@@ -3678,7 +3677,7 @@ stackAncestors (CompWindow     *w,
     {
 	CompWindow *ancestor;
 
-	ancestor = findWindowAtScreen (w->screen, w->transientFor);
+	ancestor = findSibling (w, w->transientFor);
 	if (ancestor)
 	{
 	    if (!stackTransients (ancestor, w, xwc))
@@ -5061,7 +5060,7 @@ isWindowFocusAllowed (CompWindow   *w,
     {
 	CompWindow *parent;
 
-	parent = findWindowAtScreen (w->screen, w->transientFor);
+	parent = findSibling (w, w->transientFor);
 	if (parent)
 	    gotTimestamp = getUsageTimestampForWindow (parent, &wUserTime);
     }
@@ -5613,4 +5612,16 @@ unhookWindow (CompWindow *parent,
 	lastFoundWindow = NULL;
     if (w == lastDamagedWindow)
 	lastDamagedWindow = NULL;
+}
+
+CompWindow *
+findSibling (CompWindow *w,
+	     Window     id)
+{
+    if (w->parent)
+	for (w = w->parent->windows; w; w = w->next)
+	    if (w->id == id)
+		return w;
+
+    return NULL;
 }
