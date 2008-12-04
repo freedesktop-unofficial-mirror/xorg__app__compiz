@@ -424,11 +424,9 @@ decorCreateDecoration (CompScreen *screen,
     int		    left, right, top, bottom;
     int		    x1, y1, x2, y2;
 
-    DECOR_DISPLAY (screen->display);
-
     result = XGetWindowProperty (screen->display->display, id,
 				 decorAtom, 0L, 1024L, FALSE,
-				 dd->winDecorAtom, &actual, &format,
+				 0, &actual, &format,
 				 &n, &nleft, &data);
 
     if (result != Success || !n || !data)
