@@ -1949,6 +1949,8 @@ initRootWindow (CompScreen *s,
     w->bindFailed = TRUE;
     w->alive      = TRUE;
 
+    w->mapNum = s->mapNum++;
+
     w->paint.opacity    = OPAQUE;
     w->paint.brightness = BRIGHT;
     w->paint.saturation = COLOR;

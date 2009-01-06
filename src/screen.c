@@ -1789,10 +1789,10 @@ addScreen (CompDisplay *display,
     s->screenNum = screenNum;
     s->colormap  = DefaultColormap (dpy, screenNum);
 
-    initRootWindow (s, &s->root);
-
     s->mapNum    = 1;
     s->activeNum = 1;
+
+    initRootWindow (s, &s->root);
 
     s->groups = NULL;
 
