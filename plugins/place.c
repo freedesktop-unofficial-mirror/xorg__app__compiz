@@ -1085,21 +1085,31 @@ placeConstrainToWorkarea (CompWindow *w,
 			  int        *y)
 {
     CompWindowExtents extents;
+    int               delta;
 
     extents.left   = *x - w->input.left;
     extents.top    = *y - w->input.top;
     extents.right  = *x + w->serverWidth + w->input.right;
     extents.bottom = *y + w->serverHeight + w->input.bottom;
 
-    if (extents.left < workArea->x)
-	*x += workArea->x - extents.left;
-    else if (extents.right > workArea->x + workArea->width)
-	*x += workArea->x + workArea->width - extents.right;
+    delta = workArea->x + workArea->width - extents.right;
+    if (delta < 0)
+	extents.left += delta;
 
-    if (extents.top < workArea->y)
-	*y += workArea->y - extents.top;
-    else if (extents.bottom > workArea->y + workArea->height)
-	*y += workArea->y + workArea->height - extents.bottom;
+    delta = workArea->x - extents.left;
+    if (delta > 0)
+    	extents.left  += delta;
+
+    delta = workArea->y + workArea->height - extents.bottom;
+    if (delta < 0)
+	extents.top += delta;
+
+    delta = workArea->y - extents.top;
+    if (delta > 0)
+    	extents.top += delta;
+
+    *x = extents.left + w->input.left;
+    *y = extents.top  + w->input.top;
 }
 
 static Bool
