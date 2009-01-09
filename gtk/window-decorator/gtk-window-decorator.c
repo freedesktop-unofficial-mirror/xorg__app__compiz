@@ -389,6 +389,7 @@ static char *wm_action_name[3][3] = {
     }
 };
 static Atom wm_action_atom[3][3];
+static Atom wm_action_notify_atom[3][3];
 
 typedef struct _decor_color {
     double r;
@@ -5032,7 +5033,8 @@ unstick_button_event (WnckWindow *win,
 static void
 handle_title_button_event (WnckWindow   *win,
 			   int          action,
-			   XButtonEvent *event)
+			   int          button,
+			   Time         time)
 {
     switch (action) {
     case CLICK_ACTION_SHADE:
@@ -5058,7 +5060,7 @@ handle_title_button_event (WnckWindow   *win,
 	restack_window (win, Below);
 	break;
     case CLICK_ACTION_MENU:
-	action_menu_map (win, event->button, event->time);
+	action_menu_map (win, button, time);
 	break;
     }
 }
@@ -5098,16 +5100,16 @@ dist (double x1, double y1,
     return sqrt (square (x1 - x2) + square (y1 - y2));
 }
 
+static int    last_button_num = 0;
+static Window last_button_xwindow = None;
+static Time   last_button_time = 0;
+static int    last_button_x = 0;
+static int    last_button_y = 0;
+
 static void
 title_event (WnckWindow *win,
 	     XEvent     *xevent)
 {
-    static int	  last_button_num = 0;
-    static Window last_button_xwindow = None;
-    static Time	  last_button_time = 0;
-    static int	  last_button_x = 0;
-    static int	  last_button_y = 0;
-
     if (xevent->type != ButtonPress)
 	return;
 
@@ -5120,7 +5122,8 @@ title_event (WnckWindow *win,
 		  last_button_x, last_button_y) < DOUBLE_CLICK_DISTANCE)
 	{
 	    handle_title_button_event (win, double_click_action,
-				       &xevent->xbutton);
+				       xevent->xbutton.button,
+				       xevent->xbutton.time);
 
 	    last_button_num	= 0;
 	    last_button_xwindow = None;
@@ -5144,12 +5147,14 @@ title_event (WnckWindow *win,
     else if (xevent->xbutton.button == 2)
     {
 	handle_title_button_event (win, middle_click_action,
-				   &xevent->xbutton);
+				   xevent->xbutton.button,
+				   xevent->xbutton.time);
     }
     else if (xevent->xbutton.button == 3)
     {
 	handle_title_button_event (win, right_click_action,
-				   &xevent->xbutton);
+				   xevent->xbutton.button,
+				   xevent->xbutton.time);
     }
     else if (xevent->xbutton.button == 4 ||
 	     xevent->xbutton.button == 5)
@@ -5173,11 +5178,13 @@ frame_common_event (WnckWindow *win,
 	break;
     case 2:
 	handle_title_button_event (win, middle_click_action,
-				   &xevent->xbutton);
+				   xevent->xbutton.button,
+				   xevent->xbutton.time);
 	break;
     case 3:
 	handle_title_button_event (win, right_click_action,
-				   &xevent->xbutton);
+				   xevent->xbutton.button,
+				   xevent->xbutton.time);
 	break;
     }
 }
@@ -5584,6 +5591,48 @@ event_filter_func (GdkXEvent *gdkxevent,
 						xevent->xclient.data.l[1]);
 		    else
 			hide_force_quit_dialog (win);
+		}
+	    }
+	}
+	else if (xevent->xclient.message_type == wm_action_notify_atom[1][1])
+	{
+	    WnckWindow *win;
+	    gulong     id = (gulong)
+		g_hash_table_lookup (frame_table,
+				     GINT_TO_POINTER (xevent->xclient.window));
+
+	    win = wnck_window_get (id);
+	    if (win)
+	    {
+		if (xevent->xclient.window    == last_button_xwindow &&
+		    xevent->xclient.data.l[0] == last_button_num     &&
+		    xevent->xclient.data.l[3] <
+		    last_button_time + double_click_timeout          &&
+		    dist (xevent->xclient.data.l[1],
+			  xevent->xclient.data.l[2],
+			  last_button_x,
+			  last_button_y) < DOUBLE_CLICK_DISTANCE)
+		{
+		    handle_title_button_event (win,
+					       double_click_action,
+					       xevent->xclient.data.l[0],
+					       xevent->xclient.data.l[3]);
+
+		    last_button_num	= 0;
+		    last_button_xwindow = None;
+		    last_button_time    = 0;
+		    last_button_x	= 0;
+		    last_button_y	= 0;
+		}
+		else
+		{
+		    last_button_num	= xevent->xclient.data.l[0];
+		    last_button_xwindow = xevent->xclient.window;
+		    last_button_time    = xevent->xclient.data.l[3];
+		    last_button_x	= xevent->xclient.data.l[1];
+		    last_button_y	= xevent->xclient.data.l[2];
+
+		    restack_window (win, Above);
 		}
 	    }
 	}
@@ -7327,6 +7376,17 @@ main (int argc, char *argv[])
 	    wm_action_atom[i][j] = XInternAtom (xdisplay,
 						wm_action_name[i][j],
 						FALSE);
+
+    for (i = 0; i < 3; i++)
+    {
+	char name[256];
+
+	for (j = 0; j < 3; j++)
+	{
+	    sprintf (name, "%s_NOTIFY", wm_action_name[i][j]);
+	    wm_action_notify_atom[i][j] = XInternAtom (xdisplay, name, FALSE);
+	}
+    }
 
     status = decor_acquire_dm_session (xdisplay,
 				       gdk_screen_get_number (gdkscreen),
