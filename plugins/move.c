@@ -84,6 +84,7 @@ typedef struct _MoveDisplay {
     KeyCode    key[NUM_KEYS];
 
     Atom moveAtom;
+    Atom moveNotifyAtom;
 
     int releaseButton;
 
@@ -753,8 +754,27 @@ moveHandleEvent (CompDisplay *d,
 				  CompActionStateInitButton,
 				  o, 5))
 		{
+		    XEvent ev;
+		    int    mask = NoEventMask;
+
 		    if (!w->parent->substructureRedirect)
 			activateWindow (w);
+
+		    if (w->parent == &w->screen->root)
+			mask = SubstructureRedirectMask |
+			    SubstructureNotifyMask;
+
+		    ev.type		    = ClientMessage;
+		    ev.xclient.window	    = event->xbutton.subwindow;
+		    ev.xclient.message_type = md->moveNotifyAtom;
+		    ev.xclient.format	    = 32;
+		    ev.xclient.data.l[0]    = event->xbutton.button;
+		    ev.xclient.data.l[1]    = event->xbutton.x;
+		    ev.xclient.data.l[2]    = event->xbutton.y;
+		    ev.xclient.data.l[3]    = event->xbutton.time;
+		    ev.xclient.data.l[4]    = 0;
+
+		    XSendEvent (d->display, w->parent->id, FALSE, mask, &ev);
 		}
 	    }
 	}
@@ -897,6 +917,14 @@ moveHandleEvent (CompDisplay *d,
 				   CompActionStateCancel, NULL, 0);
 		}
 	    }
+	}
+	else if (event->xclient.message_type == md->moveNotifyAtom)
+	{
+	    /* forward to owner */
+	    XSendEvent (d->display,
+			event->xclient.window,
+			FALSE, NoEventMask,
+			event);
 	}
 	break;
     case DestroyNotify:
@@ -1077,7 +1105,12 @@ moveInitDisplay (CompPlugin  *p,
 	md->key[i] = XKeysymToKeycode (d->display,
 				       XStringToKeysym (mKeys[i].name));
 
-    md->moveAtom = XInternAtom (d->display, "_COMPIZ_WM_WINDOW_MOVE_DECOR", 0);
+    md->moveAtom       = XInternAtom (d->display,
+				      "_COMPIZ_WM_WINDOW_MOVE_DECOR",
+				      0);
+    md->moveNotifyAtom = XInternAtom (d->display,
+				      "_COMPIZ_WM_WINDOW_MOVE_DECOR_NOTIFY",
+				      0);
 
     WRAP (md, d, handleEvent, moveHandleEvent);
 
