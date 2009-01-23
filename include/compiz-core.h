@@ -1398,6 +1398,9 @@ CompWindow *
 findSibling (CompWindow *w,
 	     Window     id);
 
+CompWindow *
+walkDepthFirst (CompWindow *w);
+
 
 /* display.c */
 

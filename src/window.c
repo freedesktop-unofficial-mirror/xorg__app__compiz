@@ -5627,3 +5627,15 @@ findSibling (CompWindow *w,
 
     return NULL;
 }
+
+CompWindow *
+walkDepthFirst (CompWindow *w)
+{
+    if (w->windows)
+        return w->windows;
+
+    while (!w->next && w->parent)
+        w = w->parent;
+
+    return w->next;
+}
