@@ -1662,8 +1662,8 @@ wobblyPreparePaintScreen (CompScreen *s,
 	springK  = ws->opt[WOBBLY_SCREEN_OPTION_SPRING_K].value.f;
 
 	ws->wobblyWindows = 0;
-	w = s->root.windows;
-	for (;;)
+
+	for (w = s->root.windows; w; w = walkDepthFirst (w))
 	{
 	    ww = GET_WOBBLY_WINDOW (w, ws);
 
@@ -1745,20 +1745,6 @@ wobblyPreparePaintScreen (CompScreen *s,
 
 		ws->wobblyWindows |= ww->wobbly;
 	    }
-
-	    if (w->windows)
-	    {
-		w = w->windows;
-		continue;
-	    }
-
-	    while (!w->next && (w != &s->root))
-		w = w->parent;
-
-	    if (w == &s->root)
-		break;
-
-	    w = w->next;
 	}
     }
 
@@ -2134,27 +2120,12 @@ wobblyEnableSnapping (CompDisplay     *d,
 
     for (s = d->screens; s; s = s->next)
     {
-	w = s->root.windows;
-	for (;;)
+	for (w = s->root.windows; w; w = walkDepthFirst (w))
 	{
 	    WOBBLY_WINDOW (w);
 
 	    if (ww->grabbed && ww->model)
 		modelUpdateSnapping (w, ww->model);
-
-	    if (w->windows)
-	    {
-		w = w->windows;
-		continue;
-	    }
-
-	    while (!w->next && (w != &s->root))
-		w = w->parent;
-
-	    if (w == &s->root)
-		break;
-
-	    w = w->next;
 	}
     }
 
@@ -2180,8 +2151,7 @@ wobblyDisableSnapping (CompDisplay     *d,
 
     for (s = d->screens; s; s = s->next)
     {
-	w = s->root.windows;
-	for (;;)
+	for (w = s->root.windows; w; w = walkDepthFirst (w))
 	{
 	    WOBBLY_WINDOW (w);
 
@@ -2197,20 +2167,6 @@ wobblyDisableSnapping (CompDisplay     *d,
 		    damagePendingOnScreen (w->screen);
 		}
 	    }
-
-	    if (w->windows)
-	    {
-		w = w->windows;
-		continue;
-	    }
-
-	    while (!w->next && (w != &s->root))
-		w = w->parent;
-
-	    if (w == &s->root)
-		break;
-
-	    w = w->next;
 	}
     }
 

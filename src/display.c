@@ -1796,8 +1796,7 @@ eventLoop (void)
 		{
 		    CompWindow *w;
 
-		    w = s->root.windows;
-		    for (;;)
+		    for (w = s->root.windows; w; w = walkDepthFirst (w))
 		    {
 			if (w->destroyed)
 			{
@@ -1805,20 +1804,6 @@ eventLoop (void)
 			    removeWindow (w);
 			    break;
 			}
-
-			if (w->windows)
-			{
-			    w = w->windows;
-			    continue;
-			}
-
-			while (!w->next && (w != &s->root))
-			    w = w->parent;
-	    
-			if (w == &s->root)
-			    break;
-
-			w = w->next;
 		    }
 
 		    s->pendingDestroys--;

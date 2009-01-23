@@ -903,24 +903,9 @@ decorWindowUpdateTree (CompWindow *ancestor,
     CompWindow *w;
 
     w = ancestor;
-    for (;;)
-    {
+    do {
 	decorWindowUpdate (w, allowDecoration);
-
-	if (w->windows)
-	{
-	    w = w->windows;
-	    continue;
-	}
-
-	while (!w->next && (w != ancestor))
-	    w = w->parent;
-	    
-	if (w == ancestor)
-	    break;
-
-	w = w->next;
-    }
+    } while ((w = walkDepthFirst (w)) && w != ancestor);
 }
 
 static void
@@ -1063,8 +1048,7 @@ decorHandleEvent (CompDisplay *d,
 		    {
 			ds = GET_DECOR_SCREEN (s, dd);
 
-			w = s->root.windows;
-			for (;;)
+			for (w = s->root.windows; w; w = walkDepthFirst (w))
 			{
 			    if (w->shaded || w->mapNum)
 			    {
@@ -1073,20 +1057,6 @@ decorHandleEvent (CompDisplay *d,
 				if (dw->wd && dw->wd->decor->texture == t)
 				    damageWindowOutputExtents (w);
 			    }
-
-			    if (w->windows)
-			    {
-				w = w->windows;
-				continue;
-			    }
-
-			    while (!w->next && (w != &s->root))
-				w = w->parent;
-	    
-			    if (w == &s->root)
-				break;
-
-			    w = w->next;
 			}
 		    }
 		    return;

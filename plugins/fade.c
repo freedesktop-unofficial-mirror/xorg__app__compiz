@@ -196,31 +196,16 @@ fadePreparePaintScreen (CompScreen *s,
 	if (steps < 12)
 	    steps = 12;
 
-	w = s->root.windows;
-	for (;;)
+	for (w = s->root.windows; w; w = walkDepthFirst (w))
 	{
 	    FadeWindow *fw = GET_FADE_WINDOW (w, fs);
+
 	    fw->steps    = steps;
 	    fw->fadeTime = 0;
-
-	    if (w->windows)
-	    {
-		w = w->windows;
-		continue;
-	    }
-
-	    while (!w->next && (w != &s->root))
-	    	w = w->parent;
-	    
-	    if (w == &s->root)
-		break;
-
-	    w = w->next;
 	}	
 	break;
     case FADE_MODE_CONSTANTTIME:
-	w = s->root.windows;
-	for (;;)
+	for (w = s->root.windows; w; w = walkDepthFirst (w))
 	{
 	    FadeWindow *fw = GET_FADE_WINDOW (w, fs);
 
@@ -235,20 +220,6 @@ fadePreparePaintScreen (CompScreen *s,
 	    {
 		fw->steps = 0;
 	    }
-
-	    if (w->windows)
-	    {
-		w = w->windows;
-		continue;
-	    }
-
-	    while (!w->next && (w != &s->root))
-	    	w = w->parent;
-	    
-	    if (w == &s->root)
-		break;
-
-	    w = w->next;
 	}
 	break;
     }

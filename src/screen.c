@@ -2660,27 +2660,11 @@ findWindowAtScreen (CompScreen *s,
     }
     else
     {
-	CompWindow *w = &s->root;
+	CompWindow *w;
 
-	for (;;)
-	{
+	for (w = &s->root; w; w = walkDepthFirst (w))
 	    if (w->id == id)
 		return (lastFoundWindow = w);
-
-	    if (w->windows)
-	    {
-		w = w->windows;
-		continue;
-	    }
-
-	    while (!w->next && (w != &s->root))
-	    	w = w->parent;
-	    
-	    if (w == &s->root)
-		break;
-
-	    w = w->next;
-	}
     }
 
     return NULL;
