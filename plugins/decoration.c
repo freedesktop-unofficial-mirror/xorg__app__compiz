@@ -1397,8 +1397,9 @@ decorWindowResizeNotify (CompWindow *w,
 	   processed, we need the timer for the moment.
 	   updateWindowOutputExtents should be fixed so that it does not
 	   emit a resize notification. */
-	dw->resizeUpdateHandle =
-	    compAddTimeout (0, 0, decorResizeUpdateTimeout, w);
+	if (!dw->resizeUpdateHandle)
+	    dw->resizeUpdateHandle =
+		compAddTimeout (0, 0, decorResizeUpdateTimeout, w);
 	updateWindowDecorationScale (w);
     }
 
