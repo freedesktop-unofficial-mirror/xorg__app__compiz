@@ -2373,19 +2373,6 @@ addScreen (CompDisplay *display,
     s->redrawTime = 1000 / defaultRefreshRate;
     s->optimalRedrawTime = s->redrawTime;
 
-    reshape (s, s->attrib.width, s->attrib.height);
-
-    detectRefreshRateOfScreen (s);
-    detectOutputDevices (s);
-    updateOutputDevices (s);
-
-    s->lighting	      = FALSE;
-    s->slowAnimations = FALSE;
-
-    addScreenToDisplay (display, s);
-
-    getDesktopHints (s);
-
     attrib.override_redirect = 1;
     attrib.event_mask	     = PropertyChangeMask;
 
@@ -2421,6 +2408,19 @@ addScreen (CompDisplay *display,
     }
 
     updateScreenEdges (s);
+
+    reshape (s, s->attrib.width, s->attrib.height);
+
+    detectRefreshRateOfScreen (s);
+    detectOutputDevices (s);
+    updateOutputDevices (s);
+
+    s->lighting	      = FALSE;
+    s->slowAnimations = FALSE;
+
+    addScreenToDisplay (display, s);
+
+    getDesktopHints (s);
 
     s->normalCursor = XCreateFontCursor (dpy, XC_left_ptr);
     s->busyCursor   = XCreateFontCursor (dpy, XC_watch);
