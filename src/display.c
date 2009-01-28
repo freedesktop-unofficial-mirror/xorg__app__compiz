@@ -2461,23 +2461,35 @@ manageDisplay (CompDisplay *d)
 			   CWOverrideRedirect | CWEventMask,
 			   &attr);
 
+	XChangeProperty (dpy,
+			 newWmSnOwner,
+			 d->wmNameAtom,
+			 d->utf8StringAtom, 8,
+			 PropModeReplace,
+			 (unsigned char *) PACKAGE,
+			 strlen (PACKAGE));
+
+	XWindowEvent (dpy,
+		      newWmSnOwner,
+		      PropertyChangeMask,
+		      &event);
+
+	wmSnTimestamp = event.xproperty.time;
+
+	XSetSelectionOwner (dpy, cmSnAtom, newCmSnOwner, wmSnTimestamp);
+
+	if (XGetSelectionOwner (dpy, cmSnAtom) != newCmSnOwner)
+	{
+	    compLogMessage ("core", CompLogLevelError,
+			    "Could not acquire compositing manager "
+			    "selection on screen %d display \"%s\"",
+			    i, DisplayString (dpy));
+
+	    continue;
+	}
+
 	if (windowManagement)
 	{
-	    XChangeProperty (dpy,
-			     newWmSnOwner,
-			     d->wmNameAtom,
-			     d->utf8StringAtom, 8,
-			     PropModeReplace,
-			     (unsigned char *) PACKAGE,
-			     strlen (PACKAGE));
-
-	    XWindowEvent (dpy,
-			  newWmSnOwner,
-			  PropertyChangeMask,
-			  &event);
-
-	    wmSnTimestamp = event.xproperty.time;
-
 	    XSetSelectionOwner (dpy, wmSnAtom, newWmSnOwner, wmSnTimestamp);
 
 	    if (XGetSelectionOwner (dpy, wmSnAtom) != newWmSnOwner)
@@ -2507,20 +2519,20 @@ manageDisplay (CompDisplay *d)
 			StructureNotifyMask, &event);
 	}
 
-	/* Wait for old window manager to go away */
-	if (currentWmSnOwner != None)
+	/* Wait for old compositing manager to go away */
+	if (currentCmSnOwner != None)
 	{
 	    do {
-		XWindowEvent (dpy, currentWmSnOwner,
+		XWindowEvent (dpy, currentCmSnOwner,
 			      StructureNotifyMask, &event);
 	    } while (event.type != DestroyNotify);
 	}
 
-	/* Wait for old compositing manager to go away */
-	if (currentCmSnOwner != None && currentCmSnOwner != currentWmSnOwner)
+	/* Wait for old window manager to go away */
+	if (currentWmSnOwner != None && currentCmSnOwner != currentWmSnOwner)
 	{
 	    do {
-		XWindowEvent (dpy, currentCmSnOwner,
+		XWindowEvent (dpy, currentWmSnOwner,
 			      StructureNotifyMask, &event);
 	    } while (event.type != DestroyNotify);
 	}
@@ -2545,18 +2557,6 @@ manageDisplay (CompDisplay *d)
 	{
 	    XCompositeRedirectSubwindows (dpy, XRootWindow (dpy, i),
 					  CompositeRedirectAutomatic);
-	}
-
-	XSetSelectionOwner (dpy, cmSnAtom, newCmSnOwner, wmSnTimestamp);
-
-	if (XGetSelectionOwner (dpy, cmSnAtom) != newCmSnOwner)
-	{
-	    compLogMessage ("core", CompLogLevelError,
-			    "Could not acquire compositing manager "
-			    "selection on screen %d display \"%s\"",
-			    i, DisplayString (dpy));
-
-	    continue;
 	}
 
 	XGrabServer (dpy);
