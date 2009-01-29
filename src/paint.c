@@ -1073,6 +1073,44 @@ drawWindow (CompWindow		 *w,
     return TRUE;
 }
 
+static int
+paintOffsetX (CompWindow *w,
+	      int        x)
+{
+    int vWidth = w->screen->width * (w->screen->hsize - 1);
+
+    if (vWidth)
+    {
+	int wx = w->attrib.x + x;
+
+	if (wx - w->input.left < -vWidth)
+	    return x + vWidth + w->screen->width;
+	else if (wx + w->width + w->input.right > vWidth)
+	    return x - vWidth - w->screen->width;
+    }
+
+    return x;
+}
+
+static int
+paintOffsetY (CompWindow *w,
+	      int        y)
+{
+    int vHeight = w->screen->height * (w->screen->vsize - 1);
+
+    if (vHeight)
+    {
+	int wy = w->attrib.y + y;
+    
+	if (wy - w->input.top < -vHeight)
+	    return y + vHeight + w->screen->height;
+	else if (wy + w->height + w->input.bottom > vHeight)
+	    return y - vHeight - w->screen->height;
+    }
+
+    return y;
+}
+
 Bool
 paintWindow (CompWindow		     *w,
 	     const WindowPaintAttrib *attrib,
@@ -1158,12 +1196,9 @@ paintWindow (CompWindow		     *w,
 		{
 		    if (w->viewportOffsetX || w->viewportOffsetY)
 		    {
-			getWindowMovementForOffset (w,
-						    w->viewportOffsetX,
-						    w->viewportOffsetY,
-						    &viewportOffsetX,
-						    &viewportOffsetY);
-			
+			viewportOffsetX = paintOffsetX (c, w->viewportOffsetX);
+			viewportOffsetY = paintOffsetY (c, w->viewportOffsetY);
+
 			matrixTranslate (&cTransform,
 					 viewportOffsetX,
 					 viewportOffsetY,
@@ -1361,11 +1396,8 @@ paintWindow (CompWindow		     *w,
 	    {
 		if (w->viewportOffsetX || w->viewportOffsetY)
 		{
-		    getWindowMovementForOffset (w,
-						w->viewportOffsetX,
-						w->viewportOffsetY,
-						&viewportOffsetX,
-						&viewportOffsetY);
+		    viewportOffsetX = paintOffsetX (c, w->viewportOffsetX);
+		    viewportOffsetY = paintOffsetY (c, w->viewportOffsetY);
 
 		    matrixTranslate (&cTransform,
 				     viewportOffsetX,

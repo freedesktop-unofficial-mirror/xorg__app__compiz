@@ -4348,6 +4348,14 @@ setWindowPaintOffset (CompScreen *s,
 		      int        x,
 		      int        y)
 {
-    s->root.viewportOffsetX = x;
-    s->root.viewportOffsetY = y;
+    x = (s->x * s->width) - x;
+    x = MOD (x, s->hsize * s->width);
+    x -= (s->x * s->width);
+
+    y = (s->y * s->height) - y;
+    y = MOD (y, s->vsize * s->height);
+    y -= (s->y * s->height);
+
+    s->root.viewportOffsetX = -x;
+    s->root.viewportOffsetY = -y;
 }
