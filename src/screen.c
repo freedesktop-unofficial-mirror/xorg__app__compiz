@@ -2453,6 +2453,31 @@ addScreen (CompDisplay *display,
 		&rootReturn, &parentReturn,
 		&children, &nchildren);
 
+    if (windowManagement)
+    {
+	XSelectInput (dpy, s->root.id,
+		      SubstructureRedirectMask |
+		      SubstructureNotifyMask   |
+		      StructureNotifyMask      |
+		      PropertyChangeMask       |
+		      LeaveWindowMask          |
+		      EnterWindowMask          |
+		      KeyPressMask             |
+		      KeyReleaseMask           |
+		      ButtonPressMask          |
+		      ButtonReleaseMask        |
+		      FocusChangeMask          |
+		      ExposureMask);
+    }
+    else
+    {
+	XSelectInput (dpy, s->root.id,
+		      SubstructureNotifyMask |
+		      StructureNotifyMask    |
+		      PropertyChangeMask     |
+		      ExposureMask);
+    }
+
     for (i = 0; i < nchildren; i++)
 	addWindow (&s->root, children[i], i ? children[i - 1] : 0);
 

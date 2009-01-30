@@ -2565,7 +2565,6 @@ manageDisplay (CompDisplay *d)
 	{
 	    XSelectInput (dpy, XRootWindow (dpy, i),
 			  SubstructureRedirectMask |
-			  SubstructureNotifyMask   |
 			  StructureNotifyMask      |
 			  PropertyChangeMask       |
 			  LeaveWindowMask          |
@@ -2590,7 +2589,6 @@ manageDisplay (CompDisplay *d)
 	else
 	{
 	    XSelectInput (dpy, XRootWindow (dpy, i),
-			  SubstructureNotifyMask   |
 			  StructureNotifyMask      |
 			  PropertyChangeMask       |
 			  ExposureMask);
