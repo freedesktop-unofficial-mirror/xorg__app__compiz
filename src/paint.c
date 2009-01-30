@@ -271,6 +271,8 @@ paintOutputRegion (CompScreen	       *screen,
 
     if (!(mask & PAINT_SCREEN_NO_OCCLUSION_DETECTION_MASK))
     {
+	XSubtractRegion (r, &emptyRegion, screen->root.clip);
+
 	if ((*painter.paintObject) (&screen->root,
 				    &screen->root.paint,
 				    transform,
