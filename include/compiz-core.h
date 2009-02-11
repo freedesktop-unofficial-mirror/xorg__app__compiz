@@ -28,12 +28,11 @@
 
 #include <compiz-plugin.h>
 
-#define CORE_ABIVERSION 200900203
+#define CORE_ABIVERSION 20090207
 
 #include <stdio.h>
 #include <sys/time.h>
 
-#include <X11/Xlib-xcb.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/Xdamage.h>
 #include <X11/extensions/Xcomposite.h>
@@ -865,8 +864,6 @@ struct _CompDisplay {
 
     CompDisplay *next;
 
-    xcb_connection_t *connection;
-
     Display    *display;
     CompScreen *screens;
 
@@ -1060,6 +1057,8 @@ struct _CompDisplay {
     MatchPropertyChangedProc   matchPropertyChanged;
 
     LogMessageProc logMessage;
+
+    void *reserved;
 };
 
 #define GET_CORE_DISPLAY(object) ((CompDisplay *) (object))
@@ -2190,6 +2189,8 @@ struct _CompScreen {
     OutputChangeNotifyProc outputChangeNotify;
 
     InitWindowWalkerProc initWindowWalker;
+
+    void *reserved;
 };
 
 #define GET_CORE_SCREEN(object) ((CompScreen *) (object))
@@ -2660,6 +2661,8 @@ struct _CompWindow {
 
     /* must be set by addWindowGeometry */
     DrawWindowGeometryProc drawWindowGeometry;
+
+    void *reserved;
 };
 
 #define GET_CORE_WINDOW(object) ((CompWindow *) (object))
