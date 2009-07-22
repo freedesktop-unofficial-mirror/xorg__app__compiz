@@ -63,6 +63,8 @@ Bool strictBinding = TRUE;
 Bool noDetection = FALSE;
 Bool useDesktopHints = FALSE;
 Bool onlyCurrentScreen = FALSE;
+Bool noWait = FALSE;
+Bool alwaysSwap = FALSE;
 
 #ifdef USE_COW
 Bool useCow = TRUE;
@@ -85,7 +87,9 @@ usage (void)
 	    "[--replace]\n       "
 	    "[--sm-disable] "
 	    "[--sm-client-id ID] "
-	    "[--only-current-screen]\n      "
+	    "[--only-current-screen] "
+ 	    "[--no-wait]\n       "
+ 	    "[--always-swap]"
 
 #ifdef USE_COW
 	    " [--use-root-window] "
@@ -363,6 +367,14 @@ main (int argc, char **argv)
 	{
 	    if (i + 1 < argc)
 		backgroundImage = argv[++i];
+	}
+	else if (!strcmp (argv[i], "--no-wait"))
+	{
+	    noWait = TRUE;
+	}
+	else if (!strcmp (argv[i], "--always-swap"))
+	{
+	    alwaysSwap = TRUE;
 	}
 	else if (*argv[i] == '-')
 	{

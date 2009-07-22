@@ -1450,6 +1450,9 @@ eventLoop (void)
 						      s->idle ? s->redrawTime :
 						      timeDiff);
 
+			if (alwaysSwap == TRUE)
+			    damageScreen (s);
+
 			/* substract top most overlay window region */
 			if (s->overlayWindowCount)
 			{
@@ -1509,9 +1512,11 @@ eventLoop (void)
 			targetScreen = NULL;
 			targetOutput = &s->outputDev[0];
 
-			waitForVideoSync (s);
+			if (!noWait)
+			    waitForVideoSync (s);
 
-			if (mask & COMP_SCREEN_DAMAGE_ALL_MASK)
+			if ((mask & COMP_SCREEN_DAMAGE_ALL_MASK) ||
+			    (alwaysSwap == TRUE))
 			{
 			    glXSwapBuffers (d->display, s->output);
 			}
